@@ -3,10 +3,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { deriveSurfaces } from "../../src/theme/index.ts";
 import { DARK, TRUECOLOUR_BG, configHome, start, bgAt, rowBgs, rgbCells, cardRows, openPermission, disposeSession } from "./theme-pty-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
-describe("Flat style as a setting (task 5.4)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("Flat style as a setting (task 5.4)", () => {
   test("Turned off live: theme.flat from true to false while the terminal has answered; within one second the surfaces are derived and the card is filled again", async () => {
     const cfg = configHome();
     cfg.config(`{ "theme": { "flat": true } }`);
@@ -27,7 +29,8 @@ describe("Flat style as a setting (task 5.4)", () => {
   }, 30000);
 });
 
-describe("Theme files live (task 5.1)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("Theme files live (task 5.1)", () => {
   test("a theme file named by the configuration is drawn, and an edit to it is drawn within one second without a restart", async () => {
     const cfg = configHome();
     cfg.theme("mine", `{ "tokens": { "surface.user": "#203040" } }`);

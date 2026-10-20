@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { type PtySession } from "../pty/harness.ts";
 import { CARD_HEADER, promptText, READY, REQUIRES_ACTION, statusRow, withoutBar } from "../pty/regions.ts";
 import { DARK, configHome, start, disposeSession } from "./config-pty-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
@@ -44,7 +45,8 @@ describe("Live reload (task 3.2)", () => {
     const after = withoutBar(run.s.screenText());
     expect(elapsed).toBeLessThan(1000);
     expect(after[0]).toBe("");
-    expect(after[1]).toMatch(/^ \/\S+ {2}idle .*scrolled.*connected$/);
+    // The cwd: `/tmp/…`, or `~\…` on Windows, where the temporary directory is in the profile.
+    expect(after[1]).toMatch(/^ [/~]\S+ {2}idle .*scrolled.*connected$/);
     expect(after.join("\n")).not.toMatch(/commands|\? help|shift\+tab/);
     // The conversation starts below the bar, at the same entry as before.
     expect(after[2]).toBe(topBefore);
@@ -52,7 +54,8 @@ describe("Live reload (task 3.2)", () => {
     expect(run.events("config_reload")[0]?.["changed"]).toEqual(["layout"]);
   }, 40000);
 
-  test("Theme switched: within one second of saving theme.flat true no truecolour background is drawn, and the open permission card keeps its warning frame and marker", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Theme switched: within one second of saving theme.flat true no truecolour background is drawn, and the open permission card keeps its warning frame and marker", async () => {
     const cfg = configHome();
     const run = start({ home: cfg.home, cols: 80, rows: 40, colours: DARK });
     await run.s.waitFor(READY, 10000);
