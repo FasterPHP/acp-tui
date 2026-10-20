@@ -105,6 +105,8 @@ export interface StartLaunchOptions {
   readonly elicitation?: ElicitationHandler;
   /** Paces a load's replay around the renderer's frames (renderer/frame-pace.ts). */
   readonly pace?: Pace;
+  /** Called each time a harness has answered `initialize` (a start, a switch to another harness). */
+  readonly onHarnessInitialized?: () => void;
   readonly now?: () => number;
   /** Home directory, shown as `~` in the directory marker; default `process.env.HOME`. */
   readonly home?: string | null;
@@ -221,7 +223,7 @@ function homeOf(options: Pick<StartLaunchOptions, "home">): string | null {
 
 /** Launches and initialises the agent `launch` names, in the session directory (or the launch
  *  directory when that has gone), with no session yet. Throws the agent's start-up errors. */
-export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace">): Promise<ConnectedController> {
+export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace" | "onHarnessInitialized">): Promise<ConnectedController> {
   const { launch, logger } = options;
   // The agent runs in the session directory; one the index recorded may have gone since.
   const processCwd = isDirectory(launch.directory) ? launch.directory : launch.launchDirectory;
@@ -234,6 +236,7 @@ export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logg
     ...(options.now ? { now: options.now } : {}),
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
+    ...(options.onHarnessInitialized ? { onInitialized: options.onHarnessInitialized } : {}),
   });
 }
 

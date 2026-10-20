@@ -125,6 +125,26 @@ describe("installTerminalTitle", () => {
     expect(f.titles).toEqual(["acp-tui", "acp-tui · Pool reuse", `${TITLE_MARKER} acp-tui · Pool reuse`, "acp-tui · Pool reuse"]);
   });
 
+  test("reassert writes the current title again, though it has not changed, from the session as it is now", () => {
+    const f = fixture({ format: () => WITH_TITLE });
+    f.update({ title: "Pool reuse" });
+    f.handle.reassert();
+    f.handle.reassert();
+    expect(f.titles).toEqual(["acp-tui", "acp-tui · Pool reuse", "acp-tui · Pool reuse", "acp-tui · Pool reuse"]);
+    // Only the title is written again: the stack is pushed once.
+    expect(f.written).toEqual([TITLE_PUSH]);
+    // A later change still sets it once, as before.
+    f.update({ title: "Pool reuse", updatedAt: "x" });
+    expect(f.titles).toHaveLength(4);
+  });
+
+  test("reassert after restore writes nothing", () => {
+    const f = fixture();
+    f.handle.restore();
+    f.handle.reassert();
+    expect(f.titles).toEqual(["acp-tui"]);
+  });
+
   test("with the default format the agent's title changes nothing", () => {
     const f = fixture();
     f.update({ title: "Pool reuse" });

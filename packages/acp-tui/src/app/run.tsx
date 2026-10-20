@@ -288,6 +288,8 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     cancelled: () => lifecycleRef?.shuttingDown ?? false,
     elicitation: cards.elicitation,
     pace,
+    // On Windows a harness run through npm's `.cmd` shim retitles the tab (windows-support D5).
+    onHarnessInitialized: () => terminalSignals.reassertTitle(),
   });
   const controller = () => switcher.current()?.controller ?? null;
   /** The notice while the harness is starting: `auggie is still starting`. */
