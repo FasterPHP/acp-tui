@@ -8,6 +8,7 @@ import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkProblems, runConfigCommand } from "../../src/config-command.ts";
+import { formatProblemWithSeverity, hasErrors } from "../../src/config/problems.ts";
 import { AGENT_EXAMPLES, commentedDefault, EXAMPLE } from "../../src/config/default-file.ts";
 import { effectiveConfig, nextLastGood } from "../../src/config/effective.ts";
 import { configJsonSchemaText } from "../../src/config/json-schema.ts";
@@ -306,28 +307,33 @@ describe("config --check (task 9.1)", async () => {
 }
 `;
 
-    test("on Windows each argument holding & | < > ^ or % is a warning at that argument, naming the characters (exit 0)", async () => {
-      const w = world({ config: entry });
-      const r = await w.run(["--check"], "win32");
-      expect(r.code).toBe(0);
+    // On Linux a `win32` platform given to `config --check` also moves the configuration file to
+    // Windows' locations, so these two read the file's text with the Windows rules directly and
+    // format the problems as `config --check` prints them.
+    const windowsCheck = (text: string, file = "/x/config.jsonc") => {
+      const problems = parseConfigText(text, file, { knownAgents: ["claude"], platform: "win32" }).problems;
+      return { problems, stdout: problems.map(formatProblemWithSeverity).join("\n") };
+    };
+
+    test("on Windows each argument holding & | < > ^ or % is a warning at that argument, naming the characters (exit 0)", () => {
+      const r = windowsCheck(entry);
+      expect(hasErrors(r.problems)).toBe(false);
       const lines = r.stdout.split("\n").filter((l) => l.includes(": warning: "));
       expect(lines).toHaveLength(3);
       // "a&b" is the second argument of the first entry: line 3, the string's own column.
-      expect(lines[0]).toContain(`${w.configFile}:3:`);
+      expect(lines[0]).toContain(`/x/config.jsonc:3:`);
       expect(lines[0]).toContain('warning: agent_servers.auggie.args.1 holds "&", which the command interpreter (cmd.exe) treats specially');
       expect(lines[1]).toContain('agent_servers.auggie.args.2 holds "%"');
       expect(lines[2]).toContain('agent_servers.other.args.0 holds "|", "<", ">"');
       expect(r.stdout).not.toContain("args.0 holds \"&\"");
       expect(r.stdout).not.toContain("auggie.args.0");
       expect(r.stdout).not.toContain("auggie.args.3");
-      expect(r.stdout).toMatch(/0 errors, 3 warnings\n$/);
     });
 
-    test("the warning's column is the argument's own", async () => {
-      const w = world({ config: `{ "agent_servers": { "a": { "command": "a", "args": ["ok", "x^y"] } } }\n` });
-      const r = await w.run(["--check"], "win32");
-      const text = readFileSync(w.configFile, "utf8");
-      expect(r.stdout).toContain(`${w.configFile}:1:${text.indexOf('"x^y"') + 1}: warning: agent_servers.a.args.1 holds "^"`);
+    test("the warning's column is the argument's own", () => {
+      const text = `{ "agent_servers": { "a": { "command": "a", "args": ["ok", "x^y"] } } }\n`;
+      const r = windowsCheck(text);
+      expect(r.stdout).toContain(`/x/config.jsonc:1:${text.indexOf('"x^y"') + 1}: warning: agent_servers.a.args.1 holds "^"`);
     });
 
     test("on Linux and macOS the same file has no warning", async () => {
