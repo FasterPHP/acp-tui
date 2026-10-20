@@ -11,9 +11,10 @@ import { App } from "../../src/app/App.tsx";
 import type { AppActions, AppContextValue } from "../../src/app/context.ts";
 import { createConfigStore, type ConfigStore } from "../../src/config/store.ts";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { layoutFromConfig } from "../../src/layout/from-config.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
 import { createPalette } from "../../src/overlay/Overlay.tsx";
 import { createSessionStore, type SessionStore } from "../../src/session/store.ts";
 import { DEFAULT_THEME, resolveTheme } from "../../src/theme/index.ts";
@@ -140,7 +141,8 @@ describe("configuration problems in the app (tasks 3.4 and 8.4)", () => {
     await Bun.sleep(10);
     const rows = await app.frame();
     const text = rows.join("\n");
-    expect(text).toContain(app.path.slice(0, COLS - 6));
+    // The file is shown with `~` for home (the temporary directory is under the profile on Windows).
+    expect(text).toContain(shortenHome(app.path, homedir()).slice(0, COLS - 6));
     expect(text).toMatch(/1:14 density .*takes/);
     expect(text).toMatch(/2:25 keys\.prompt\.q .*would no longer type/);
   });

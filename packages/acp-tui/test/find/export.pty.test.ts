@@ -7,8 +7,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
+import { WINDOWS } from "../windows.ts";
 import { promptBox, READY } from "../pty/regions.ts";
 import { sendPrompt, startCli, type CliRun } from "../conversation/cli.ts";
 
@@ -50,7 +51,8 @@ describe("export as Markdown (task 15.3)", () => {
     s.sendKeys("Tab");
     await s.waitFor(/esc prompt/, 3000);
     s.sendKeys({ text: "e" });
-    await s.waitFor((p) => toast(p).includes("exported to ./acp-tui-"), 5000);
+    // The toast names the file relative to the working directory, with the platform's separator.
+    await s.waitFor((p) => toast(p).includes(`exported to .${sep}acp-tui-`), 5000);
     expect(exports(r)).toHaveLength(1);
     const first = exports(r)[0]!;
     expect(first).toMatch(/^acp-tui-fake-session-\d{8}-\d{6}\.md$/);
@@ -87,7 +89,8 @@ describe("export as Markdown (task 15.3)", () => {
   }, 60000);
 
   // A directory nobody can write to needs a user who is not root (root ignores the mode).
-  test.skipIf(process.getuid?.() === 0)(
+  // Skipped on Windows: needs POSIX modes (a read-only attribute does not stop files being created in a directory).
+  test.skipIf(process.getuid?.() === 0 || WINDOWS)(
     "Read-only working directory: the file goes to $TMPDIR and the notice names that path",
     async () => {
       const base = process.env.TMPDIR ?? tmpdir();
@@ -109,7 +112,7 @@ describe("export as Markdown (task 15.3)", () => {
         // Nothing was written into the working directory, and the notice names the file where it went.
         expect(readdirSync(readOnly)).toEqual([]);
         await s.waitFor((p) => toast(p).includes(files[0]!), 5000);
-        expect(toast(s)).not.toContain("./acp-tui-");
+        expect(toast(s)).not.toContain(`.${sep}acp-tui-`);
       } finally {
         chmodSync(readOnly, 0o755);
         rmSync(readOnly, { recursive: true, force: true });

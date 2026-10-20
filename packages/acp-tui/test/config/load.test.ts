@@ -4,6 +4,7 @@
 // unknown names as warnings with a suggestion, and per-section fallback to the
 // last good value.
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { effectiveConfig, nextLastGood, type Sections } from "../../src/config/effective.ts";
 import { parseConfigText } from "../../src/config/load.ts";
 import { editDistance, formatProblem, problemNotice, problemSummary, suggest } from "../../src/config/problems.ts";
@@ -12,7 +13,8 @@ import { createConfigStore } from "../../src/config/store.ts";
 import type { FileRead } from "../../src/config/sources.ts";
 import { effectiveTerminal } from "../../src/renderer/capabilities.ts";
 
-const FILE = "/home/u/.config/acp-tui/config.jsonc";
+// Built with the platform's rules, as the store builds the user's file from XDG_CONFIG_HOME.
+const FILE = join("/home/u/.config", "acp-tui", "config.jsonc");
 
 /** A store over one in-memory user file, edited by `set`. */
 function memoryStore(initial: string | null) {
