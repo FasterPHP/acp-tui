@@ -24,7 +24,7 @@ import type { ConfigProblem } from "./problems.ts";
 import { loadSource } from "./read.ts";
 import type { Config, SectionName } from "./schema.ts";
 import { dirname, join } from "node:path";
-import { CONFIG_FILE_NAME, configDirectory, findProjectFile, homeDirectory, PROJECT_FILE_NAME, readConfigFile, THEMES_DIR_NAME, themesDirectory, userConfigFile, type Env, type FileRead } from "./sources.ts";
+import { CONFIG_FILE_NAME, configDirectory, findProjectFile, homeDirectory, PROJECT_FILE_NAME, readConfigFile, THEMES_DIR_NAME, themesDirectory, userConfigFile, type Env, type FileRead, type ReadOptions } from "./sources.ts";
 import { createConfigWatcher, jsoncFiles, type ConfigWatcher, type WatcherOptions } from "./watch.ts";
 
 export interface ConfigStoreOptions {
@@ -38,7 +38,7 @@ export interface ConfigStoreOptions {
   /** Agent names that exist without the file, for checking `default_agent`; default the built-in. */
   readonly knownAgents?: readonly string[];
   /** Reads a file (tests); default `readConfigFile`. */
-  readonly read?: (path: string, options: { checkWriters?: boolean }) => FileRead;
+  readonly read?: (path: string, options: ReadOptions) => FileRead;
 }
 
 export interface LoadedFiles {
@@ -101,7 +101,7 @@ export function createConfigStore(options: ConfigStoreOptions): ConfigStore {
   let watcher: ConfigWatcher | null = null;
 
   const readAll = (previous: Config | undefined) => {
-    const user = load(read(userFile, { checkWriters: true }), userFile, "user", knownAgents);
+    const user = load(read(userFile, { checkWriters: true, env }), userFile, "user", knownAgents);
     const projectFile = options.sessionDirectory === null ? null : findProjectFile(options.sessionDirectory, { home });
     // A different project file (or none) starts from nothing; its old sections are not kept.
     if (projectFile !== lastProjectFile) lastProject = {};

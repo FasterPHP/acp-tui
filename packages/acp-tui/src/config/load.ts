@@ -26,6 +26,7 @@ import type { z } from "zod";
 import { checkOverrides, type GlyphSetName } from "../conversation/glyphs.ts";
 import { formatProblem, suggest, type ConfigProblem, type ProblemSeverity } from "./problems.ts";
 import { AgentServerSchema, projectRule, SECTION_NAMES, SECTIONS, unwrap, type SectionName } from "./schema.ts";
+import { withoutBom } from "./sources.ts";
 
 export type ConfigSourceKind = "user" | "project";
 
@@ -517,10 +518,12 @@ function checkGlyphSection(loader: Loader, value: unknown): unknown {
  * Loads one configuration file's text (null: the file does not exist). Never throws: everything
  * wrong is a problem.
  */
-export function parseConfigText(text: string | null, file: string, options: ParseOptions = {}): ParsedSource {
+export function parseConfigText(source: string | null, file: string, options: ParseOptions = {}): ParsedSource {
   const kind = options.kind ?? "user";
   const empty = { file, kind, sections: {}, rejected: [], invalidAgents: {}, notices: [] } as const;
-  if (text === null) return { ...empty, status: "absent", problems: [] };
+  if (source === null) return { ...empty, status: "absent", problems: [] };
+  // readConfigFile drops a byte order mark already; text from elsewhere (a test's reader) too.
+  const text = withoutBom(source);
 
   const errors: ParseError[] = [];
   const root = parseTree(text, errors, { allowTrailingComma: true, disallowComments: false, allowEmptyContent: true });

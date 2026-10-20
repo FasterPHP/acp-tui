@@ -3,8 +3,8 @@
 // configuration"): the built-in `claude` entry (DEFAULT_AGENT_COMMAND) and the
 // `agent_servers` entries of the user's configuration file,
 // `$XDG_CONFIG_HOME/acp-tui/config.jsonc` (`~/.config` when XDG_CONFIG_HOME is
-// unset or not absolute), in Zed's shape: `command` a string, `args` an array
-// of strings, `env` an object of strings. A configured entry overrides a
+// unset or not absolute, `%APPDATA%` on Windows), in Zed's shape: `command` a
+// string, `args` an array of strings, `env` an object of strings. A configured entry overrides a
 // built-in one of the same name. `default_agent_server` (once `default_agent`) names the agent launched
 // when neither `-a` nor an agent command is given.
 //
@@ -17,7 +17,9 @@
 // invalid entry is kept by name so that `-a <name>` can say what is wrong with
 // it, but it is never launchable. When another user could have written the
 // file (it or its directory writable by group or others, or owned by someone
-// else), its agents are refused and only the built-in ones are available
+// else; on Windows owned by someone other than the user, Administrators or
+// SYSTEM, or outside the profile and XDG_CONFIG_HOME: config/writers.ts), its
+// agents are refused and only the built-in ones are available
 // (mvp-configuration task 1.6).
 //
 // Agents never come from a per-project `.acp-tui.jsonc` (design 6.10) or from
@@ -83,7 +85,8 @@ export class AgentNameError extends Error {
 }
 
 /** The user's configuration file: `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, or
- *  `~/.config/acp-tui/config.jsonc` when XDG_CONFIG_HOME is unset or not absolute. */
+ *  `~/.config/acp-tui/config.jsonc` when XDG_CONFIG_HOME is unset or not absolute
+ *  (`%APPDATA%\acp-tui\config.jsonc` on Windows). */
 export function configFilePath(env: Readonly<Record<string, string | undefined>> = process.env): string {
   return userConfigFile(env);
 }
@@ -130,7 +133,7 @@ export function buildAgentCatalogue(text: string | null, path: string, options: 
  *  alone, with no problem. */
 export function loadAgentCatalogue(options: { env?: Readonly<Record<string, string | undefined>>; path?: string } = {}): AgentCatalogue {
   const path = options.path ?? configFilePath(options.env);
-  const read = readConfigFile(path, { checkWriters: true });
+  const read = readConfigFile(path, { checkWriters: true, ...(options.env ? { env: options.env } : {}) });
   if (read.error !== null) {
     const catalogue = buildAgentCatalogue(null, path);
     const problem = `${path}:1:1: could not be read (${read.error}) and is ignored`;

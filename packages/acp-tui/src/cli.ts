@@ -146,7 +146,7 @@ same name, and a reload of the configuration never changes it):
                           that resumes the session).
 
 Configuration:
-  $XDG_CONFIG_HOME/acp-tui/config.jsonc (default ~/.config/acp-tui/), and
+  $XDG_CONFIG_HOME/acp-tui/config.jsonc (default ${process.platform === "win32" ? "%APPDATA%\\acp-tui\\" : "~/.config/acp-tui/"}), and
   the nearest .acp-tui.jsonc up to the repository's root, both JSONC. Edits
   apply while acp-tui runs. "acp-tui config --print-default" lists every
   setting; "acp-tui config --check" checks the files; "acp-tui config

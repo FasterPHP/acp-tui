@@ -345,3 +345,48 @@ describe("config --print-schema, --path and arguments (task 9.1)", async () => {
     expect((await w.run(["--path", "--path"])).code).toBe(0);
   });
 });
+
+describe("Windows: paths, the commented default and the byte order mark (windows-support)", async () => {
+  test("APPDATA location: config --path names C:\\Users\\u\\AppData\\Roaming\\acp-tui's file and themes directory", async () => {
+    const w = world();
+    const out: string[] = [];
+    const env = { USERPROFILE: "C:\\Users\\u", APPDATA: "C:\\Users\\u\\AppData\\Roaming", HOME: w.home };
+    const code = await runConfigCommand(["--path"], { stdout: { write: (t: string) => out.push(t) }, stderr: { write: () => true } }, { cwd: w.cwd, env, platform: "win32" });
+    expect(code).toBe(0);
+    expect(out.join("")).toBe(
+      `user file:    C:\\Users\\u\\AppData\\Roaming\\acp-tui\\config.jsonc (absent)\nthemes:       C:\\Users\\u\\AppData\\Roaming\\acp-tui\\themes (absent)\nproject file: none applies for ${w.cwd}\n`,
+    );
+  });
+
+  test("the commented default names the platform's location, and loads as the defaults on Windows too", () => {
+    const windows = commentedDefault("win32");
+    expect(commentText(windows)).toContain("This is acp-tui's configuration file: %APPDATA%\\acp-tui\\config.jsonc, or $XDG_CONFIG_HOME\\acp-tui\\config.jsonc when XDG_CONFIG_HOME is set.");
+    expect(windows).toContain("file:///C:/Users/you/AppData/Roaming/acp-tui/config.schema.json");
+    expect(windows).not.toContain("~/.config");
+    const parsed = parseConfigText(windows, "C:\\Users\\u\\AppData\\Roaming\\acp-tui\\config.jsonc", { knownAgents: ["claude"] });
+    expect(parsed.problems).toEqual([]);
+    expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} })).toEqual(defaultConfig());
+    // Linux and macOS keep their text.
+    for (const platform of ["linux", "darwin"] as const) {
+      expect(commentText(commentedDefault(platform))).toContain("$XDG_CONFIG_HOME/acp-tui/config.jsonc, or ~/.config/acp-tui/config.jsonc when XDG_CONFIG_HOME is not set.");
+      expect(commentedDefault(platform)).not.toContain("APPDATA");
+    }
+  });
+
+  test("File saved with a BOM: config --check reports no problem and the setting applies", async () => {
+    const w = world({ config: `\uFEFF{ "mouse": "off" }` });
+    expect(await w.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+    expect(readConfiguration({ env: w.env, sessionDirectory: w.cwd }).config.mouse).toBe("off");
+  });
+
+  test("a project file and a theme file saved with a BOM read as without one; positions are unchanged", async () => {
+    const clean = world({ config: `{ "theme": "mine" }`, themes: { mine: `\uFEFF{ "tokens": {} }` }, project: `\uFEFF{ "density": "verbose" }` });
+    expect(await clean.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+    expect(readConfiguration({ env: clean.env, sessionDirectory: clean.cwd }).config.density).toBe("verbose");
+    const typo = world({ config: `{ "theme": "mine" }`, themes: { mine: `\uFEFF{\n  "tokens": {\n    "acent": 4\n  }\n}\n` } });
+    expect((await typo.run(["--check"])).stdout).toContain(`${typo.themeFile("mine")}:3:5: error: `);
+    // The parser drops one given directly too (a test's reader), with the same columns.
+    const direct = parseConfigText(`\uFEFF{ "mouse": 3 }`, "/x/config.jsonc");
+    expect(direct.problems.map((p) => [p.line, p.column])).toEqual(parseConfigText(`{ "mouse": 3 }`, "/x/config.jsonc").problems.map((p) => [p.line, p.column]));
+  });
+});

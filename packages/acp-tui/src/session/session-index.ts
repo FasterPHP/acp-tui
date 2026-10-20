@@ -1,7 +1,8 @@
 // acp-tui's own session index (mvp-sessions tasks 4.1 and 4.3, design
 // decision 1, spec tui-sessions "Session index"): a JSON-lines file,
 // `$XDG_STATE_HOME/acp-tui/sessions.jsonl` (`~/.local/state` when
-// XDG_STATE_HOME is unset or not absolute), in a `0700` directory with mode
+// XDG_STATE_HOME is unset or not absolute, `%LOCALAPPDATA%` on Windows;
+// platform/paths.ts), in a `0700` directory with mode
 // `0600`. It gives `acp-tui --resume <id>` its agent and directory, gives
 // agents without `session/list` a list, and holds a title for every session.
 //
@@ -26,10 +27,10 @@
 // written, the index says so once through `onWarning` (and `warning`), and
 // every later write fails quietly: acp-tui carries on (task 4.3).
 import { chmodSync, closeSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeSync, constants } from "node:fs";
-import { homedir } from "node:os";
-import { isAbsolute, join } from "node:path";
+import { join } from "node:path";
 import { sanitise } from "acp-model";
 import { shortenHome } from "../layout/segments.ts";
+import { APP_DIR_NAME, pathsFor, stateDirectory, stateHome, type Platform } from "../platform/paths.ts";
 
 /** The agent name recorded for a command given after `--` (also exported by agent/resolve.ts). */
 export const AD_HOC_AGENT = "ad hoc";
@@ -90,7 +91,7 @@ export interface SessionIndex {
 }
 
 export interface SessionIndexOptions {
-  /** The state home; default `$XDG_STATE_HOME`, else `~/.local/state`. */
+  /** The state home; default `$XDG_STATE_HOME`, else `~/.local/state` (`%LOCALAPPDATA%` on Windows). */
   readonly stateHome?: string;
   /** The environment the default state home comes from; default `process.env`. */
   readonly env?: Readonly<Record<string, string | undefined>>;
@@ -108,10 +109,15 @@ const FORMAT_VERSION = 1;
 const DEFAULT_COMPACT_AT = 2000;
 const DEFAULT_KEEP = 1000;
 
-/** `$XDG_STATE_HOME`, or `~/.local/state` when it is unset or not absolute. */
-export function stateHomeDir(env: Readonly<Record<string, string | undefined>> = process.env): string {
-  const xdg = env["XDG_STATE_HOME"];
-  return xdg && isAbsolute(xdg) ? xdg : join(env["HOME"] || homedir(), ".local", "state");
+/** `$XDG_STATE_HOME`, or `~/.local/state` when it is unset or not absolute (`%LOCALAPPDATA%` on
+ *  Windows). acp-tui's own directory is `acp-tui` below it. */
+export function stateHomeDir(env: Readonly<Record<string, string | undefined>> = process.env, platform: Platform = process.platform): string {
+  return stateHome(env, platform);
+}
+
+/** The index file the environment gives: `sessions.jsonl` in acp-tui's state directory. */
+export function sessionIndexPath(env: Readonly<Record<string, string | undefined>> = process.env, platform: Platform = process.platform): string {
+  return pathsFor(platform).join(stateDirectory(env, platform), INDEX_FILE_NAME);
 }
 
 /** Printable and on one line: approval-mode sanitising, then every run of whitespace one space. */
@@ -223,7 +229,7 @@ function errorCode(error: unknown): string {
 
 /** Opens the index (nothing is created until the first write). */
 export function openSessionIndex(options: SessionIndexOptions = {}): SessionIndex {
-  const dir = join(options.stateHome ?? stateHomeDir(options.env), "acp-tui");
+  const dir = options.stateHome === undefined ? stateDirectory(options.env) : join(options.stateHome, APP_DIR_NAME);
   const path = join(dir, INDEX_FILE_NAME);
   const now = options.now ?? Date.now;
   const compactAt = options.compactAt ?? DEFAULT_COMPACT_AT;

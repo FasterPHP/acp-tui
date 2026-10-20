@@ -33,7 +33,7 @@ acp-tui config --check                      # problems with file, line and colum
 acp-tui config --print-default              # the commented defaults again, at any time
 ```
 
-Without `install-cli` (or after deleting the file), create it with `mkdir -p ~/.config/acp-tui && acp-tui config --print-default > ~/.config/acp-tui/config.jsonc`. Leave acp-tui running while you edit: a saved change applies to the whole screen within a second. A missing file is fine; every setting then has its default.
+Without `install-cli` (or after deleting the file), create it with `mkdir -p ~/.config/acp-tui && acp-tui config --print-default > ~/.config/acp-tui/config.jsonc`. On Windows the file is `%APPDATA%\acp-tui\config.jsonc` instead ([The files and where they live](#the-files-and-where-they-live)); `acp-tui config --path` prints where it is on any system. Leave acp-tui running while you edit: a saved change applies to the whole screen within a second. A missing file is fine; every setting then has its default.
 
 The printed file opens with a short guide in sections (making changes, validating changes, live reload, project files, editor completion). Its lines that are not commented out are in effect, and each holds the built-in default, so the file as printed changes nothing until you edit a value. Its commented-out lines are not in effect: some show the value used while a setting is absent (the layout, the per-terminal table, the modules), and the rest are examples, each introduced by `Example, not active`, such as the agents under `agent_servers`. A setting whose values need explaining lists each value once with its meaning:
 
@@ -63,14 +63,18 @@ A first file might be as small as this:
 
 | What | Where |
 | --- | --- |
-| Your configuration | `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, else `~/.config/acp-tui/config.jsonc` (an `XDG_CONFIG_HOME` that is not an absolute path is ignored) |
+| Your configuration | `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, else `~/.config/acp-tui/config.jsonc` (an `XDG_CONFIG_HOME` that is not an absolute path is ignored); on Windows, else `%APPDATA%\acp-tui\config.jsonc` |
 | Your themes | `themes/<name>.jsonc` beside it |
 | A project's overrides | `.acp-tui.jsonc`, found as described below |
-| The session index | `$XDG_STATE_HOME/acp-tui/sessions.jsonl` (state, not configuration) |
+| The session index | `$XDG_STATE_HOME/acp-tui/sessions.jsonl`, else `~/.local/state/acp-tui/sessions.jsonl` (state, not configuration); on Windows, else `%LOCALAPPDATA%\acp-tui\sessions.jsonl` |
+
+On Windows the configuration is in the roaming `%APPDATA%` (usually `C:\Users\<you>\AppData\Roaming`), so it follows you to another machine in a domain with roaming profiles, while the session index stays on the machine in `%LOCALAPPDATA%` (`C:\Users\<you>\AppData\Local`). `XDG_CONFIG_HOME` and `XDG_STATE_HOME`, when set to an absolute path, still win there, as everywhere.
 
 `acp-tui config --path` prints the first three and whether each exists. The files are JSONC, as in Zed's settings: comments and trailing commas are allowed, so an `agent_servers` entry copies across from Zed unchanged. Setting names are in snake case, grouped in objects where the schema groups them (`exit.print`, `attention.long_turn_seconds`).
 
 For completion and validation in PhpStorm or Zed, point the file at the JSON Schema with a `$schema` key (accepted and ignored by acp-tui): `acp-tui config --print-schema` prints it, and the checkout holds `packages/acp-tui/schema/config.schema.json` and `theme.schema.json`, generated from the same schema and kept equal to it by a test.
+
+A UTF-8 byte order mark at the start of your file, a project file or a theme file, which Notepad on older Windows and Windows PowerShell 5.1's `Out-File -Encoding utf8` write, is ignored: the file reads exactly as it would without one.
 
 ```jsonc config
 {
@@ -136,6 +140,8 @@ Problems reach you three ways: a notice in the prompt box's top border each time
 One command line does fail on a broken file: `acp-tui fake` where `fake` is defined only in a file that does not parse exits non-zero, naming the file problem, rather than starting some other harness.
 
 Harness commands are read only from your own file, and only if neither the file nor its directory can be written by another user or is owned by another user; otherwise `agent_servers` is refused with a problem saying why, and only the built-in harness is available.
+
+On Windows a file's mode says nothing about who can write it, so the rule there is about the owner and the place instead: the file and its directory must each be owned by you, by the Administrators group (which owns what you create from an elevated window) or by SYSTEM, and must lie in your profile (`%USERPROFILE%`) or in `XDG_CONFIG_HOME`. A file owned by another account, or one outside both, such as on a network share or under `C:\ProgramData`, has its `agent_servers` refused with a problem naming the owner or the place. If Windows cannot say who owns the file, acp-tui treats it as yours, and with `ACP_TUI_LOG` set it writes a `config_owner_unknown` event to the debug log.
 
 ## Live reload
 
@@ -789,7 +795,7 @@ It writes a small regular file, a short `sh` stub that holds the checkout's abso
 
 `install-cli` overwrites a file only if it carries its own marker or is the phase-1a launcher (recognised by its header); any other file is kept unless you pass `--force`. `--uninstall` removes only a stub with its marker. It warns when the directory is not on your `PATH`. A copy of the old launcher that is still on your `PATH` keeps working: its `--spike` argument is ignored with a notice, which `install-cli` stops by replacing it.
 
-It also creates your configuration file when there is none: the commented default (what `acp-tui config --print-default` prints) at `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, or `~/.config/acp-tui/config.jsonc` when `XDG_CONFIG_HOME` is unset or not absolute (a directory it has to make is readable only by you), and prints the path. A configuration that already exists is never replaced, not even with `--force` (which is about the command only): `install-cli` says it kept it. `--uninstall` leaves the configuration alone.
+It also creates your configuration file when there is none: the commented default (what `acp-tui config --print-default` prints) at `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, or `~/.config/acp-tui/config.jsonc` when `XDG_CONFIG_HOME` is unset or not absolute (`%APPDATA%\acp-tui\config.jsonc` on Windows; a directory it has to make is readable only by you), and prints the path. A configuration that already exists is never replaced, not even with `--force` (which is about the command only): `install-cli` says it kept it. `--uninstall` leaves the configuration alone.
 
 ## Following the terminal's colours
 

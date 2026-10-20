@@ -1,21 +1,21 @@
 // The terminal title's instance counter (day-one-feedback design D8; spec tui-screen "Terminal
 // title"): which running acp-tui instance showing a directory name this one is. A slot is a file
-// `$XDG_STATE_HOME/acp-tui/titles/<sha1 of the name>.<n>` holding the instance's PID, created
-// exclusively (`O_EXCL`), so two instances starting together never take the same number; the
-// lowest free `n` from 1 is taken. A slot whose PID no longer runs is taken over (a crash or
-// `kill -9` leaves one). The number is fixed for the run: tabs do not renumber when another
-// instance exits. Released by `release()` on every exit path (the lifecycle's final reset) and
+// `$XDG_STATE_HOME/acp-tui/titles/<sha1 of the name>.<n>` (`%LOCALAPPDATA%\acp-tui\titles` on
+// Windows) holding the instance's PID, created exclusively (`O_EXCL`), so two instances starting
+// together never take the same number; the lowest free `n` from 1 is taken. A slot whose PID no
+// longer runs is taken over (a crash or `kill -9` leaves one). The number is fixed for the run:
+// tabs do not renumber when another instance exits. Released by `release()` on every exit path (the lifecycle's final reset) and
 // when the name changes (a session switch to another directory). Keyed by the name shown, so two
 // checkouts both called `app` are told apart too. Nothing here fails the run: when the state
 // directory cannot be written, the counter is 1.
 import { createHash } from "node:crypto";
 import { linkSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { stateHomeDir } from "../session/session-index.ts";
+import { pathsFor, stateDirectory, type Platform } from "../platform/paths.ts";
 
-/** The slots' directory under the state home. */
-export function titleSlotDir(env: Readonly<Record<string, string | undefined>> = process.env): string {
-  return join(stateHomeDir(env), "acp-tui", "titles");
+/** The slots' directory in acp-tui's state directory. */
+export function titleSlotDir(env: Readonly<Record<string, string | undefined>> = process.env, platform: Platform = process.platform): string {
+  return pathsFor(platform).join(stateDirectory(env, platform), "titles");
 }
 
 /** Slots tried before giving up (and showing 1): far more tabs than anyone has. */

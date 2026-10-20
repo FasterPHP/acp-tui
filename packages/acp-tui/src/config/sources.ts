@@ -1,9 +1,11 @@
 // Where the configuration comes from (mvp-configuration design D4; spec
-// tui-config "Configuration file" and "Per-project file"):
+// tui-config "Configuration file", "Per-project file" and "Configuration
+// locations on Windows"):
 //
 // - The user's file: `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, or
 //   `~/.config/acp-tui/config.jsonc` when XDG_CONFIG_HOME is unset or not
-//   absolute; themes in `themes/` beside it.
+//   absolute (`%APPDATA%\acp-tui\config.jsonc` on Windows; platform/paths.ts);
+//   themes in `themes/` beside it.
 // - The project file: the nearest `.acp-tui.jsonc` from the session directory
 //   upwards to the root of the git work tree holding it (found by walking for
 //   `.git`, a directory or a file, with no `git` process), or only the session
@@ -11,14 +13,21 @@
 //   One file only: files do not stack.
 //
 // Reading the user's file also says whether another user could have written it
-// (the file or its directory writable by group or others, or either owned by
-// someone else), in which case its agent commands are refused (spec tui-config
-// "Agents in the configuration").
+// (config/writers.ts: on Linux and macOS the file or its directory writable by
+// group or others, or either owned by someone else; on Windows their owner and
+// location), in which case its agent commands are refused (spec tui-config
+// "Agents in the configuration", "Harness file writers on Windows").
+//
+// A UTF-8 byte order mark at the start of a file is dropped when it is read
+// (spec tui-config "Byte order mark ignored"), so the user's file, a project
+// file and a theme file read the same with or without one.
 import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join, parse, resolve, sep } from "node:path";
+import { dirname, join, parse, resolve, sep } from "node:path";
+import { configDirectory as platformConfigDirectory, pathsFor, type Env, type Platform } from "../platform/paths.ts";
+import { writersProblem, type WriterCheckOptions } from "./writers.ts";
 
-export type Env = Readonly<Record<string, string | undefined>>;
+export type { Env };
 
 export const CONFIG_FILE_NAME = "config.jsonc";
 export const PROJECT_FILE_NAME = ".acp-tui.jsonc";
@@ -29,21 +38,25 @@ export function homeDirectory(env: Env = process.env): string {
   return env["HOME"] || homedir();
 }
 
-/** `$XDG_CONFIG_HOME/acp-tui`, or `~/.config/acp-tui` when XDG_CONFIG_HOME is unset or not absolute. */
-export function configDirectory(env: Env = process.env): string {
-  const xdg = env["XDG_CONFIG_HOME"];
-  const base = xdg && isAbsolute(xdg) ? xdg : join(homeDirectory(env), ".config");
-  return join(base, "acp-tui");
+/** `$XDG_CONFIG_HOME/acp-tui`, or `~/.config/acp-tui` when XDG_CONFIG_HOME is unset or not absolute
+ *  (`%APPDATA%\acp-tui` on Windows). */
+export function configDirectory(env: Env = process.env, platform: Platform = process.platform): string {
+  return platformConfigDirectory(env, platform);
 }
 
 /** The user's configuration file. */
-export function userConfigFile(env: Env = process.env): string {
-  return join(configDirectory(env), CONFIG_FILE_NAME);
+export function userConfigFile(env: Env = process.env, platform: Platform = process.platform): string {
+  return pathsFor(platform).join(configDirectory(env, platform), CONFIG_FILE_NAME);
 }
 
 /** The themes directory, `themes/` in the configuration directory. */
-export function themesDirectory(env: Env = process.env): string {
-  return join(configDirectory(env), THEMES_DIR_NAME);
+export function themesDirectory(env: Env = process.env, platform: Platform = process.platform): string {
+  return pathsFor(platform).join(configDirectory(env, platform), THEMES_DIR_NAME);
+}
+
+/** `text` without a leading byte order mark (U+FEFF), which editors on Windows often write. */
+export function withoutBom(text: string): string {
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
 const exists = (path: string): boolean => {
@@ -102,35 +115,23 @@ export interface FileRead {
   readonly error: string | null;
 }
 
-/** Why `path` (a file or directory) could have been written by another user, or null. */
-function writableByOthers(path: string, what: string, uid: number | null): string | null {
-  let stat;
-  try {
-    stat = statSync(path);
-  } catch {
-    return null;
-  }
-  const mode = (stat.mode & 0o777).toString(8).padStart(4, "0");
-  if ((stat.mode & 0o022) !== 0) return `${what} ${path} has mode ${mode}, writable by other users`;
-  if (uid !== null && stat.uid !== uid) return `${what} ${path} is owned by another user`;
-  return null;
+/** How `readConfigFile` reads: `checkWriters` (the user's file) also checks who could write it,
+ *  with the writer check's options (tests inject the platform and the owner lookup). */
+export interface ReadOptions extends WriterCheckOptions {
+  readonly checkWriters?: boolean;
 }
 
-/** Reads a configuration file. `checkWriters` (the user's file) also checks who could write it. */
-export function readConfigFile(path: string, options: { checkWriters?: boolean } = {}): FileRead {
+/** Reads a configuration file, dropping a leading byte order mark. */
+export function readConfigFile(path: string, options: ReadOptions = {}): FileRead {
   let text: string | null;
   let error: string | null = null;
   try {
-    text = readFileSync(path, "utf8");
+    text = withoutBom(readFileSync(path, "utf8"));
   } catch (e) {
     const code = (e as NodeJS.ErrnoException).code;
     text = null;
     if (code !== "ENOENT" && code !== "ENOTDIR") error = code ?? "error";
   }
-  let unsafe: string | null = null;
-  if (options.checkWriters && text !== null) {
-    const uid = typeof process.getuid === "function" ? process.getuid() : null;
-    unsafe = writableByOthers(path, "the file", uid) ?? writableByOthers(dirname(path), "the directory", uid);
-  }
+  const unsafe = options.checkWriters && text !== null ? writersProblem(path, options) : null;
   return { text, unsafe, error };
 }
