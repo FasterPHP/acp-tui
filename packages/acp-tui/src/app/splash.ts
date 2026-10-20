@@ -15,6 +15,8 @@
 // stay, wrapped between whole hints, never cut mid-word.
 import { interruptHintKey } from "../keys/hints.ts";
 import { actionLabel, type KeyMap } from "../keys/keymap.ts";
+import { commandDisplayName } from "../agent/harness-name.ts";
+import type { Platform } from "../platform/paths.ts";
 import { newlineLabel } from "../keys/newline-hint.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
 import type { ChromeGlyphs } from "../layout/glyphs.ts";
@@ -50,7 +52,8 @@ export function harnessName(reported: string | null, fallback: string): string {
 const HINT_GAP = "  ";
 
 /** What the launch says before the session reports anything: the harness's name as launched (the
- *  configured name, or the first word of an ad hoc command without its directory) and the session
+ *  configured name, or the first word of an ad hoc command without its directory, and on Windows
+ *  without a `.cmd`, `.bat` or `.exe` extension) and the session
  *  directory. Both are known at launch, so the identity rows never wait for the agent. */
 export interface SplashLaunch {
   readonly harness: string;
@@ -58,9 +61,8 @@ export interface SplashLaunch {
 }
 
 /** The launch as the splash shows it. `agentName` is `ad hoc` for a command given after `--`. */
-export function splashLaunch(launch: { readonly agentName: string; readonly command: string; readonly directory: string }): SplashLaunch {
-  const last = launch.command.split("/").filter((part) => part !== "").at(-1) ?? launch.command;
-  return { harness: launch.agentName === AD_HOC_AGENT ? last : launch.agentName, directory: launch.directory };
+export function splashLaunch(launch: { readonly agentName: string; readonly command: string; readonly directory: string }, platform: Platform = process.platform): SplashLaunch {
+  return { harness: launch.agentName === AD_HOC_AGENT ? commandDisplayName(launch.command, platform) : launch.agentName, directory: launch.directory };
 }
 
 /** A segment the spinner's current frame replaces (the splash redraws that cell alone). */

@@ -7,6 +7,8 @@
 // terminal is `windows-terminal` and OpenTUI's `capabilities.kitty_keyboard` is false, and the
 // key map's first newline key otherwise (`shift+enter` by default). The key map itself binds
 // Ctrl+Enter to newline in both encodings (`linefeed` and `ctrl+return`), whatever the terminal.
+// The find bar's "previous match" (Shift+Enter) follows the same rule, with Ctrl+Enter bound to it
+// in both encodings too (windows-support "Decisions during apply").
 //
 // The kitty answer arrives after start-up, so the state is a signal: a splash or help list that
 // reads the label re-runs when the answer comes. Nothing here is set outside Windows Terminal, so
@@ -41,6 +43,25 @@ export function setNewlineHintState(next: NewlineHintState): void {
 
 const CTRL_ENTER = normaliseKey("ctrl+return");
 
+/** The label of the key an Enter-based action shows: `ctrl+enter` where Shift+Enter cannot arrive and
+ *  the action has Ctrl+Enter, otherwise its first key that is not Ctrl+Enter (or Ctrl+Enter itself if
+ *  it is the only one); null when the action has no key. */
+function enterKeyLabel(keys: readonly string[], hint: NewlineHintState): string | null {
+  if (ctrlEnterIsNewline(hint) && keys.includes(CTRL_ENTER)) return keyLabel(CTRL_ENTER);
+  const key = keys.find((k) => k !== CTRL_ENTER) ?? keys[0];
+  return key === undefined ? null : keyLabel(key);
+}
+
+/** The labels key help lists for an Enter-based action, see `newlineKeyLabels`. */
+function enterKeyLabels(keys: readonly string[], hint: NewlineHintState): string[] {
+  const windowsTerminal = hint.terminal === "windows-terminal";
+  const ctrlEnter = ctrlEnterIsNewline(hint) && keys.includes(CTRL_ENTER);
+  const dropped = new Set<string>(windowsTerminal ? [normaliseKey("meta+return")] : []);
+  if (ctrlEnter) dropped.add(normaliseKey("shift+return"));
+  const rest = keys.filter((k) => k !== CTRL_ENTER && !dropped.has(k));
+  return [...new Set((ctrlEnter ? [CTRL_ENTER, ...rest] : rest).map(keyLabel))];
+}
+
 /**
  * The newline key the splash names: `ctrl+enter` where Shift+Enter cannot arrive and the map binds
  * Ctrl+Enter to newline, otherwise the first newline key of the map that is not Ctrl+Enter
@@ -48,10 +69,7 @@ const CTRL_ENTER = normaliseKey("ctrl+return");
  * no key.
  */
 export function newlineLabel(map: KeyMap, hint: NewlineHintState = state()): string | null {
-  const keys = keysFor(map, "prompt", "newline");
-  if (ctrlEnterIsNewline(hint) && keys.includes(CTRL_ENTER)) return keyLabel(CTRL_ENTER);
-  const key = keys.find((k) => k !== CTRL_ENTER) ?? keys[0];
-  return key === undefined ? null : keyLabel(key);
+  return enterKeyLabel(keysFor(map, "prompt", "newline"), hint);
 }
 
 /**
@@ -61,11 +79,16 @@ export function newlineLabel(map: KeyMap, hint: NewlineHintState = state()): str
  * Everywhere else Ctrl+Enter is left out, so the list is what it was before the key was bound.
  */
 export function newlineKeyLabels(map: KeyMap, hint: NewlineHintState = state()): string[] {
-  const keys = keysFor(map, "prompt", "newline");
-  const windowsTerminal = hint.terminal === "windows-terminal";
-  const ctrlEnter = ctrlEnterIsNewline(hint) && keys.includes(CTRL_ENTER);
-  const dropped = new Set<string>(windowsTerminal ? [normaliseKey("meta+return")] : []);
-  if (ctrlEnter) dropped.add(normaliseKey("shift+return"));
-  const rest = keys.filter((k) => k !== CTRL_ENTER && !dropped.has(k));
-  return [...new Set((ctrlEnter ? [CTRL_ENTER, ...rest] : rest).map(keyLabel))];
+  return enterKeyLabels(keysFor(map, "prompt", "newline"), hint);
+}
+
+/** The find bar's "previous match" key, by the same rule as the newline key: `ctrl+enter` in
+ *  Windows Terminal without kitty, `shift+enter` elsewhere (find bar hint, key help). */
+export function findPreviousLabel(map: KeyMap, hint: NewlineHintState = state()): string | null {
+  return enterKeyLabel(keysFor(map, "find", "previous"), hint);
+}
+
+/** The find bar's "previous match" keys key help lists, by the same rule as `newlineKeyLabels`. */
+export function findPreviousKeyLabels(map: KeyMap, hint: NewlineHintState = state()): string[] {
+  return enterKeyLabels(keysFor(map, "find", "previous"), hint);
 }

@@ -6,7 +6,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { parseKeypress } from "@opentui/core";
 import { splashHints } from "../../src/app/splash.ts";
 import { DEFAULT_KEY_MAP, loadKeyMap } from "../../src/keys/keymap.ts";
-import { ctrlEnterIsNewline, newlineKeyLabels, newlineLabel, setNewlineHintState, type NewlineHintState } from "../../src/keys/newline-hint.ts";
+import { barHints } from "../../src/find/bar.ts";
+import { ctrlEnterIsNewline, findPreviousKeyLabels, findPreviousLabel, newlineKeyLabels, newlineLabel, newlineHintState as newlineHintStateNow, setNewlineHintState, type NewlineHintState } from "../../src/keys/newline-hint.ts";
 import { TERMINAL_IDS } from "../../src/renderer/terminal-ids.ts";
 import { helpItems } from "../../src/overlay/help.ts";
 
@@ -25,9 +26,10 @@ describe("the binding", () => {
     expect(DEFAULT_KEY_MAP.prompt["meta+return"]).toBe("newline");
     expect(DEFAULT_KEY_MAP.prompt["linefeed"]).toBe("newline");
     expect(DEFAULT_KEY_MAP.prompt["ctrl+j"]).toBe("newline");
-    // Enter alone still sends, and no other context takes Ctrl+Enter.
+    // Enter alone still sends, and no other context takes Ctrl+Enter but the find bar ("previous").
     expect(DEFAULT_KEY_MAP.prompt["return"]).toBe("submit");
-    for (const context of ["global", "conversation", "selection", "find", "overlay", "card", "elicitation"] as const) {
+    expect(DEFAULT_KEY_MAP.find["ctrl+return"]).toBe("previous");
+    for (const context of ["global", "conversation", "selection", "overlay", "card", "elicitation"] as const) {
       expect((DEFAULT_KEY_MAP[context] as Record<string, string>)["ctrl+return"], context).toBeUndefined();
     }
   });
@@ -105,5 +107,55 @@ describe("the hint", () => {
     expect(newlineHelp()).toEqual(["shift+enter", "ctrl+j"]);
     setNewlineHintState({ terminal: "jetbrains", kitty: false });
     expect(splashNewline()).toBe("shift+enter");
+  });
+});
+
+describe("the find bar's previous match (windows-support, spec tui-keymap 'Find previous in Windows Terminal')", () => {
+  const previousHint = (hint: NewlineHintState, map = DEFAULT_KEY_MAP) => {
+    const text = barHints(map, hint).map((s) => s.text).join("");
+    return /([a-z+]+) previous/.exec(text)?.[1];
+  };
+  const findHelp = (map = DEFAULT_KEY_MAP) => helpItems(map, 80).find((i) => i.id === "help:find.previous")!.keys;
+
+  test("both encodings of Ctrl+Enter in Windows Terminal reach find's previous: a line feed (1.24) and CSI 13;5u (1.25)", () => {
+    const legacy = parseKeypress("\n", { useKittyKeyboard: true });
+    expect(DEFAULT_KEY_MAP.find[legacy!.name as "linefeed"]).toBe("previous");
+    const kitty = parseKeypress("\x1b[13;5u", { useKittyKeyboard: true });
+    expect(kitty).toMatchObject({ name: "return", ctrl: true });
+    expect(DEFAULT_KEY_MAP.find["ctrl+return"]).toBe("previous");
+    // Enter alone is still next.
+    expect(DEFAULT_KEY_MAP.find["return"]).toBe("next");
+  });
+
+  test("the bar's hint names ctrl+enter only in Windows Terminal without kitty, shift+enter everywhere else", () => {
+    expect(previousHint(WT_OLD)).toBe("ctrl+enter");
+    expect(previousHint(WT_KITTY)).toBe("shift+enter");
+    for (const terminal of TERMINAL_IDS) {
+      if (terminal === "windows-terminal") continue;
+      for (const kitty of [false, true]) expect(previousHint({ terminal, kitty }), `${terminal} kitty=${kitty}`).toBe("shift+enter");
+    }
+    // The default hints (nothing set) are what they were.
+    expect(previousHint({ terminal: "default", kitty: false })).toBe("shift+enter");
+    expect(findPreviousLabel(DEFAULT_KEY_MAP, WT_OLD)).toBe("ctrl+enter");
+  });
+
+  test("the hint follows the map and the kitty answer", () => {
+    const noCtrlEnter = loadKeyMap({ find: { "ctrl+return": null } });
+    expect(findPreviousLabel(noCtrlEnter, WT_OLD)).toBe("shift+enter");
+    const none = loadKeyMap({ find: { "shift+return": null, "meta+return": null, "ctrl+return": null, linefeed: null } });
+    expect(findPreviousLabel(none, WT_OLD)).toBeNull();
+    setNewlineHintState(WT_OLD);
+    expect(previousHint(newlineHintStateNow())).toBe("ctrl+enter");
+    setNewlineHintState(WT_KITTY);
+    expect(previousHint(newlineHintStateNow())).toBe("shift+enter");
+  });
+
+  test("key help lists the find bar's previous keys by the newline rule", () => {
+    expect(findPreviousKeyLabels(DEFAULT_KEY_MAP, WT_OLD)).toEqual(["ctrl+enter", "ctrl+j"]);
+    expect(findPreviousKeyLabels(DEFAULT_KEY_MAP, WT_KITTY)).toEqual(["shift+enter", "ctrl+j"]);
+    expect(findPreviousKeyLabels(DEFAULT_KEY_MAP, { terminal: "zed", kitty: true })).toEqual(["shift+enter", "alt+enter", "ctrl+j"]);
+    expect(findHelp()).toEqual(["shift+enter", "alt+enter", "ctrl+j"]);
+    setNewlineHintState(WT_OLD);
+    expect(findHelp()).toEqual(["ctrl+enter", "ctrl+j"]);
   });
 });

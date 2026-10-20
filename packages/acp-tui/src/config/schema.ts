@@ -402,7 +402,7 @@ export const SECTIONS = {
     heading: "Where copied text goes",
     values: [
       ["auto", "the system clipboard, else through the terminal by OSC 52"],
-      ["host", "only the system clipboard, through Wayland or X11"],
+      ["host", "only the system clipboard (Wayland or X11 on Linux, the pasteboard on macOS, the Windows clipboard)"],
       ["osc52", "only through the terminal by OSC 52, which also works over SSH"],
       ["none", "nowhere: copying is turned off"],
     ],

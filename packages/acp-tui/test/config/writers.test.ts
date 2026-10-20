@@ -58,9 +58,39 @@ describe("Harness file writers on Windows", () => {
 
   test("a file outside the profile (a share, C:\\ProgramData) is refused, naming the location", () => {
     const shared = "\\\\server\\share\\acp-tui\\config.jsonc";
-    expect(check(shared, { env: { USERPROFILE: PROFILE, APPDATA: "\\\\server\\share" } }).problem).toBe(`the file ${shared} is outside your profile ${PROFILE}`);
+    expect(check(shared).problem).toBe(`the file ${shared} is outside your profile ${PROFILE}`);
     const programData = "C:\\ProgramData\\acp-tui\\config.jsonc";
     expect(check(programData).problem).toBe(`the file ${programData} is outside your profile ${PROFILE}`);
+  });
+
+  describe("Redirected APPDATA", () => {
+    const APPDATA = "\\\\server\\share\\u\\Roaming";
+    const REDIRECTED_DIR = `${APPDATA}\\acp-tui`;
+    const REDIRECTED = `${REDIRECTED_DIR}\\config.jsonc`;
+    const env = { USERPROFILE: PROFILE, APPDATA };
+
+    test("a file in %APPDATA%\\acp-tui on a share outside the profile is accepted when its owner is the user", () => {
+      expect(check(REDIRECTED, { env })).toEqual({ problem: null, logged: [] });
+    });
+
+    test("the same file with a foreign owner is refused, naming the owner", () => {
+      expect(check(REDIRECTED, { env, owners: { [REDIRECTED]: OTHER } }).problem).toBe(`the file ${REDIRECTED} is owned by ${OTHER}, not by you, Administrators or SYSTEM`);
+      expect(check(REDIRECTED, { env, owners: { [REDIRECTED_DIR]: OTHER } }).problem).toBe(`the directory ${REDIRECTED_DIR} is owned by ${OTHER}, not by you, Administrators or SYSTEM`);
+    });
+
+    test("only acp-tui's own directory is accepted, not the rest of the share", () => {
+      const sibling = `${APPDATA}\\other\\config.jsonc`;
+      expect(check(sibling, { env }).problem).toBe(`the file ${sibling} is outside your profile ${PROFILE} and ${REDIRECTED_DIR}`);
+      const elsewhere = "\\\\server\\share\\acp-tui\\config.jsonc";
+      expect(check(elsewhere, { env }).problem).toBe(`the file ${elsewhere} is outside your profile ${PROFILE} and ${REDIRECTED_DIR}`);
+    });
+
+    test("with XDG_CONFIG_HOME set, %APPDATA%\\acp-tui is still accepted and the message names all three places", () => {
+      const withXdg = { ...env, XDG_CONFIG_HOME: "D:\\cfg" };
+      expect(check(REDIRECTED, { env: withXdg }).problem).toBeNull();
+      const stray = "E:\\x\\config.jsonc";
+      expect(check(stray, { env: withXdg }).problem).toBe(`the file ${stray} is outside your profile ${PROFILE}, XDG_CONFIG_HOME D:\\cfg and ${REDIRECTED_DIR}`);
+    });
   });
 
   test("a file in XDG_CONFIG_HOME outside the profile is accepted when its owner is", () => {

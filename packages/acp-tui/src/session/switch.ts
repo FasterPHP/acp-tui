@@ -33,6 +33,7 @@
 import type { ListSessionsResponse } from "@agentclientprotocol/sdk";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
+import { commandDisplayName } from "../agent/harness-name.ts";
 import { AD_HOC_AGENT, adHocSessionMessage, launchArgv, unconfiguredAgentMessage, type LaunchDescription } from "../agent/resolve.ts";
 import type { DebugLogger } from "../log.ts";
 import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
@@ -125,9 +126,9 @@ export interface SessionSwitcher {
   detach(): Promise<void>;
 }
 
-/** The harness's name for a message (`auggie`; for an ad hoc command its first word, without its directory). */
+/** The harness's name for a message (`auggie`; for an ad hoc command its first word, without its directory and, on Windows, its `.cmd`, `.bat` or `.exe` extension). */
 function harnessOf(launch: Pick<LaunchDescription, "agentName" | "command">): string {
-  return launch.agentName === AD_HOC_AGENT ? (launch.command.split("/").filter((part) => part !== "").at(-1) ?? launch.command) : launch.agentName;
+  return launch.agentName === AD_HOC_AGENT ? commandDisplayName(launch.command) : launch.agentName;
 }
 
 /** The command and environment a launch runs, to tell whether two launches share an agent. */

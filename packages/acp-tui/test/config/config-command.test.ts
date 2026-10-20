@@ -315,7 +315,7 @@ describe("config --check (task 9.1)", async () => {
       return { problems, stdout: problems.map(formatProblemWithSeverity).join("\n") };
     };
 
-    test("on Windows each argument holding & | < > ^ or % is a warning at that argument, naming the characters (exit 0)", () => {
+    test("on Windows each argument holding \" % & | < > ^ or a line break is a warning at that argument, naming the characters (exit 0)", () => {
       const r = windowsCheck(entry);
       expect(hasErrors(r.problems)).toBe(false);
       const lines = r.stdout.split("\n").filter((l) => l.includes(": warning: "));
@@ -323,11 +323,23 @@ describe("config --check (task 9.1)", async () => {
       // "a&b" is the second argument of the first entry: line 3, the string's own column.
       expect(lines[0]).toContain(`/x/config.jsonc:3:`);
       expect(lines[0]).toContain('warning: agent_servers.auggie.args.1 holds "&", which the command interpreter (cmd.exe) treats specially');
+      expect(lines[0]).toContain("so the harness will not start if its command is a command script");
       expect(lines[1]).toContain('agent_servers.auggie.args.2 holds "%"');
       expect(lines[2]).toContain('agent_servers.other.args.0 holds "|", "<", ">"');
       expect(r.stdout).not.toContain("args.0 holds \"&\"");
       expect(r.stdout).not.toContain("auggie.args.0");
       expect(r.stdout).not.toContain("auggie.args.3");
+    });
+
+    test("the quote and a carriage return or line feed are named too (Bun refuses them in a command script's argument)", () => {
+      const text = JSON.stringify({ agent_servers: { a: { command: "a", args: ['say "hi"', "one\ntwo", "one\r\ntwo", "fine"] } } });
+      const r = windowsCheck(text);
+      const lines = r.stdout.split("\n");
+      expect(lines).toHaveLength(3);
+      expect(lines[0]).toContain("agent_servers.a.args.0 holds '\"', which");
+      expect(lines[1]).toContain("agent_servers.a.args.1 holds \\n, which");
+      expect(lines[2]).toContain("agent_servers.a.args.2 holds \\r, \\n, which");
+      expect(lines[2]).toContain("Bun refuses to start one with them in an argument");
     });
 
     test("the warning's column is the argument's own", () => {

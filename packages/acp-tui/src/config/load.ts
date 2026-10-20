@@ -65,18 +65,22 @@ export interface ParseOptions {
   readonly platform?: NodeJS.Platform;
 }
 
-/** The characters of an argument that Windows' command interpreter (`cmd.exe`) reads as syntax
- *  when it runs a `.cmd` or `.bat` harness: command separators, redirections, the escape and
- *  variable expansion (windows-support D5). */
-export const CMD_SPECIAL_CHARACTERS: readonly string[] = ["&", "|", "<", ">", "^", "%"];
+/** The characters that Bun 1.4 refuses in the command or an argument when it starts a `.cmd` or
+ *  `.bat` harness on Windows (`ERR_INVALID_ARG_VALUE`), which are the ones `cmd.exe` reads as
+ *  syntax: the quote, the variable expansion, command separators, redirections, the escape and a
+ *  line break (windows-support D5). */
+export const CMD_SPECIAL_CHARACTERS: readonly string[] = ["\"", "%", "&", "|", "<", ">", "^", "\r", "\n"];
+
+/** A character as the warning prints it: `"&"`, `'"'` for the quote, `\r` and `\n` for a line break. */
+const printable = (c: string): string => (c === "\r" ? "\\r" : c === "\n" ? "\\n" : c === '"' ? "'\"'" : `"${c}"`);
 
 /** What is odd about a harness argument on Windows, if anything: the interpreter characters it
  *  holds. Null when it has none. */
 export function cmdArgumentWarning(arg: string): string | null {
   const found = CMD_SPECIAL_CHARACTERS.filter((c) => arg.includes(c));
   if (found.length === 0) return null;
-  const list = found.map((c) => `"${c}"`).join(", ");
-  return `holds ${list}, which the command interpreter (cmd.exe) treats specially when the harness is a command script (.cmd or .bat, as npm installs them), so Bun refuses to start such a script with ${found.length === 1 ? "it" : "them"} in an argument`;
+  const list = found.map(printable).join(", ");
+  return `holds ${list}, which the command interpreter (cmd.exe) treats specially, so the harness will not start if its command is a command script (.cmd or .bat, as npm installs them): Bun refuses to start one with ${found.length === 1 ? "it" : "them"} in an argument`;
 }
 
 /** Line starts of `text`, for offsets to 1-based line and column. */
