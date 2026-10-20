@@ -21,4 +21,9 @@ mkdirSync(process.env.XDG_CONFIG_HOME, { recursive: true });
 // No real clipboard from a test or a process it starts (renderer/test-hooks.ts `no-host-clipboard`):
 // on macOS and Windows the host clipboard exists whatever the environment says.
 process.env.ACP_TUI_TEST_HOOKS = [...(process.env.ACP_TUI_TEST_HOOKS ?? "").split(",").map((n) => n.trim()).filter(Boolean), "no-host-clipboard"].join(",");
+// The terminal the tests run in is not the one a test describes: the variables that name it are
+// dropped, so acp-tui (in the test process and in every process a test starts) sees an unknown
+// terminal unless the test names one. Windows Terminal's WT_SESSION, for one, reaches every process
+// started under it, and an IDE's terminal sets TERMINAL_EMULATOR or TERM_PROGRAM.
+for (const name of ["TERM_PROGRAM", "TERM_PROGRAM_VERSION", "TERMINAL_EMULATOR", "WT_SESSION", "WT_PROFILE_ID"]) delete process.env[name];
 afterAll(() => rmSync(base, { recursive: true, force: true }));
