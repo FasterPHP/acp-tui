@@ -797,6 +797,8 @@ It writes a small regular file, a short `sh` stub that holds the checkout's abso
 
 It also creates your configuration file when there is none: the commented default (what `acp-tui config --print-default` prints) at `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, or `~/.config/acp-tui/config.jsonc` when `XDG_CONFIG_HOME` is unset or not absolute (`%APPDATA%\acp-tui\config.jsonc` on Windows; a directory it has to make is readable only by you), and prints the path. A configuration that already exists is never replaced, not even with `--force` (which is about the command only): `install-cli` says it kept it. `--uninstall` leaves the configuration alone.
 
+On Windows the command is `acp-tui.cmd` in `%USERPROFILE%\.bun\bin` (Bun's own directory, already on the `PATH`), a batch file that runs `packages\acp-tui\src\cli.ts` with the Bun that ran `install-cli`; `--uninstall` there removes only an `acp-tui.cmd` that `install-cli` wrote. See [Installing acp-tui on Windows](install-windows.md).
+
 ## Following the terminal's colours
 
 acp-tui asks the terminal for its foreground and background (OSC 10 and 11) at start-up and derives the surfaces from the answers. Text in indexed and default colours follows the terminal's palette by itself. The derived surfaces and the `light` or `dark` theme section follow only when acp-tui asks again, which it does:

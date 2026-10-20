@@ -22,8 +22,16 @@
 // symlink is written through), and `--force` does not change that: it is about the stub only.
 // `--uninstall` leaves the configuration alone.
 //
-// The stub part imports only Node and Bun built-ins. The configuration part imports the package's
-// configuration modules when it runs, so they need the checkout's dependencies (`bun install`).
+// On Windows (design D1 of windows-support; tui-config "Installed command on Windows") the stub is
+// `acp-tui.cmd`, written to `%USERPROFILE%\.bun\bin` (which Bun's installer puts on the PATH): cmd
+// and PowerShell cannot run an `sh` script. It runs `src/cli.ts` with the absolute path of the Bun
+// that ran the install, and carries the same marker behind `rem`. `--uninstall` there removes only
+// `acp-tui.cmd` with that marker, and leaves an old `sh` stub named `acp-tui` alone.
+//
+// The stub part imports only Node and Bun built-ins (and two small modules of the package that do
+// the same: the platform paths and the PATH lookup helpers). The configuration part imports the
+// package's configuration modules when it runs, so they need the checkout's dependencies
+// (`bun install`).
 import {
   chmodSync,
   existsSync,
@@ -37,9 +45,16 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
+import { pathsFor, pathWithin, windowsProfile, type Platform } from "../src/platform/paths.ts";
+import { envValue } from "../src/agent/which.ts";
 
-/** The second line of every stub this script writes; what makes a file "its own". */
-export const MARKER = "# acp-tui-install-cli: written by `bun run install-cli`; rerun it to repoint, do not edit.";
+const MARKER_TEXT = "acp-tui-install-cli: written by `bun run install-cli`; rerun it to repoint, do not edit.";
+
+/** The second line of every `sh` stub this script writes; what makes a file "its own". */
+export const MARKER = `# ${MARKER_TEXT}`;
+
+/** The second line of the Windows `.cmd` stub: the same marker behind `rem`. */
+export const CMD_MARKER = `rem ${MARKER_TEXT}`;
 
 const LAUNCHER_RELATIVE = "packages/acp-tui/bin/acp-tui";
 
@@ -65,12 +80,47 @@ export function renderStub(root: string): string {
   ].join("\n");
 }
 
+const CLI_RELATIVE_WINDOWS = "packages\\acp-tui\\src\\cli.ts";
+
+/** Text for a batch file's `set "..."` or quoted command: `%` is the one character cmd expands
+ *  inside quotes (a path can hold it), doubled to stand for itself. */
+function batchQuoted(text: string): string {
+  return text.replaceAll("%", "%%");
+}
+
+/**
+ * The Windows stub (CRLF line endings, which cmd.exe reads most reliably). `bun` is the absolute
+ * path of the Bun that ran the install, so nothing in the current directory can stand in for it.
+ * The check is a `goto`, not a parenthesised block: a root such as `C:\Program Files (x86)\acp-tui`
+ * would close the block early when `%root%` expands inside it. The message is built with delayed
+ * expansion, which does not re-read `&` or `)` in the value; it is switched on only there, because
+ * with it on the `!` in the user's own arguments would be eaten.
+ */
+export function renderCmdStub(root: string, bun: string): string {
+  return [
+    "@echo off",
+    CMD_MARKER,
+    "setlocal",
+    'set "root=%ACP_TUI_ROOT%"',
+    `if not defined root set "root=${batchQuoted(root)}"`,
+    `if not exist "%root%\\${CLI_RELATIVE_WINDOWS}" goto :missing`,
+    `"${batchQuoted(bun)}" "%root%\\${CLI_RELATIVE_WINDOWS}" -- %*`,
+    "exit /b %ERRORLEVEL%",
+    ":missing",
+    "setlocal EnableDelayedExpansion",
+    `echo acp-tui: !root!\\${CLI_RELATIVE_WINDOWS} was not found ^(did the checkout move?^); rerun 'bun run install-cli' in the checkout 1>&2`,
+    "exit /b 127",
+    "",
+  ].join("\r\n");
+}
+
 export type Ownership = "stub" | "phase-1a" | "foreign";
 
-/** Whose file this is, judged from its first two lines. */
+/** Whose file this is, judged from its first two lines (either line ending). */
 export function classify(content: string): Ownership {
-  const [first, second] = content.split("\n", 2);
+  const [first, second] = content.split(/\r?\n/, 2);
   if (first === "#!/bin/sh" && second === MARKER) return "stub";
+  if (first === "@echo off" && second === CMD_MARKER) return "stub";
   if (first === "#!/usr/bin/env bash" && second !== undefined && PHASE_1A_HEADERS.some((h) => second.startsWith(h))) {
     return "phase-1a";
   }
@@ -84,8 +134,17 @@ interface Parsed {
   help: boolean;
 }
 
-function parse(argv: readonly string[], home: string): Parsed {
-  const parsed: Parsed = { dir: join(home, ".local/bin"), force: false, uninstall: false, help: false };
+/**
+ * Where the stub goes by default: `~/.local/bin`, or on Windows Bun's own bin directory,
+ * `%USERPROFILE%\\.bun\\bin`, which Bun's installer puts on the user's PATH.
+ */
+export function defaultDirectory(env: Record<string, string | undefined>, platform: Platform = process.platform): string {
+  if (platform === "win32") return pathsFor(platform).join(windowsProfile(env), ".bun", "bin");
+  return join(env["HOME"] || homedir(), ".local/bin");
+}
+
+function parse(argv: readonly string[], dir: string): Parsed {
+  const parsed: Parsed = { dir, force: false, uninstall: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
     if (arg === "--force") parsed.force = true;
@@ -109,10 +168,13 @@ launcher. Run it once: a git pull updates the command, and it is needed again on
 checkout moves. A file it did not write is kept unless --force (the phase-1a launcher is
 replaced without it). --uninstall removes only a command this script wrote.
 
+On Windows the command is acp-tui.cmd and the default directory is %USERPROFILE%\\.bun\\bin,
+where Bun's installer already put a directory on your PATH.
+
 It also creates your configuration file, $XDG_CONFIG_HOME/acp-tui/config.jsonc (else
-~/.config/acp-tui/config.jsonc), with every setting commented at its default, when there is
-none. An existing configuration is never replaced, not even with --force, and --uninstall
-leaves it alone.
+~/.config/acp-tui/config.jsonc; on Windows %APPDATA%\\acp-tui\\config.jsonc), with every setting
+commented at its default, when there is none. An existing configuration is never replaced, not
+even with --force, and --uninstall leaves it alone.
 `;
 
 function lstatOrNull(path: string): ReturnType<typeof lstatSync> | null {
@@ -123,7 +185,19 @@ function lstatOrNull(path: string): ReturnType<typeof lstatSync> | null {
   }
 }
 
-function onPath(dir: string, pathVariable: string | undefined): boolean {
+/** Whether `dir` is one of the PATH's entries; on Windows the comparison ignores case and the
+ *  kind of separator, and an entry may be quoted (`"C:\\tools"`). */
+export function onPath(dir: string, pathVariable: string | undefined, platform: Platform = process.platform): boolean {
+  if (platform === "win32") {
+    const rules = pathsFor(platform);
+    const wanted = rules.resolve(dir);
+    return (pathVariable ?? "")
+      .split(rules.delimiter)
+      .map((entry) => entry.trim().replace(/^"(.*)"$/, "$1"))
+      .filter(Boolean)
+      .map((entry) => rules.resolve(entry))
+      .some((entry) => pathWithin(entry, wanted, platform) && pathWithin(wanted, entry, platform));
+  }
   const wanted = safeRealpath(dir);
   return (pathVariable ?? "")
     .split(delimiter)
@@ -187,10 +261,12 @@ export async function main(
   argv: readonly string[],
   io: Io = { stdout: (t) => void process.stdout.write(t), stderr: (t) => void process.stderr.write(t) },
   env: Record<string, string | undefined> = process.env,
+  platform: Platform = process.platform,
 ): Promise<number> {
+  const windows = platform === "win32";
   let parsed: Parsed;
   try {
-    parsed = parse(argv, env["HOME"] || homedir());
+    parsed = parse(argv, defaultDirectory(env, platform));
   } catch (error) {
     io.stderr(`install-cli: ${error instanceof Error ? error.message : String(error)}\n\n${HELP}`);
     return 2;
@@ -200,7 +276,9 @@ export async function main(
     return 0;
   }
 
-  const target = join(parsed.dir, "acp-tui");
+  // On Windows an old `sh` stub named `acp-tui` (from before this script wrote `.cmd` files) is a
+  // different file and is never touched.
+  const target = join(parsed.dir, windows ? "acp-tui.cmd" : "acp-tui");
   const existing = lstatOrNull(target);
 
   if (parsed.uninstall) {
@@ -220,8 +298,9 @@ export async function main(
   }
 
   const root = safeRealpath(resolve(import.meta.dir, "../../.."));
-  if (!existsSync(join(root, LAUNCHER_RELATIVE))) {
-    io.stderr(`install-cli: ${join(root, LAUNCHER_RELATIVE)} does not exist; is this a complete acp-tui checkout?\n`);
+  const required = join(root, windows ? "packages/acp-tui/src/cli.ts" : LAUNCHER_RELATIVE);
+  if (!existsSync(required)) {
+    io.stderr(`install-cli: ${required} does not exist; is this a complete acp-tui checkout?\n`);
     return 1;
   }
 
@@ -241,13 +320,17 @@ export async function main(
   // Write beside the target and rename over it, so a running copy is never half-written and a
   // forced replacement of a symlink replaces the link rather than its destination.
   const temporary = join(dirname(target), `.acp-tui.${process.pid}.tmp`);
-  writeFileSync(temporary, renderStub(root));
-  chmodSync(temporary, 0o755);
+  writeFileSync(temporary, windows ? renderCmdStub(root, process.execPath) : renderStub(root));
+  if (!windows) chmodSync(temporary, 0o755);
   renameSync(temporary, target);
 
   const what = replaced === "phase-1a" ? " (replacing the phase-1a launcher)" : replaced === "foreign" ? " (forced)" : "";
-  io.stdout(`install-cli: installed ${target}${what}, running ${join(root, LAUNCHER_RELATIVE)}\n`);
-  if (!onPath(parsed.dir, env["PATH"])) {
+  io.stdout(
+    windows
+      ? `install-cli: installed ${target}${what}, running ${required} with ${process.execPath}\n`
+      : `install-cli: installed ${target}${what}, running ${required}\n`,
+  );
+  if (!onPath(parsed.dir, envValue(env, "PATH", platform), platform)) {
     io.stderr(`install-cli: warning: ${parsed.dir} is not on your PATH, so \`acp-tui\` will not be found until you add it\n`);
   }
 
