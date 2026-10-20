@@ -23,7 +23,17 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { READY } from "../pty/regions.ts";
-import { classify, MARKER, renderStub, shellQuote } from "../../scripts/install-cli.ts";
+import {
+  classify,
+  CMD_MARKER,
+  defaultDirectory,
+  main as installMain,
+  MARKER,
+  onPath,
+  renderCmdStub,
+  renderStub,
+  shellQuote,
+} from "../../scripts/install-cli.ts";
 import { commentedDefault } from "../../src/config/default-file.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
@@ -130,6 +140,8 @@ describe("install-cli", () => {
     // The configuration modules the installer imports, from this checkout (their own imports
     // resolve from the link's target).
     symlinkSync(join(ROOT, "packages/acp-tui/src/config"), join(pkg, "src/config"));
+    symlinkSync(join(ROOT, "packages/acp-tui/src/platform"), join(pkg, "src/platform"));
+    symlinkSync(join(ROOT, "packages/acp-tui/src/agent"), join(pkg, "src/agent"));
     writeFileSync(join(pkg, "src/cli.ts"), 'console.log("code one:", process.argv.slice(2).join(" "));\n');
     const git = (...args: string[]) => run(["git", ...args], { cwd: checkout });
     expect((await git("init", "-q")).code).toBe(0);
@@ -354,5 +366,159 @@ describe("install-cli", () => {
     const stub = renderStub("/a b/it's");
     expect(stub.split("\n").slice(0, 2)).toEqual(["#!/bin/sh", MARKER]);
     expect(stub).toContain(`'/a b/it'\\''s'`);
+  });
+});
+
+// The Windows stub (design D1 of windows-support, spec tui-config "Installed command on Windows"),
+// run here on any platform by injecting `win32` into the installer. The stub itself can only run on
+// Windows; its end-to-end check is made there (windows-support task 4.2).
+describe("install-cli on Windows (platform injected)", () => {
+  const BUN = "C:\\Users\\Ann\\.bun\\bin\\bun.exe";
+  const collect = () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    return { out, err, io: { stdout: (t: string) => void out.push(t), stderr: (t: string) => void err.push(t) } };
+  };
+  /** A HOME-less environment for the injected run: the configuration lands under a temporary XDG_CONFIG_HOME. */
+  const winEnv = (home: string, extra: Record<string, string> = {}) => ({
+    USERPROFILE: home,
+    XDG_CONFIG_HOME: join(home, "config"),
+    ...extra,
+  });
+
+  test("the stub text: CRLF, the rem marker on line 2, ACP_TUI_ROOT, the 127 check and Bun on cli.ts", () => {
+    const stub = renderCmdStub("C:\\src\\acp-tui", BUN);
+    expect(stub.includes("\n")).toBe(true);
+    expect(stub.replaceAll("\r\n", "").includes("\n")).toBe(false);
+    const lines = stub.split("\r\n");
+    expect(lines.slice(0, 2)).toEqual(["@echo off", CMD_MARKER]);
+    expect(CMD_MARKER).toBe(`rem ${MARKER.slice(2)}`);
+    expect(lines).toContain('set "root=%ACP_TUI_ROOT%"');
+    expect(lines).toContain('if not defined root set "root=C:\\src\\acp-tui"');
+    expect(lines).toContain('if not exist "%root%\\packages\\acp-tui\\src\\cli.ts" goto :missing');
+    expect(lines).toContain(`"${BUN}" "%root%\\packages\\acp-tui\\src\\cli.ts" -- %*`);
+    const message = lines.find((line) => line.includes("was not found"))!;
+    expect(message).toContain("(did the checkout move?)".replace("(", "^(").replace(")", "^)"));
+    expect(message).toContain("rerun 'bun run install-cli' in the checkout");
+    expect(lines).toContain("exit /b 127");
+    expect(stub.endsWith("\r\n")).toBe(true);
+  });
+
+  test("the stub text: a root with % or parentheses is written so cmd reads it back unchanged", () => {
+    const stub = renderCmdStub("C:\\Program Files (x86)\\100%\\acp-tui", BUN);
+    expect(stub).toContain('set "root=C:\\Program Files (x86)\\100%%\\acp-tui"');
+    // No parenthesised block that an expanded ")" could close early.
+    expect(stub.split("\r\n").filter((line) => line.startsWith("if ") && line.endsWith("(")).length).toBe(0);
+    // Delayed expansion is on only after :missing, never where the arguments are passed.
+    expect(stub.indexOf("EnableDelayedExpansion")).toBeGreaterThan(stub.indexOf(":missing"));
+    expect(stub.indexOf("EnableDelayedExpansion")).toBeGreaterThan(stub.indexOf("-- %*"));
+  });
+
+  test("classify reads both markers and either line ending", () => {
+    const cmd = renderCmdStub("C:\\src\\acp-tui", BUN);
+    expect(classify(cmd)).toBe("stub");
+    expect(classify(cmd.replaceAll("\r\n", "\n"))).toBe("stub");
+    expect(classify(renderStub("/a/b"))).toBe("stub");
+    expect(classify("@echo off\r\nrem somebody else's\r\necho hi\r\n")).toBe("foreign");
+    expect(classify("@echo off\r\n")).toBe("foreign");
+    expect(classify("")).toBe("foreign");
+  });
+
+  test("defaultDirectory: Bun's bin directory in the profile on Windows, ~/.local/bin elsewhere", () => {
+    expect(defaultDirectory({ USERPROFILE: "C:\\Users\\Ann", HOME: "/home/x" }, "win32")).toBe("C:\\Users\\Ann\\.bun\\bin");
+    expect(defaultDirectory({ HOME: "/home/x", USERPROFILE: "C:\\Users\\Ann" }, "linux")).toBe("/home/x/.local/bin");
+    expect(defaultDirectory({ HOME: "/Users/x" }, "darwin")).toBe("/Users/x/.local/bin");
+  });
+
+  test("the PATH check on Windows ignores case, separator style, a trailing separator and quotes", () => {
+    const dir = "C:\\Users\\Ann\\.bun\\bin";
+    expect(onPath(dir, "C:\\Windows;c:\\users\\ann\\.BUN\\bin", "win32")).toBe(true);
+    expect(onPath(dir, "C:\\Windows;C:/Users/Ann/.bun/bin/;D:\\x", "win32")).toBe(true);
+    expect(onPath(dir, 'C:\\Windows;"C:\\Users\\Ann\\.bun\\bin"', "win32")).toBe(true);
+    expect(onPath(dir, "C:\\Windows;C:\\Users\\Ann\\.bun", "win32")).toBe(false);
+    expect(onPath(dir, "C:\\Windows;C:\\Users\\Ann\\.bun\\bin\\sub", "win32")).toBe(false);
+    expect(onPath(dir, undefined, "win32")).toBe(false);
+    // Elsewhere the comparison stays exact.
+    expect(onPath("/nowhere/Bin", "/nowhere/bin", "linux")).toBe(false);
+    expect(onPath("/nowhere/bin", "/other:/nowhere/bin", "linux")).toBe(true);
+  });
+
+  test("installs acp-tui.cmd with no mode bits, the Windows stub text and the real Bun; the configuration is created", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const { io, out, err } = collect();
+    expect(await installMain(["--dir", bin], io, winEnv(home, { Path: bin }), "win32")).toBe(0);
+    const target = join(bin, "acp-tui.cmd");
+    expect(existsSync(join(bin, "acp-tui"))).toBe(false);
+    expect(statSync(target).mode & 0o111).toBe(0);
+    const text = readFileSync(target, "utf8");
+    expect(text).toBe(renderCmdStub(ROOT, process.execPath));
+    expect(classify(text)).toBe("stub");
+    expect(out.join("")).toContain(`installed ${target}`);
+    expect(out.join("")).toContain("created");
+    expect(err.join("")).toBe("");
+    expect(readFileSync(join(home, "config/acp-tui/config.jsonc"), "utf8")).toBe(commentedDefault());
+    // Nothing is left beside it.
+    expect(existsSync(join(bin, `.acp-tui.${process.pid}.tmp`))).toBe(false);
+  });
+
+  test("warns when the directory is not on the PATH, comparing case-insensitively and reading `Path`", async () => {
+    const home = scratch();
+    const bin = join(home, "Bin");
+    const off = collect();
+    expect(await installMain(["--dir", bin], off.io, winEnv(home, { Path: "C:\\Windows" }), "win32")).toBe(0);
+    expect(off.err.join("")).toContain("is not on your PATH");
+
+    const on = collect();
+    expect(await installMain(["--dir", bin], on.io, winEnv(home, { Path: `C:\\Windows;${bin.toUpperCase()}` }), "win32")).toBe(0);
+    expect(on.err.join("")).toBe("");
+  });
+
+  test("a foreign acp-tui.cmd is kept and --force replaces it", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    mkdirSync(bin);
+    const target = join(bin, "acp-tui.cmd");
+    writeFileSync(target, "@echo off\r\necho mine\r\n");
+
+    const refused = collect();
+    expect(await installMain(["--dir", bin], refused.io, winEnv(home, { Path: bin }), "win32")).toBe(1);
+    expect(refused.err.join("")).toContain("--force");
+    expect(readFileSync(target, "utf8")).toBe("@echo off\r\necho mine\r\n");
+
+    const forced = collect();
+    expect(await installMain(["--dir", bin, "--force"], forced.io, winEnv(home, { Path: bin }), "win32")).toBe(0);
+    expect(classify(readFileSync(target, "utf8"))).toBe("stub");
+
+    const again = collect();
+    expect(await installMain(["--dir", bin], again.io, winEnv(home, { Path: bin }), "win32")).toBe(0);
+  });
+
+  test("--uninstall removes only acp-tui.cmd with the marker, and leaves an old sh stub alone", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    mkdirSync(bin);
+    const oldStub = join(bin, "acp-tui");
+    writeFileSync(oldStub, renderStub("/old/checkout"));
+
+    const first = collect();
+    expect(await installMain(["--dir", bin], first.io, winEnv(home, { Path: bin }), "win32")).toBe(0);
+    expect(readFileSync(oldStub, "utf8")).toBe(renderStub("/old/checkout"));
+
+    const removed = collect();
+    expect(await installMain(["--uninstall", "--dir", bin], removed.io, winEnv(home), "win32")).toBe(0);
+    expect(existsSync(join(bin, "acp-tui.cmd"))).toBe(false);
+    expect(readFileSync(oldStub, "utf8")).toBe(renderStub("/old/checkout"));
+    expect(readFileSync(join(home, "config/acp-tui/config.jsonc"), "utf8")).toBe(commentedDefault());
+
+    const none = collect();
+    expect(await installMain(["--uninstall", "--dir", bin], none.io, winEnv(home), "win32")).toBe(0);
+    expect(none.out.join("")).toContain("nothing to remove");
+
+    writeFileSync(join(bin, "acp-tui.cmd"), "@echo off\r\necho mine\r\n");
+    const kept = collect();
+    expect(await installMain(["--uninstall", "--dir", bin], kept.io, winEnv(home), "win32")).toBe(1);
+    expect(kept.err.join("")).toContain("was not written by install-cli");
+    expect(readFileSync(join(bin, "acp-tui.cmd"), "utf8")).toBe("@echo off\r\necho mine\r\n");
   });
 });
