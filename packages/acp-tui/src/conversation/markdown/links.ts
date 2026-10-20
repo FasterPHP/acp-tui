@@ -9,6 +9,12 @@
 //   `user@` prefix never hides the real host) is what follows a differing
 //   label and what the toast names.
 // - `mailto` targets must hold an address; the address follows the label.
+// - A target that starts with a drive letter, a colon and a slash or backslash
+//   (`C:\src\Main.java`, `C:/src/Main.java`) is a local path on Windows, not
+//   a URL with the scheme `c:`; the test comes before the scheme rule. It is
+//   resolved by Windows' path rules (case-insensitive, either slash) and
+//   linked only inside the working directory. On any other system such a
+//   target is no path at all and is refused as before.
 // - A target without a scheme is a local path: percent-decoded, resolved
 //   against the session's working directory and normalised (so `..` cannot
 //   climb out by spelling), and linked only when it stays inside it. The
@@ -25,8 +31,9 @@
 // the store; `process.cwd()` until then). Only absolute paths depend on it,
 // and only for whether they are linked: the drawn text never does, so the
 // height cache and the projection are the same in any directory.
-import { isAbsolute, posix, relative, resolve, sep } from "node:path";
+import { posix, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
+import { pathsFor } from "../../platform/paths.ts";
 
 /** Targets longer than this are never linked (spec "Link target safety"). */
 export const MAX_LINK_TARGET = 2048;
@@ -56,17 +63,21 @@ export interface RefusedTarget {
 
 export type TargetVerdict = AllowedTarget | RefusedTarget;
 
+/** A drive letter, a colon and a slash or backslash: a Windows path, never a scheme. */
+const DRIVE_PATH = /^[A-Za-z]:[\\/]/;
 const SCHEME = /^([A-Za-z][A-Za-z0-9+.-]*):/;
 // C0 and C1 controls, DEL, and every Unicode space or line or paragraph separator.
 const WHITESPACE_OR_CONTROL = /[\u0000-\u0020\u007f-\u00a0\u1680\u2000-\u200b\u2028\u2029\u202f\u205f\u3000\ufeff]/;
 
 const refused = (reason: RefusedTarget["reason"]): RefusedTarget => ({ allowed: false, reason });
 
-/** The verdict on `href` (as the agent wrote it, already sanitised) for a session in `cwd`. */
-export function classifyTarget(href: string, cwd: string): TargetVerdict {
+/** The verdict on `href` (as the agent wrote it, already sanitised) for a session in `cwd`; local
+ *  paths follow the path rules of `platform` (default this system's). */
+export function classifyTarget(href: string, cwd: string, platform: NodeJS.Platform = process.platform): TargetVerdict {
   if (href === "") return refused("empty");
   if (href.length > MAX_LINK_TARGET) return refused("length");
   if (WHITESPACE_OR_CONTROL.test(href)) return refused("whitespace");
+  if (DRIVE_PATH.test(href)) return platform === "win32" ? localPath(href, cwd, platform) : refused("scheme");
   const scheme = SCHEME.exec(href)?.[1]?.toLowerCase();
   if (scheme === "https" || scheme === "http") {
     let url: URL;
@@ -84,31 +95,34 @@ export function classifyTarget(href: string, cwd: string): TargetVerdict {
     return { allowed: true, kind: "mail", open: href, url: href, shown: address };
   }
   if (scheme !== undefined) return refused("scheme");
-  return localPath(href, cwd);
+  return localPath(href, cwd, platform);
 }
 
 /** A target without a scheme: a path inside `cwd`, or refused. */
-function localPath(href: string, cwd: string): TargetVerdict {
+function localPath(href: string, cwd: string, platform: NodeJS.Platform): TargetVerdict {
+  const path = pathsFor(platform);
   if (href.startsWith("~") || href.startsWith("//") || href.startsWith("\\\\")) return refused("not-a-path");
   // The fragment and query are not part of the path.
-  const path = href.split(/[?#]/, 1)[0]!;
-  if (path === "") return refused("not-a-path");
+  const bare = href.split(/[?#]/, 1)[0]!;
+  if (bare === "") return refused("not-a-path");
   let decoded: string;
   try {
-    decoded = decodeURIComponent(path);
+    decoded = decodeURIComponent(bare);
   } catch {
     return refused("invalid");
   }
   if (WHITESPACE_OR_CONTROL.test(decoded.replace(/ /g, "x"))) return refused("whitespace");
-  const target = resolve(cwd, decoded);
-  if (!inside(cwd, target)) return refused("outside");
-  return { allowed: true, kind: "file", open: target, url: pathToFileURL(target).href, shown: href };
+  const target = path.resolve(cwd, decoded);
+  if (!inside(cwd, target, platform)) return refused("outside");
+  return { allowed: true, kind: "file", open: target, url: pathToFileURL(target, { windows: platform === "win32" }).href, shown: href };
 }
 
-/** Whether `target` (absolute, normalised) is `dir` or below it. */
-export function inside(dir: string, target: string): boolean {
-  const rel = relative(resolve(dir), target);
-  return rel === "" || (!rel.startsWith(`..${sep}`) && rel !== ".." && !isAbsolute(rel));
+/** Whether `target` (absolute, normalised) is `dir` or below it, by the path rules of `platform`
+ *  (on Windows case-insensitive, and a path on another drive is outside). */
+export function inside(dir: string, target: string, platform: NodeJS.Platform = process.platform): boolean {
+  const path = pathsFor(platform);
+  const rel = path.relative(path.resolve(dir), target);
+  return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel));
 }
 
 /** The refused target as shown after the label: cut in the middle beyond `REFUSED_SHOWN_MAX`. */
@@ -130,7 +144,8 @@ export function labelShowsTarget(label: string, href: string): boolean {
   if (l === "") return false;
   const h = norm(href);
   const forms = new Set([h, h.replace(/^[a-z][a-z0-9+.-]*:\/\//, ""), h.replace(/^mailto:/, "")]);
-  if (!SCHEME.test(href)) forms.add(norm(posix.normalize(href)));
+  if (DRIVE_PATH.test(href)) forms.add(norm(win32.normalize(href)));
+  else if (!SCHEME.test(href)) forms.add(norm(posix.normalize(href)));
   return forms.has(l);
 }
 

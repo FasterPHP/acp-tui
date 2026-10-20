@@ -1,14 +1,14 @@
 // Opening an elicitation's URL (mvp-chrome-and-keys task 5.6, design D7; spec
 // tui-layout "Elicitation card"). Pure but for the environment it is given.
 //
-// The system opener (`xdg-open` on Linux, `open` on macOS, or `ACP_TUI_OPENER`;
-// src/links/open.ts) gets the URL as its one argument, through `Bun.spawn` and
-// never a shell. Only an `https` or `http` URL without whitespace or control
-// characters is opened, so the argument can never be read as an option; any
-// other is refused (it can still be copied). In an SSH session the opener
-// would run on the remote host, so the URL is copied instead and the notice
-// says so.
-import { openerCommand, remoteSession, type Env } from "../links/open.ts";
+// The system opener (`xdg-open` on Linux, `open` on macOS, `rundll32.exe
+// url.dll,FileProtocolHandler` on Windows, or `ACP_TUI_OPENER`; src/links/open.ts)
+// gets the URL as its one last argument, through `Bun.spawn` and never a shell.
+// Only an `https` or `http` URL without whitespace or control characters is
+// opened, so the argument can never be read as an option; any other is refused
+// (it can still be copied). In an SSH session the opener would run on the remote
+// host, so the URL is copied instead and the notice says so.
+import { openerArgv, remoteSession, type Env } from "../links/open.ts";
 
 export type UrlPlan =
   | { readonly action: "open"; readonly argv: readonly string[]; readonly host: string }
@@ -33,5 +33,5 @@ export function planUrlOpen(url: string, env: Env = process.env, platform: NodeJ
   const host = openableHost(url);
   if (host === null) return { action: "refuse", reason: "only an https or http link is opened" };
   if (remoteSession(env)) return { action: "copy", host };
-  return { action: "open", argv: [openerCommand(env, platform), url], host };
+  return { action: "open", argv: [...openerArgv(env, platform), url], host };
 }

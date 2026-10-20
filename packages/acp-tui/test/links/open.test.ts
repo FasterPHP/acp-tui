@@ -8,7 +8,7 @@ import { classifyTarget } from "../../src/conversation/markdown/links.ts";
 import type { LinkTarget } from "../../src/conversation/markdown/types.ts";
 import { itemLinks, linkInRow } from "../../src/links/hit.ts";
 import { ProgramNotFoundError } from "../../src/agent/which.ts";
-import { openerCommand, planOpen, remoteSession, spawnOpener } from "../../src/links/open.ts";
+import { openerArgv, openerCommand, planOpen, remoteSession, spawnOpener } from "../../src/links/open.ts";
 
 const target = (href: string, cwd: string): LinkTarget => {
   const v = classifyTarget(href, cwd);
@@ -24,6 +24,27 @@ describe("the opener", () => {
     expect(openerCommand({}, "freebsd")).toBe("xdg-open");
     expect(openerCommand({}, "darwin")).toBe("open");
     expect(openerCommand({ ACP_TUI_OPENER: "/stub/opener" }, "linux")).toBe("/stub/opener");
+  });
+
+  // spec tui-rendering "Opening links on Windows".
+  test("on Windows: rundll32.exe by absolute path with url.dll,FileProtocolHandler, the target its one last argument; ACP_TUI_OPENER first", () => {
+    const rundll32 = "C:\\Windows\\System32\\rundll32.exe";
+    expect(openerArgv({}, "win32")).toEqual([rundll32, "url.dll,FileProtocolHandler"]);
+    expect(openerArgv({ SYSTEMROOT: "D:\\WinNT" }, "win32")).toEqual(["D:\\WinNT\\System32\\rundll32.exe", "url.dll,FileProtocolHandler"]);
+    expect(openerArgv({ ACP_TUI_OPENER: "C:\\stub\\opener.cmd" }, "win32")).toEqual(["C:\\stub\\opener.cmd"]);
+    expect(openerArgv({}, "linux")).toEqual(["xdg-open"]);
+    expect(openerArgv({}, "darwin")).toEqual(["open"]);
+    expect(planOpen(target("https://example.com/docs", "/w"), "/w", LOCAL, "win32")).toEqual({ action: "open", argv: [rundll32, "url.dll,FileProtocolHandler", "https://example.com/docs"], toast: "opening example.com" });
+    expect(planOpen(target("mailto:a@b.example", "/w"), "/w", LOCAL, "win32")).toMatchObject({ action: "open", argv: [rundll32, "url.dll,FileProtocolHandler", "mailto:a@b.example"] });
+  });
+
+  test("on Windows a target with shell characters is one argument and no command interpreter is named", () => {
+    const plan = planOpen(target("https://example.com/a&b", "/w"), "/w", LOCAL, "win32");
+    expect(plan).toMatchObject({ action: "open" });
+    const argv = plan.action === "open" ? plan.argv : [];
+    expect(argv.at(-1)).toBe("https://example.com/a&b");
+    expect(argv.length).toBe(3);
+    expect(argv.join(" ").toLowerCase()).not.toMatch(/cmd(\.exe)?|\bstart\b|powershell/);
   });
 
   // spec tui-agent-session "Programs resolved from the PATH only".

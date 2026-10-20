@@ -253,6 +253,8 @@ Unset values keep the built-in ones (`config --print-default` lists them as comm
 
 The host clipboard is `wl-copy` or `xclip` on Linux (with a display) and `pbcopy` on macOS, each falling back to OpenTUI's own backend; Ctrl+V reads it (through `pbpaste` on macOS) under `auto` and `host` only.
 
+On Windows the host clipboard is the Windows clipboard, written and read by OpenTUI's own backend with no helper program, and what you copy stays on it after acp-tui exits. The toast reads `copied N chars to the Windows clipboard`. Over SSH there is no host clipboard (it would be the remote machine's), so copying goes through the terminal by OSC 52. Windows Terminal honours OSC 52, so `"osc52"` works there too, but IntelliJ IDEA's terminal ignores it: leave `clipboard` at `"auto"` (or `"host"`) to copy from IntelliJ.
+
 ### The prompt box
 
 | Setting | Values | Default | What it does |
