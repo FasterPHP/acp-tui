@@ -19,6 +19,7 @@ import {
 import { diffSnapshots, snapshotBuffer, type ScreenSnapshot } from "./snapshot.ts";
 import { TEST_HOOKS_VAR } from "../../src/renderer/test-hooks.ts";
 import { JEDITERM_ENV, JediTermFilter } from "./jediterm.ts";
+import { WINDOWS } from "../windows.ts";
 
 export * from "./jediterm.ts";
 export * from "./modes.ts";
@@ -61,6 +62,9 @@ export interface PtyStartOptions {
    */
   terminal?: "xterm" | "jediterm";
 }
+
+/** How long a frame takes to reach the harness whole through ConPTY (`waitFor` on Windows). */
+const CONPTY_PAINT_MS = 50;
 
 /**
  * The `ACP_TUI_TEST_HOOKS` value for a PTY child: what the test named, plus `no-host-clipboard`, so
@@ -404,7 +408,15 @@ export class PtySession {
     const deadline = Date.now() + timeoutMs;
     for (;;) {
       await this.flush();
-      if (test()) return;
+      if (test()) {
+        if (!WINDOWS) return;
+        // ConPTY paints its own copy of the screen on a timer, so the frame that met the condition
+        // may have arrived in parts (a header drawn, the rows below it still the old ones): one
+        // more paint interval lets the rest in before the test reads the screen.
+        await Bun.sleep(CONPTY_PAINT_MS);
+        await this.flush();
+        if (test()) return;
+      }
       if (Date.now() > deadline) {
         throw new Error(
           `waitFor timed out after ${timeoutMs} ms: ${String(cond)}\n--- screen ---\n${this.screenText().join("\n")}`,
