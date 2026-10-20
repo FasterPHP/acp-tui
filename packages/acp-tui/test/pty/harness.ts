@@ -409,13 +409,15 @@ export class PtySession {
     for (;;) {
       await this.flush();
       if (test()) {
-        if (!WINDOWS) return;
         // ConPTY paints its own copy of the screen on a timer, so the frame that met the condition
         // may have arrived in parts (a header drawn, the rows below it still the old ones): one
-        // more paint interval lets the rest in before the test reads the screen.
-        await Bun.sleep(CONPTY_PAINT_MS);
-        await this.flush();
-        if (test()) return;
+        // more paint interval lets the rest in before the test reads the screen. The condition is
+        // not checked again, since it may be a passing state (a running call's line).
+        if (WINDOWS) {
+          await Bun.sleep(CONPTY_PAINT_MS);
+          await this.flush();
+        }
+        return;
       }
       if (Date.now() > deadline) {
         throw new Error(

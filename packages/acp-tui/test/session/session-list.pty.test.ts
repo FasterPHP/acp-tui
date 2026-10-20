@@ -591,6 +591,8 @@ describe("Honest errors in the list (task 7.5)", () => {
     w.record({ agent: "gone", sessionId: "s-gone", directory: repo, title: "Session of a removed agent", at: Date.now() - MINUTE });
     const s = start(w, ["--resume"], { cwd: repo });
     await s.waitFor(() => listBody(s).some((r) => r.startsWith("Session of a removed agent")), 15000);
+    // The harness's page too, so the choice below cancels no request still in flight.
+    await s.waitFor(() => methods(w, "fake").includes("session/list") && listBody(s).some((r) => r.startsWith("Fix the router")), 15000);
     s.sendKeys({ text: "removed" }, "Enter");
     await s.waitFor(() => footerText(s).includes("cannot be launched now"), 5000);
     expect(footerText(s)).toContain("session s-gone was recorded with harness 'gone', which cannot be launched now: 'gone' is not a known harness");
