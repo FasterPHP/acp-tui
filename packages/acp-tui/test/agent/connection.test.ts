@@ -15,7 +15,7 @@ import {
 } from "../../src/agent/connection.ts";
 import { launchAgent, type LaunchedAgent } from "../../src/agent/launch.ts";
 import { RingBuffer } from "../../src/agent/ring-buffer.ts";
-import { fakeAgentCommand } from "./fake-agent-command.ts";
+import { fakeAgentCommand, rejectionOf } from "./fake-agent-command.ts";
 
 function noopClient(): Client {
   return {
@@ -91,7 +91,7 @@ describe("agent/connection (task 5.3)", () => {
       expect(entry?.params).toEqual({ sessionId: session.sessionId, modelId: "fake-large" });
 
       // An error from the agent rejects with it.
-      await expect(conn.setSessionModel({ sessionId: session.sessionId, modelId: "nope" })).rejects.toMatchObject({ code: -32602 });
+      expect(await rejectionOf(conn.setSessionModel({ sessionId: session.sessionId, modelId: "nope" }))).toMatchObject({ code: -32602 });
     } finally {
       agent.proc.kill();
     }
