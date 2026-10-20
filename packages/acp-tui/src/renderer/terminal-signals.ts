@@ -40,8 +40,9 @@ export interface TerminalSignals {
    * Sets the title again once a harness has started (windows-support D5): on Windows, npm's `.cmd`
    * shims run `title %COMSPEC%` as the harness starts, which renames the tab to `cmd.exe`. Only on
    * Windows: on Linux and macOS a harness's output is a pipe, never the terminal, so nothing can
-   * retitle the tab and writing the same title again would only be noise. Nothing until `install`
-   * has run.
+   * retitle the tab and writing the same title again would only be noise. A call before `install`
+   * (a harness started before the renderer, as `--resume <id>` and `--continue` do) is
+   * remembered and acted on as `install` finishes the title.
    */
   reassertTitle(): void;
 }
@@ -53,6 +54,8 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
   const removers: (() => void)[] = [];
   let title: TerminalTitle | null = null;
   let alternate: AlternateScroll | null = null;
+  // A harness answered `initialize` before the title existed (Windows only).
+  let reassertAfterInstall = false;
 
   return {
     install(renderer) {
@@ -63,6 +66,10 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
         slots: options.titleSlots ?? createTitleSlots({ dir: titleSlotDir(env) }),
       });
       title = installed;
+      if (reassertAfterInstall) {
+        reassertAfterInstall = false;
+        installed.reassert();
+      }
       // A reload of `title.format` sets the title again.
       if (options.titleFormat) {
         const format = options.titleFormat;
@@ -92,7 +99,9 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
       }
     },
     reassertTitle() {
-      if (platform === "win32") title?.reassert();
+      if (platform !== "win32") return;
+      if (title) title.reassert();
+      else reassertAfterInstall = true;
     },
     restore() {
       for (const remove of removers.splice(0)) remove();

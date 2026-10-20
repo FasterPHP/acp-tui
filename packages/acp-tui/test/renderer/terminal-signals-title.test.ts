@@ -63,4 +63,27 @@ describe("reassertTitle", () => {
     f.signals.reassertTitle();
     expect(f.titles).toEqual([]);
   });
+
+  test("a harness that answered before the renderer existed (--resume <id>, --continue): the title is set again as the renderer installs, on Windows", () => {
+    const f = fixture("win32");
+    f.signals.reassertTitle();
+    f.signals.reassertTitle();
+    expect(f.titles).toEqual([]);
+    f.signals.install(f.renderer);
+    expect(f.titles).toEqual(["acp-tui", "acp-tui"]);
+    // Remembered once: a later call is its own reassertion.
+    f.signals.reassertTitle();
+    expect(f.titles).toEqual(["acp-tui", "acp-tui", "acp-tui"]);
+    f.signals.restore();
+  });
+
+  test("the same on Linux and macOS writes the title once, as before", () => {
+    for (const platform of ["linux", "darwin"] as const) {
+      const f = fixture(platform);
+      f.signals.reassertTitle();
+      f.signals.install(f.renderer);
+      expect(f.titles).toEqual(["acp-tui"]);
+      f.signals.restore();
+    }
+  });
 });
