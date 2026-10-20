@@ -23,7 +23,7 @@
 //   sets no `COLORTERM`, so OpenTUI downsampled the derived surfaces to 256
 //   colours and the selected permission option vanished (bug 3). Zed
 //   (`TERM_PROGRAM=zed`) sets `COLORTERM` itself; it is listed in case a build
-//   does not.
+//   does not. Windows Terminal sets only `WT_SESSION`, so that names it too.
 //
 // `process.env` is never changed, so nothing else (the agent's child process,
 // spawned with `process.env`) sees the overrides. (Until OpenTUI 0.5.12 they
@@ -36,6 +36,8 @@ const TRUECOLOUR_VALUES = new Set(["truecolor", "24bit"]);
 export function knownTruecolour(env: Readonly<Record<string, string | undefined>>): boolean {
   if (TRUECOLOUR_VALUES.has(env.COLORTERM ?? "")) return true;
   if (env.TERMINAL_EMULATOR === "JetBrains-JediTerm") return true;
+  // Windows Terminal sets only WT_SESSION (no COLORTERM, TERM or TERM_PROGRAM) and draws 24-bit colour.
+  if (env.WT_SESSION) return true;
   return env.TERM_PROGRAM === "zed";
 }
 

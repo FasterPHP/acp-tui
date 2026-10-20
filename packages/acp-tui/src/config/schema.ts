@@ -383,7 +383,7 @@ export const SECTIONS = {
   terminals: z
     .object(Object.fromEntries(TERMINAL_IDS.map((id) => [id, TerminalEntry.optional()])) as Record<TerminalId, z.ZodOptional<typeof TerminalEntry>>)
     .default({})
-    .describe("Per-terminal values (jetbrains, zed, ghostty, kitty, wezterm, iterm2, default) over the built-in table: wheel_lines, strikethrough and hyperlinks."),
+    .describe("Per-terminal values (jetbrains, zed, ghostty, kitty, wezterm, iterm2, windows-terminal, default) over the built-in table: wheel_lines, strikethrough and hyperlinks."),
   exit: z
     .object({
       print: listed(z.enum(EXIT_PRINTS).default("summary"), {

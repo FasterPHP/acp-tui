@@ -216,7 +216,7 @@ A model or provider without an ACP agent of its own, such as DeepSeek, is reache
 | `wheel_lines` | whole number from 1 or `null` | `null` | Rows scrolled per wheel event in every terminal; null uses the per-terminal table. |
 | `terminals` | object keyed by terminal | `{}` | Per-terminal values over the built-in table (below). |
 
-`terminals` is keyed by `jetbrains` (both PhpStorm terminals), `zed`, `ghostty`, `kitty`, `wezterm`, `iterm2` and `default` (any other terminal). The terminal is recognised from `TERMINAL_EMULATOR`, then `TERM_PROGRAM`, then `TERM`. Each entry takes:
+`terminals` is keyed by `jetbrains` (both PhpStorm terminals, and IntelliJ's on Windows), `zed`, `ghostty`, `kitty`, `wezterm`, `iterm2`, `windows-terminal` and `default` (any other terminal). The terminal is recognised from `TERMINAL_EMULATOR`, then `TERM_PROGRAM`, then `TERM`, then `WT_SESSION` (Windows Terminal; last, because an IDE started from it inherits `WT_SESSION`). Each entry takes:
 
 | Setting | Values | What it does |
 | --- | --- | --- |

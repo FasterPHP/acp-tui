@@ -10,6 +10,7 @@ import { editDistance, formatProblem, problemNotice, problemSummary, suggest } f
 import { defaultConfig } from "../../src/config/schema.ts";
 import { createConfigStore } from "../../src/config/store.ts";
 import type { FileRead } from "../../src/config/sources.ts";
+import { effectiveTerminal } from "../../src/renderer/capabilities.ts";
 
 const FILE = "/home/u/.config/acp-tui/config.jsonc";
 
@@ -54,6 +55,14 @@ describe("Validation errors name the place and the fix", () => {
     ]);
     // Ignored, so the sections are valid and keep their defaults.
     expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} }).attention.signal).toBe("bell");
+  });
+
+  test("Setting for Windows Terminal: a windows-terminal entry is accepted with no problem and sets that terminal's wheel step", () => {
+    const parsed = parseConfigText(`{ "terminals": { "windows-terminal": { "wheel_lines": 5 } } }`, FILE);
+    expect(parsed.problems).toEqual([]);
+    const config = effectiveConfig({ user: nextLastGood({}, parsed), project: {} });
+    expect(config.terminals).toEqual({ "windows-terminal": { wheel_lines: 5 } });
+    expect(effectiveTerminal({ WT_SESSION: "x" }, config.terminals).wheelLines).toBe(5);
   });
 
   test("Syntax error: a missing comma between lines 3 and 4 names the file and line 4 and says a comma was expected", () => {
