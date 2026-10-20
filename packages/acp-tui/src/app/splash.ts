@@ -18,6 +18,7 @@ import { actionLabel, type KeyMap } from "../keys/keymap.ts";
 import { newlineLabel } from "../keys/newline-hint.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
 import type { ChromeGlyphs } from "../layout/glyphs.ts";
+import { baseName } from "../platform/paths.ts";
 import { AD_HOC_AGENT } from "../session/session-index.ts";
 import { displayWidth, shortenHome, truncateEnd, truncateMiddle, type Segment } from "../layout/segments.ts";
 
@@ -58,8 +59,11 @@ export interface SplashLaunch {
 }
 
 /** The launch as the splash shows it. `agentName` is `ad hoc` for a command given after `--`. */
-export function splashLaunch(launch: { readonly agentName: string; readonly command: string; readonly directory: string }): SplashLaunch {
-  const last = launch.command.split("/").filter((part) => part !== "").at(-1) ?? launch.command;
+export function splashLaunch(
+  launch: { readonly agentName: string; readonly command: string; readonly directory: string },
+  platform: NodeJS.Platform = process.platform,
+): SplashLaunch {
+  const last = baseName(launch.command, platform);
   return { harness: launch.agentName === AD_HOC_AGENT ? last : launch.agentName, directory: launch.directory };
 }
 
@@ -84,6 +88,8 @@ export interface SplashInput {
    *  first, and `SplashSegment.spinner` marks the cell to redraw. */
   readonly spinner: readonly string[];
   readonly home: string | null;
+  /** The platform whose path rules apply to the directory (tests inject `win32`); absent = this one. */
+  readonly platform?: NodeJS.Platform;
   readonly keyMap: KeyMap;
   /** The `interrupt` setting in use (the interrupt hint's presses); default `double`. */
   readonly interrupt?: InterruptSetting;
@@ -206,7 +212,7 @@ function sections(input: SplashInput, width: number): Section[] {
     }
     identity.push(row);
   }
-  identity.push([{ text: truncateMiddle(shortenHome(input.cwd ?? input.launch.directory, input.home), room), token: "muted" }]);
+  identity.push([{ text: truncateMiddle(shortenHome(input.cwd ?? input.launch.directory, input.home, input.platform), room), token: "muted" }]);
   out.push({ name: "identity", rows: identity });
 
   out.push({ name: "hints", rows: hintRows(splashHints(input.keyMap, input.interrupt), room) });

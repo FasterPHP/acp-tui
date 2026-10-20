@@ -22,9 +22,8 @@
 // (spec tui-config "Byte order mark ignored"), so the user's file, a project
 // file and a theme file read the same with or without one.
 import { readFileSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join, parse, resolve, sep } from "node:path";
-import { configDirectory as platformConfigDirectory, pathsFor, type Env, type Platform } from "../platform/paths.ts";
+import { dirname, join, parse, resolve } from "node:path";
+import { configDirectory as platformConfigDirectory, pathsFor, pathWithin, userHome, type Env, type Platform } from "../platform/paths.ts";
 import { writersProblem, type WriterCheckOptions } from "./writers.ts";
 
 export type { Env };
@@ -33,9 +32,9 @@ export const CONFIG_FILE_NAME = "config.jsonc";
 export const PROJECT_FILE_NAME = ".acp-tui.jsonc";
 export const THEMES_DIR_NAME = "themes";
 
-/** The user's home directory, from `HOME`, else the system's. */
+/** The user's home directory: `HOME`, else the system's (on Windows the profile, never `HOME`). */
 export function homeDirectory(env: Env = process.env): string {
-  return env["HOME"] || homedir();
+  return userHome(env);
 }
 
 /** `$XDG_CONFIG_HOME/acp-tui`, or `~/.config/acp-tui` when XDG_CONFIG_HOME is unset or not absolute
@@ -68,9 +67,9 @@ const exists = (path: string): boolean => {
   }
 };
 
-/** Whether `dir` is `ancestor` or below it. */
-function within(dir: string, ancestor: string): boolean {
-  return dir === ancestor || dir.startsWith(ancestor.endsWith(sep) ? ancestor : ancestor + sep);
+/** Whether `dir` is `ancestor` or below it (on Windows ignoring case and the kind of separator). */
+export function within(dir: string, ancestor: string, platform: Platform = process.platform): boolean {
+  return pathWithin(dir, ancestor, platform);
 }
 
 /**
@@ -80,7 +79,7 @@ function within(dir: string, ancestor: string): boolean {
 export function findProjectFile(sessionDirectory: string, options: { home?: string } = {}): string | null {
   const start = resolve(sessionDirectory);
   const home = resolve(options.home ?? homeDirectory());
-  const aboveHome = (dir: string) => within(home, dir) && dir !== home;
+  const aboveHome = (dir: string) => within(home, dir) && !within(dir, home);
   // The directories from the session directory up to the work tree root, nearest first (the walk
   // for `.git` may pass the home directory; no file above it is read).
   const chain: string[] = [];

@@ -25,6 +25,7 @@
 // held on one line (`oneLine`) before it reaches a row.
 import type { SessionInfo } from "@agentclientprotocol/sdk";
 import { shortenHome, truncateMiddle } from "../layout/segments.ts";
+import { baseName } from "../platform/paths.ts";
 import { AD_HOC_AGENT, oneLine, type SessionRecord } from "../session/session-index.ts";
 import type { ListItem } from "./list.ts";
 
@@ -229,10 +230,10 @@ export function sessionListItem(entry: SessionListEntry, context: { readonly now
 
 /** The harness as the list names it in its footer: its name, or for an `ad hoc` command its first
  *  word without the directory (the splash's rule). */
-export function harnessName(current: CurrentAgent): string {
+export function harnessName(current: CurrentAgent, platform: NodeJS.Platform = process.platform): string {
   if (current.name !== AD_HOC_AGENT) return oneLine(current.name);
   const first = current.command?.[0] ?? current.name;
-  return oneLine(first.split("/").filter((part) => part !== "").at(-1) ?? first);
+  return oneLine(baseName(first, platform));
 }
 
 /** What the list's footer row waits for (day-two-feedback D2): the harness starting, its first page

@@ -38,6 +38,7 @@ import type { DebugLogger } from "../log.ts";
 import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
 import type { ConnectedController } from "./controller.ts";
 import type { SessionRecorder } from "./recorder.ts";
+import { baseName } from "../platform/paths.ts";
 import { oneLine, type SessionIndex, type SessionRecord } from "./session-index.ts";
 import { agentLabel, connectLaunch, prepareLaunch, RESUME_HINT, SessionOpenFailure, startOn, type PreparedLaunch, type SessionTarget } from "./start.ts";
 import type { SessionStore } from "./store.ts";
@@ -127,7 +128,7 @@ export interface SessionSwitcher {
 
 /** The harness's name for a message (`auggie`; for an ad hoc command its first word, without its directory). */
 function harnessOf(launch: Pick<LaunchDescription, "agentName" | "command">): string {
-  return launch.agentName === AD_HOC_AGENT ? (launch.command.split("/").filter((part) => part !== "").at(-1) ?? launch.command) : launch.agentName;
+  return launch.agentName === AD_HOC_AGENT ? baseName(launch.command) : launch.agentName;
 }
 
 /** The command and environment a launch runs, to tell whether two launches share an agent. */

@@ -74,6 +74,24 @@ describe("cwd", () => {
     expect(shortenHome("/home/marcusx/a", "/home/marcus")).toBe("/home/marcusx/a");
     expect(shortenHome("/srv/repo", null)).toBe("/srv/repo");
   });
+
+  test("Windows: `~` for the profile with either separator and any case; the name is the last component", () => {
+    const home = "C:\\Users\\u";
+    expect(shortenHome("C:\\Users\\u\\src\\app", home, "win32")).toBe("~\\src\\app");
+    expect(shortenHome("c:\\users\\U\\src", home, "win32")).toBe("~\\src");
+    expect(shortenHome("C:/Users/u/src/app", home, "win32")).toBe("~/src/app");
+    expect(shortenHome("C:\\Users\\u", `${home}\\`, "win32")).toBe("~");
+    expect(shortenHome("C:\\Users\\u2\\src", home, "win32")).toBe("C:\\Users\\u2\\src");
+    expect(shortenHome("D:\\Users\\u\\src", home, "win32")).toBe("D:\\Users\\u\\src");
+    expect(shortenHome("C:\\x", "C:\\", "win32")).toBe("C:\\x");
+    expect(shortenHome("C:\\x", null, "win32")).toBe("C:\\x");
+    const win = view({ cwd: "C:\\Users\\u\\src\\app", home, platform: "win32" });
+    expect(text("cwd", win)).toBe("~\\src\\app");
+    expect(text("cwd", win, { format: "{basename}" })).toBe("app");
+    expect(text("cwd", view({ cwd: "C:\\Users\\u\\src\\app\\", home, platform: "win32" }), { format: "{basename}" })).toBe("app");
+    // Elsewhere a backslash is an ordinary character.
+    expect(text("cwd", view({ cwd: "/home/u/a\\b", home: "/home/u", platform: "linux" }), { format: "{basename}" })).toBe("a\\b");
+  });
   test("middle-truncates long paths to maxWidth", () => {
     const long = view({ cwd: "/home/marcus/Projects/some/deeply/nested/directory/structure/repo" });
     const out = text("cwd", long, { maxWidth: 24 })!;

@@ -49,6 +49,7 @@ import { shortenHome } from "../layout/segments.ts";
 import type { DebugLogger } from "../log.ts";
 import { CannotReopenError, connectAgent, type ConnectedController, type SessionController } from "./controller.ts";
 import { createSessionRecorder, type SessionRecorder } from "./recorder.ts";
+import { userHome } from "../platform/paths.ts";
 import { oneLine, type SessionIndex } from "./session-index.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 
@@ -108,7 +109,7 @@ export interface StartLaunchOptions {
   /** Called each time a harness has answered `initialize` (a start, a switch to another harness). */
   readonly onHarnessInitialized?: () => void;
   readonly now?: () => number;
-  /** Home directory, shown as `~` in the directory marker; default `process.env.HOME`. */
+  /** Home directory, shown as `~` in the directory marker; default the user's home. */
   readonly home?: string | null;
   /** The session to reopen, its directory and title already known (`prepareLaunch`, or a row of
    *  the session list); without one, `startOn` starts a new session. */
@@ -218,7 +219,7 @@ function instant(value: string | null | undefined): number {
 }
 
 function homeOf(options: Pick<StartLaunchOptions, "home">): string | null {
-  return options.home === undefined ? (process.env["HOME"] ?? null) : options.home;
+  return options.home === undefined ? userHome() : options.home;
 }
 
 /** Launches and initialises the agent `launch` names, in the session directory (or the launch

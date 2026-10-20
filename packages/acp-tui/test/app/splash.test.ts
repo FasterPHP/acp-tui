@@ -205,6 +205,12 @@ describe("splash rows (task 4.7)", () => {
     expect(splashLaunch({ agentName: "ad hoc", command: "bun", directory: "/work" }).harness).toBe("bun");
   });
 
+  test("Windows: an ad hoc command is named by its file, and the profile reads `~` in the identity row", () => {
+    expect(splashLaunch({ agentName: "ad hoc", command: "C:\\tools\\agent.cmd", directory: "C:\\Users\\u\\app" }, "win32").harness).toBe("agent.cmd");
+    const layout = splashLayout({ ...INPUT, cwd: "C:\\Users\\u\\src\\app", home: "c:\\users\\U", platform: "win32" }, 63, 12);
+    expect(text(layout.rows).join("\n")).toContain("~\\src\\app");
+  });
+
   test("a long agent name is cut to the width; home is shown as ~", () => {
     const layout = splashLayout({ ...INPUT, agent: "x".repeat(200), cwd: "/home/marcus/Projects/acp-tui" }, 63, 12);
     for (const row of text(layout.rows)) expect(displayWidth(row)).toBeLessThanOrEqual(63);
