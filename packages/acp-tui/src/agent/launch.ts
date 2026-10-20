@@ -5,6 +5,7 @@
 // its content -- see console-capture.ts for the same reasoning).
 import type { DebugLogger } from "../log.ts";
 import { RingBuffer } from "./ring-buffer.ts";
+import { scriptSpawn } from "./command-script.ts";
 import { mergeEnvironment, resolveArgv, type Env } from "./which.ts";
 
 export interface LaunchedAgent {
@@ -76,9 +77,14 @@ export function launchAgent(command: readonly string[], options: LaunchOptions =
   let proc: Bun.Subprocess<"pipe", "pipe", "pipe">;
   try {
     // Resolved with the environment the harness gets, so an entry's `PATH` is the one searched.
-    const argv = resolveArgv(command, { env: env ?? options.baseEnv ?? process.env, platform });
+    const childEnv = env ?? options.baseEnv ?? process.env;
+    const argv = resolveArgv(command, { env: childEnv, platform });
+    // On Windows a command script whose path holds a space goes through cmd.exe as it reads such a
+    // line (src/agent/command-script.ts); everything else is started as resolved.
+    const spawn = scriptSpawn(argv, { platform, env: childEnv });
     proc = Bun.spawn({
-      cmd: argv,
+      cmd: spawn.cmd,
+      ...(spawn.windowsVerbatimArguments ? { windowsVerbatimArguments: true } : {}),
       cwd: options.cwd,
       ...(env ? { env } : {}),
       stdin: "pipe",

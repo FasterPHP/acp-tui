@@ -87,7 +87,7 @@ acp-tui auggie
 
 starts Auggie in the current directory. Set `"default_agent_server": "auggie"` to start it with a bare `acp-tui`.
 
-On Windows `auggie` is a `.cmd` file made by npm, which acp-tui starts through `cmd.exe`, as Bun does. Bun refuses to start a `.cmd` or `.bat` file when an argument holds `"`, `%`, `&`, `|`, `<`, `>`, `^` or a line break, so keep them out of an entry's `args`; `acp-tui config --check` warns about them.
+On Windows `auggie` is a `.cmd` file made by npm, which acp-tui starts through `cmd.exe`, as Bun does. Bun refuses to start a `.cmd` or `.bat` file when an argument holds `"`, `%`, `&`, `|`, `<`, `>`, `^` or a line break, so keep them out of an entry's `args`; `acp-tui config --check` warns about them. The same goes for the path of the `.cmd` file itself: a user name such as `R&D` puts one in every npm command. Spaces are fine, in the path (`C:\Users\First Last\...`) and in the arguments.
 
 ### Claude Code (built in)
 

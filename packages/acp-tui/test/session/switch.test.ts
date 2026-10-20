@@ -18,7 +18,7 @@ import type { LaunchDescription } from "../../src/agent/resolve.ts";
 import { openSessionIndex } from "../../src/session/session-index.ts";
 import type { SessionSource } from "../../src/session/store.ts";
 import { createSessionSwitcher, type SessionSwitcher } from "../../src/session/switch.ts";
-import { fakeAgentCommand } from "../agent/fake-agent-command.ts";
+import { fakeAgentCommand, rejectionOf } from "../agent/fake-agent-command.ts";
 
 let switcher: SessionSwitcher | null = null;
 afterEach(async () => {
@@ -90,7 +90,7 @@ describe("an error while the store attaches the new session (IDE check 10.2)", (
       const before = switcher.current()!;
       const failure = new Error("undefined is not an object (evaluating 'tool().status')");
       store.failing = failure;
-      await expect(switcher.choose(choice)).rejects.toBe(failure);
+      expect(await rejectionOf(switcher.choose(choice))).toBe(failure);
       const after = switcher.current()!;
       // Not rolled back: the new session (opened on its agent) is the one in use, so the exit text
       // names it and exit detaches both agents.

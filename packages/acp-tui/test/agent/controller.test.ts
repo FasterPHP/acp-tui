@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { DebugLogger } from "../../src/log.ts";
 import { startSession, type SessionController } from "../../src/session/controller.ts";
-import { fakeAgentCommand } from "./fake-agent-command.ts";
+import { fakeAgentCommand, rejectionOf } from "./fake-agent-command.ts";
 import { waitFor } from "./wait-for.ts";
 
 function tmpCwd(): string {
@@ -272,17 +272,17 @@ describe("session controller: legacy model selection (session-models task 3.2)",
   test("an error from the agent rejects and changes nothing", async () => {
     const controller = await track(await startSession({ command: fakeAgentCommand({ scenario: "config-options-models" }), cwd: tmpCwd() }));
     const before = controller.getSession();
-    await expect(controller.setModel("nope")).rejects.toMatchObject({ code: -32602 });
+    expect(await rejectionOf(controller.setModel("nope"))).toMatchObject({ code: -32602 });
     expect(controller.getSession().models).toBe(before.models);
   });
 
   test("Method not found: the model is unchanged and the session stays usable for prompts", async () => {
     const controller = await track(await startSession({ command: fakeAgentCommand({ scenario: "basic" }), cwd: tmpCwd() }));
     const before = controller.getSession();
-    await expect(controller.setModel("anything")).rejects.toMatchObject({ code: -32601 });
+    expect(await rejectionOf(controller.setModel("anything"))).toMatchObject({ code: -32601 });
     expect(controller.getSession().models).toBe(before.models);
     // A later attempt is allowed (decided 14 October 2026): it fails the same way.
-    await expect(controller.setModel("anything")).rejects.toMatchObject({ code: -32601 });
+    expect(await rejectionOf(controller.setModel("anything"))).toMatchObject({ code: -32601 });
     expect(controller.prompt("still works")).toEqual({ accepted: true });
     const finished = await waitFor(controller, (session) => session.state === "requires_action" || (session.state === "idle" && session.stopReason !== null));
     expect(finished.state).not.toBe("disconnected");

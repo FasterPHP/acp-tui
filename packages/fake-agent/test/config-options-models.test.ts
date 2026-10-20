@@ -4,7 +4,7 @@
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { SCENARIOS } from "../src/scenarios/index.ts";
-import { makeTempDir, readLog, spawnFakeAgent } from "./helpers.ts";
+import { makeTempDir, readLog, rejectionOf, spawnFakeAgent } from "./helpers.ts";
 
 type LegacyModels = {
   currentModelId: string;
@@ -82,7 +82,7 @@ describe("fake-agent config-options-models scenario", () => {
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
       const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
-      await expect(handle.conn.extMethod("session/set_model", { sessionId: session.sessionId, modelId: "nope" })).rejects.toMatchObject({ code: -32602 });
+      expect(await rejectionOf(handle.conn.extMethod("session/set_model", { sessionId: session.sessionId, modelId: "nope" }))).toMatchObject({ code: -32602 });
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(texts.join("")).toContain("Current model: fake-small");
     } finally {
@@ -95,7 +95,7 @@ describe("fake-agent config-options-models scenario", () => {
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
       const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
-      await expect(handle.conn.extMethod("session/set_model", { sessionId: session.sessionId, modelId: "x" })).rejects.toMatchObject({ code: -32601 });
+      expect(await rejectionOf(handle.conn.extMethod("session/set_model", { sessionId: session.sessionId, modelId: "x" }))).toMatchObject({ code: -32601 });
     } finally {
       handle.stop();
     }

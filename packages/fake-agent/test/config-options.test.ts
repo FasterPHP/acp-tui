@@ -3,7 +3,7 @@
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionConfigOption } from "@agentclientprotocol/sdk";
-import { spawnFakeAgent } from "./helpers.ts";
+import { rejectionOf, spawnFakeAgent } from "./helpers.ts";
 
 function byId(options: readonly SessionConfigOption[]): Record<string, SessionConfigOption> {
   return Object.fromEntries(options.map((option) => [option.id, option]));
@@ -105,12 +105,12 @@ describe("fake-agent config-options scenario (phase-1a task 1.6)", () => {
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
       const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
-      await expect(
+      expect(await rejectionOf(
         handle.conn.setSessionConfigOption({ sessionId: session.sessionId, configId: "nope", value: "x" }),
-      ).rejects.toBeDefined();
-      await expect(
+      )).toBeDefined();
+      expect(await rejectionOf(
         handle.conn.setSessionConfigOption({ sessionId: session.sessionId, configId: "model", value: "model-99" }),
-      ).rejects.toBeDefined();
+      )).toBeDefined();
     } finally {
       handle.stop();
     }
@@ -124,9 +124,9 @@ describe("fake-agent config-options scenario (phase-1a task 1.6)", () => {
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
       const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
-      await expect(
+      expect(await rejectionOf(
         handle.conn.setSessionConfigOption({ sessionId: session.sessionId, configId: "model", value: "x" }),
-      ).rejects.toBeDefined();
+      )).toBeDefined();
     } finally {
       handle.stop();
     }

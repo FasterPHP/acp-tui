@@ -87,9 +87,12 @@ export const DEFAULT_EXIT_SIGNALS: readonly NodeJS.Signals[] = ["SIGHUP", "SIGTE
  * window delivers SIGHUP.
  */
 export const WINDOWS_EXIT_SIGNALS: readonly NodeJS.Signals[] = ["SIGHUP", "SIGTERM", "SIGINT", "SIGBREAK"];
-/** Bound on waiting for the exit hooks: Windows ends a console process about five seconds after the window closes. */
+/** Bound on waiting for the exit hooks. It must outlast the session controller's 2 s detach grace
+ *  and the `taskkill` that follows it on Windows, or a harness that ignores the end of its stdin is
+ *  left running; on Windows, which ends a console process about five seconds after its window
+ *  closes, 3 s for the hooks and 1 s for the renderer's destroy still fit. */
 export const EXIT_HOOK_TIMEOUT_MS = 3000;
-export const WINDOWS_EXIT_HOOK_TIMEOUT_MS = 1500;
+export const WINDOWS_EXIT_HOOK_TIMEOUT_MS = 3000;
 
 /** The signals that end acp-tui on `platform`. */
 export function exitSignalsFor(platform: NodeJS.Platform = process.platform): readonly NodeJS.Signals[] {
@@ -106,7 +109,7 @@ export const THEME_SIGNAL: NodeJS.Signals = "SIGUSR2";
 export interface LifecycleOptions {
   /** Runs before the renderer is destroyed, for example the session controller's `detach()`. */
   onExit?: ExitHook;
-  /** Bound on waiting for exit hooks; default 3000 ms (1500 ms on Windows). */
+  /** Bound on waiting for exit hooks; default 3000 ms on every platform. */
   exitHookTimeoutMs?: number;
   /** Bound on waiting for the renderer's `closed` after `destroy()`; default 1000 ms. */
   destroyTimeoutMs?: number;
