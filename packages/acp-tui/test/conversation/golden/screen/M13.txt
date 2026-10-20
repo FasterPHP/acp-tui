@@ -1,0 +1,57 @@
+M13 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M13 setext headings:│
+    «default»  M13 setext headings:
+  2 ││
+  3 │  Setext heading level 1│
+    «default»  «blue +b»Setext heading level 1
+  4 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+    «default»  «blue +b»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5 ││
+  6 │  Setext heading level 2│
+    «default»  «blue +b»Setext heading level 2
+  7 │  ──────────────────────────────────────────────────────────│
+    «default»  «bright-black»──────────────────────────────────────────────────────────
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M13 setext headings:│
+    «default»  M13 setext headings:
+  2 ││
+  3 │  Setext heading level 1│
+    «default»  «blue +b»Setext heading level 1
+  4 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+    «default»  «blue +b»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5 ││
+  6 │  Setext heading level 2│
+    «default»  «blue +b»Setext heading level 2
+  7 │  ──────────────────────────────────────────────────────────│
+    «default»  «default +d»──────────────────────────────────────────────────────────
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M13 setext headings:│
+    «default»  M13 setext headings:
+  2 ││
+  3 │  Setext heading level 1│
+    «default»  «blue +b»Setext heading level 1
+  4 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+    «default»  «blue +b»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5 ││
+  6 │  Setext heading level 2│
+    «default»  «blue +b»Setext heading level 2
+  7 │  ───────────────────────────────────────────────────────────────────────────────────────────────│
+    «default»  «bright-black»───────────────────────────────────────────────────────────────────────────────────────────────
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M13 setext headings:│
+    «default»  M13 setext headings:
+  2 ││
+  3 │  Setext heading level 1│
+    «default»  «blue +b»Setext heading level 1
+  4 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+    «default»  «blue +b»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5 ││
+  6 │  Setext heading level 2│
+    «default»  «blue +b»Setext heading level 2
+  7 │  ───────────────────────────────────────────────────────────────────────────────────────────────│
+    «default»  «default +d»───────────────────────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,27 @@
+M26 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M26 maths: inline dollars E = mc² and α + β ≤ √(x² + y²),│
+    «default»  M26 maths: inline dollars «cyan»E = mc² «default»and «cyan»α + β ≤ √(x² + y²)«default»,
+  2 │  inline parentheses a² + b² = c², and prices $5 and $10│
+    «default»  inline parentheses «cyan»a² + b² = c²«default», and prices $5 and $10
+  3 │  that are not maths.│
+    «default»  that are not maths.
+  4 ││
+  5 │    ∑_(i=1)^n i = n(n+1)/2│
+    «default»    «cyan»∑_(i=1)^n i = n(n+1)/2
+  6 ││
+  7 │    ∫₀^∞ e^(-x²) dx = √π/2│
+    «default»    «cyan»∫₀^∞ e^(-x²) dx = √π/2
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M26 maths: inline dollars E = mc² and α + β ≤ √(x² + y²), inline parentheses a² + b² = c², and│
+    «default»  M26 maths: inline dollars «cyan»E = mc² «default»and «cyan»α + β ≤ √(x² + y²)«default», inline parentheses «cyan»a² + b² = c²«default», and
+  2 │  prices $5 and $10 that are not maths.│
+    «default»  prices $5 and $10 that are not maths.
+  3 ││
+  4 │    ∑_(i=1)^n i = n(n+1)/2│
+    «default»    «cyan»∑_(i=1)^n i = n(n+1)/2
+  5 ││
+  6 │    ∫₀^∞ e^(-x²) dx = √π/2│
+    «default»    «cyan»∫₀^∞ e^(-x²) dx = √π/2

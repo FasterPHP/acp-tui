@@ -1,0 +1,71 @@
+M12 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M12 headings, ATX levels 1 to 6, a closed ATX heading and│
+    «text»M12 headings, ATX levels 1 to 6, a closed ATX heading and
+  2 │seven hashes:│
+    «text»seven hashes:
+  3 ││
+  4 │Heading level 1│
+    «markdown.heading.1»Heading level 1
+  5 │━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│ (decorative)
+    «markdown.heading.1 ~»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  6 ││
+  7 │Heading level 2│
+    «markdown.heading.2»Heading level 2
+  8 │─────────────────────────────────────────────────────────────│ (decorative)
+    «muted ~»─────────────────────────────────────────────────────────────
+  9 ││
+ 10 │Heading level 3│
+    «markdown.heading.3»Heading level 3
+ 11 ││
+ 12 │Heading level 4│
+    «markdown.heading.4»Heading level 4
+ 13 ││
+ 14 │Heading level 5│
+    «markdown.heading.5»Heading level 5
+ 15 ││
+ 16 │Heading level 6│
+    «markdown.heading.6»Heading level 6
+ 17 ││
+ 18 │####### Seven hashes is not a heading│
+    «text»####### Seven hashes is not a heading
+ 19 ││
+ 20 │Closed ATX heading│
+    «markdown.heading.2»Closed ATX heading
+ 21 │─────────────────────────────────────────────────────────────│ (decorative)
+    «muted ~»─────────────────────────────────────────────────────────────
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M12 headings, ATX levels 1 to 6, a closed ATX heading and seven hashes:│
+    «text»M12 headings, ATX levels 1 to 6, a closed ATX heading and seven hashes:
+  2 ││
+  3 │Heading level 1│
+    «markdown.heading.1»Heading level 1
+  4 │━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│ (decorative)
+    «markdown.heading.1 ~»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5 ││
+  6 │Heading level 2│
+    «markdown.heading.2»Heading level 2
+  7 │──────────────────────────────────────────────────────────────────────────────────────────────────│ (decorative)
+    «muted ~»──────────────────────────────────────────────────────────────────────────────────────────────────
+  8 ││
+  9 │Heading level 3│
+    «markdown.heading.3»Heading level 3
+ 10 ││
+ 11 │Heading level 4│
+    «markdown.heading.4»Heading level 4
+ 12 ││
+ 13 │Heading level 5│
+    «markdown.heading.5»Heading level 5
+ 14 ││
+ 15 │Heading level 6│
+    «markdown.heading.6»Heading level 6
+ 16 ││
+ 17 │####### Seven hashes is not a heading│
+    «text»####### Seven hashes is not a heading
+ 18 ││
+ 19 │Closed ATX heading│
+    «markdown.heading.2»Closed ATX heading
+ 20 │──────────────────────────────────────────────────────────────────────────────────────────────────│ (decorative)
+    «muted ~»──────────────────────────────────────────────────────────────────────────────────────────────────

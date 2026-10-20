@@ -1,0 +1,141 @@
+M20 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M20 wide table, more than 63 columns:│
+    «default»  M20 wide table, more than 63 columns:
+  2 ││
+  3 │  Identifier: 1001│
+    «default»  «blue +b»Identifier: «default»1001
+  4 │  Customer name: Alice Smith│
+    «default»  «blue +b»Customer name: «default»Alice Smith
+  5 │  Email address: alice.smith@example.com│
+    «default»  «blue +b»Email address: «blue +u»alice.smith@example.com
+  6 │  Created at: 2026-10-04 09:15│
+    «default»  «blue +b»Created at: «default»2026-10-04 09:15
+  7 │  Status: active│
+    «default»  «blue +b»Status: «default»active
+  8 │  Total (GBP): 1,234.56│
+    «default»  «blue +b»Total (GBP): «default»1,234.56
+  9 │  Notes: First order, paid by card│
+    «default»  «blue +b»Notes: «default»First order, paid by card
+ 10 │  ──────────────────────────────────────────────────────────│
+    «default»  «bright-black»──────────────────────────────────────────────────────────
+ 11 │  Identifier: 1002│
+    «default»  «blue +b»Identifier: «default»1002
+ 12 │  Customer name: Bob Jones│
+    «default»  «blue +b»Customer name: «default»Bob Jones
+ 13 │  Email address: bob.jones@example.org│
+    «default»  «blue +b»Email address: «blue +u»bob.jones@example.org
+ 14 │  Created at: 2026-10-04 10:30│
+    «default»  «blue +b»Created at: «default»2026-10-04 10:30
+ 15 │  Status: suspended│
+    «default»  «blue +b»Status: «default»suspended
+ 16 │  Total (GBP): 78.90│
+    «default»  «blue +b»Total (GBP): «default»78.90
+ 17 │  Notes: Awaiting a reply from the customer about the│
+    «default»  «blue +b»Notes: «default»Awaiting a reply from the customer about the
+ 18 │    refund they asked for│
+    «default»    refund they asked for
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M20 wide table, more than 63 columns:│
+    «default»  M20 wide table, more than 63 columns:
+  2 ││
+  3 │  Identifier: 1001│
+    «default»  «blue +b»Identifier: «default»1001
+  4 │  Customer name: Alice Smith│
+    «default»  «blue +b»Customer name: «default»Alice Smith
+  5 │  Email address: alice.smith@example.com│
+    «default»  «blue +b»Email address: «blue +u»alice.smith@example.com
+  6 │  Created at: 2026-10-04 09:15│
+    «default»  «blue +b»Created at: «default»2026-10-04 09:15
+  7 │  Status: active│
+    «default»  «blue +b»Status: «default»active
+  8 │  Total (GBP): 1,234.56│
+    «default»  «blue +b»Total (GBP): «default»1,234.56
+  9 │  Notes: First order, paid by card│
+    «default»  «blue +b»Notes: «default»First order, paid by card
+ 10 │  ──────────────────────────────────────────────────────────│
+    «default»  «default +d»──────────────────────────────────────────────────────────
+ 11 │  Identifier: 1002│
+    «default»  «blue +b»Identifier: «default»1002
+ 12 │  Customer name: Bob Jones│
+    «default»  «blue +b»Customer name: «default»Bob Jones
+ 13 │  Email address: bob.jones@example.org│
+    «default»  «blue +b»Email address: «blue +u»bob.jones@example.org
+ 14 │  Created at: 2026-10-04 10:30│
+    «default»  «blue +b»Created at: «default»2026-10-04 10:30
+ 15 │  Status: suspended│
+    «default»  «blue +b»Status: «default»suspended
+ 16 │  Total (GBP): 78.90│
+    «default»  «blue +b»Total (GBP): «default»78.90
+ 17 │  Notes: Awaiting a reply from the customer about the│
+    «default»  «blue +b»Notes: «default»Awaiting a reply from the customer about the
+ 18 │    refund they asked for│
+    «default»    refund they asked for
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M20 wide table, more than 63 columns:│
+    «default»  M20 wide table, more than 63 columns:
+  2 ││
+  3 │  ╭────────────┬────────────┬─────────────┬────────────┬───────────┬────────────┬───────────────╮│
+    «default»  «bright-black»╭────────────┬────────────┬─────────────┬────────────┬───────────┬────────────┬───────────────╮
+  4 │  │ Identifier │ Customer   │ Email       │ Created at │ Status    │      Total │ Notes         ││
+    «default»  «bright-black»│ «blue +b»Identifier «bright-black»│ «blue +b»Customer   «bright-black»│ «blue +b»Email       «bright-black»│ «blue +b»Created at «bright-black»│ «blue +b»Status    «bright-black»│      «blue +b»Total «bright-black»│ «blue +b»Notes         «bright-black»│
+  5 │  │            │ name       │ address     │            │           │      (GBP) │               ││
+    «default»  «bright-black»│            │ «blue +b»name       «bright-black»│ «blue +b»address     «bright-black»│            │           │      «blue +b»(GBP) «bright-black»│               │
+  6 │  ├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤│
+    «default»  «bright-black»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
+  7 │  │ 1001       │ Alice      │ alice.smith │ 2026-10-04 │ active    │   1,234.56 │ First order,  ││
+    «default»  «bright-black»│ «default»1001       «bright-black»│ «default»Alice      «bright-black»│ «blue +u»alice.smith«default» «bright-black»│ «default»2026-10-04 «bright-black»│ «default»active    «bright-black»│   «default»1,234.56 «bright-black»│ «default»First order,  «bright-black»│
+  8 │  │            │ Smith      │ @example.co │ 09:15      │           │            │ paid by card  ││
+    «default»  «bright-black»│            │ «default»Smith      «bright-black»│ «blue +u»@example.co«default» «bright-black»│ «default»09:15      «bright-black»│           │            │ «default»paid by card  «bright-black»│
+  9 │  │            │            │ m           │            │           │            │               ││
+    «default»  «bright-black»│            │            │ «blue +u»m«default»           «bright-black»│            │           │            │               │
+ 10 │  │ 1002       │ Bob Jones  │ bob.jones@e │ 2026-10-04 │ suspended │      78.90 │ Awaiting a    ││
+    «default»  «bright-black»│ «default»1002       «bright-black»│ «default»Bob Jones  «bright-black»│ «blue +u»bob.jones@e«default» «bright-black»│ «default»2026-10-04 «bright-black»│ «default»suspended «bright-black»│      «default»78.90 «bright-black»│ «default»Awaiting a    «bright-black»│
+ 11 │  │            │            │ xample.org  │ 10:30      │           │            │ reply from    ││
+    «default»  «bright-black»│            │            │ «blue +u»xample.org«default»  «bright-black»│ «default»10:30      «bright-black»│           │            │ «default»reply from    «bright-black»│
+ 12 │  │            │            │             │            │           │            │ the customer  ││
+    «default»  «bright-black»│            │            │             │            │           │            │ «default»the customer  «bright-black»│
+ 13 │  │            │            │             │            │           │            │ about the     ││
+    «default»  «bright-black»│            │            │             │            │           │            │ «default»about the     «bright-black»│
+ 14 │  │            │            │             │            │           │            │ refund they   ││
+    «default»  «bright-black»│            │            │             │            │           │            │ «default»refund they   «bright-black»│
+ 15 │  │            │            │             │            │           │            │ asked for     ││
+    «default»  «bright-black»│            │            │             │            │           │            │ «default»asked for     «bright-black»│
+ 16 │  ╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯│
+    «default»  «bright-black»╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M20 wide table, more than 63 columns:│
+    «default»  M20 wide table, more than 63 columns:
+  2 ││
+  3 │  ╭────────────┬────────────┬─────────────┬────────────┬───────────┬────────────┬───────────────╮│
+    «default»  «default +d»╭────────────┬────────────┬─────────────┬────────────┬───────────┬────────────┬───────────────╮
+  4 │  │ Identifier │ Customer   │ Email       │ Created at │ Status    │      Total │ Notes         ││
+    «default»  «default +d»│ «blue +b»Identifier «default +d»│ «blue +b»Customer   «default +d»│ «blue +b»Email       «default +d»│ «blue +b»Created at «default +d»│ «blue +b»Status    «default +d»│      «blue +b»Total «default +d»│ «blue +b»Notes         «default +d»│
+  5 │  │            │ name       │ address     │            │           │      (GBP) │               ││
+    «default»  «default +d»│            │ «blue +b»name       «default +d»│ «blue +b»address     «default +d»│            │           │      «blue +b»(GBP) «default +d»│               │
+  6 │  ├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤│
+    «default»  «default +d»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
+  7 │  │ 1001       │ Alice      │ alice.smith │ 2026-10-04 │ active    │   1,234.56 │ First order,  ││
+    «default»  «default +d»│ «default»1001       «default +d»│ «default»Alice      «default +d»│ «blue +u»alice.smith«default» «default +d»│ «default»2026-10-04 «default +d»│ «default»active    «default +d»│   «default»1,234.56 «default +d»│ «default»First order,  «default +d»│
+  8 │  │            │ Smith      │ @example.co │ 09:15      │           │            │ paid by card  ││
+    «default»  «default +d»│            │ «default»Smith      «default +d»│ «blue +u»@example.co«default» «default +d»│ «default»09:15      «default +d»│           │            │ «default»paid by card  «default +d»│
+  9 │  │            │            │ m           │            │           │            │               ││
+    «default»  «default +d»│            │            │ «blue +u»m«default»           «default +d»│            │           │            │               │
+ 10 │  │ 1002       │ Bob Jones  │ bob.jones@e │ 2026-10-04 │ suspended │      78.90 │ Awaiting a    ││
+    «default»  «default +d»│ «default»1002       «default +d»│ «default»Bob Jones  «default +d»│ «blue +u»bob.jones@e«default» «default +d»│ «default»2026-10-04 «default +d»│ «default»suspended «default +d»│      «default»78.90 «default +d»│ «default»Awaiting a    «default +d»│
+ 11 │  │            │            │ xample.org  │ 10:30      │           │            │ reply from    ││
+    «default»  «default +d»│            │            │ «blue +u»xample.org«default»  «default +d»│ «default»10:30      «default +d»│           │            │ «default»reply from    «default +d»│
+ 12 │  │            │            │             │            │           │            │ the customer  ││
+    «default»  «default +d»│            │            │             │            │           │            │ «default»the customer  «default +d»│
+ 13 │  │            │            │             │            │           │            │ about the     ││
+    «default»  «default +d»│            │            │             │            │           │            │ «default»about the     «default +d»│
+ 14 │  │            │            │             │            │           │            │ refund they   ││
+    «default»  «default +d»│            │            │             │            │           │            │ «default»refund they   «default +d»│
+ 15 │  │            │            │             │            │           │            │ asked for     ││
+    «default»  «default +d»│            │            │             │            │           │            │ «default»asked for     «default +d»│
+ 16 │  ╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯│
+    «default»  «default +d»╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯

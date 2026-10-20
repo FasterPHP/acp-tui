@@ -1,0 +1,8 @@
+will fix the router in four steps.
+
+- Read the router
+- Find the failing route
+- Fix the match order
+- Run the tests
+
+Step one

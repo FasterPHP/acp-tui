@@ -1,0 +1,1817 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "Ignored; lets an editor find the configuration's JSON Schema.",
+      "type": "string"
+    },
+    "agent_servers": {
+      "default": {},
+      "description": "Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file.",
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The program to run (looked up on the PATH when it has no slash)."
+          },
+          "args": {
+            "default": [],
+            "description": "Its arguments.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "env": {
+            "default": {},
+            "description": "Environment variables added to acp-tui's own for the harness.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "description": "Ignored; Zed's entry type, so entries copied from Zed's settings load unchanged.",
+            "type": "string",
+            "const": "custom"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "description": "A harness in Zed's shape (Zed calls it an agent server): command, args and env."
+      }
+    },
+    "default_agent_server": {
+      "default": "claude",
+      "description": "The harness launched without a harness name or command: \"claude\" (built in) or the name of an agent_servers entry. The older name default_agent is still accepted.",
+      "type": "string",
+      "minLength": 1
+    },
+    "mouse": {
+      "default": "full",
+      "description": "Mouse policy: \"full\" - acp-tui handles clicks, drags and the wheel, and Shift+drag selects text in the terminal; \"wheel\" - acp-tui handles only the wheel, and clicks and drags do nothing; \"off\" - the terminal keeps the mouse: a drag selects its text, and the wheel does nothing in acp-tui. F2 switches between this policy and \"off\" while acp-tui runs.",
+      "type": "string",
+      "enum": [
+        "full",
+        "wheel",
+        "off"
+      ]
+    },
+    "wheel_lines": {
+      "default": null,
+      "description": "Rows scrolled per wheel event in every terminal; null uses the per-terminal table.",
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "terminals": {
+      "default": {},
+      "description": "Per-terminal values (jetbrains, zed, ghostty, kitty, wezterm, iterm2, default) over the built-in table: wheel_lines, strikethrough and hyperlinks.",
+      "type": "object",
+      "properties": {
+        "jetbrains": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        },
+        "zed": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        },
+        "ghostty": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        },
+        "kitty": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        },
+        "wezterm": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        },
+        "iterm2": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        },
+        "default": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        }
+      }
+    },
+    "exit": {
+      "description": "What happens on exit.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "print": {
+          "default": "summary",
+          "description": "What is printed below the command line on exit: \"summary\" - the command that resumes the session, when it can be resumed; \"none\" - nothing; \"last-answer\" - that command, then the agent's last answer as plain text; \"transcript\" - that command, then the whole conversation as plain text.",
+          "type": "string",
+          "enum": [
+            "summary",
+            "none",
+            "last-answer",
+            "transcript"
+          ]
+        }
+      }
+    },
+    "clipboard": {
+      "default": "auto",
+      "description": "Where copied text goes: \"auto\" - the system clipboard, else through the terminal by OSC 52; \"host\" - only the system clipboard, through Wayland or X11; \"osc52\" - only through the terminal by OSC 52, which also works over SSH; \"none\" - nowhere: copying is turned off.",
+      "type": "string",
+      "enum": [
+        "auto",
+        "host",
+        "osc52",
+        "none"
+      ]
+    },
+    "selection": {
+      "description": "Selection behaviour.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "copy_on_release": {
+          "default": true,
+          "description": "Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C.",
+          "type": "boolean"
+        }
+      }
+    },
+    "prompt": {
+      "description": "The prompt box.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "default": "block_at_end",
+          "description": "The shape of the cursor in the prompt box: \"block_at_end\" - a bar inside the text and a block after its end, so the terminal's hollow unfocused block shows when the cursor is at the end; \"bar\" - a bar everywhere; \"block\" - a block everywhere. Where the terminal reports focus (Zed), the terminal's default cursor is shown while another window has focus.",
+          "type": "string",
+          "enum": [
+            "bar",
+            "block",
+            "block_at_end"
+          ]
+        }
+      }
+    },
+    "density": {
+      "default": "focus",
+      "description": "How much of the conversation a session starts by showing: \"compact\" - one line per tool call, thought or plan, runs of reads and searches grouped, failures included; \"verbose\" - everything expanded, nothing grouped; \"focus\" - each turn's tool calls, thoughts and plans behind one line, leaving the messages. The v key in the conversation cycles them.",
+      "type": "string",
+      "enum": [
+        "compact",
+        "verbose",
+        "focus"
+      ]
+    },
+    "interrupt": {
+      "default": "double",
+      "description": "How Esc interrupts a running turn: \"double\" - the first Esc arms the interrupt and a second Esc cancels the turn; \"single\" - one Esc cancels the turn.",
+      "type": "string",
+      "enum": [
+        "double",
+        "single"
+      ]
+    },
+    "attention": {
+      "description": "Attention signals while the pane is unfocused.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "signal": {
+          "default": "bell",
+          "description": "How acp-tui asks for attention when a permission request opens or a long turn ends: \"bell\" - the terminal bell; \"osc9\" - a desktop notification, in terminals that support OSC 9; \"osc777\" - a desktop notification, in terminals that support OSC 777; \"none\" - nothing.",
+          "type": "string",
+          "enum": [
+            "bell",
+            "osc9",
+            "osc777",
+            "none"
+          ]
+        },
+        "long_turn_seconds": {
+          "default": 30,
+          "description": "A turn longer than this many seconds is signalled when it ends.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "busy": {
+      "description": "The busy indicator.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "track_percent": {
+          "default": 40,
+          "description": "The share of the prompt box's top border, in per cent, that the busy indicator's track takes; at least 10 cells.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 50
+        },
+        "style": {
+          "default": "gap",
+          "description": "How the busy indicator's moving segment is drawn: \"gap\" - a moving gap in the border's line, drawn in blank cells; \"colour\" - the heavy line in the busy token's colour; \"border\" - the heavy line in the frame's own colour. While the session waits for you, every style stands still as the heavy line in the warning colour.",
+          "type": "string",
+          "enum": [
+            "gap",
+            "colour",
+            "border"
+          ]
+        }
+      }
+    },
+    "activity": {
+      "description": "The activity bar.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "linger_seconds": {
+          "default": 1.5,
+          "description": "How many seconds the activity line shows the finished call muted, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        }
+      }
+    },
+    "title": {
+      "description": "The terminal title (the tab's name in an IDE terminal).",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "format": {
+          "default": "{dir}{counter}",
+          "description": "The terminal title, a template over {dir}, {counter}, {agent}, {title}: the session directory's name, a counter that is empty for the first acp-tui instance showing that name and \" 2\", \" 3\" and so on for the next ones, the agent's name and the agent's session title (empty until it sends one). Literal text directly before an empty placeholder is dropped with it. The default is \"{dir}{counter}\"; \"acp-tui | {title}\" gives the agent's title.",
+          "type": "string"
+        }
+      }
+    },
+    "markdown": {
+      "description": "Markdown rendering.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "heading_markers": {
+          "default": false,
+          "description": "Show a heading's # markers, muted, before its text.",
+          "type": "boolean"
+        },
+        "table_min_column_width": {
+          "default": 10,
+          "description": "The column width below which a table switches to the record layout.",
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 9007199254740991
+        },
+        "code_wrap": {
+          "default": "word",
+          "description": "How long lines in code blocks break: \"word\" - at the last space that fits, in every block; \"prose\" - at spaces in text, txt, plaintext, plain, markdown and md blocks only, and at the column elsewhere; \"column\" - at the column, mid-word, in every block. A word longer than a row always breaks at the column. A broken row of a code block ends with the continuation mark; a prose block shows none, unless the value is column.",
+          "type": "string",
+          "enum": [
+            "word",
+            "prose",
+            "column"
+          ]
+        }
+      }
+    },
+    "tool_output": {
+      "description": "Tool call output.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "snippet_rows": {
+          "default": 10,
+          "description": "Rows of a tool call's output shown in its expanded card.",
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "cards": {
+      "description": "Cards: the user's messages, the expanded thoughts, tool calls and plans, and the permission and question cards; code blocks in an agent's answer take the same padding.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "padding": {
+          "description": "The padding inside a card's fill.",
+          "default": {},
+          "type": "object",
+          "properties": {
+            "rows": {
+              "default": 1,
+              "description": "Blank rows at the top and the bottom of a card (a user message, an expanded thought, tool call or plan, the permission and question cards) and of a code block in an agent's answer: 0 or 1.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "columns": {
+              "default": 2,
+              "description": "Blank columns between a card's edge and its content, on both sides, and the same inset in a code block in an agent's answer: 1 to 3.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            }
+          }
+        }
+      }
+    },
+    "theme": {
+      "description": "The theme, as a name or an object of name, flat, surface_contrast and tokens.",
+      "default": {},
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "default": "default",
+              "description": "The theme: \"default\" (built in) or a file themes/<name>.jsonc in the configuration directory.",
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
+            "flat": {
+              "default": false,
+              "description": "Always draw the flat style (no background fills; cards by their frames), whatever the terminal answers.",
+              "type": "boolean"
+            },
+            "surface_contrast": {
+              "default": 1,
+              "description": "Scales every derived surface's lightness step from the background, within the 40 per cent cap: 1 is the default step, and 1.2 makes cards stronger. Multiplies a theme file's own surface_contrast.",
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 2
+            },
+            "tokens": {
+              "default": {},
+              "description": "Token values applied over the theme, last.",
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "body text of conversation rows and the composer",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "muted": {
+                  "description": "secondary text: turn-end markers, cwd, metadata",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "accent": {
+                  "description": "prompt marker, focus and the other accents",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "hint": {
+                  "description": "key hints bar",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "warning": {
+                  "description": "warnings, exit-armed hint",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "danger": {
+                  "description": "errors, disconnected state",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "user": {
+                  "description": "the user card's bar; under the flat style also the conversation cursor's inverse block on a user message (defaults to accent's colour)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "agent": {
+                  "description": "the agent message's gutter glyph, blank unless glyphs.overrides sets gutter.agent; under the flat style, the conversation cursor's inverse gutter on an agent message",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "thought": {
+                  "description": "thought summary lines",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "permission": {
+                  "description": "permission prompt frame and marker glyph",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "status.fg": {
+                  "description": "status bar text",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "busy": {
+                  "description": "the busy indicator's segment in the prompt box's top border under `busy.style` `colour` (bold bright blue by default, bold magenta on a light background, apart from the focused frame's accent)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.ok": {
+                  "description": "tool line: the ok status glyph",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.fail": {
+                  "description": "tool line: the fail status glyph and word",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.running": {
+                  "description": "tool line: the running status; in-progress tools in the activity region",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind": {
+                  "description": "tool line: the kind glyph and kind word (each tool.kind.<kind> defaults to it)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.title": {
+                  "description": "tool line title, and an expanded tool card's full title",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.count": {
+                  "description": "tool line: line and match counts",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.duration": {
+                  "description": "tool line: the duration",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.index": {
+                  "description": "tool line: the per-session index (#n)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.result.label": {
+                  "description": "a command result's labels in an expanded tool card: `Output:` and `Return code:` (defaults to muted)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.read": {
+                  "description": "tool line kind of read calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.edit": {
+                  "description": "tool line kind of edit calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.delete": {
+                  "description": "tool line kind of delete calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.move": {
+                  "description": "tool line kind of move calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.search": {
+                  "description": "tool line kind of search calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.execute": {
+                  "description": "tool line kind of execute calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.think": {
+                  "description": "tool line kind of think calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.fetch": {
+                  "description": "tool line kind of fetch calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.switch_mode": {
+                  "description": "tool line kind of switch_mode calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "tool.kind.other": {
+                  "description": "tool line kind of other and unknown calls (defaults to tool.kind)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "diff.add": {
+                  "description": "added lines (tool cards, one-liner summaries)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "diff.remove": {
+                  "description": "removed lines (tool cards, one-liner summaries)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "diff.hunk": {
+                  "description": "diff hunk headers (tool cards)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.heading.1": {
+                  "description": "Markdown level 1 headings (the renderer draws the heavy rule)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.heading.2": {
+                  "description": "Markdown level 2 headings (the renderer draws the light rule)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.heading.3": {
+                  "description": "Markdown level 3 headings",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.heading.4": {
+                  "description": "Markdown level 4 headings",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.heading.5": {
+                  "description": "Markdown level 5 headings",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.heading.6": {
+                  "description": "Markdown level 6 headings",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.code": {
+                  "description": "Markdown inline code, and maths shown as its source",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.link": {
+                  "description": "Markdown links and footnote references",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.quote": {
+                  "description": "Markdown block quotes and thematic breaks",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.list": {
+                  "description": "Markdown list bullets and numbers",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.task.done": {
+                  "description": "Markdown checked task box [x]",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.task.open": {
+                  "description": "Markdown unchecked task box [ ]",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.table.border": {
+                  "description": "Markdown table borders and the record layout's rules",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.table.header": {
+                  "description": "Markdown table header cells and record headers",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.strike": {
+                  "description": "Markdown ~~strikethrough~~ (always; SGR 9 only where the terminal draws it)",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.math": {
+                  "description": "Markdown maths converted to Unicode",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.alert.note": {
+                  "description": "GitHub alert [!NOTE]: bar and header word",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.alert.tip": {
+                  "description": "GitHub alert [!TIP]: bar and header word",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.alert.important": {
+                  "description": "GitHub alert [!IMPORTANT]: bar and header word",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.alert.warning": {
+                  "description": "GitHub alert [!WARNING]: bar and header word",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "markdown.alert.caution": {
+                  "description": "GitHub alert [!CAUTION]: bar and header word",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.keyword": {
+                  "description": "highlighted code: keywords",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.string": {
+                  "description": "highlighted code: strings",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.comment": {
+                  "description": "highlighted code: comments",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.number": {
+                  "description": "highlighted code: numbers",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.constant": {
+                  "description": "highlighted code: constants and booleans",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.type": {
+                  "description": "highlighted code: types and classes",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.function": {
+                  "description": "highlighted code: functions and methods",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.variable": {
+                  "description": "highlighted code: variables",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.property": {
+                  "description": "highlighted code: properties and keys",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.operator": {
+                  "description": "highlighted code: operators",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.punctuation": {
+                  "description": "highlighted code: punctuation and brackets",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.tag": {
+                  "description": "highlighted code: markup tags",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.attribute": {
+                  "description": "highlighted code: markup attributes",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "code.default": {
+                  "description": "highlighted code: every other scope, and code without a grammar",
+                  "$ref": "#/$defs/textTokenValue"
+                },
+                "surface.user": {
+                  "description": "user message card",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.card": {
+                  "description": "expanded tool, thought and plan cards",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.code": {
+                  "description": "code blocks: a neutral fill, never the permission card's hue",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.overlay": {
+                  "description": "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background, mvp-chrome-and-keys task 12.7); derived at surface.card's step",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.cursor": {
+                  "description": "the conversation cursor's gutter bar (its colour), and the highlighted row of an overlay list (a fill)",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.cursor.faint": {
+                  "description": "the faint fill across the item under the conversation cursor, beside its bar",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.selection": {
+                  "description": "the conversation's text selection (distinct from the cursor's fill)",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.permission": {
+                  "description": "permission card fill",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "surface.permission.selected": {
+                  "description": "selected option on the permission card (and other cards filled with surface.permission)",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "status.bg": {
+                  "description": "status bar background (a surface)",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "diff.added.bg": {
+                  "description": "added lines in diffs",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "diff.removed.bg": {
+                  "description": "removed lines in diffs",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "find.current": {
+                  "description": "the current find hit (text in the default foreground)",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "find.other": {
+                  "description": "the other visible find hits (text in the default foreground)",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "scrollbar.track": {
+                  "description": "the conversation scroll bar's track; flat: the glyph set's `scrollbar.track` in muted",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                },
+                "scrollbar.thumb": {
+                  "description": "the conversation scroll bar's thumb; flat: the glyph set's `scrollbar.thumb` in muted",
+                  "$ref": "#/$defs/surfaceTokenValue"
+                }
+              },
+              "additionalProperties": {}
+            }
+          },
+          "description": "The theme: its name, the flat style, the surface contrast and inline token values."
+        }
+      ]
+    },
+    "glyphs": {
+      "description": "The glyph set, as a name or an object of set and overrides.",
+      "default": {},
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "unicode",
+            "ascii",
+            "nerd-font"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "set": {
+              "default": "unicode",
+              "description": "The glyph set: \"unicode\" - symbols that common terminal fonts have; \"ascii\" - plain ASCII characters only; \"nerd-font\" - Nerd Font icons for tool kinds and statuses, which needs a Nerd Font in the terminal.",
+              "type": "string",
+              "enum": [
+                "unicode",
+                "ascii",
+                "nerd-font"
+              ]
+            },
+            "overrides": {
+              "default": {},
+              "description": "Single glyphs replaced by name, such as \"list.bullet.1\": \"▸\".",
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "The glyph set and per-glyph overrides."
+        }
+      ]
+    },
+    "layout": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "margins": {
+          "description": "The top and bottom margins; omitted ones keep the default layout's.",
+          "type": "object",
+          "properties": {
+            "top": {
+              "description": "Blank rows above everything (1 to 3).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "bottom": {
+              "description": "Blank rows below everything (1 to 3).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            }
+          },
+          "additionalProperties": false
+        },
+        "screen": {
+          "description": "The regions from top to bottom; omitted keeps the default layout's.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "conversation",
+                  "activity",
+                  "card",
+                  "prompt",
+                  "find"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "spacer": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "description": "Blank rows."
+                  }
+                },
+                "required": [
+                  "spacer"
+                ],
+                "additionalProperties": false,
+                "description": "Blank rows between two regions."
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "left": {
+                    "description": "Modules on the bar's left.",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "model",
+                        "mode",
+                        "cwd",
+                        "connection",
+                        "turn-state",
+                        "usage",
+                        "cost",
+                        "hints",
+                        "mouse",
+                        "density",
+                        "position",
+                        "config",
+                        "text"
+                      ]
+                    }
+                  },
+                  "center": {
+                    "description": "Modules in the bar's centre.",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "model",
+                        "mode",
+                        "cwd",
+                        "connection",
+                        "turn-state",
+                        "usage",
+                        "cost",
+                        "hints",
+                        "mouse",
+                        "density",
+                        "position",
+                        "config",
+                        "text"
+                      ]
+                    }
+                  },
+                  "right": {
+                    "description": "Modules on the bar's right.",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "agent",
+                        "model",
+                        "mode",
+                        "cwd",
+                        "connection",
+                        "turn-state",
+                        "usage",
+                        "cost",
+                        "hints",
+                        "mouse",
+                        "density",
+                        "position",
+                        "config",
+                        "text"
+                      ]
+                    }
+                  }
+                },
+                "additionalProperties": false,
+                "description": "A bar: module lists on the left, centre and right."
+              }
+            ],
+            "description": "A block (conversation, activity, card, prompt, find), a spacer or a bar."
+          }
+        },
+        "prompt": {
+          "description": "The prompt box's bottom border; omitted parts keep the default layout's.",
+          "type": "object",
+          "properties": {
+            "pills": {
+              "description": "The pills in the prompt box's bottom border, in order: mode, model, thought_level. The model pill also shows a harness's older model state, as Auggie reports its models.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "mode",
+                  "model",
+                  "thought_level"
+                ]
+              }
+            },
+            "right": {
+              "description": "Modules on the right of the prompt box's bottom border.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "agent",
+                  "model",
+                  "mode",
+                  "cwd",
+                  "connection",
+                  "turn-state",
+                  "usage",
+                  "cost",
+                  "hints",
+                  "mouse",
+                  "density",
+                  "position",
+                  "config",
+                  "text"
+                ]
+              }
+            }
+          }
+        },
+        "modules": {
+          "description": "Module settings by module name; each applies wherever the module appears.",
+          "type": "object",
+          "properties": {
+            "agent": {
+              "description": "The harness's name and version. Fields: {agent}, {version}. Default format \"{agent}\", priority 80.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "model": {
+              "description": "The model in use. Fields: {model}. Default format \"{model}\", priority 60.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "mode": {
+              "description": "The agent's mode. Fields: {mode}. Default format \"mode:{mode}\", priority 50.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "cwd": {
+              "description": "The session directory: {cwd} and {path} with ~ for home, {basename} its last component. Fields: {cwd}, {path}, {basename}. Default format \"{cwd}\", priority 30.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "connection": {
+              "description": "The connection to the harness. Fields: {state}. Default format \"{state}\", priority 90.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "turn-state": {
+              "description": "The turn's state: idle, running with the time, requires_action, loading or an armed key; its format must keep {state}. Fields: {state}, {elapsed}. Default format \"{state}\", priority 100.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "usage": {
+              "description": "The context window used and its size. Fields: {used}, {size}, {percent}. Default format \"ctx {used}/{size}\", priority 22.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "cost": {
+              "description": "The session's cost, as the agent reports it. Fields: {cost}, {amount}, {currency}. Default format \"{cost}\", priority 75.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "hints": {
+              "description": "Key hints for what can be done now. Fields: {key}, {label}. Default format \"{key} {label}\", priority 25.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "mouse": {
+              "description": "The mouse policy, while it is not full. Fields: {state}, {policy}. Default format \"{state}\", priority 85.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "density": {
+              "description": "The conversation's density, while it differs from the density setting. Fields: {name}. Default format \"density: {name}\", priority 65.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "position": {
+              "description": "How far the conversation is scrolled, while it does not follow the end. Fields: {percent}, {below}. Default format \"scrolled {percent}\", priority 70.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "config": {
+              "description": "How many configuration problems there are, while there are any. Fields: {count}. Default format \"config {count}\", priority 88.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "text": {
+              "description": "Fixed text: its format, with no fields. Fields: none. Default format \"\", priority 10.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "conversation_min_rows": {
+          "default": 12,
+          "description": "Conversation rows kept when the prompt box's resting height is chosen.",
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 30
+        },
+        "scrollbar": {
+          "default": true,
+          "description": "Draw the conversation's scroll bar.",
+          "type": "boolean"
+        }
+      },
+      "description": "The screen layout: margins, regions, the prompt box's border, module settings, the conversation's row floor and scroll bar."
+    },
+    "keys": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "global": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "escape",
+                  "interrupt",
+                  "detach",
+                  "toggleFocus",
+                  "toggleTool",
+                  "repaint",
+                  "toggleMouse",
+                  "pageUp",
+                  "pageDown",
+                  "palette",
+                  "pickModel",
+                  "pickMode",
+                  "pickThoughtLevel",
+                  "find",
+                  "findNext",
+                  "findPrevious",
+                  "sessions",
+                  "cycleMode",
+                  "cycleThoughtLevel",
+                  "keyHelp",
+                  "configProblems"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the global context, each mapped to one of its actions or to null to remove the binding. Its actions: escape, interrupt, detach, toggleFocus, toggleTool, repaint, toggleMouse, pageUp, pageDown, palette, pickModel, pickMode, pickThoughtLevel, find, findNext, findPrevious, sessions, cycleMode, cycleThoughtLevel, keyHelp, configProblems."
+        },
+        "prompt": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "submit",
+                  "newline",
+                  "lineUp",
+                  "lineDown",
+                  "palette",
+                  "agentCommands",
+                  "first",
+                  "last",
+                  "paste",
+                  "selectLeft",
+                  "selectRight",
+                  "selectUp",
+                  "selectDown",
+                  "selectHome",
+                  "selectEnd",
+                  "selectWordLeft",
+                  "selectWordRight",
+                  "selectAll",
+                  "cut",
+                  "undo",
+                  "redo"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the prompt context, each mapped to one of its actions or to null to remove the binding. Its actions: submit, newline, lineUp, lineDown, palette, agentCommands, first, last, paste, selectLeft, selectRight, selectUp, selectDown, selectHome, selectEnd, selectWordLeft, selectWordRight, selectAll, cut, undo, redo."
+        },
+        "conversation": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "up",
+                  "down",
+                  "first",
+                  "last",
+                  "toggle",
+                  "back",
+                  "copyItem",
+                  "copyItemMarkdown",
+                  "export",
+                  "cycleDensity",
+                  "previousPrompt",
+                  "nextPrompt",
+                  "previousTool",
+                  "nextTool",
+                  "openLink",
+                  "expandOutput"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the conversation context, each mapped to one of its actions or to null to remove the binding. Its actions: up, down, first, last, toggle, back, copyItem, copyItemMarkdown, export, cycleDensity, previousPrompt, nextPrompt, previousTool, nextTool, openLink, expandOutput."
+        },
+        "card": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "choose1",
+                  "choose2",
+                  "choose3",
+                  "choose4",
+                  "choose5",
+                  "choose6",
+                  "choose7",
+                  "choose8",
+                  "choose9",
+                  "previous",
+                  "next",
+                  "confirm",
+                  "back",
+                  "scrollUp",
+                  "scrollDown",
+                  "pageUp",
+                  "pageDown",
+                  "top",
+                  "bottom",
+                  "grow"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the card context, each mapped to one of its actions or to null to remove the binding. Its actions: choose1, choose2, choose3, choose4, choose5, choose6, choose7, choose8, choose9, previous, next, confirm, back, scrollUp, scrollDown, pageUp, pageDown, top, bottom, grow."
+        },
+        "overlay": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "up",
+                  "down",
+                  "pageUp",
+                  "pageDown",
+                  "first",
+                  "last",
+                  "choose",
+                  "close",
+                  "clear",
+                  "toggleScope"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the overlay context, each mapped to one of its actions or to null to remove the binding. Its actions: up, down, pageUp, pageDown, first, last, choose, close, clear, toggleScope."
+        },
+        "elicitation": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "up",
+                  "down",
+                  "choose1",
+                  "choose2",
+                  "choose3",
+                  "choose4",
+                  "choose5",
+                  "choose6",
+                  "choose7",
+                  "choose8",
+                  "choose9",
+                  "toggle",
+                  "confirm",
+                  "back"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the elicitation context, each mapped to one of its actions or to null to remove the binding. Its actions: up, down, choose1, choose2, choose3, choose4, choose5, choose6, choose7, choose8, choose9, toggle, confirm, back."
+        },
+        "selection": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "copy",
+                  "copyRich",
+                  "clear"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the selection context, each mapped to one of its actions or to null to remove the binding. Its actions: copy, copyRich, clear."
+        },
+        "find": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "next",
+                  "previous",
+                  "close",
+                  "conversation",
+                  "clear"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the find context, each mapped to one of its actions or to null to remove the binding. Its actions: next, previous, close, conversation, clear."
+        }
+      },
+      "description": "Key bindings by context, over the built-in key map: a key replaces that key's default binding in the context; null removes it."
+    }
+  },
+  "description": "acp-tui configuration (config.jsonc, or a project's .acp-tui.jsonc).",
+  "$defs": {
+    "textTokenValue": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "string",
+              "const": "default"
+            },
+            {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "description": "a \"#rrggbb\" colour"
+            }
+          ],
+          "description": "An ANSI palette index from 0 to 255, \"default\" (the terminal's own foreground) or a \"#rrggbb\" colour."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "description": "The token's colour; omitted keeps the colour it would otherwise have.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "string",
+                  "const": "default"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "a \"#rrggbb\" colour"
+                }
+              ]
+            },
+            "bold": {
+              "description": "Bold text.",
+              "type": "boolean"
+            },
+            "dim": {
+              "description": "Dim (faint) text.",
+              "type": "boolean"
+            },
+            "italic": {
+              "description": "Italic text.",
+              "type": "boolean"
+            },
+            "underline": {
+              "description": "Underlined text.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "description": "A colour with the safe text attributes bold, dim, italic and underline."
+        }
+      ],
+      "description": "A colour, or a colour with text attributes."
+    },
+    "surfaceTokenValue": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "string",
+              "const": "default"
+            },
+            {
+              "type": "string",
+              "const": "derived"
+            },
+            {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "description": "a \"#rrggbb\" colour"
+            }
+          ],
+          "description": "An ANSI palette index from 0 to 255, \"default\" (the terminal's own background), \"derived\" (from the terminal's colours) or a \"#rrggbb\" colour."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "description": "The token's colour; omitted keeps the colour it would otherwise have.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "string",
+                  "const": "default"
+                },
+                {
+                  "type": "string",
+                  "const": "derived"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "a \"#rrggbb\" colour"
+                }
+              ]
+            },
+            "bold": {
+              "description": "Bold text.",
+              "type": "boolean"
+            },
+            "dim": {
+              "description": "Dim (faint) text.",
+              "type": "boolean"
+            },
+            "italic": {
+              "description": "Italic text.",
+              "type": "boolean"
+            },
+            "underline": {
+              "description": "Underlined text.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "description": "A colour with the safe text attributes bold, dim, italic and underline."
+        }
+      ],
+      "description": "A colour (or \"derived\"), or a colour with text attributes."
+    }
+  }
+}

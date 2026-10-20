@@ -1,0 +1,41 @@
+M31 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M31 links with unsafe schemes (none may be opened from│
+    «default»  M31 links with unsafe schemes (none may be opened from
+  2 │  agent text): script link (javascript:alert(1)), data link│
+    «default»  agent text): script link «bright-black»(javascript:alert(1))«default», data link
+  3 │  (data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=│
+    «default»  «bright-black»(data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=
+  4 │  =), absolute file link (file:///etc/passwd) and mixed-case│
+    «default»  «bright-black»=)«default», absolute file link «bright-black»(file:///etc/passwd) «default»and mixed-case
+  5 │  scheme (JavaScript:alert(2)).│
+    «default»  scheme «bright-black»(JavaScript:alert(2))«default».
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M31 links with unsafe schemes (none may be opened from│
+    «default»  M31 links with unsafe schemes (none may be opened from
+  2 │  agent text): script link (javascript:alert(1)), data link│
+    «default»  agent text): script link «default +d»(javascript:alert(1))«default», data link
+  3 │  (data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=│
+    «default»  «default +d»(data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=
+  4 │  =), absolute file link (file:///etc/passwd) and mixed-case│
+    «default»  «default +d»=)«default», absolute file link «default +d»(file:///etc/passwd) «default»and mixed-case
+  5 │  scheme (JavaScript:alert(2)).│
+    «default»  scheme «default +d»(JavaScript:alert(2))«default».
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M31 links with unsafe schemes (none may be opened from agent text): script link│
+    «default»  M31 links with unsafe schemes (none may be opened from agent text): script link
+  2 │  (javascript:alert(1)), data link (data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==),│
+    «default»  «bright-black»(javascript:alert(1))«default», data link «bright-black»(data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)«default»,
+  3 │  absolute file link (file:///etc/passwd) and mixed-case scheme (JavaScript:alert(2)).│
+    «default»  absolute file link «bright-black»(file:///etc/passwd) «default»and mixed-case scheme «bright-black»(JavaScript:alert(2))«default».
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M31 links with unsafe schemes (none may be opened from agent text): script link│
+    «default»  M31 links with unsafe schemes (none may be opened from agent text): script link
+  2 │  (javascript:alert(1)), data link (data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==),│
+    «default»  «default +d»(javascript:alert(1))«default», data link «default +d»(data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)«default»,
+  3 │  absolute file link (file:///etc/passwd) and mixed-case scheme (JavaScript:alert(2)).│
+    «default»  absolute file link «default +d»(file:///etc/passwd) «default»and mixed-case scheme «default +d»(JavaScript:alert(2))«default».

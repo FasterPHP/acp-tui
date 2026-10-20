@@ -1,0 +1,59 @@
+M18 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M18 mixed lists, a loose item and code in an item:│
+    «text»M18 mixed lists, a loose item and code in an item:
+  2 ││
+  3 │1. Ordered parent│
+    «markdown.list»1. «text»Ordered parent
+  4 │   ○ Unordered child│
+    «text»   «markdown.list»○ «text»Unordered child
+  5 │   [ ] Task child│
+    «text»   «markdown.task.open»[ ] «text»Task child
+  6 │       1. Ordered grandchild│
+    «text»       «markdown.list»1. «text»Ordered grandchild
+  7 ││
+  8 │2. Ordered parent with two paragraphs│
+    «markdown.list»2. «text»Ordered parent with two paragraphs
+  9 ││
+ 10 │   The second paragraph inside the item (a loose list).│
+    «text»   The second paragraph inside the item (a loose list).
+ 11 ││
+ 12 │       [label «muted bg:surface.code»ts]│ (decorative) (bg:surface.code)
+    «text»   «muted ~ bg:surface.code»  
+ 13 │     const insideList = true;│ (bg:surface.code)
+    «text»   «muted ~ bg:surface.code»  «code.default bg:surface.code»const insideList = true;
+ 14 │     │ (decorative) (bg:surface.code)
+    «text»   «muted ~ bg:surface.code»  
+ 15 ││
+ 16 │3. Third parent│
+    «markdown.list»3. «text»Third parent
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M18 mixed lists, a loose item and code in an item:│
+    «text»M18 mixed lists, a loose item and code in an item:
+  2 ││
+  3 │1. Ordered parent│
+    «markdown.list»1. «text»Ordered parent
+  4 │   ○ Unordered child│
+    «text»   «markdown.list»○ «text»Unordered child
+  5 │   [ ] Task child│
+    «text»   «markdown.task.open»[ ] «text»Task child
+  6 │       1. Ordered grandchild│
+    «text»       «markdown.list»1. «text»Ordered grandchild
+  7 ││
+  8 │2. Ordered parent with two paragraphs│
+    «markdown.list»2. «text»Ordered parent with two paragraphs
+  9 ││
+ 10 │   The second paragraph inside the item (a loose list).│
+    «text»   The second paragraph inside the item (a loose list).
+ 11 ││
+ 12 │       [label «muted bg:surface.code»ts]│ (decorative) (bg:surface.code)
+    «text»   «muted ~ bg:surface.code»  
+ 13 │     const insideList = true;│ (bg:surface.code)
+    «text»   «muted ~ bg:surface.code»  «code.default bg:surface.code»const insideList = true;
+ 14 │     │ (decorative) (bg:surface.code)
+    «text»   «muted ~ bg:surface.code»  
+ 15 ││
+ 16 │3. Third parent│
+    «markdown.list»3. «text»Third parent

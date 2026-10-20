@@ -1,0 +1,15 @@
+M10 (markdown-gallery), rendered rows under the emoji classes of an unknown terminal (bare); see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M10 emoji: shortcodes :smile: :rocket: :+1:│
+    «text»M10 emoji: shortcodes :smile: :rocket: :+1:
+  2 │:white_check_mark: :warning: and literal 😀 🚀 👍 ✅ ❌ ⚠️│
+    «text»:white_check_mark: :warning: and literal 😀 🚀 👍 ✅ ❌ ⚠️
+  3 │❤️ 👨‍👩‍👧 🇬🇧 (variation selector, ZWJ sequence and flag).│
+    «text»❤️ 👨‍👩‍👧 🇬🇧 (variation selector, ZWJ sequence and flag).
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M10 emoji: shortcodes :smile: :rocket: :+1: :white_check_mark: :warning: and literal 😀 🚀 👍 ✅│
+    «text»M10 emoji: shortcodes :smile: :rocket: :+1: :white_check_mark: :warning: and literal 😀 🚀 👍 ✅
+  2 │❌ ⚠️ ❤️ 👨‍👩‍👧 🇬🇧 (variation selector, ZWJ sequence and flag).│
+    «text»❌ ⚠️ ❤️ 👨‍👩‍👧 🇬🇧 (variation selector, ZWJ sequence and flag).

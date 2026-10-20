@@ -1,0 +1,15 @@
+M11 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M11 wide characters: 日本語のテキスト, 中文字符, 한국어,│
+    «default»  M11 wide characters: 日本語のテキスト, 中文字符, 한국어,
+  2 │  full-width ＡＢＣ１２３, and mixed English 混合 text in│
+    «default»  full-width ＡＢＣ１２３, and mixed English 混合 text in
+  3 │  one line.│
+    «default»  one line.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M11 wide characters: 日本語のテキスト, 中文字符, 한국어, full-width ＡＢＣ１２３, and mixed│
+    «default»  M11 wide characters: 日本語のテキスト, 中文字符, 한국어, full-width ＡＢＣ１２３, and mixed
+  2 │  English 混合 text in one line.│
+    «default»  English 混合 text in one line.

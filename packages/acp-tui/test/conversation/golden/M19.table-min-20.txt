@@ -1,0 +1,55 @@
+M19 (markdown-gallery), rendered rows with markdown.table_min_column_width 20; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M19 table with alignment (left, centre, right, default) and│
+    «text»M19 table with alignment (left, centre, right, default) and
+  2 │inline formatting:│
+    «text»inline formatting:
+  3 ││
+  4 │Left: a│
+    «markdown.table.header»Left«markdown.table.header ~»: «text»a
+  5 │Centre: b│
+    «markdown.table.header»Centre«markdown.table.header ~»: «text»b
+  6 │Right: c│
+    «markdown.table.header»Right«markdown.table.header ~»: «text»c
+  7 │Default: d│
+    «markdown.table.header»Default«markdown.table.header ~»: «text»d
+  8 │─────────────────────────────────────────────────────────────│ (decorative)
+    «markdown.table.border ~»─────────────────────────────────────────────────────────────
+  9 │Left: bold│
+    «markdown.table.header»Left«markdown.table.header ~»: «text +b»bold
+ 10 │Centre: italic│
+    «markdown.table.header»Centre«markdown.table.header ~»: «text +i»italic
+ 11 │Right: code│
+    «markdown.table.header»Right«markdown.table.header ~»: «markdown.code»code
+ 12 │Default: struck│
+    «markdown.table.header»Default«markdown.table.header ~»: «markdown.strike +s»struck
+ 13 │─────────────────────────────────────────────────────────────│ (decorative)
+    «markdown.table.border ~»─────────────────────────────────────────────────────────────
+ 14 │Left: link (example.com)│
+    «markdown.table.header»Left«markdown.table.header ~»: «markdown.link ->https://example.com/cell»link«text» «muted ->https://example.com/cell»(example.com)
+ 15 │Centre: 日本語│
+    «markdown.table.header»Centre«markdown.table.header ~»: «text»日本語
+ 16 │Right: 1,234.56│
+    «markdown.table.header»Right«markdown.table.header ~»: «text»1,234.56
+ 17 │Default: an | escaped pipe│
+    «markdown.table.header»Default«markdown.table.header ~»: «text»an | escaped pipe
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M19 table with alignment (left, centre, right, default) and inline formatting:│
+    «text»M19 table with alignment (left, centre, right, default) and inline formatting:
+  2 ││
+  3 │╭────────────────────┬────────┬──────────┬───────────────────╮│ (decorative)
+    «markdown.table.border ~»╭────────────────────┬────────┬──────────┬───────────────────╮
+  4 ││ Left               │ Centre │    Right │ Default           ││
+    «markdown.table.border ~»│ «markdown.table.header»Left«text ~»              «markdown.table.border ~» │ «markdown.table.header»Centre«markdown.table.border ~» │ «text ~»   «markdown.table.header»Right«markdown.table.border ~» │ «markdown.table.header»Default«text ~»          «markdown.table.border ~» │
+  5 │├────────────────────┼────────┼──────────┼───────────────────┤│ (decorative)
+    «markdown.table.border ~»├────────────────────┼────────┼──────────┼───────────────────┤
+  6 ││ a                  │   b    │        c │ d                 ││
+    «markdown.table.border ~»│ «text»a«text ~»                 «markdown.table.border ~» │ «text ~»  «text»b«text ~»   «markdown.table.border ~» │ «text ~»       «text»c«markdown.table.border ~» │ «text»d«text ~»                «markdown.table.border ~» │
+  7 ││ bold               │ italic │     code │ struck            ││
+    «markdown.table.border ~»│ «text +b»bold«text ~»              «markdown.table.border ~» │ «text +i»italic«markdown.table.border ~» │ «text ~»    «markdown.code»code«markdown.table.border ~» │ «markdown.strike +s»struck«text ~»           «markdown.table.border ~» │
+  8 ││ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped pipe ││
+    «markdown.table.border ~»│ «markdown.link ->https://example.com/cell»link«text» «muted ->https://example.com/cell»(example.com)«markdown.table.border ~» │ «text»日本語«markdown.table.border ~» │ «text»1,234.56«markdown.table.border ~» │ «text»an | escaped pipe«markdown.table.border ~» │
+  9 │╰────────────────────┴────────┴──────────┴───────────────────╯│ (decorative)
+    «markdown.table.border ~»╰────────────────────┴────────┴──────────┴───────────────────╯

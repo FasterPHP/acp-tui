@@ -1,0 +1,5 @@
+The first paragraph explains the change in one or two sentences.
+
+The second paragraph gives the reason, including a code span that must survive a copy.
+
+The third paragraph closes with what to check next.

@@ -1,0 +1,59 @@
+M23 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M23 blockquotes, nested three levels, with a list and code:│
+    «text»M23 blockquotes, nested three levels, with a list and code:
+  2 ││
+  3 ││ Level one quote with bold and code.│
+    «markdown.quote ~»│ «markdown.quote»Level one quote with «markdown.quote +b»bold«markdown.quote» and «markdown.code»code«markdown.quote».
+  4 │││
+    «markdown.quote ~»│
+  5 ││ │ Level two quote.│
+    «markdown.quote ~»│ │ «markdown.quote»Level two quote.
+  6 ││ ││
+    «markdown.quote ~»│ │
+  7 ││ │ │ Level three quote.│
+    «markdown.quote ~»│ │ │ «markdown.quote»Level three quote.
+  8 │││
+    «markdown.quote ~»│
+  9 ││ ● A list inside the quote│
+    «markdown.quote ~»│ «markdown.list»● «markdown.quote»A list inside the quote
+ 10 ││ ● Its second item│
+    «markdown.quote ~»│ «markdown.list»● «markdown.quote»Its second item
+ 11 │││
+    «markdown.quote ~»│
+ 12 ││     [label «muted bg:surface.code»php]│ (decorative) (bg:surface.code)
+    «markdown.quote ~»│ «muted ~ bg:surface.code»  
+ 13 ││   echo 'code in a quote';│ (bg:surface.code)
+    «markdown.quote ~»│ «muted ~ bg:surface.code»  «code.default bg:surface.code»echo 'code in a quote';
+ 14 ││   │ (decorative) (bg:surface.code)
+    «markdown.quote ~»│ «muted ~ bg:surface.code»  
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M23 blockquotes, nested three levels, with a list and code:│
+    «text»M23 blockquotes, nested three levels, with a list and code:
+  2 ││
+  3 ││ Level one quote with bold and code.│
+    «markdown.quote ~»│ «markdown.quote»Level one quote with «markdown.quote +b»bold«markdown.quote» and «markdown.code»code«markdown.quote».
+  4 │││
+    «markdown.quote ~»│
+  5 ││ │ Level two quote.│
+    «markdown.quote ~»│ │ «markdown.quote»Level two quote.
+  6 ││ ││
+    «markdown.quote ~»│ │
+  7 ││ │ │ Level three quote.│
+    «markdown.quote ~»│ │ │ «markdown.quote»Level three quote.
+  8 │││
+    «markdown.quote ~»│
+  9 ││ ● A list inside the quote│
+    «markdown.quote ~»│ «markdown.list»● «markdown.quote»A list inside the quote
+ 10 ││ ● Its second item│
+    «markdown.quote ~»│ «markdown.list»● «markdown.quote»Its second item
+ 11 │││
+    «markdown.quote ~»│
+ 12 ││     [label «muted bg:surface.code»php]│ (decorative) (bg:surface.code)
+    «markdown.quote ~»│ «muted ~ bg:surface.code»  
+ 13 ││   echo 'code in a quote';│ (bg:surface.code)
+    «markdown.quote ~»│ «muted ~ bg:surface.code»  «code.default bg:surface.code»echo 'code in a quote';
+ 14 ││   │ (decorative) (bg:surface.code)
+    «markdown.quote ~»│ «muted ~ bg:surface.code»  

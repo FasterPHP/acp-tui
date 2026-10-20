@@ -1,0 +1,49 @@
+M25 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M25 footnotes: a sentence with a numbered footnote¹ and a│
+    «default»  M25 footnotes: a sentence with a numbered footnote«blue +u»¹«default» and a
+  2 │  named one².│
+    «default»  named one«blue +u»²«default».
+  3 ││
+  4 │  ────────│
+    «default»  «bright-black»────────
+  5 │  ¹ The first footnote definition.│
+    «default»  «bright-black»¹ «default»The first footnote definition.
+  6 │  ² A named footnote, with bold text.│
+    «default»  «bright-black»² «default»A named footnote, with «default +b»bold «default»text.
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M25 footnotes: a sentence with a numbered footnote¹ and a│
+    «default»  M25 footnotes: a sentence with a numbered footnote«blue +u»¹«default» and a
+  2 │  named one².│
+    «default»  named one«blue +u»²«default».
+  3 ││
+  4 │  ────────│
+    «default»  «default +d»────────
+  5 │  ¹ The first footnote definition.│
+    «default»  «default +d»¹ «default»The first footnote definition.
+  6 │  ² A named footnote, with bold text.│
+    «default»  «default +d»² «default»A named footnote, with «default +b»bold «default»text.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M25 footnotes: a sentence with a numbered footnote¹ and a named one².│
+    «default»  M25 footnotes: a sentence with a numbered footnote«blue +u»¹«default» and a named one«blue +u»²«default».
+  2 ││
+  3 │  ────────│
+    «default»  «bright-black»────────
+  4 │  ¹ The first footnote definition.│
+    «default»  «bright-black»¹ «default»The first footnote definition.
+  5 │  ² A named footnote, with bold text.│
+    «default»  «bright-black»² «default»A named footnote, with «default +b»bold «default»text.
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M25 footnotes: a sentence with a numbered footnote¹ and a named one².│
+    «default»  M25 footnotes: a sentence with a numbered footnote«blue +u»¹«default» and a named one«blue +u»²«default».
+  2 ││
+  3 │  ────────│
+    «default»  «default +d»────────
+  4 │  ¹ The first footnote definition.│
+    «default»  «default +d»¹ «default»The first footnote definition.
+  5 │  ² A named footnote, with bold text.│
+    «default»  «default +d»² «default»A named footnote, with «default +b»bold «default»text.

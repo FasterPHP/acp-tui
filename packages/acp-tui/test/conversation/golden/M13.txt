@@ -1,0 +1,29 @@
+M13 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M13 setext headings:│
+    «text»M13 setext headings:
+  2 ││
+  3 │Setext heading level 1│
+    «markdown.heading.1»Setext heading level 1
+  4 │━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│ (decorative)
+    «markdown.heading.1 ~»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5 ││
+  6 │Setext heading level 2│
+    «markdown.heading.2»Setext heading level 2
+  7 │─────────────────────────────────────────────────────────────│ (decorative)
+    «muted ~»─────────────────────────────────────────────────────────────
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M13 setext headings:│
+    «text»M13 setext headings:
+  2 ││
+  3 │Setext heading level 1│
+    «markdown.heading.1»Setext heading level 1
+  4 │━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│ (decorative)
+    «markdown.heading.1 ~»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5 ││
+  6 │Setext heading level 2│
+    «markdown.heading.2»Setext heading level 2
+  7 │──────────────────────────────────────────────────────────────────────────────────────────────────│ (decorative)
+    «muted ~»──────────────────────────────────────────────────────────────────────────────────────────────────

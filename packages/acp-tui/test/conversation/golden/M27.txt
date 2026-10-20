@@ -1,0 +1,27 @@
+M27 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M27 HTML blocks:│
+    «text»M27 HTML blocks:
+  2 ││
+  3 │Click to expand│
+    «text +b»Click to expand
+  4 ││
+  5 │Hidden content with Markdown inside.│
+    «text»Hidden content with «text +b»Markdown«text» inside.
+  6 ││
+  7 │A centred HTML block│
+    «text +b»A centred HTML block
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M27 HTML blocks:│
+    «text»M27 HTML blocks:
+  2 ││
+  3 │Click to expand│
+    «text +b»Click to expand
+  4 ││
+  5 │Hidden content with Markdown inside.│
+    «text»Hidden content with «text +b»Markdown«text» inside.
+  6 ││
+  7 │A centred HTML block│
+    «text +b»A centred HTML block

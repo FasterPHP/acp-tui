@@ -1,0 +1,18 @@
+Edit src/InvoiceTotal.php
+
+--- /work/src/InvoiceTotal.php
++++ /work/src/InvoiceTotal.php
+@@ -6,12 +6,7 @@
+ {
+     public function net(): float
+     {
+-        $total = 0.0;
+-        foreach ($this->lines as $line) {
+-            $total += $line['qty'] * $line['price'];
+-        }
+-
+-        return $total;
++        return array_sum(array_map(fn (array $line): float => $line['qty'] * $line['price'], $this->lines));
+     }
+ 
+     public function count(): int

@@ -1,0 +1,9 @@
+M99 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M99 end of gallery.│
+    «default»  M99 end of gallery.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M99 end of gallery.│
+    «default»  M99 end of gallery.

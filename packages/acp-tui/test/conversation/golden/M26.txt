@@ -1,0 +1,27 @@
+M26 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M26 maths: inline dollars E = mc² and α + β ≤ √(x² + y²),│
+    «text»M26 maths: inline dollars «markdown.math»E = mc²«text» and «markdown.math»α + β ≤ √(x² + y²)«text»,
+  2 │inline parentheses a² + b² = c², and prices $5 and $10 that│
+    «text»inline parentheses «markdown.math»a² + b² = c²«text», and prices $5 and $10 that
+  3 │are not maths.│
+    «text»are not maths.
+  4 ││
+  5 │  ∑_(i=1)^n i = n(n+1)/2│
+    «muted ~»  «markdown.math»∑_(i=1)^n i = n(n+1)/2
+  6 ││
+  7 │  ∫₀^∞ e^(-x²) dx = √π/2│
+    «muted ~»  «markdown.math»∫₀^∞ e^(-x²) dx = √π/2
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M26 maths: inline dollars E = mc² and α + β ≤ √(x² + y²), inline parentheses a² + b² = c², and│
+    «text»M26 maths: inline dollars «markdown.math»E = mc²«text» and «markdown.math»α + β ≤ √(x² + y²)«text», inline parentheses «markdown.math»a² + b² = c²«text», and
+  2 │prices $5 and $10 that are not maths.│
+    «text»prices $5 and $10 that are not maths.
+  3 ││
+  4 │  ∑_(i=1)^n i = n(n+1)/2│
+    «muted ~»  «markdown.math»∑_(i=1)^n i = n(n+1)/2
+  5 ││
+  6 │  ∫₀^∞ e^(-x²) dx = √π/2│
+    «muted ~»  «markdown.math»∫₀^∞ e^(-x²) dx = √π/2

@@ -1,0 +1,43 @@
+M29 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M29 other extensions: ==highlighted==, H~2~O subscript, x^2^│
+    «text»M29 other extensions: ==highlighted==, H~2~O subscript, x^2^
+  2 │superscript, ++inserted++, an abbreviation HTML, and a│
+    «text»superscript, ++inserted++, an abbreviation HTML, and a
+  3 │mermaid fence:│
+    «text»mermaid fence:
+  4 ││
+  5 │*[HTML]: Hyper Text Markup Language│
+    «text»*[HTML]: Hyper Text Markup Language
+  6 ││
+  7 │    [label «muted bg:surface.code»mermaid]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  8 │  graph LR│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»graph LR
+  9 │    A[Prompt] --> B{Agent}│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  A[Prompt] --> B{Agent}
+ 10 │    B --> C[Answer]│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  B --> C[Answer]
+ 11 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M29 other extensions: ==highlighted==, H~2~O subscript, x^2^ superscript, ++inserted++, an│
+    «text»M29 other extensions: ==highlighted==, H~2~O subscript, x^2^ superscript, ++inserted++, an
+  2 │abbreviation HTML, and a mermaid fence:│
+    «text»abbreviation HTML, and a mermaid fence:
+  3 ││
+  4 │*[HTML]: Hyper Text Markup Language│
+    «text»*[HTML]: Hyper Text Markup Language
+  5 ││
+  6 │    [label «muted bg:surface.code»mermaid]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  7 │  graph LR│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»graph LR
+  8 │    A[Prompt] --> B{Agent}│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  A[Prompt] --> B{Agent}
+  9 │    B --> C[Answer]│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  B --> C[Answer]
+ 10 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  

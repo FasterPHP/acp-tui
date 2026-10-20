@@ -1,0 +1,85 @@
+M19 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M19 table with alignment (left, centre, right, default)│
+    «default»  M19 table with alignment (left, centre, right, default)
+  2 │  and inline formatting:│
+    «default»  and inline formatting:
+  3 ││
+  4 │  ╭──────────────────┬────────┬──────────┬─────────────────╮│
+    «default»  «bright-black»╭──────────────────┬────────┬──────────┬─────────────────╮
+  5 │  │ Left             │ Centre │    Right │ Default         ││
+    «default»  «bright-black»│ «blue +b»Left             «bright-black»│ «blue +b»Centre «bright-black»│    «blue +b»Right «bright-black»│ «blue +b»Default         «bright-black»│
+  6 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
+    «default»  «bright-black»├──────────────────┼────────┼──────────┼─────────────────┤
+  7 │  │ a                │   b    │        c │ d               ││
+    «default»  «bright-black»│ «default»a                «bright-black»│   «default»b    «bright-black»│        «default»c «bright-black»│ «default»d               «bright-black»│
+  8 │  │ bold             │ italic │     code │ struck          ││
+    «default»  «bright-black»│ «default +b»bold             «bright-black»│ «default +i»italic «bright-black»│     «yellow»code «bright-black»│ «bright-black +i»struck          «bright-black»│
+  9 │  │ link             │ 日本語 │ 1,234.56 │ an | escaped    ││
+    «default»  «bright-black»│ «blue +u»link«default»             «bright-black»│ «default»日本語 «bright-black»│ «default»1,234.56 «bright-black»│ «default»an | escaped    «bright-black»│
+ 10 │  │ (example.com)    │        │          │ pipe            ││
+    «default»  «bright-black»│ (example.com)    │        │          │ «default»pipe            «bright-black»│
+ 11 │  ╰──────────────────┴────────┴──────────┴─────────────────╯│
+    «default»  «bright-black»╰──────────────────┴────────┴──────────┴─────────────────╯
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M19 table with alignment (left, centre, right, default)│
+    «default»  M19 table with alignment (left, centre, right, default)
+  2 │  and inline formatting:│
+    «default»  and inline formatting:
+  3 ││
+  4 │  ╭──────────────────┬────────┬──────────┬─────────────────╮│
+    «default»  «default +d»╭──────────────────┬────────┬──────────┬─────────────────╮
+  5 │  │ Left             │ Centre │    Right │ Default         ││
+    «default»  «default +d»│ «blue +b»Left             «default +d»│ «blue +b»Centre «default +d»│    «blue +b»Right «default +d»│ «blue +b»Default         «default +d»│
+  6 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
+    «default»  «default +d»├──────────────────┼────────┼──────────┼─────────────────┤
+  7 │  │ a                │   b    │        c │ d               ││
+    «default»  «default +d»│ «default»a                «default +d»│   «default»b    «default +d»│        «default»c «default +d»│ «default»d               «default +d»│
+  8 │  │ bold             │ italic │     code │ struck          ││
+    «default»  «default +d»│ «default +b»bold             «default +d»│ «default +i»italic «default +d»│     «magenta»code «default +d»│ «default +i +d»struck          «default +d»│
+  9 │  │ link             │ 日本語 │ 1,234.56 │ an | escaped    ││
+    «default»  «default +d»│ «blue +u»link«default»             «default +d»│ «default»日本語 «default +d»│ «default»1,234.56 «default +d»│ «default»an | escaped    «default +d»│
+ 10 │  │ (example.com)    │        │          │ pipe            ││
+    «default»  «default +d»│ (example.com)    │        │          │ «default»pipe            «default +d»│
+ 11 │  ╰──────────────────┴────────┴──────────┴─────────────────╯│
+    «default»  «default +d»╰──────────────────┴────────┴──────────┴─────────────────╯
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M19 table with alignment (left, centre, right, default) and inline formatting:│
+    «default»  M19 table with alignment (left, centre, right, default) and inline formatting:
+  2 ││
+  3 │  ╭────────────────────┬────────┬──────────┬───────────────────╮│
+    «default»  «bright-black»╭────────────────────┬────────┬──────────┬───────────────────╮
+  4 │  │ Left               │ Centre │    Right │ Default           ││
+    «default»  «bright-black»│ «blue +b»Left               «bright-black»│ «blue +b»Centre «bright-black»│    «blue +b»Right «bright-black»│ «blue +b»Default           «bright-black»│
+  5 │  ├────────────────────┼────────┼──────────┼───────────────────┤│
+    «default»  «bright-black»├────────────────────┼────────┼──────────┼───────────────────┤
+  6 │  │ a                  │   b    │        c │ d                 ││
+    «default»  «bright-black»│ «default»a                  «bright-black»│   «default»b    «bright-black»│        «default»c «bright-black»│ «default»d                 «bright-black»│
+  7 │  │ bold               │ italic │     code │ struck            ││
+    «default»  «bright-black»│ «default +b»bold               «bright-black»│ «default +i»italic «bright-black»│     «yellow»code «bright-black»│ «bright-black +i»struck            «bright-black»│
+  8 │  │ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped pipe ││
+    «default»  «bright-black»│ «blue +u»link«default» «bright-black»(example.com) │ «default»日本語 «bright-black»│ «default»1,234.56 «bright-black»│ «default»an | escaped pipe «bright-black»│
+  9 │  ╰────────────────────┴────────┴──────────┴───────────────────╯│
+    «default»  «bright-black»╰────────────────────┴────────┴──────────┴───────────────────╯
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M19 table with alignment (left, centre, right, default) and inline formatting:│
+    «default»  M19 table with alignment (left, centre, right, default) and inline formatting:
+  2 ││
+  3 │  ╭────────────────────┬────────┬──────────┬───────────────────╮│
+    «default»  «default +d»╭────────────────────┬────────┬──────────┬───────────────────╮
+  4 │  │ Left               │ Centre │    Right │ Default           ││
+    «default»  «default +d»│ «blue +b»Left               «default +d»│ «blue +b»Centre «default +d»│    «blue +b»Right «default +d»│ «blue +b»Default           «default +d»│
+  5 │  ├────────────────────┼────────┼──────────┼───────────────────┤│
+    «default»  «default +d»├────────────────────┼────────┼──────────┼───────────────────┤
+  6 │  │ a                  │   b    │        c │ d                 ││
+    «default»  «default +d»│ «default»a                  «default +d»│   «default»b    «default +d»│        «default»c «default +d»│ «default»d                 «default +d»│
+  7 │  │ bold               │ italic │     code │ struck            ││
+    «default»  «default +d»│ «default +b»bold               «default +d»│ «default +i»italic «default +d»│     «magenta»code «default +d»│ «default +i +d»struck            «default +d»│
+  8 │  │ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped pipe ││
+    «default»  «default +d»│ «blue +u»link«default» «default +d»(example.com) │ «default»日本語 «default +d»│ «default»1,234.56 «default +d»│ «default»an | escaped pipe «default +d»│
+  9 │  ╰────────────────────┴────────┴──────────┴───────────────────╯│
+    «default»  «default +d»╰────────────────────┴────────┴──────────┴───────────────────╯

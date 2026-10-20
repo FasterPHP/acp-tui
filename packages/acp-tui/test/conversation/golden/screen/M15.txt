@@ -1,0 +1,69 @@
+M15 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M15 unordered lists, nested three levels, then a star list│
+    «default»  M15 unordered lists, nested three levels, then a star list
+  2 │  and a plus list:│
+    «default»  and a plus list:
+  3 ││
+  4 │  ● Level 1 dash│
+    «default»  «blue»● «default»Level 1 dash
+  5 │    ○ Level 2 dash│
+    «default»    «blue»○ «default»Level 2 dash
+  6 │      • Level 3 dash│
+    «default»      «blue»• «default»Level 3 dash
+  7 │      • Level 3 second│
+    «default»      «blue»• «default»Level 3 second
+  8 │    ○ Level 2 second│
+    «default»    «blue»○ «default»Level 2 second
+  9 │  ● Level 1 second│
+    «default»  «blue»● «default»Level 1 second
+ 10 ││
+ 11 │  A star list:│
+    «default»  A star list:
+ 12 ││
+ 13 │  ● Star bullet list│
+    «default»  «blue»● «default»Star bullet list
+ 14 │  ● Star second│
+    «default»  «blue»● «default»Star second
+ 15 ││
+ 16 │  A plus list:│
+    «default»  A plus list:
+ 17 ││
+ 18 │  ● Plus bullet list│
+    «default»  «blue»● «default»Plus bullet list
+ 19 │  ● Plus second│
+    «default»  «blue»● «default»Plus second
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M15 unordered lists, nested three levels, then a star list and a plus list:│
+    «default»  M15 unordered lists, nested three levels, then a star list and a plus list:
+  2 ││
+  3 │  ● Level 1 dash│
+    «default»  «blue»● «default»Level 1 dash
+  4 │    ○ Level 2 dash│
+    «default»    «blue»○ «default»Level 2 dash
+  5 │      • Level 3 dash│
+    «default»      «blue»• «default»Level 3 dash
+  6 │      • Level 3 second│
+    «default»      «blue»• «default»Level 3 second
+  7 │    ○ Level 2 second│
+    «default»    «blue»○ «default»Level 2 second
+  8 │  ● Level 1 second│
+    «default»  «blue»● «default»Level 1 second
+  9 ││
+ 10 │  A star list:│
+    «default»  A star list:
+ 11 ││
+ 12 │  ● Star bullet list│
+    «default»  «blue»● «default»Star bullet list
+ 13 │  ● Star second│
+    «default»  «blue»● «default»Star second
+ 14 ││
+ 15 │  A plus list:│
+    «default»  A plus list:
+ 16 ││
+ 17 │  ● Plus bullet list│
+    «default»  «blue»● «default»Plus bullet list
+ 18 │  ● Plus second│
+    «default»  «blue»● «default»Plus second

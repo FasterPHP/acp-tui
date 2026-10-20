@@ -1,0 +1,31 @@
+#!/bin/sh
+# The acp-tui launcher: the package's `bin`, run directly or through the stub that
+# `bun run install-cli` writes to ~/.local/bin.
+#
+# It resolves its own real path (so a symlink to it works), finds `bun` on the PATH or in
+# ~/.bun/bin, and runs the package's src/cli.ts. Arguments pass through untouched, including
+# the user's own `--` (mvp-sessions, design decision 9): Bun's script runner swallows a `--`
+# that directly follows the script path, so the launcher puts one of its own there and Bun
+# drops that one. `acp-tui ./repo -- cmd args` then reaches acp-tui as `./repo -- cmd args`,
+# and acp-tui treats everything after `--` as the agent command.
+set -eu
+
+self=$0
+while [ -L "$self" ]; do
+  dir=$(cd -P "$(dirname "$self")" && pwd)
+  target=$(readlink "$self")
+  case $target in
+    /*) self=$target ;;
+    *) self=$dir/$target ;;
+  esac
+done
+here=$(cd -P "$(dirname "$self")" && pwd)
+package=$(dirname "$here")
+
+PATH="$PATH:$HOME/.bun/bin"
+if ! command -v bun >/dev/null 2>&1; then
+  echo "acp-tui: bun was not found on the PATH or in ~/.bun/bin; install it from https://bun.sh" >&2
+  exit 127
+fi
+
+exec bun "$package/src/cli.ts" -- "$@"

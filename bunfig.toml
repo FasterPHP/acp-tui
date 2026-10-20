@@ -1,0 +1,10 @@
+preload = ["@opentui/solid/preload"]
+
+# `bun test` does not apply the top-level preload; it has its own.
+[test]
+# xdg.ts: a temporary XDG_CONFIG_HOME and XDG_STATE_HOME for every test run.
+preload = ["@opentui/solid/preload", "./packages/acp-tui/test/preload/xdg.ts"]
+
+[install]
+exact = true
+linker = "hoisted"

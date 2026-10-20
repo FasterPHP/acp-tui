@@ -1,0 +1,25 @@
+M25 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M25 footnotes: a sentence with a numbered footnote¹ and a│
+    «text»M25 footnotes: a sentence with a numbered footnote«markdown.link»¹«text» and a
+  2 │named one².│
+    «text»named one«markdown.link»²«text».
+  3 ││
+  4 │────────│ (decorative)
+    «muted ~»────────
+  5 │¹ The first footnote definition.│
+    «muted»¹ «text»The first footnote definition.
+  6 │² A named footnote, with bold text.│
+    «muted»² «text»A named footnote, with «text +b»bold«text» text.
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M25 footnotes: a sentence with a numbered footnote¹ and a named one².│
+    «text»M25 footnotes: a sentence with a numbered footnote«markdown.link»¹«text» and a named one«markdown.link»²«text».
+  2 ││
+  3 │────────│ (decorative)
+    «muted ~»────────
+  4 │¹ The first footnote definition.│
+    «muted»¹ «text»The first footnote definition.
+  5 │² A named footnote, with bold text.│
+    «muted»² «text»A named footnote, with «text +b»bold«text» text.

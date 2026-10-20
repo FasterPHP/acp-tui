@@ -1,0 +1,1217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "Ignored; lets an editor find the theme file's JSON Schema.",
+      "type": "string"
+    },
+    "extends": {
+      "description": "Another theme this one starts from (the built-in \"default\" at the root).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "surface_contrast": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 2,
+      "description": "Scales every derived surface's lightness step from the background, within the 40 per cent cap: 1 is the default step, and 1.2 makes cards stronger."
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "description": "body text of conversation rows and the composer",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "muted": {
+          "description": "secondary text: turn-end markers, cwd, metadata",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "accent": {
+          "description": "prompt marker, focus and the other accents",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "hint": {
+          "description": "key hints bar",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "warning": {
+          "description": "warnings, exit-armed hint",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "danger": {
+          "description": "errors, disconnected state",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "user": {
+          "description": "the user card's bar; under the flat style also the conversation cursor's inverse block on a user message (defaults to accent's colour)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "agent": {
+          "description": "the agent message's gutter glyph, blank unless glyphs.overrides sets gutter.agent; under the flat style, the conversation cursor's inverse gutter on an agent message",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "thought": {
+          "description": "thought summary lines",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "permission": {
+          "description": "permission prompt frame and marker glyph",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "status.fg": {
+          "description": "status bar text",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "busy": {
+          "description": "the busy indicator's segment in the prompt box's top border under `busy.style` `colour` (bold bright blue by default, bold magenta on a light background, apart from the focused frame's accent)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.ok": {
+          "description": "tool line: the ok status glyph",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.fail": {
+          "description": "tool line: the fail status glyph and word",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.running": {
+          "description": "tool line: the running status; in-progress tools in the activity region",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind": {
+          "description": "tool line: the kind glyph and kind word (each tool.kind.<kind> defaults to it)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.title": {
+          "description": "tool line title, and an expanded tool card's full title",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.count": {
+          "description": "tool line: line and match counts",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.duration": {
+          "description": "tool line: the duration",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.index": {
+          "description": "tool line: the per-session index (#n)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.result.label": {
+          "description": "a command result's labels in an expanded tool card: `Output:` and `Return code:` (defaults to muted)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.read": {
+          "description": "tool line kind of read calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.edit": {
+          "description": "tool line kind of edit calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.delete": {
+          "description": "tool line kind of delete calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.move": {
+          "description": "tool line kind of move calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.search": {
+          "description": "tool line kind of search calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.execute": {
+          "description": "tool line kind of execute calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.think": {
+          "description": "tool line kind of think calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.fetch": {
+          "description": "tool line kind of fetch calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.switch_mode": {
+          "description": "tool line kind of switch_mode calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "tool.kind.other": {
+          "description": "tool line kind of other and unknown calls (defaults to tool.kind)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "diff.add": {
+          "description": "added lines (tool cards, one-liner summaries)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "diff.remove": {
+          "description": "removed lines (tool cards, one-liner summaries)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "diff.hunk": {
+          "description": "diff hunk headers (tool cards)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.heading.1": {
+          "description": "Markdown level 1 headings (the renderer draws the heavy rule)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.heading.2": {
+          "description": "Markdown level 2 headings (the renderer draws the light rule)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.heading.3": {
+          "description": "Markdown level 3 headings",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.heading.4": {
+          "description": "Markdown level 4 headings",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.heading.5": {
+          "description": "Markdown level 5 headings",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.heading.6": {
+          "description": "Markdown level 6 headings",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.code": {
+          "description": "Markdown inline code, and maths shown as its source",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.link": {
+          "description": "Markdown links and footnote references",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.quote": {
+          "description": "Markdown block quotes and thematic breaks",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.list": {
+          "description": "Markdown list bullets and numbers",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.task.done": {
+          "description": "Markdown checked task box [x]",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.task.open": {
+          "description": "Markdown unchecked task box [ ]",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.table.border": {
+          "description": "Markdown table borders and the record layout's rules",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.table.header": {
+          "description": "Markdown table header cells and record headers",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.strike": {
+          "description": "Markdown ~~strikethrough~~ (always; SGR 9 only where the terminal draws it)",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.math": {
+          "description": "Markdown maths converted to Unicode",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.alert.note": {
+          "description": "GitHub alert [!NOTE]: bar and header word",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.alert.tip": {
+          "description": "GitHub alert [!TIP]: bar and header word",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.alert.important": {
+          "description": "GitHub alert [!IMPORTANT]: bar and header word",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.alert.warning": {
+          "description": "GitHub alert [!WARNING]: bar and header word",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "markdown.alert.caution": {
+          "description": "GitHub alert [!CAUTION]: bar and header word",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.keyword": {
+          "description": "highlighted code: keywords",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.string": {
+          "description": "highlighted code: strings",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.comment": {
+          "description": "highlighted code: comments",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.number": {
+          "description": "highlighted code: numbers",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.constant": {
+          "description": "highlighted code: constants and booleans",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.type": {
+          "description": "highlighted code: types and classes",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.function": {
+          "description": "highlighted code: functions and methods",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.variable": {
+          "description": "highlighted code: variables",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.property": {
+          "description": "highlighted code: properties and keys",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.operator": {
+          "description": "highlighted code: operators",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.punctuation": {
+          "description": "highlighted code: punctuation and brackets",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.tag": {
+          "description": "highlighted code: markup tags",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.attribute": {
+          "description": "highlighted code: markup attributes",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "code.default": {
+          "description": "highlighted code: every other scope, and code without a grammar",
+          "$ref": "#/$defs/textTokenValue"
+        },
+        "surface.user": {
+          "description": "user message card",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.card": {
+          "description": "expanded tool, thought and plan cards",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.code": {
+          "description": "code blocks: a neutral fill, never the permission card's hue",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.overlay": {
+          "description": "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background, mvp-chrome-and-keys task 12.7); derived at surface.card's step",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.cursor": {
+          "description": "the conversation cursor's gutter bar (its colour), and the highlighted row of an overlay list (a fill)",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.cursor.faint": {
+          "description": "the faint fill across the item under the conversation cursor, beside its bar",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.selection": {
+          "description": "the conversation's text selection (distinct from the cursor's fill)",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.permission": {
+          "description": "permission card fill",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "surface.permission.selected": {
+          "description": "selected option on the permission card (and other cards filled with surface.permission)",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "status.bg": {
+          "description": "status bar background (a surface)",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "diff.added.bg": {
+          "description": "added lines in diffs",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "diff.removed.bg": {
+          "description": "removed lines in diffs",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "find.current": {
+          "description": "the current find hit (text in the default foreground)",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "find.other": {
+          "description": "the other visible find hits (text in the default foreground)",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "scrollbar.track": {
+          "description": "the conversation scroll bar's track; flat: the glyph set's `scrollbar.track` in muted",
+          "$ref": "#/$defs/surfaceTokenValue"
+        },
+        "scrollbar.thumb": {
+          "description": "the conversation scroll bar's thumb; flat: the glyph set's `scrollbar.thumb` in muted",
+          "$ref": "#/$defs/surfaceTokenValue"
+        }
+      },
+      "additionalProperties": {},
+      "description": "Token values by token name (the catalogue of spec tui-theme \"Theme tokens, never literal colours\")."
+    },
+    "light": {
+      "description": "Tokens applied over `tokens` when the terminal reports a light background.",
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "description": "body text of conversation rows and the composer",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "muted": {
+              "description": "secondary text: turn-end markers, cwd, metadata",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "accent": {
+              "description": "prompt marker, focus and the other accents",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "hint": {
+              "description": "key hints bar",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "warning": {
+              "description": "warnings, exit-armed hint",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "danger": {
+              "description": "errors, disconnected state",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "user": {
+              "description": "the user card's bar; under the flat style also the conversation cursor's inverse block on a user message (defaults to accent's colour)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "agent": {
+              "description": "the agent message's gutter glyph, blank unless glyphs.overrides sets gutter.agent; under the flat style, the conversation cursor's inverse gutter on an agent message",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "thought": {
+              "description": "thought summary lines",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "permission": {
+              "description": "permission prompt frame and marker glyph",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "status.fg": {
+              "description": "status bar text",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "busy": {
+              "description": "the busy indicator's segment in the prompt box's top border under `busy.style` `colour` (bold bright blue by default, bold magenta on a light background, apart from the focused frame's accent)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.ok": {
+              "description": "tool line: the ok status glyph",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.fail": {
+              "description": "tool line: the fail status glyph and word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.running": {
+              "description": "tool line: the running status; in-progress tools in the activity region",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind": {
+              "description": "tool line: the kind glyph and kind word (each tool.kind.<kind> defaults to it)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.title": {
+              "description": "tool line title, and an expanded tool card's full title",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.count": {
+              "description": "tool line: line and match counts",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.duration": {
+              "description": "tool line: the duration",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.index": {
+              "description": "tool line: the per-session index (#n)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.result.label": {
+              "description": "a command result's labels in an expanded tool card: `Output:` and `Return code:` (defaults to muted)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.read": {
+              "description": "tool line kind of read calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.edit": {
+              "description": "tool line kind of edit calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.delete": {
+              "description": "tool line kind of delete calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.move": {
+              "description": "tool line kind of move calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.search": {
+              "description": "tool line kind of search calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.execute": {
+              "description": "tool line kind of execute calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.think": {
+              "description": "tool line kind of think calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.fetch": {
+              "description": "tool line kind of fetch calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.switch_mode": {
+              "description": "tool line kind of switch_mode calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.other": {
+              "description": "tool line kind of other and unknown calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "diff.add": {
+              "description": "added lines (tool cards, one-liner summaries)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "diff.remove": {
+              "description": "removed lines (tool cards, one-liner summaries)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "diff.hunk": {
+              "description": "diff hunk headers (tool cards)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.1": {
+              "description": "Markdown level 1 headings (the renderer draws the heavy rule)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.2": {
+              "description": "Markdown level 2 headings (the renderer draws the light rule)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.3": {
+              "description": "Markdown level 3 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.4": {
+              "description": "Markdown level 4 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.5": {
+              "description": "Markdown level 5 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.6": {
+              "description": "Markdown level 6 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.code": {
+              "description": "Markdown inline code, and maths shown as its source",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.link": {
+              "description": "Markdown links and footnote references",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.quote": {
+              "description": "Markdown block quotes and thematic breaks",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.list": {
+              "description": "Markdown list bullets and numbers",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.task.done": {
+              "description": "Markdown checked task box [x]",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.task.open": {
+              "description": "Markdown unchecked task box [ ]",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.table.border": {
+              "description": "Markdown table borders and the record layout's rules",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.table.header": {
+              "description": "Markdown table header cells and record headers",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.strike": {
+              "description": "Markdown ~~strikethrough~~ (always; SGR 9 only where the terminal draws it)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.math": {
+              "description": "Markdown maths converted to Unicode",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.note": {
+              "description": "GitHub alert [!NOTE]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.tip": {
+              "description": "GitHub alert [!TIP]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.important": {
+              "description": "GitHub alert [!IMPORTANT]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.warning": {
+              "description": "GitHub alert [!WARNING]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.caution": {
+              "description": "GitHub alert [!CAUTION]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.keyword": {
+              "description": "highlighted code: keywords",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.string": {
+              "description": "highlighted code: strings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.comment": {
+              "description": "highlighted code: comments",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.number": {
+              "description": "highlighted code: numbers",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.constant": {
+              "description": "highlighted code: constants and booleans",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.type": {
+              "description": "highlighted code: types and classes",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.function": {
+              "description": "highlighted code: functions and methods",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.variable": {
+              "description": "highlighted code: variables",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.property": {
+              "description": "highlighted code: properties and keys",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.operator": {
+              "description": "highlighted code: operators",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.punctuation": {
+              "description": "highlighted code: punctuation and brackets",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.tag": {
+              "description": "highlighted code: markup tags",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.attribute": {
+              "description": "highlighted code: markup attributes",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.default": {
+              "description": "highlighted code: every other scope, and code without a grammar",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "surface.user": {
+              "description": "user message card",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.card": {
+              "description": "expanded tool, thought and plan cards",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.code": {
+              "description": "code blocks: a neutral fill, never the permission card's hue",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.overlay": {
+              "description": "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background, mvp-chrome-and-keys task 12.7); derived at surface.card's step",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.cursor": {
+              "description": "the conversation cursor's gutter bar (its colour), and the highlighted row of an overlay list (a fill)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.cursor.faint": {
+              "description": "the faint fill across the item under the conversation cursor, beside its bar",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.selection": {
+              "description": "the conversation's text selection (distinct from the cursor's fill)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.permission": {
+              "description": "permission card fill",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.permission.selected": {
+              "description": "selected option on the permission card (and other cards filled with surface.permission)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "status.bg": {
+              "description": "status bar background (a surface)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "diff.added.bg": {
+              "description": "added lines in diffs",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "diff.removed.bg": {
+              "description": "removed lines in diffs",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "find.current": {
+              "description": "the current find hit (text in the default foreground)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "find.other": {
+              "description": "the other visible find hits (text in the default foreground)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "scrollbar.track": {
+              "description": "the conversation scroll bar's track; flat: the glyph set's `scrollbar.track` in muted",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "scrollbar.thumb": {
+              "description": "the conversation scroll bar's thumb; flat: the glyph set's `scrollbar.thumb` in muted",
+              "$ref": "#/$defs/surfaceTokenValue"
+            }
+          },
+          "additionalProperties": {},
+          "description": "Token values by token name (the catalogue of spec tui-theme \"Theme tokens, never literal colours\")."
+        }
+      }
+    },
+    "dark": {
+      "description": "Tokens applied over `tokens` when the terminal reports a dark background.",
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "description": "body text of conversation rows and the composer",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "muted": {
+              "description": "secondary text: turn-end markers, cwd, metadata",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "accent": {
+              "description": "prompt marker, focus and the other accents",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "hint": {
+              "description": "key hints bar",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "warning": {
+              "description": "warnings, exit-armed hint",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "danger": {
+              "description": "errors, disconnected state",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "user": {
+              "description": "the user card's bar; under the flat style also the conversation cursor's inverse block on a user message (defaults to accent's colour)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "agent": {
+              "description": "the agent message's gutter glyph, blank unless glyphs.overrides sets gutter.agent; under the flat style, the conversation cursor's inverse gutter on an agent message",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "thought": {
+              "description": "thought summary lines",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "permission": {
+              "description": "permission prompt frame and marker glyph",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "status.fg": {
+              "description": "status bar text",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "busy": {
+              "description": "the busy indicator's segment in the prompt box's top border under `busy.style` `colour` (bold bright blue by default, bold magenta on a light background, apart from the focused frame's accent)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.ok": {
+              "description": "tool line: the ok status glyph",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.fail": {
+              "description": "tool line: the fail status glyph and word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.running": {
+              "description": "tool line: the running status; in-progress tools in the activity region",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind": {
+              "description": "tool line: the kind glyph and kind word (each tool.kind.<kind> defaults to it)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.title": {
+              "description": "tool line title, and an expanded tool card's full title",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.count": {
+              "description": "tool line: line and match counts",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.duration": {
+              "description": "tool line: the duration",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.index": {
+              "description": "tool line: the per-session index (#n)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.result.label": {
+              "description": "a command result's labels in an expanded tool card: `Output:` and `Return code:` (defaults to muted)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.read": {
+              "description": "tool line kind of read calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.edit": {
+              "description": "tool line kind of edit calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.delete": {
+              "description": "tool line kind of delete calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.move": {
+              "description": "tool line kind of move calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.search": {
+              "description": "tool line kind of search calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.execute": {
+              "description": "tool line kind of execute calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.think": {
+              "description": "tool line kind of think calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.fetch": {
+              "description": "tool line kind of fetch calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.switch_mode": {
+              "description": "tool line kind of switch_mode calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "tool.kind.other": {
+              "description": "tool line kind of other and unknown calls (defaults to tool.kind)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "diff.add": {
+              "description": "added lines (tool cards, one-liner summaries)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "diff.remove": {
+              "description": "removed lines (tool cards, one-liner summaries)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "diff.hunk": {
+              "description": "diff hunk headers (tool cards)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.1": {
+              "description": "Markdown level 1 headings (the renderer draws the heavy rule)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.2": {
+              "description": "Markdown level 2 headings (the renderer draws the light rule)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.3": {
+              "description": "Markdown level 3 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.4": {
+              "description": "Markdown level 4 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.5": {
+              "description": "Markdown level 5 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.heading.6": {
+              "description": "Markdown level 6 headings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.code": {
+              "description": "Markdown inline code, and maths shown as its source",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.link": {
+              "description": "Markdown links and footnote references",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.quote": {
+              "description": "Markdown block quotes and thematic breaks",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.list": {
+              "description": "Markdown list bullets and numbers",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.task.done": {
+              "description": "Markdown checked task box [x]",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.task.open": {
+              "description": "Markdown unchecked task box [ ]",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.table.border": {
+              "description": "Markdown table borders and the record layout's rules",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.table.header": {
+              "description": "Markdown table header cells and record headers",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.strike": {
+              "description": "Markdown ~~strikethrough~~ (always; SGR 9 only where the terminal draws it)",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.math": {
+              "description": "Markdown maths converted to Unicode",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.note": {
+              "description": "GitHub alert [!NOTE]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.tip": {
+              "description": "GitHub alert [!TIP]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.important": {
+              "description": "GitHub alert [!IMPORTANT]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.warning": {
+              "description": "GitHub alert [!WARNING]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "markdown.alert.caution": {
+              "description": "GitHub alert [!CAUTION]: bar and header word",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.keyword": {
+              "description": "highlighted code: keywords",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.string": {
+              "description": "highlighted code: strings",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.comment": {
+              "description": "highlighted code: comments",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.number": {
+              "description": "highlighted code: numbers",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.constant": {
+              "description": "highlighted code: constants and booleans",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.type": {
+              "description": "highlighted code: types and classes",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.function": {
+              "description": "highlighted code: functions and methods",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.variable": {
+              "description": "highlighted code: variables",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.property": {
+              "description": "highlighted code: properties and keys",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.operator": {
+              "description": "highlighted code: operators",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.punctuation": {
+              "description": "highlighted code: punctuation and brackets",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.tag": {
+              "description": "highlighted code: markup tags",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.attribute": {
+              "description": "highlighted code: markup attributes",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "code.default": {
+              "description": "highlighted code: every other scope, and code without a grammar",
+              "$ref": "#/$defs/textTokenValue"
+            },
+            "surface.user": {
+              "description": "user message card",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.card": {
+              "description": "expanded tool, thought and plan cards",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.code": {
+              "description": "code blocks: a neutral fill, never the permission card's hue",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.overlay": {
+              "description": "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background, mvp-chrome-and-keys task 12.7); derived at surface.card's step",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.cursor": {
+              "description": "the conversation cursor's gutter bar (its colour), and the highlighted row of an overlay list (a fill)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.cursor.faint": {
+              "description": "the faint fill across the item under the conversation cursor, beside its bar",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.selection": {
+              "description": "the conversation's text selection (distinct from the cursor's fill)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.permission": {
+              "description": "permission card fill",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "surface.permission.selected": {
+              "description": "selected option on the permission card (and other cards filled with surface.permission)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "status.bg": {
+              "description": "status bar background (a surface)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "diff.added.bg": {
+              "description": "added lines in diffs",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "diff.removed.bg": {
+              "description": "removed lines in diffs",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "find.current": {
+              "description": "the current find hit (text in the default foreground)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "find.other": {
+              "description": "the other visible find hits (text in the default foreground)",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "scrollbar.track": {
+              "description": "the conversation scroll bar's track; flat: the glyph set's `scrollbar.track` in muted",
+              "$ref": "#/$defs/surfaceTokenValue"
+            },
+            "scrollbar.thumb": {
+              "description": "the conversation scroll bar's thumb; flat: the glyph set's `scrollbar.thumb` in muted",
+              "$ref": "#/$defs/surfaceTokenValue"
+            }
+          },
+          "additionalProperties": {},
+          "description": "Token values by token name (the catalogue of spec tui-theme \"Theme tokens, never literal colours\")."
+        }
+      }
+    }
+  },
+  "description": "An acp-tui theme file.",
+  "$defs": {
+    "textTokenValue": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "string",
+              "const": "default"
+            },
+            {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "description": "a \"#rrggbb\" colour"
+            }
+          ],
+          "description": "An ANSI palette index from 0 to 255, \"default\" (the terminal's own foreground) or a \"#rrggbb\" colour."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "description": "The token's colour; omitted keeps the colour it would otherwise have.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "string",
+                  "const": "default"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "a \"#rrggbb\" colour"
+                }
+              ]
+            },
+            "bold": {
+              "description": "Bold text.",
+              "type": "boolean"
+            },
+            "dim": {
+              "description": "Dim (faint) text.",
+              "type": "boolean"
+            },
+            "italic": {
+              "description": "Italic text.",
+              "type": "boolean"
+            },
+            "underline": {
+              "description": "Underlined text.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "description": "A colour with the safe text attributes bold, dim, italic and underline."
+        }
+      ],
+      "description": "A colour, or a colour with text attributes."
+    },
+    "surfaceTokenValue": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "string",
+              "const": "default"
+            },
+            {
+              "type": "string",
+              "const": "derived"
+            },
+            {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "description": "a \"#rrggbb\" colour"
+            }
+          ],
+          "description": "An ANSI palette index from 0 to 255, \"default\" (the terminal's own background), \"derived\" (from the terminal's colours) or a \"#rrggbb\" colour."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "description": "The token's colour; omitted keeps the colour it would otherwise have.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "string",
+                  "const": "default"
+                },
+                {
+                  "type": "string",
+                  "const": "derived"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$",
+                  "description": "a \"#rrggbb\" colour"
+                }
+              ]
+            },
+            "bold": {
+              "description": "Bold text.",
+              "type": "boolean"
+            },
+            "dim": {
+              "description": "Dim (faint) text.",
+              "type": "boolean"
+            },
+            "italic": {
+              "description": "Italic text.",
+              "type": "boolean"
+            },
+            "underline": {
+              "description": "Underlined text.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "description": "A colour with the safe text attributes bold, dim, italic and underline."
+        }
+      ],
+      "description": "A colour (or \"derived\"), or a colour with text attributes."
+    }
+  }
+}

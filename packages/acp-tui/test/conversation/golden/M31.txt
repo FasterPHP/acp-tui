@@ -1,0 +1,21 @@
+M31 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M31 links with unsafe schemes (none may be opened from agent│
+    «text»M31 links with unsafe schemes (none may be opened from agent
+  2 │text): script link (javascript:alert(1)), data link│
+    «text»text): script link «muted»(javascript:alert(1))«text», data link
+  3 │(data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==),│
+    «muted»(data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)«text»,
+  4 │absolute file link (file:///etc/passwd) and mixed-case scheme│
+    «text»absolute file link «muted»(file:///etc/passwd)«text» and mixed-case scheme
+  5 │(JavaScript:alert(2)).│
+    «muted»(JavaScript:alert(2))«text».
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M31 links with unsafe schemes (none may be opened from agent text): script link│
+    «text»M31 links with unsafe schemes (none may be opened from agent text): script link
+  2 │(javascript:alert(1)), data link (data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==),│
+    «muted»(javascript:alert(1))«text», data link «muted»(data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)«text»,
+  3 │absolute file link (file:///etc/passwd) and mixed-case scheme (JavaScript:alert(2)).│
+    «text»absolute file link «muted»(file:///etc/passwd)«text» and mixed-case scheme «muted»(JavaScript:alert(2))«text».

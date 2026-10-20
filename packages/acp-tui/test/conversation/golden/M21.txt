@@ -1,0 +1,341 @@
+M21 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M21 code blocks: php with the opening tag:│
+    «text»M21 code blocks: php with the opening tag:
+  2 ││
+  3 │    [label «muted bg:surface.code»php]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  4 │  <?php│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»<?php
+  5 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  6 │  declare(strict_types=1);│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»declare(strict_types=1);
+  7 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  8 │  final class Greeter│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»final class Greeter
+  9 │  {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»{
+ 10 │      public function greet(string $name): string│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    public function greet(string $name): string
+ 11 │      {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    {
+ 12 │          // A comment│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»        // A comment
+ 13 │          return sprintf('Hello, %s!', $name);│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»        return sprintf('Hello, %s!', $name);
+ 14 │      }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    }
+ 15 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+ 16 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 17 ││
+ 18 │php without the opening tag:│
+    «text»php without the opening tag:
+ 19 ││
+ 20 │    [label «muted bg:surface.code»php]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 21 │  $total = array_sum(array_map(fn (array $l): float =>↩│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»$total = array_sum(array_map(fn (array $l): float =>«muted ~ bg:surface.code»↩
+ 22 │  $l['qty'] * $l['price'], $lines));│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»$l['qty'] * $l['price'], $lines));
+ 23 │  echo "Total: {$total}\n";│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»echo "Total: {$total}\n";
+ 24 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 25 ││
+ 26 │ts:│
+    «text»ts:
+ 27 ││
+ 28 │    [label «muted bg:surface.code»ts]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 29 │  interface User { id: number; name: string }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»interface User { id: number; name: string }
+ 30 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 31 │  export async function load(id: number): Promise<User> {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»export async function load(id: number): Promise<User> {
+ 32 │    const res = await fetch(`/users/${id}`);│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  const res = await fetch(`/users/${id}`);
+ 33 │    return (await res.json()) as User;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  return (await res.json()) as User;
+ 34 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+ 35 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 36 ││
+ 37 │json:│
+    «text»json:
+ 38 ││
+ 39 │    [label «muted bg:surface.code»json]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 40 │  {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»{
+ 41 │    "name": "acp-tui",│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "name": "acp-tui",
+ 42 │    "private": true,│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "private": true,
+ 43 │    "tags": ["tui", "acp"],│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "tags": ["tui", "acp"],
+ 44 │    "count": 3,│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "count": 3,
+ 45 │    "nothing": null│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "nothing": null
+ 46 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+ 47 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 48 ││
+ 49 │bash:│
+    «text»bash:
+ 50 ││
+ 51 │    [label «muted bg:surface.code»bash]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 52 │  #!/usr/bin/env bash│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»#!/usr/bin/env bash
+ 53 │  set -euo pipefail│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»set -euo pipefail
+ 54 │  for f in *.md; do│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»for f in *.md; do
+ 55 │    echo "Checking $f" && grep -c '^#' "$f"│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  echo "Checking $f" && grep -c '^#' "$f"
+ 56 │  done│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»done
+ 57 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 58 ││
+ 59 │diff:│
+    «text»diff:
+ 60 ││
+ 61 │    [label «muted bg:surface.code»diff]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 62 │  --- a/src/Greeter.php│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «muted bg:surface.code»--- a/src/Greeter.php
+ 63 │  +++ b/src/Greeter.php│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «muted bg:surface.code»+++ b/src/Greeter.php
+ 64 │  @@ -3,3 +3,3 @@│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «diff.hunk bg:surface.code»@@ -3,3 +3,3 @@
+ 65 │   final class Greeter│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code» final class Greeter
+ 66 │  -    public function greet($name)│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «diff.remove bg:surface.code»-    public function greet($name)
+ 67 │  +    public function greet(string $name): string│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «diff.add bg:surface.code»+    public function greet(string $name): string
+ 68 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 69 ││
+ 70 │sql:│
+    «text»sql:
+ 71 ││
+ 72 │    [label «muted bg:surface.code»sql]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 73 │  SELECT u.id, u.name, COUNT(o.id) AS orders│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»SELECT u.id, u.name, COUNT(o.id) AS orders
+ 74 │  FROM users u│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»FROM users u
+ 75 │  LEFT JOIN orders o ON o.user_id = u.id│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»LEFT JOIN orders o ON o.user_id = u.id
+ 76 │  WHERE u.created_at >= '2026-01-01'│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»WHERE u.created_at >= '2026-01-01'
+ 77 │  GROUP BY u.id, u.name│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»GROUP BY u.id, u.name
+ 78 │  ORDER BY orders DESC;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»ORDER BY orders DESC;
+ 79 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 80 ││
+ 81 │no language:│
+    «text»no language:
+ 82 ││
+ 83 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 84 │  A fence with no language.│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»A fence with no language.
+ 85 │      Indentation inside is kept.│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    Indentation inside is kept.
+ 86 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 87 ││
+ 88 │a tilde fence (python):│
+    «text»a tilde fence (python):
+ 89 ││
+ 90 │    [label «muted bg:surface.code»python]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 91 │  # A tilde fence│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»# A tilde fence
+ 92 │  print("tilde")│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»print("tilde")
+ 93 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M21 code blocks: php with the opening tag:│
+    «text»M21 code blocks: php with the opening tag:
+  2 ││
+  3 │    [label «muted bg:surface.code»php]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  4 │  <?php│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»<?php
+  5 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  6 │  declare(strict_types=1);│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»declare(strict_types=1);
+  7 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  8 │  final class Greeter│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»final class Greeter
+  9 │  {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»{
+ 10 │      public function greet(string $name): string│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    public function greet(string $name): string
+ 11 │      {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    {
+ 12 │          // A comment│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»        // A comment
+ 13 │          return sprintf('Hello, %s!', $name);│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»        return sprintf('Hello, %s!', $name);
+ 14 │      }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    }
+ 15 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+ 16 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 17 ││
+ 18 │php without the opening tag:│
+    «text»php without the opening tag:
+ 19 ││
+ 20 │    [label «muted bg:surface.code»php]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 21 │  $total = array_sum(array_map(fn (array $l): float => $l['qty'] * $l['price'], $lines));│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»$total = array_sum(array_map(fn (array $l): float => $l['qty'] * $l['price'], $lines));
+ 22 │  echo "Total: {$total}\n";│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»echo "Total: {$total}\n";
+ 23 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 24 ││
+ 25 │ts:│
+    «text»ts:
+ 26 ││
+ 27 │    [label «muted bg:surface.code»ts]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 28 │  interface User { id: number; name: string }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»interface User { id: number; name: string }
+ 29 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 30 │  export async function load(id: number): Promise<User> {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»export async function load(id: number): Promise<User> {
+ 31 │    const res = await fetch(`/users/${id}`);│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  const res = await fetch(`/users/${id}`);
+ 32 │    return (await res.json()) as User;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  return (await res.json()) as User;
+ 33 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+ 34 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 35 ││
+ 36 │json:│
+    «text»json:
+ 37 ││
+ 38 │    [label «muted bg:surface.code»json]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 39 │  {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»{
+ 40 │    "name": "acp-tui",│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "name": "acp-tui",
+ 41 │    "private": true,│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "private": true,
+ 42 │    "tags": ["tui", "acp"],│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "tags": ["tui", "acp"],
+ 43 │    "count": 3,│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "count": 3,
+ 44 │    "nothing": null│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  "nothing": null
+ 45 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+ 46 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 47 ││
+ 48 │bash:│
+    «text»bash:
+ 49 ││
+ 50 │    [label «muted bg:surface.code»bash]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 51 │  #!/usr/bin/env bash│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»#!/usr/bin/env bash
+ 52 │  set -euo pipefail│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»set -euo pipefail
+ 53 │  for f in *.md; do│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»for f in *.md; do
+ 54 │    echo "Checking $f" && grep -c '^#' "$f"│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  echo "Checking $f" && grep -c '^#' "$f"
+ 55 │  done│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»done
+ 56 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 57 ││
+ 58 │diff:│
+    «text»diff:
+ 59 ││
+ 60 │    [label «muted bg:surface.code»diff]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 61 │  --- a/src/Greeter.php│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «muted bg:surface.code»--- a/src/Greeter.php
+ 62 │  +++ b/src/Greeter.php│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «muted bg:surface.code»+++ b/src/Greeter.php
+ 63 │  @@ -3,3 +3,3 @@│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «diff.hunk bg:surface.code»@@ -3,3 +3,3 @@
+ 64 │   final class Greeter│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code» final class Greeter
+ 65 │  -    public function greet($name)│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «diff.remove bg:surface.code»-    public function greet($name)
+ 66 │  +    public function greet(string $name): string│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «diff.add bg:surface.code»+    public function greet(string $name): string
+ 67 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 68 ││
+ 69 │sql:│
+    «text»sql:
+ 70 ││
+ 71 │    [label «muted bg:surface.code»sql]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 72 │  SELECT u.id, u.name, COUNT(o.id) AS orders│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»SELECT u.id, u.name, COUNT(o.id) AS orders
+ 73 │  FROM users u│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»FROM users u
+ 74 │  LEFT JOIN orders o ON o.user_id = u.id│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»LEFT JOIN orders o ON o.user_id = u.id
+ 75 │  WHERE u.created_at >= '2026-01-01'│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»WHERE u.created_at >= '2026-01-01'
+ 76 │  GROUP BY u.id, u.name│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»GROUP BY u.id, u.name
+ 77 │  ORDER BY orders DESC;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»ORDER BY orders DESC;
+ 78 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 79 ││
+ 80 │no language:│
+    «text»no language:
+ 81 ││
+ 82 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 83 │  A fence with no language.│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»A fence with no language.
+ 84 │      Indentation inside is kept.│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    Indentation inside is kept.
+ 85 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 86 ││
+ 87 │a tilde fence (python):│
+    «text»a tilde fence (python):
+ 88 ││
+ 89 │    [label «muted bg:surface.code»python]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 90 │  # A tilde fence│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»# A tilde fence
+ 91 │  print("tilde")│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»print("tilde")
+ 92 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  

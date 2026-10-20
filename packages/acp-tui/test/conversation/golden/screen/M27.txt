@@ -1,0 +1,27 @@
+M27 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M27 HTML blocks:│
+    «default»  M27 HTML blocks:
+  2 ││
+  3 │  Click to expand│
+    «default»  «default +b»Click to expand
+  4 ││
+  5 │  Hidden content with Markdown inside.│
+    «default»  Hidden content with «default +b»Markdown «default»inside.
+  6 ││
+  7 │  A centred HTML block│
+    «default»  «default +b»A centred HTML block
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M27 HTML blocks:│
+    «default»  M27 HTML blocks:
+  2 ││
+  3 │  Click to expand│
+    «default»  «default +b»Click to expand
+  4 ││
+  5 │  Hidden content with Markdown inside.│
+    «default»  Hidden content with «default +b»Markdown «default»inside.
+  6 ││
+  7 │  A centred HTML block│
+    «default»  «default +b»A centred HTML block

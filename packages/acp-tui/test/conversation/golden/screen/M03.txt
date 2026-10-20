@@ -1,0 +1,25 @@
+M03 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M03 inline code: plain code, code with a ` backtick, code│
+    «default»  M03 inline code: «yellow»plain code«default», «yellow»code with a ` backtick«default», «yellow»code
+  2 │  with `` two backticks, **not bold** and <b>not html</b>.│
+    «default»  «yellow»with `` two backticks«default», «yellow»**not bold** «default»and «yellow»<b>not html</b>«default».
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M03 inline code: plain code, code with a ` backtick, code│
+    «default»  M03 inline code: «magenta»plain code«default», «magenta»code with a ` backtick«default», «magenta»code
+  2 │  with `` two backticks, **not bold** and <b>not html</b>.│
+    «default»  «magenta»with `` two backticks«default», «magenta»**not bold** «default»and «magenta»<b>not html</b>«default».
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M03 inline code: plain code, code with a ` backtick, code with `` two backticks, **not bold**│
+    «default»  M03 inline code: «yellow»plain code«default», «yellow»code with a ` backtick«default», «yellow»code with `` two backticks«default», «yellow»**not bold**
+  2 │  and <b>not html</b>.│
+    «default»  and «yellow»<b>not html</b>«default».
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M03 inline code: plain code, code with a ` backtick, code with `` two backticks, **not bold**│
+    «default»  M03 inline code: «magenta»plain code«default», «magenta»code with a ` backtick«default», «magenta»code with `` two backticks«default», «magenta»**not bold**
+  2 │  and <b>not html</b>.│
+    «default»  and «magenta»<b>not html</b>«default».

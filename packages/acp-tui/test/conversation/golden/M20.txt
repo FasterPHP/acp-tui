@@ -1,0 +1,67 @@
+M20 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M20 wide table, more than 63 columns:│
+    «text»M20 wide table, more than 63 columns:
+  2 ││
+  3 │Identifier: 1001│
+    «markdown.table.header»Identifier«markdown.table.header ~»: «text»1001
+  4 │Customer name: Alice Smith│
+    «markdown.table.header»Customer name«markdown.table.header ~»: «text»Alice Smith
+  5 │Email address: alice.smith@example.com│
+    «markdown.table.header»Email address«markdown.table.header ~»: «markdown.link ->mailto:alice.smith@example.com»alice.smith@example.com
+  6 │Created at: 2026-10-04 09:15│
+    «markdown.table.header»Created at«markdown.table.header ~»: «text»2026-10-04 09:15
+  7 │Status: active│
+    «markdown.table.header»Status«markdown.table.header ~»: «text»active
+  8 │Total (GBP): 1,234.56│
+    «markdown.table.header»Total (GBP)«markdown.table.header ~»: «text»1,234.56
+  9 │Notes: First order, paid by card│
+    «markdown.table.header»Notes«markdown.table.header ~»: «text»First order, paid by card
+ 10 │─────────────────────────────────────────────────────────────│ (decorative)
+    «markdown.table.border ~»─────────────────────────────────────────────────────────────
+ 11 │Identifier: 1002│
+    «markdown.table.header»Identifier«markdown.table.header ~»: «text»1002
+ 12 │Customer name: Bob Jones│
+    «markdown.table.header»Customer name«markdown.table.header ~»: «text»Bob Jones
+ 13 │Email address: bob.jones@example.org│
+    «markdown.table.header»Email address«markdown.table.header ~»: «markdown.link ->mailto:bob.jones@example.org»bob.jones@example.org
+ 14 │Created at: 2026-10-04 10:30│
+    «markdown.table.header»Created at«markdown.table.header ~»: «text»2026-10-04 10:30
+ 15 │Status: suspended│
+    «markdown.table.header»Status«markdown.table.header ~»: «text»suspended
+ 16 │Total (GBP): 78.90│
+    «markdown.table.header»Total (GBP)«markdown.table.header ~»: «text»78.90
+ 17 │Notes: Awaiting a reply from the customer about the refund│
+    «markdown.table.header»Notes«markdown.table.header ~»: «text»Awaiting a reply from the customer about the refund
+ 18 │  they asked for│
+    «text ~»  «text»they asked for
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M20 wide table, more than 63 columns:│
+    «text»M20 wide table, more than 63 columns:
+  2 ││
+  3 │╭────────────┬────────────┬──────────────┬────────────┬───────────┬────────────┬─────────────────╮│ (decorative)
+    «markdown.table.border ~»╭────────────┬────────────┬──────────────┬────────────┬───────────┬────────────┬─────────────────╮
+  4 ││ Identifier │ Customer   │ Email        │ Created at │ Status    │      Total │ Notes           ││
+    «markdown.table.border ~»│ «markdown.table.header»Identifier«markdown.table.border ~» │ «markdown.table.header»Customer«text ~»  «markdown.table.border ~» │ «markdown.table.header»Email«text ~»       «markdown.table.border ~» │ «markdown.table.header»Created at«markdown.table.border ~» │ «markdown.table.header»Status«text ~»   «markdown.table.border ~» │ «text ~»     «markdown.table.header»Total«markdown.table.border ~» │ «markdown.table.header»Notes«text ~»          «markdown.table.border ~» │
+  5 ││            │ name       │ address      │            │           │      (GBP) │                 ││
+    «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «markdown.table.header»name«text ~»      «markdown.table.border ~» │ «markdown.table.header»address«text ~»     «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»     «markdown.table.header»(GBP)«markdown.table.border ~» │ «text ~»               «markdown.table.border ~» │
+  6 │├────────────┼────────────┼──────────────┼────────────┼───────────┼────────────┼─────────────────┤│ (decorative)
+    «markdown.table.border ~»├────────────┼────────────┼──────────────┼────────────┼───────────┼────────────┼─────────────────┤
+  7 ││ 1001       │ Alice      │ alice.smith@ │ 2026-10-04 │ active    │   1,234.56 │ First order,    ││
+    «markdown.table.border ~»│ «text»1001«text ~»      «markdown.table.border ~» │ «text»Alice«text ~»     «markdown.table.border ~» │ «markdown.link ->mailto:alice.smith@example.com»alice.smith@«markdown.table.border ~» │ «text»2026-10-04«markdown.table.border ~» │ «text»active«text ~»   «markdown.table.border ~» │ «text ~»  «text»1,234.56«markdown.table.border ~» │ «text»First order,«text ~»   «markdown.table.border ~» │
+  8 ││            │ Smith      │ example.com  │ 09:15      │           │            │ paid by card    ││
+    «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text»Smith«text ~»     «markdown.table.border ~» │ «markdown.link ->mailto:alice.smith@example.com»example.com«text ~» «markdown.table.border ~» │ «text»09:15«text ~»     «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»paid by card«text ~»   «markdown.table.border ~» │
+  9 ││ 1002       │ Bob Jones  │ bob.jones@ex │ 2026-10-04 │ suspended │      78.90 │ Awaiting a      ││
+    «markdown.table.border ~»│ «text»1002«text ~»      «markdown.table.border ~» │ «text»Bob Jones«text ~» «markdown.table.border ~» │ «markdown.link ->mailto:bob.jones@example.org»bob.jones@ex«markdown.table.border ~» │ «text»2026-10-04«markdown.table.border ~» │ «text»suspended«markdown.table.border ~» │ «text ~»     «text»78.90«markdown.table.border ~» │ «text»Awaiting a«text ~»     «markdown.table.border ~» │
+ 10 ││            │            │ ample.org    │ 10:30      │           │            │ reply from the  ││
+    «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «markdown.link ->mailto:bob.jones@example.org»ample.org«text ~»   «markdown.table.border ~» │ «text»10:30«text ~»     «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»reply from the«text ~» «markdown.table.border ~» │
+ 11 ││            │            │              │            │           │            │ customer about  ││
+    «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»            «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»customer about«text ~» «markdown.table.border ~» │
+ 12 ││            │            │              │            │           │            │ the refund they ││
+    «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»            «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»the refund they«markdown.table.border ~» │
+ 13 ││            │            │              │            │           │            │ asked for       ││
+    «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»            «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»asked for«text ~»      «markdown.table.border ~» │
+ 14 │╰────────────┴────────────┴──────────────┴────────────┴───────────┴────────────┴─────────────────╯│ (decorative)
+    «markdown.table.border ~»╰────────────┴────────────┴──────────────┴────────────┴───────────┴────────────┴─────────────────╯

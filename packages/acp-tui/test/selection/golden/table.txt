@@ -1,0 +1,4 @@
+Field       Type      Notes
+id          int       primary key
+name        string    up to 80 characters, indexed
+created_at  datetime  UTC

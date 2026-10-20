@@ -1,0 +1,15 @@
+M09 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M09 inline HTML: Ctrl+C, b tag, em tag, span tag, sup and│
+    «text»M09 inline HTML: «markdown.code»Ctrl«text»+«markdown.code»C«text», «text +b»b tag«text», «text +i»em tag«text», span tag, sup and
+  2 │sub, ins tag, del tag, mark tag, a│
+    «text»sub, ins tag, «markdown.strike +s»del tag«text», mark tag, a
+  3 │br tag, and a comment here.│
+    «text»br tag, and a comment here.
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M09 inline HTML: Ctrl+C, b tag, em tag, span tag, sup and sub, ins tag, del tag, mark tag, a│
+    «text»M09 inline HTML: «markdown.code»Ctrl«text»+«markdown.code»C«text», «text +b»b tag«text», «text +i»em tag«text», span tag, sup and sub, ins tag, «markdown.strike +s»del tag«text», mark tag, a
+  2 │br tag, and a comment here.│
+    «text»br tag, and a comment here.

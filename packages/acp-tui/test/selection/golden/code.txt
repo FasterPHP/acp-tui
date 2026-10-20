@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+final class InvoiceTotal
+{
+    public function __construct(private readonly array $lines)
+    {
+    }
+
+    public function net(): float
+    {
+        return array_sum(array_map(fn (array $line): float => $line['qty'] * $line['price'], $this->lines));
+    }
+}

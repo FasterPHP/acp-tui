@@ -1,0 +1,33 @@
+M30 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M30 a very long word and a very long URL:│
+    «default»  M30 a very long word and a very long URL:
+  2 ││
+  3 │  Supercalifragilisticexpialidociousantidisestablishmentaria│
+    «default»  Supercalifragilisticexpialidociousantidisestablishmentaria
+  4 │  nismpneumonoultramicroscopicsilicovolcanoconiosis is one│
+    «default»  nismpneumonoultramicroscopicsilicovolcanoconiosis is one
+  5 │  word.│
+    «default»  word.
+  6 ││
+  7 │  https://example.com/a/very/long/path/that/keeps/going/and/│
+    «default»  «blue +u»https://example.com/a/very/long/path/that/keeps/going/and/
+  8 │  going/well/past/the/width/of/the/terminal/pane?query=strin│
+    «default»  «blue +u»going/well/past/the/width/of/the/terminal/pane?query=strin
+  9 │  g&with=parameters#and-a-fragment│
+    «default»  «blue +u»g&with=parameters#and-a-fragment
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M30 a very long word and a very long URL:│
+    «default»  M30 a very long word and a very long URL:
+  2 ││
+  3 │  Supercalifragilisticexpialidociousantidisestablishmentarianismpneumonoultramicroscopicsilicovol│
+    «default»  Supercalifragilisticexpialidociousantidisestablishmentarianismpneumonoultramicroscopicsilicovol
+  4 │  canoconiosis is one word.│
+    «default»  canoconiosis is one word.
+  5 ││
+  6 │  https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/term│
+    «default»  «blue +u»https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/term
+  7 │  inal/pane?query=string&with=parameters#and-a-fragment│
+    «default»  «blue +u»inal/pane?query=string&with=parameters#and-a-fragment

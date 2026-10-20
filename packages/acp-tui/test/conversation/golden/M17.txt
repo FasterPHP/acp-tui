@@ -1,0 +1,47 @@
+M17 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M17 task lists, nested, and ordered:│
+    «text»M17 task lists, nested, and ordered:
+  2 ││
+  3 │[x] Done task│
+    «markdown.task.done»[x] «text»Done task
+  4 │[ ] Open task│
+    «markdown.task.open»[ ] «text»Open task
+  5 │    [x] Nested done│
+    «text»    «markdown.task.done»[x] «text»Nested done
+  6 │    [ ] Nested open│
+    «text»    «markdown.task.open»[ ] «text»Nested open
+  7 │[x] Capital X done│
+    «markdown.task.done»[x] «text»Capital X done
+  8 ││
+  9 │An ordered task list:│
+    «text»An ordered task list:
+ 10 ││
+ 11 │1. [x] Ordered task done│
+    «markdown.list»1. «markdown.task.done»[x] «text»Ordered task done
+ 12 │2. [ ] Ordered task open│
+    «markdown.list»2. «markdown.task.open»[ ] «text»Ordered task open
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M17 task lists, nested, and ordered:│
+    «text»M17 task lists, nested, and ordered:
+  2 ││
+  3 │[x] Done task│
+    «markdown.task.done»[x] «text»Done task
+  4 │[ ] Open task│
+    «markdown.task.open»[ ] «text»Open task
+  5 │    [x] Nested done│
+    «text»    «markdown.task.done»[x] «text»Nested done
+  6 │    [ ] Nested open│
+    «text»    «markdown.task.open»[ ] «text»Nested open
+  7 │[x] Capital X done│
+    «markdown.task.done»[x] «text»Capital X done
+  8 ││
+  9 │An ordered task list:│
+    «text»An ordered task list:
+ 10 ││
+ 11 │1. [x] Ordered task done│
+    «markdown.list»1. «markdown.task.done»[x] «text»Ordered task done
+ 12 │2. [ ] Ordered task open│
+    «markdown.list»2. «markdown.task.open»[ ] «text»Ordered task open

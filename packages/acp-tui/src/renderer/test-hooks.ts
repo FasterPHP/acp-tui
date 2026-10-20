@@ -1,0 +1,41 @@
+// Test hooks (mvp-configuration design D14, task 9.4; spec tui-config "Spike
+// switch retired"): behaviour only tests and the IDE checks reach, through the
+// environment variable `ACP_TUI_TEST_HOOKS` (a comma list), read once at
+// start-up. It is in no `--help`, no configuration setting and no palette
+// entry, so a user cannot reach it from the command line, the configuration
+// or the palette.
+//
+// `crash` (formerly `--spike crash`): F12 throws an error that nothing
+// catches, so the PTY tests (`test/renderer/exit.pty.test.ts`) and the IDE
+// checks' crash path can check the uncaught-error exit path in the real CLI:
+// terminal restored, the error below the command line, exit status 1, no
+// `session/cancel` or `session/close`. The throw happens in a timer, outside
+// every OpenTUI and Solid handler, so it reaches `uncaughtException` as a real
+// bug would. Without the hook, F12 does nothing.
+import type { CliRenderer, KeyEvent } from "@opentui/core";
+
+/** The variable that names the test hooks to install. */
+export const TEST_HOOKS_VAR = "ACP_TUI_TEST_HOOKS";
+
+export type TestHook = "crash";
+const TEST_HOOK_NAMES: readonly TestHook[] = ["crash"];
+
+/** The hooks `ACP_TUI_TEST_HOOKS` names; unknown names are ignored. */
+export function testHooks(env: Readonly<Record<string, string | undefined>> = process.env): ReadonlySet<TestHook> {
+  const names = (env[TEST_HOOKS_VAR] ?? "").split(",").map((n) => n.trim());
+  return new Set(TEST_HOOK_NAMES.filter((hook) => names.includes(hook)));
+}
+
+export const CRASH_HOOK_MESSAGE = "crash test hook: F12 pressed";
+
+/** Binds F12 to an uncaught error; returns a remover. */
+export function installCrashHook(renderer: CliRenderer): () => void {
+  const onKey = (key: KeyEvent): void => {
+    if (key.name !== "f12") return;
+    setTimeout(() => {
+      throw new Error(CRASH_HOOK_MESSAGE);
+    }, 0);
+  };
+  renderer.keyInput.on("keypress", onKey);
+  return () => void renderer.keyInput.off("keypress", onKey);
+}

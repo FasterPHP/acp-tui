@@ -1,0 +1,7 @@
+# Bun reads bunfig.toml from the working directory only, so running `bun` or
+# `bun test` from this package needs its own copy of the root preloads.
+preload = ["@opentui/solid/preload"]
+
+[test]
+# xdg.ts: a temporary XDG_CONFIG_HOME and XDG_STATE_HOME for every test run.
+preload = ["@opentui/solid/preload", "./test/preload/xdg.ts"]

@@ -1,0 +1,29 @@
+M24 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M24 GitHub alerts:│
+    «text»M24 GitHub alerts:
+  2 ││
+  3 ││ Note│
+    «markdown.alert.note ~»│ «markdown.alert.note +b»Note
+  4 ││ A note alert.│
+    «markdown.alert.note ~»│ «markdown.quote»A note alert.
+  5 ││
+  6 ││ Warning│
+    «markdown.alert.warning ~»│ «markdown.alert.warning +b»Warning
+  7 ││ A warning alert.│
+    «markdown.alert.warning ~»│ «markdown.quote»A warning alert.
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M24 GitHub alerts:│
+    «text»M24 GitHub alerts:
+  2 ││
+  3 ││ Note│
+    «markdown.alert.note ~»│ «markdown.alert.note +b»Note
+  4 ││ A note alert.│
+    «markdown.alert.note ~»│ «markdown.quote»A note alert.
+  5 ││
+  6 ││ Warning│
+    «markdown.alert.warning ~»│ «markdown.alert.warning +b»Warning
+  7 ││ A warning alert.│
+    «markdown.alert.warning ~»│ «markdown.quote»A warning alert.

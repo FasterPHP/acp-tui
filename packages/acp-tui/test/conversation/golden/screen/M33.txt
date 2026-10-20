@@ -1,0 +1,37 @@
+M33 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M33 relative links, one inside the working directory and│
+    «default»  M33 relative links, one inside the working directory and
+  2 │  two outside it: inside the working directory│
+    «default»  two outside it: «blue +u»inside the working directory
+  3 │  (src/index.ts), outside the working directory│
+    «default»  «bright-black»(src/index.ts)«default», outside the working directory
+  4 │  (../../outside/secret.txt) and absolute path (/etc/hosts).│
+    «default»  «bright-black»(../../outside/secret.txt) «default»and absolute path «bright-black»(/etc/hosts)«default».
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M33 relative links, one inside the working directory and│
+    «default»  M33 relative links, one inside the working directory and
+  2 │  two outside it: inside the working directory│
+    «default»  two outside it: «blue +u»inside the working directory
+  3 │  (src/index.ts), outside the working directory│
+    «default»  «default +d»(src/index.ts)«default», outside the working directory
+  4 │  (../../outside/secret.txt) and absolute path (/etc/hosts).│
+    «default»  «default +d»(../../outside/secret.txt) «default»and absolute path «default +d»(/etc/hosts)«default».
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M33 relative links, one inside the working directory and two outside it: inside the working│
+    «default»  M33 relative links, one inside the working directory and two outside it: «blue +u»inside the working
+  2 │  directory (src/index.ts), outside the working directory (../../outside/secret.txt) and absolute│
+    «default»  «blue +u»directory«default» «bright-black»(src/index.ts)«default», outside the working directory «bright-black»(../../outside/secret.txt) «default»and absolute
+  3 │  path (/etc/hosts).│
+    «default»  path «bright-black»(/etc/hosts)«default».
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M33 relative links, one inside the working directory and two outside it: inside the working│
+    «default»  M33 relative links, one inside the working directory and two outside it: «blue +u»inside the working
+  2 │  directory (src/index.ts), outside the working directory (../../outside/secret.txt) and absolute│
+    «default»  «blue +u»directory«default» «default +d»(src/index.ts)«default», outside the working directory «default +d»(../../outside/secret.txt) «default»and absolute
+  3 │  path (/etc/hosts).│
+    «default»  path «default +d»(/etc/hosts)«default».

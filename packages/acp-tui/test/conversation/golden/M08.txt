@@ -1,0 +1,11 @@
+M08 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M08 entities: & < > " © ® ™ € £ ½ → … © 😀 and a non-breaking│
+    «text»M08 entities: & < > " © ® ™ € £ ½ → … © 😀 and a non-breaking
+  2 │space between A B.│
+    «text»space between A B.
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M08 entities: & < > " © ® ™ € £ ½ → … © 😀 and a non-breaking space between A B.│
+    «text»M08 entities: & < > " © ® ™ € £ ½ → … © 😀 and a non-breaking space between A B.

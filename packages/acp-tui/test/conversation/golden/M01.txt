@@ -1,0 +1,19 @@
+M01 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M01 emphasis: star italic, underscore italic, star bold,│
+    «text»M01 emphasis: «text +i»star italic«text», «text +i»underscore italic«text», «text +b»star bold«text»,
+  2 │underscore bold, star bold italic, underscore bold italic,│
+    «text +b»underscore bold«text», «text +b +i»star bold italic«text», «text +b +i»underscore bold italic«text»,
+  3 │bold with nested italic inside, italic with nested bold│
+    «text +b»bold with «text +b +i»nested italic«text +b» inside«text», «text +i»italic with «text +b +i»nested bold
+  4 │inside, and intra_word_underscores stay literal.│
+    «text +i»inside«text», and intra_word_underscores stay literal.
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M01 emphasis: star italic, underscore italic, star bold, underscore bold, star bold italic,│
+    «text»M01 emphasis: «text +i»star italic«text», «text +i»underscore italic«text», «text +b»star bold«text», «text +b»underscore bold«text», «text +b +i»star bold italic«text»,
+  2 │underscore bold italic, bold with nested italic inside, italic with nested bold inside, and│
+    «text +b +i»underscore bold italic«text», «text +b»bold with «text +b +i»nested italic«text +b» inside«text», «text +i»italic with «text +b +i»nested bold«text +i» inside«text», and
+  3 │intra_word_underscores stay literal.│
+    «text»intra_word_underscores stay literal.

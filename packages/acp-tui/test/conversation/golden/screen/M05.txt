@@ -1,0 +1,13 @@
+M05 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M05 images: [image: Alt text of an inline image] and a│
+    «default»  M05 images: «blue +u»[image: Alt text of an inline image]«default» and a
+  2 │  reference image [image: reference image].│
+    «default»  reference image «blue +u»[image: reference image]«default».
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M05 images: [image: Alt text of an inline image] and a reference image [image: reference│
+    «default»  M05 images: «blue +u»[image: Alt text of an inline image]«default» and a reference image «blue +u»[image: reference
+  2 │  image].│
+    «default»  «blue +u»image]«default».

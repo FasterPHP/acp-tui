@@ -1,0 +1,15 @@
+M07 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M07 backslash escapes: *not italic*, _not italic_, `not│
+    «default»  M07 backslash escapes: *not italic*, _not italic_, `not
+  2 │  code`, # not a heading, [not a link](x), ~~not struck~~, \│
+    «default»  code`, # not a heading, [not a link](x), ~~not struck~~, \
+  3 │  one backslash, | a pipe, <not html>.│
+    «default»  one backslash, | a pipe, <not html>.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M07 backslash escapes: *not italic*, _not italic_, `not code`, # not a heading, [not a│
+    «default»  M07 backslash escapes: *not italic*, _not italic_, `not code`, # not a heading, [not a
+  2 │  link](x), ~~not struck~~, \ one backslash, | a pipe, <not html>.│
+    «default»  link](x), ~~not struck~~, \ one backslash, | a pipe, <not html>.

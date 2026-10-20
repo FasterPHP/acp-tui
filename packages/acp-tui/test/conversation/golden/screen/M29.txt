@@ -1,0 +1,77 @@
+M29 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M29 other extensions: ==highlighted==, H~2~O subscript,│
+    «default»  M29 other extensions: ==highlighted==, H~2~O subscript,
+  2 │  x^2^ superscript, ++inserted++, an abbreviation HTML, and│
+    «default»  x^2^ superscript, ++inserted++, an abbreviation HTML, and
+  3 │  a mermaid fence:│
+    «default»  a mermaid fence:
+  4 ││
+  5 │  *[HTML]: Hyper Text Markup Language│
+    «default»  *[HTML]: Hyper Text Markup Language
+  6 ││
+  7 │                                                   mermaid  │
+    «default»  «bright-black bg:surface.code»                                                 mermaid  
+  8 │    graph LR                                                │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»graph LR                                                
+  9 │      A[Prompt] --> B{Agent}                                │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»A[Prompt] --> B{Agent}                                
+ 10 │      B --> C[Answer]                                       │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»B --> C[Answer]                                       
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M29 other extensions: ==highlighted==, H~2~O subscript,│
+    «default»  M29 other extensions: ==highlighted==, H~2~O subscript,
+  2 │  x^2^ superscript, ++inserted++, an abbreviation HTML, and│
+    «default»  x^2^ superscript, ++inserted++, an abbreviation HTML, and
+  3 │  a mermaid fence:│
+    «default»  a mermaid fence:
+  4 ││
+  5 │  *[HTML]: Hyper Text Markup Language│
+    «default»  *[HTML]: Hyper Text Markup Language
+  6 ││
+  7 │                                                   mermaid  │
+    «default»  «default bg:surface.code +d»                                                 mermaid  
+  8 │    graph LR                                                │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»graph LR                                                
+  9 │      A[Prompt] --> B{Agent}                                │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»A[Prompt] --> B{Agent}                                
+ 10 │      B --> C[Answer]                                       │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»B --> C[Answer]                                       
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M29 other extensions: ==highlighted==, H~2~O subscript, x^2^ superscript, ++inserted++, an│
+    «default»  M29 other extensions: ==highlighted==, H~2~O subscript, x^2^ superscript, ++inserted++, an
+  2 │  abbreviation HTML, and a mermaid fence:│
+    «default»  abbreviation HTML, and a mermaid fence:
+  3 ││
+  4 │  *[HTML]: Hyper Text Markup Language│
+    «default»  *[HTML]: Hyper Text Markup Language
+  5 ││
+  6 │                                                                                        mermaid  │
+    «default»  «bright-black bg:surface.code»                                                                                      mermaid  
+  7 │    graph LR                                                                                     │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»graph LR                                                                                     
+  8 │      A[Prompt] --> B{Agent}                                                                     │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»A[Prompt] --> B{Agent}                                                                     
+  9 │      B --> C[Answer]                                                                            │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»B --> C[Answer]                                                                            
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M29 other extensions: ==highlighted==, H~2~O subscript, x^2^ superscript, ++inserted++, an│
+    «default»  M29 other extensions: ==highlighted==, H~2~O subscript, x^2^ superscript, ++inserted++, an
+  2 │  abbreviation HTML, and a mermaid fence:│
+    «default»  abbreviation HTML, and a mermaid fence:
+  3 ││
+  4 │  *[HTML]: Hyper Text Markup Language│
+    «default»  *[HTML]: Hyper Text Markup Language
+  5 ││
+  6 │                                                                                        mermaid  │
+    «default»  «default bg:surface.code +d»                                                                                      mermaid  
+  7 │    graph LR                                                                                     │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»graph LR                                                                                     
+  8 │      A[Prompt] --> B{Agent}                                                                     │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»A[Prompt] --> B{Agent}                                                                     
+  9 │      B --> C[Answer]                                                                            │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»B --> C[Answer]                                                                            

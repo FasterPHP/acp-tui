@@ -1,0 +1,19 @@
+M10 (markdown-gallery), rendered rows under the emoji classes of jetbrains (zwj, flag, keycap, tone, bare); see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M10 emoji: shortcodes :smile: :rocket: :+1:│
+    «text»M10 emoji: shortcodes :smile: :rocket: :+1:
+  2 │:white_check_mark: :warning: and literal 😀 🚀 👍 ✅ ❌ ⚠️│
+    «text»:white_check_mark: :warning: and literal 😀 🚀 👍 ✅ ❌ ⚠️
+  3 │❤️ :family_man_woman_girl: :flag_united_kingdom: (variation│
+    «text»❤️ «muted =👨‍👩‍👧»:family_man_woman_girl:«text» «muted =🇬🇧»:flag_united_kingdom:«text» (variation
+  4 │selector, ZWJ sequence and flag).│
+    «text»selector, ZWJ sequence and flag).
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M10 emoji: shortcodes :smile: :rocket: :+1: :white_check_mark: :warning: and literal 😀 🚀 👍 ✅│
+    «text»M10 emoji: shortcodes :smile: :rocket: :+1: :white_check_mark: :warning: and literal 😀 🚀 👍 ✅
+  2 │❌ ⚠️ ❤️ :family_man_woman_girl: :flag_united_kingdom: (variation selector, ZWJ sequence and│
+    «text»❌ ⚠️ ❤️ «muted =👨‍👩‍👧»:family_man_woman_girl:«text» «muted =🇬🇧»:flag_united_kingdom:«text» (variation selector, ZWJ sequence and
+  3 │flag).│
+    «text»flag).

@@ -1,0 +1,57 @@
+M24 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M24 GitHub alerts:│
+    «default»  M24 GitHub alerts:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ A note alert.│
+    «default»  «blue»│ «bright-black»A note alert.
+  5 ││
+  6 │  │ Warning│
+    «default»  «yellow»│ «yellow +b»Warning
+  7 │  │ A warning alert.│
+    «default»  «yellow»│ «bright-black»A warning alert.
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M24 GitHub alerts:│
+    «default»  M24 GitHub alerts:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ A note alert.│
+    «default»  «blue»│ «default +d»A note alert.
+  5 ││
+  6 │  │ Warning│
+    «default»  «bright-red»│ «bright-red +b»Warning
+  7 │  │ A warning alert.│
+    «default»  «bright-red»│ «default +d»A warning alert.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M24 GitHub alerts:│
+    «default»  M24 GitHub alerts:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ A note alert.│
+    «default»  «blue»│ «bright-black»A note alert.
+  5 ││
+  6 │  │ Warning│
+    «default»  «yellow»│ «yellow +b»Warning
+  7 │  │ A warning alert.│
+    «default»  «yellow»│ «bright-black»A warning alert.
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M24 GitHub alerts:│
+    «default»  M24 GitHub alerts:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ A note alert.│
+    «default»  «blue»│ «default +d»A note alert.
+  5 ││
+  6 │  │ Warning│
+    «default»  «bright-red»│ «bright-red +b»Warning
+  7 │  │ A warning alert.│
+    «default»  «bright-red»│ «default +d»A warning alert.

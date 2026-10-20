@@ -1,0 +1,28 @@
+{
+  "sessions": [
+    {
+      "sessionId": "sess-hostile",
+      "cwd": "/work/alpha",
+      "title": "Release notes \u001b]8;;https://evil.example/phish\u0007click here\u001b]8;;\u0007 \u202egnp.exe\u202c\u2066x\u2069\nsecond line",
+      "updatedAt": "2026-10-03T10:00:00.000Z",
+      "turns": [
+        {
+          "user": "Write the release notes.",
+          "agent": "Here are the release notes."
+        }
+      ]
+    },
+    {
+      "sessionId": "sess-plain",
+      "cwd": "/work/alpha",
+      "title": "An ordinary session",
+      "updatedAt": "2026-10-02T10:00:00.000Z",
+      "turns": [
+        {
+          "user": "hello",
+          "agent": "hello"
+        }
+      ]
+    }
+  ]
+}

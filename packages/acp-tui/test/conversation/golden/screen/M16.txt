@@ -1,0 +1,77 @@
+M16 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M16 ordered lists, nested, starting at 7, and with a│
+    «default»  M16 ordered lists, nested, starting at 7, and with a
+  2 │  parenthesis:│
+    «default»  parenthesis:
+  3 ││
+  4 │  1. First│
+    «default»  «blue»1. «default»First
+  5 │  2. Second│
+    «default»  «blue»2. «default»Second
+  6 │     a. Nested first│
+    «default»     «blue»a. «default»Nested first
+  7 │     b. Nested second│
+    «default»     «blue»b. «default»Nested second
+  8 │        1. Third level│
+    «default»        «blue»1. «default»Third level
+  9 │  3. Third│
+    «default»  «blue»3. «default»Third
+ 10 ││
+ 11 │  A separate list that starts at seven:│
+    «default»  A separate list that starts at seven:
+ 12 ││
+ 13 │   7. Starts at seven│
+    «default»   «blue»7. «default»Starts at seven
+ 14 │   8. Eight│
+    «default»   «blue»8. «default»Eight
+ 15 │   9. Nine│
+    «default»   «blue»9. «default»Nine
+ 16 │  10. Ten (the marker widens)│
+    «default»  «blue»10. «default»Ten (the marker widens)
+ 17 ││
+ 18 │  A list with the parenthesis delimiter:│
+    «default»  A list with the parenthesis delimiter:
+ 19 ││
+ 20 │  1) Parenthesis delimiter│
+    «default»  «blue»1) «default»Parenthesis delimiter
+ 21 │  2) Parenthesis second│
+    «default»  «blue»2) «default»Parenthesis second
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M16 ordered lists, nested, starting at 7, and with a parenthesis:│
+    «default»  M16 ordered lists, nested, starting at 7, and with a parenthesis:
+  2 ││
+  3 │  1. First│
+    «default»  «blue»1. «default»First
+  4 │  2. Second│
+    «default»  «blue»2. «default»Second
+  5 │     a. Nested first│
+    «default»     «blue»a. «default»Nested first
+  6 │     b. Nested second│
+    «default»     «blue»b. «default»Nested second
+  7 │        1. Third level│
+    «default»        «blue»1. «default»Third level
+  8 │  3. Third│
+    «default»  «blue»3. «default»Third
+  9 ││
+ 10 │  A separate list that starts at seven:│
+    «default»  A separate list that starts at seven:
+ 11 ││
+ 12 │   7. Starts at seven│
+    «default»   «blue»7. «default»Starts at seven
+ 13 │   8. Eight│
+    «default»   «blue»8. «default»Eight
+ 14 │   9. Nine│
+    «default»   «blue»9. «default»Nine
+ 15 │  10. Ten (the marker widens)│
+    «default»  «blue»10. «default»Ten (the marker widens)
+ 16 ││
+ 17 │  A list with the parenthesis delimiter:│
+    «default»  A list with the parenthesis delimiter:
+ 18 ││
+ 19 │  1) Parenthesis delimiter│
+    «default»  «blue»1) «default»Parenthesis delimiter
+ 20 │  2) Parenthesis second│
+    «default»  «blue»2) «default»Parenthesis second

@@ -1,0 +1,23 @@
+M06 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M06 hard line breaks: this line ends with two spaces│
+    «text»M06 hard line breaks: this line ends with two spaces
+  2 │so this one starts on a new row; this one ends with a│
+    «text»so this one starts on a new row; this one ends with a
+  3 │backslash│
+    «text»backslash
+  4 │so this one also starts on a new row. This line follows a│
+    «text»so this one also starts on a new row. This line follows a
+  5 │plain newline (a soft break), so it joins the line above.│
+    «text»plain newline (a soft break), so it joins the line above.
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M06 hard line breaks: this line ends with two spaces│
+    «text»M06 hard line breaks: this line ends with two spaces
+  2 │so this one starts on a new row; this one ends with a backslash│
+    «text»so this one starts on a new row; this one ends with a backslash
+  3 │so this one also starts on a new row. This line follows a plain newline (a soft break), so it│
+    «text»so this one also starts on a new row. This line follows a plain newline (a soft break), so it
+  4 │joins the line above.│
+    «text»joins the line above.

@@ -1,0 +1,60 @@
+## User
+
+give me things to copy
+
+## Agent
+
+```php
+<?php
+
+declare(strict_types=1);
+
+final class InvoiceTotal
+{
+    public function __construct(private readonly array $lines)
+    {
+    }
+
+    public function net(): float
+    {
+        return array_sum(array_map(fn (array $line): float => $line['qty'] * $line['price'], $this->lines));
+    }
+}
+```
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| id | int | primary key |
+| name | string | up to 80 characters, indexed |
+| created_at | datetime | UTC |
+
+The first paragraph explains the change in one or two sentences.
+
+The second paragraph gives the reason, including a `code span` that must survive a copy.
+
+The third paragraph closes with what to check next.
+
+**Tool** (edit, completed): Edit src/InvoiceTotal.php
+
+```diff
+--- /work/src/InvoiceTotal.php
++++ /work/src/InvoiceTotal.php
+@@ -6,12 +6,7 @@
+ {
+     public function net(): float
+     {
+-        $total = 0.0;
+-        foreach ($this->lines as $line) {
+-            $total += $line['qty'] * $line['price'];
+-        }
+-
+-        return $total;
++        return array_sum(array_map(fn (array $line): float => $line['qty'] * $line['price'], $this->lines));
+     }
+ 
+     public function count(): int
+```
+
+- first item
+- second item, with **bold** text
+- third item

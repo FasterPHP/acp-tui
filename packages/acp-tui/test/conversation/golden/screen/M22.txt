@@ -1,0 +1,45 @@
+M22 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M22 indented code block (four spaces):│
+    «default»  M22 indented code block (four spaces):
+  2 ││
+  3 │                                                            │
+    «default»  «bright-black bg:surface.code»                                                          
+  4 │    $indented = 'code block';                               │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»$indented = 'code block';                               
+  5 │    echo $indented;                                         │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»echo $indented;                                         
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M22 indented code block (four spaces):│
+    «default»  M22 indented code block (four spaces):
+  2 ││
+  3 │                                                            │
+    «default»  «default bg:surface.code +d»                                                          
+  4 │    $indented = 'code block';                               │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»$indented = 'code block';                               
+  5 │    echo $indented;                                         │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»echo $indented;                                         
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M22 indented code block (four spaces):│
+    «default»  M22 indented code block (four spaces):
+  2 ││
+  3 │                                                                                                 │
+    «default»  «bright-black bg:surface.code»                                                                                               
+  4 │    $indented = 'code block';                                                                    │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»$indented = 'code block';                                                                    
+  5 │    echo $indented;                                                                              │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»echo $indented;                                                                              
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M22 indented code block (four spaces):│
+    «default»  M22 indented code block (four spaces):
+  2 ││
+  3 │                                                                                                 │
+    «default»  «default bg:surface.code +d»                                                                                               
+  4 │    $indented = 'code block';                                                                    │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»$indented = 'code block';                                                                    
+  5 │    echo $indented;                                                                              │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»echo $indented;                                                                              

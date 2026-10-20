@@ -1,0 +1,47 @@
+M17 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M17 task lists, nested, and ordered:│
+    «default»  M17 task lists, nested, and ordered:
+  2 ││
+  3 │  [x] Done task│
+    «default»  «green»[x] «default»Done task
+  4 │  [ ] Open task│
+    «default»  [ ] Open task
+  5 │      [x] Nested done│
+    «default»      «green»[x] «default»Nested done
+  6 │      [ ] Nested open│
+    «default»      [ ] Nested open
+  7 │  [x] Capital X done│
+    «default»  «green»[x] «default»Capital X done
+  8 ││
+  9 │  An ordered task list:│
+    «default»  An ordered task list:
+ 10 ││
+ 11 │  1. [x] Ordered task done│
+    «default»  «blue»1. «green»[x] «default»Ordered task done
+ 12 │  2. [ ] Ordered task open│
+    «default»  «blue»2. «default»[ ] Ordered task open
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M17 task lists, nested, and ordered:│
+    «default»  M17 task lists, nested, and ordered:
+  2 ││
+  3 │  [x] Done task│
+    «default»  «green»[x] «default»Done task
+  4 │  [ ] Open task│
+    «default»  [ ] Open task
+  5 │      [x] Nested done│
+    «default»      «green»[x] «default»Nested done
+  6 │      [ ] Nested open│
+    «default»      [ ] Nested open
+  7 │  [x] Capital X done│
+    «default»  «green»[x] «default»Capital X done
+  8 ││
+  9 │  An ordered task list:│
+    «default»  An ordered task list:
+ 10 ││
+ 11 │  1. [x] Ordered task done│
+    «default»  «blue»1. «green»[x] «default»Ordered task done
+ 12 │  2. [ ] Ordered task open│
+    «default»  «blue»2. «default»[ ] Ordered task open

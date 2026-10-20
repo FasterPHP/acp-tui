@@ -1,0 +1,15 @@
+M07 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M07 backslash escapes: *not italic*, _not italic_, `not│
+    «text»M07 backslash escapes: *not italic*, _not italic_, `not
+  2 │code`, # not a heading, [not a link](x), ~~not struck~~, \│
+    «text»code`, # not a heading, [not a link](x), ~~not struck~~, \
+  3 │one backslash, | a pipe, <not html>.│
+    «text»one backslash, | a pipe, <not html>.
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M07 backslash escapes: *not italic*, _not italic_, `not code`, # not a heading, [not a link](x),│
+    «text»M07 backslash escapes: *not italic*, _not italic_, `not code`, # not a heading, [not a link](x),
+  2 │~~not struck~~, \ one backslash, | a pipe, <not html>.│
+    «text»~~not struck~~, \ one backslash, | a pipe, <not html>.

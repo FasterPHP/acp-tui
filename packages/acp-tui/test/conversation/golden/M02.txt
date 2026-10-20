@@ -1,0 +1,11 @@
+M02 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M02 strikethrough: double tilde, ~single tilde~, bold and│
+    «text»M02 strikethrough: «markdown.strike +s»double tilde«text», ~single tilde~, «markdown.strike +b +s»bold and
+  2 │struck and struck with code.│
+    «markdown.strike +b +s»struck«text» and «markdown.strike +s»struck with «markdown.code +s»code«text».
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M02 strikethrough: double tilde, ~single tilde~, bold and struck and struck with code.│
+    «text»M02 strikethrough: «markdown.strike +s»double tilde«text», ~single tilde~, «markdown.strike +b +s»bold and struck«text» and «markdown.strike +s»struck with «markdown.code +s»code«text».

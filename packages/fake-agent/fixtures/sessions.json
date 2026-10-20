@@ -1,0 +1,67 @@
+{
+  "sessions": [
+    {
+      "sessionId": "sess-alpha",
+      "cwd": "/work/alpha",
+      "title": "Fix the router",
+      "updatedAt": "2026-10-03T09:12:00.000Z",
+      "turns": [
+        {
+          "user": "Why does the router drop the query string?",
+          "thought": "**Reading the router**\n\nThe path is normalised before the query is split off.",
+          "tools": [
+            { "title": "Read src/Http/Router.php", "kind": "read", "output": "<?php\nfinal class Router {}" }
+          ],
+          "agent": "The router normalises the path first, so the query string is lost. I will split it off earlier."
+        },
+        {
+          "user": "Go ahead.",
+          "tools": [
+            { "title": "Edit src/Http/Router.php", "kind": "edit", "output": "Applied 1 edit." },
+            { "title": "Run vendor/bin/phpunit", "kind": "execute", "status": "failed", "output": "1 test failed" }
+          ],
+          "agent": "The edit is in, but one test fails. It expects the old behaviour."
+        },
+        {
+          "user": "Update that test too.",
+          "agent": "Done: the test now expects the query string to be kept."
+        }
+      ]
+    },
+    {
+      "sessionId": "sess-beta",
+      "cwd": "/work/alpha",
+      "title": "Add the appointment model",
+      "updatedAt": "2026-10-02T16:40:00.000Z",
+      "turns": [
+        {
+          "user": "Add an Appointment model with a start and an end.",
+          "agent": "Added src/Model/Appointment.php with start and end as immutable dates."
+        }
+      ]
+    },
+    {
+      "sessionId": "sess-gamma",
+      "cwd": "/work/alpha",
+      "updatedAt": "2026-10-01T08:00:00.000Z",
+      "turns": [
+        {
+          "user": "what does the Kernel do on boot?",
+          "agent": "It loads the configuration, then builds the container."
+        }
+      ]
+    },
+    {
+      "sessionId": "sess-delta",
+      "cwd": "/work/beta",
+      "title": "Tidy the config loader",
+      "updatedAt": "2026-09-30T11:30:00.000Z",
+      "turns": [
+        {
+          "user": "Tidy src/Config/Loader.php.",
+          "agent": "Renamed two helpers and removed a dead branch."
+        }
+      ]
+    }
+  ]
+}

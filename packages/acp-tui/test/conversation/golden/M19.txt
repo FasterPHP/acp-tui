@@ -1,0 +1,43 @@
+M19 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M19 table with alignment (left, centre, right, default) and│
+    «text»M19 table with alignment (left, centre, right, default) and
+  2 │inline formatting:│
+    «text»inline formatting:
+  3 ││
+  4 │╭────────────────────┬────────┬──────────┬──────────────────╮│ (decorative)
+    «markdown.table.border ~»╭────────────────────┬────────┬──────────┬──────────────────╮
+  5 ││ Left               │ Centre │    Right │ Default          ││
+    «markdown.table.border ~»│ «markdown.table.header»Left«text ~»              «markdown.table.border ~» │ «markdown.table.header»Centre«markdown.table.border ~» │ «text ~»   «markdown.table.header»Right«markdown.table.border ~» │ «markdown.table.header»Default«text ~»         «markdown.table.border ~» │
+  6 │├────────────────────┼────────┼──────────┼──────────────────┤│ (decorative)
+    «markdown.table.border ~»├────────────────────┼────────┼──────────┼──────────────────┤
+  7 ││ a                  │   b    │        c │ d                ││
+    «markdown.table.border ~»│ «text»a«text ~»                 «markdown.table.border ~» │ «text ~»  «text»b«text ~»   «markdown.table.border ~» │ «text ~»       «text»c«markdown.table.border ~» │ «text»d«text ~»               «markdown.table.border ~» │
+  8 ││ bold               │ italic │     code │ struck           ││
+    «markdown.table.border ~»│ «text +b»bold«text ~»              «markdown.table.border ~» │ «text +i»italic«markdown.table.border ~» │ «text ~»    «markdown.code»code«markdown.table.border ~» │ «markdown.strike +s»struck«text ~»          «markdown.table.border ~» │
+  9 ││ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped     ││
+    «markdown.table.border ~»│ «markdown.link ->https://example.com/cell»link«text» «muted ->https://example.com/cell»(example.com)«markdown.table.border ~» │ «text»日本語«markdown.table.border ~» │ «text»1,234.56«markdown.table.border ~» │ «text»an | escaped«text ~»    «markdown.table.border ~» │
+ 10 ││                    │        │          │ pipe             ││
+    «markdown.table.border ~»│ «text ~»                  «markdown.table.border ~» │ «text ~»      «markdown.table.border ~» │ «text ~»        «markdown.table.border ~» │ «text»pipe«text ~»            «markdown.table.border ~» │
+ 11 │╰────────────────────┴────────┴──────────┴──────────────────╯│ (decorative)
+    «markdown.table.border ~»╰────────────────────┴────────┴──────────┴──────────────────╯
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M19 table with alignment (left, centre, right, default) and inline formatting:│
+    «text»M19 table with alignment (left, centre, right, default) and inline formatting:
+  2 ││
+  3 │╭────────────────────┬────────┬──────────┬───────────────────╮│ (decorative)
+    «markdown.table.border ~»╭────────────────────┬────────┬──────────┬───────────────────╮
+  4 ││ Left               │ Centre │    Right │ Default           ││
+    «markdown.table.border ~»│ «markdown.table.header»Left«text ~»              «markdown.table.border ~» │ «markdown.table.header»Centre«markdown.table.border ~» │ «text ~»   «markdown.table.header»Right«markdown.table.border ~» │ «markdown.table.header»Default«text ~»          «markdown.table.border ~» │
+  5 │├────────────────────┼────────┼──────────┼───────────────────┤│ (decorative)
+    «markdown.table.border ~»├────────────────────┼────────┼──────────┼───────────────────┤
+  6 ││ a                  │   b    │        c │ d                 ││
+    «markdown.table.border ~»│ «text»a«text ~»                 «markdown.table.border ~» │ «text ~»  «text»b«text ~»   «markdown.table.border ~» │ «text ~»       «text»c«markdown.table.border ~» │ «text»d«text ~»                «markdown.table.border ~» │
+  7 ││ bold               │ italic │     code │ struck            ││
+    «markdown.table.border ~»│ «text +b»bold«text ~»              «markdown.table.border ~» │ «text +i»italic«markdown.table.border ~» │ «text ~»    «markdown.code»code«markdown.table.border ~» │ «markdown.strike +s»struck«text ~»           «markdown.table.border ~» │
+  8 ││ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped pipe ││
+    «markdown.table.border ~»│ «markdown.link ->https://example.com/cell»link«text» «muted ->https://example.com/cell»(example.com)«markdown.table.border ~» │ «text»日本語«markdown.table.border ~» │ «text»1,234.56«markdown.table.border ~» │ «text»an | escaped pipe«markdown.table.border ~» │
+  9 │╰────────────────────┴────────┴──────────┴───────────────────╯│ (decorative)
+    «markdown.table.border ~»╰────────────────────┴────────┴──────────┴───────────────────╯

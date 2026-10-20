@@ -1,0 +1,19 @@
+M33 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M33 relative links, one inside the working directory and two│
+    «text»M33 relative links, one inside the working directory and two
+  2 │outside it: inside the working directory (src/index.ts),│
+    «text»outside it: «markdown.link ->src/index.ts»inside the working directory«text» «muted ->src/index.ts»(src/index.ts)«text»,
+  3 │outside the working directory (../../outside/secret.txt) and│
+    «text»outside the working directory «muted»(../../outside/secret.txt)«text» and
+  4 │absolute path (/etc/hosts).│
+    «text»absolute path «muted»(/etc/hosts)«text».
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M33 relative links, one inside the working directory and two outside it: inside the working│
+    «text»M33 relative links, one inside the working directory and two outside it: «markdown.link ->src/index.ts»inside the working
+  2 │directory (src/index.ts), outside the working directory (../../outside/secret.txt) and absolute│
+    «markdown.link ->src/index.ts»directory«text» «muted ->src/index.ts»(src/index.ts)«text», outside the working directory «muted»(../../outside/secret.txt)«text» and absolute
+  3 │path (/etc/hosts).│
+    «text»path «muted»(/etc/hosts)«text».

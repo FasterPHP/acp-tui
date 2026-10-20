@@ -1,0 +1,121 @@
+M34 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M34 GitHub alerts, all five kinds:│
+    «default»  M34 GitHub alerts, all five kinds:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ Useful information that users should know, with code and│
+    «default»  «blue»│ «bright-black»Useful information that users should know, with «yellow»code «bright-black»and
+  5 │  │ a link (example.com).│
+    «default»  «blue»│ «bright-black»a «blue +u»link«default» «bright-black»(example.com).
+  6 ││
+  7 │  │ Tip│
+    «default»  «green»│ «green +b»Tip
+  8 │  │ Helpful advice for doing things better.│
+    «default»  «green»│ «bright-black»Helpful advice for doing things better.
+  9 ││
+ 10 │  │ Important│
+    «default»  «magenta»│ «magenta +b»Important
+ 11 │  │ Key information users need to know.│
+    «default»  «magenta»│ «bright-black»Key information users need to know.
+ 12 ││
+ 13 │  │ Warning│
+    «default»  «yellow»│ «yellow +b»Warning
+ 14 │  │ Urgent info that needs immediate attention.│
+    «default»  «yellow»│ «bright-black»Urgent info that needs immediate attention.
+ 15 ││
+ 16 │  │ Caution│
+    «default»  «red»│ «red +b»Caution
+ 17 │  │ Advises about risks or negative outcomes.│
+    «default»  «red»│ «bright-black»Advises about risks or negative outcomes.
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M34 GitHub alerts, all five kinds:│
+    «default»  M34 GitHub alerts, all five kinds:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ Useful information that users should know, with code and│
+    «default»  «blue»│ «default +d»Useful information that users should know, with «magenta»code «default +d»and
+  5 │  │ a link (example.com).│
+    «default»  «blue»│ «default +d»a «blue +u»link«default» «default +d»(example.com).
+  6 ││
+  7 │  │ Tip│
+    «default»  «green»│ «green +b»Tip
+  8 │  │ Helpful advice for doing things better.│
+    «default»  «green»│ «default +d»Helpful advice for doing things better.
+  9 ││
+ 10 │  │ Important│
+    «default»  «magenta»│ «magenta +b»Important
+ 11 │  │ Key information users need to know.│
+    «default»  «magenta»│ «default +d»Key information users need to know.
+ 12 ││
+ 13 │  │ Warning│
+    «default»  «bright-red»│ «bright-red +b»Warning
+ 14 │  │ Urgent info that needs immediate attention.│
+    «default»  «bright-red»│ «default +d»Urgent info that needs immediate attention.
+ 15 ││
+ 16 │  │ Caution│
+    «default»  «red»│ «red +b»Caution
+ 17 │  │ Advises about risks or negative outcomes.│
+    «default»  «red»│ «default +d»Advises about risks or negative outcomes.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M34 GitHub alerts, all five kinds:│
+    «default»  M34 GitHub alerts, all five kinds:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ Useful information that users should know, with code and a link (example.com).│
+    «default»  «blue»│ «bright-black»Useful information that users should know, with «yellow»code «bright-black»and a «blue +u»link«default» «bright-black»(example.com).
+  5 ││
+  6 │  │ Tip│
+    «default»  «green»│ «green +b»Tip
+  7 │  │ Helpful advice for doing things better.│
+    «default»  «green»│ «bright-black»Helpful advice for doing things better.
+  8 ││
+  9 │  │ Important│
+    «default»  «magenta»│ «magenta +b»Important
+ 10 │  │ Key information users need to know.│
+    «default»  «magenta»│ «bright-black»Key information users need to know.
+ 11 ││
+ 12 │  │ Warning│
+    «default»  «yellow»│ «yellow +b»Warning
+ 13 │  │ Urgent info that needs immediate attention.│
+    «default»  «yellow»│ «bright-black»Urgent info that needs immediate attention.
+ 14 ││
+ 15 │  │ Caution│
+    «default»  «red»│ «red +b»Caution
+ 16 │  │ Advises about risks or negative outcomes.│
+    «default»  «red»│ «bright-black»Advises about risks or negative outcomes.
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M34 GitHub alerts, all five kinds:│
+    «default»  M34 GitHub alerts, all five kinds:
+  2 ││
+  3 │  │ Note│
+    «default»  «blue»│ «blue +b»Note
+  4 │  │ Useful information that users should know, with code and a link (example.com).│
+    «default»  «blue»│ «default +d»Useful information that users should know, with «magenta»code «default +d»and a «blue +u»link«default» «default +d»(example.com).
+  5 ││
+  6 │  │ Tip│
+    «default»  «green»│ «green +b»Tip
+  7 │  │ Helpful advice for doing things better.│
+    «default»  «green»│ «default +d»Helpful advice for doing things better.
+  8 ││
+  9 │  │ Important│
+    «default»  «magenta»│ «magenta +b»Important
+ 10 │  │ Key information users need to know.│
+    «default»  «magenta»│ «default +d»Key information users need to know.
+ 11 ││
+ 12 │  │ Warning│
+    «default»  «bright-red»│ «bright-red +b»Warning
+ 13 │  │ Urgent info that needs immediate attention.│
+    «default»  «bright-red»│ «default +d»Urgent info that needs immediate attention.
+ 14 ││
+ 15 │  │ Caution│
+    «default»  «red»│ «red +b»Caution
+ 16 │  │ Advises about risks or negative outcomes.│
+    «default»  «red»│ «default +d»Advises about risks or negative outcomes.

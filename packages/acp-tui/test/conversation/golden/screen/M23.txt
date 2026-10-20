@@ -1,0 +1,121 @@
+M23 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M23 blockquotes, nested three levels, with a list and│
+    «default»  M23 blockquotes, nested three levels, with a list and
+  2 │  code:│
+    «default»  code:
+  3 ││
+  4 │  │ Level one quote with bold and code.│
+    «default»  «bright-black»│ Level one quote with «bright-black +b»bold «bright-black»and «yellow»code«bright-black».
+  5 │  ││
+    «default»  «bright-black»│
+  6 │  │ │ Level two quote.│
+    «default»  «bright-black»│ │ Level two quote.
+  7 │  │ ││
+    «default»  «bright-black»│ │
+  8 │  │ │ │ Level three quote.│
+    «default»  «bright-black»│ │ │ Level three quote.
+  9 │  ││
+    «default»  «bright-black»│
+ 10 │  │ ● A list inside the quote│
+    «default»  «bright-black»│ «blue»● «bright-black»A list inside the quote
+ 11 │  │ ● Its second item│
+    «default»  «bright-black»│ «blue»● «bright-black»Its second item
+ 12 │  ││
+    «default»  «bright-black»│
+ 13 │  │                                                    php  │
+    «default»  «bright-black»│ «bright-black bg:surface.code»                                                   php  
+ 14 │  │   echo 'code in a quote';                               │
+    «default»  «bright-black»│ «bright-black bg:surface.code»  «magenta bg:surface.code»echo «green bg:surface.code»'code in a quote'«default bg:surface.code»;                               
+ 15 │  │                                                         │
+    «default»  «bright-black»│ «bright-black bg:surface.code»                                                        
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M23 blockquotes, nested three levels, with a list and│
+    «default»  M23 blockquotes, nested three levels, with a list and
+  2 │  code:│
+    «default»  code:
+  3 ││
+  4 │  │ Level one quote with bold and code.│
+    «default»  «default +d»│ Level one quote with «default +b +d»bold «default +d»and «magenta»code«default +d».
+  5 │  ││
+    «default»  «default +d»│
+  6 │  │ │ Level two quote.│
+    «default»  «default +d»│ │ Level two quote.
+  7 │  │ ││
+    «default»  «default +d»│ │
+  8 │  │ │ │ Level three quote.│
+    «default»  «default +d»│ │ │ Level three quote.
+  9 │  ││
+    «default»  «default +d»│
+ 10 │  │ ● A list inside the quote│
+    «default»  «default +d»│ «blue»● «default +d»A list inside the quote
+ 11 │  │ ● Its second item│
+    «default»  «default +d»│ «blue»● «default +d»Its second item
+ 12 │  ││
+    «default»  «default +d»│
+ 13 │  │                                                    php  │
+    «default»  «default +d»│ «default bg:surface.code +d»                                                   php  
+ 14 │  │   echo 'code in a quote';                               │
+    «default»  «default +d»│ «default bg:surface.code +d»  «magenta bg:surface.code»echo «green bg:surface.code»'code in a quote'«default bg:surface.code»;                               
+ 15 │  │                                                         │
+    «default»  «default +d»│ «default bg:surface.code +d»                                                        
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M23 blockquotes, nested three levels, with a list and code:│
+    «default»  M23 blockquotes, nested three levels, with a list and code:
+  2 ││
+  3 │  │ Level one quote with bold and code.│
+    «default»  «bright-black»│ Level one quote with «bright-black +b»bold «bright-black»and «yellow»code«bright-black».
+  4 │  ││
+    «default»  «bright-black»│
+  5 │  │ │ Level two quote.│
+    «default»  «bright-black»│ │ Level two quote.
+  6 │  │ ││
+    «default»  «bright-black»│ │
+  7 │  │ │ │ Level three quote.│
+    «default»  «bright-black»│ │ │ Level three quote.
+  8 │  ││
+    «default»  «bright-black»│
+  9 │  │ ● A list inside the quote│
+    «default»  «bright-black»│ «blue»● «bright-black»A list inside the quote
+ 10 │  │ ● Its second item│
+    «default»  «bright-black»│ «blue»● «bright-black»Its second item
+ 11 │  ││
+    «default»  «bright-black»│
+ 12 │  │                                                                                         php  │
+    «default»  «bright-black»│ «bright-black bg:surface.code»                                                                                        php  
+ 13 │  │   echo 'code in a quote';                                                                    │
+    «default»  «bright-black»│ «bright-black bg:surface.code»  «magenta bg:surface.code»echo «green bg:surface.code»'code in a quote'«default bg:surface.code»;                                                                    
+ 14 │  │                                                                                              │
+    «default»  «bright-black»│ «bright-black bg:surface.code»                                                                                             
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M23 blockquotes, nested three levels, with a list and code:│
+    «default»  M23 blockquotes, nested three levels, with a list and code:
+  2 ││
+  3 │  │ Level one quote with bold and code.│
+    «default»  «default +d»│ Level one quote with «default +b +d»bold «default +d»and «magenta»code«default +d».
+  4 │  ││
+    «default»  «default +d»│
+  5 │  │ │ Level two quote.│
+    «default»  «default +d»│ │ Level two quote.
+  6 │  │ ││
+    «default»  «default +d»│ │
+  7 │  │ │ │ Level three quote.│
+    «default»  «default +d»│ │ │ Level three quote.
+  8 │  ││
+    «default»  «default +d»│
+  9 │  │ ● A list inside the quote│
+    «default»  «default +d»│ «blue»● «default +d»A list inside the quote
+ 10 │  │ ● Its second item│
+    «default»  «default +d»│ «blue»● «default +d»Its second item
+ 11 │  ││
+    «default»  «default +d»│
+ 12 │  │                                                                                         php  │
+    «default»  «default +d»│ «default bg:surface.code +d»                                                                                        php  
+ 13 │  │   echo 'code in a quote';                                                                    │
+    «default»  «default +d»│ «default bg:surface.code +d»  «magenta bg:surface.code»echo «green bg:surface.code»'code in a quote'«default bg:surface.code»;                                                                    
+ 14 │  │                                                                                              │
+    «default»  «default +d»│ «default bg:surface.code +d»                                                                                             

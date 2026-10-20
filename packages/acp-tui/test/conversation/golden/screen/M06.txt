@@ -1,0 +1,23 @@
+M06 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M06 hard line breaks: this line ends with two spaces│
+    «default»  M06 hard line breaks: this line ends with two spaces
+  2 │  so this one starts on a new row; this one ends with a│
+    «default»  so this one starts on a new row; this one ends with a
+  3 │  backslash│
+    «default»  backslash
+  4 │  so this one also starts on a new row. This line follows a│
+    «default»  so this one also starts on a new row. This line follows a
+  5 │  plain newline (a soft break), so it joins the line above.│
+    «default»  plain newline (a soft break), so it joins the line above.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M06 hard line breaks: this line ends with two spaces│
+    «default»  M06 hard line breaks: this line ends with two spaces
+  2 │  so this one starts on a new row; this one ends with a backslash│
+    «default»  so this one starts on a new row; this one ends with a backslash
+  3 │  so this one also starts on a new row. This line follows a plain newline (a soft break), so it│
+    «default»  so this one also starts on a new row. This line follows a plain newline (a soft break), so it
+  4 │  joins the line above.│
+    «default»  joins the line above.

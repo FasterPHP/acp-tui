@@ -1,0 +1,21 @@
+M02 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M02 strikethrough: double tilde, ~single tilde~, bold and│
+    «default»  M02 strikethrough: «bright-black +i»double tilde«default», ~single tilde~, «bright-black +b +i»bold and
+  2 │  struck and struck with code.│
+    «default»  «bright-black +b +i»struck «default»and «bright-black +i»struck with «yellow +i»code«default».
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M02 strikethrough: double tilde, ~single tilde~, bold and│
+    «default»  M02 strikethrough: «default +i +d»double tilde«default», ~single tilde~, «default +b +i +d»bold and
+  2 │  struck and struck with code.│
+    «default»  «default +b +i +d»struck «default»and «default +i +d»struck with «magenta +i»code«default».
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M02 strikethrough: double tilde, ~single tilde~, bold and struck and struck with code.│
+    «default»  M02 strikethrough: «bright-black +i»double tilde«default», ~single tilde~, «bright-black +b +i»bold and struck «default»and «bright-black +i»struck with «yellow +i»code«default».
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M02 strikethrough: double tilde, ~single tilde~, bold and struck and struck with code.│
+    «default»  M02 strikethrough: «default +i +d»double tilde«default», ~single tilde~, «default +b +i +d»bold and struck «default»and «default +i +d»struck with «magenta +i»code«default».

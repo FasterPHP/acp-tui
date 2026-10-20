@@ -1,0 +1,29 @@
+M09 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M09 inline HTML: Ctrl+C, b tag, em tag, span tag, sup and│
+    «default»  M09 inline HTML: «yellow»Ctrl«default»+«yellow»C«default», «default +b»b tag«default», «default +i»em tag«default», span tag, sup and
+  2 │  sub, ins tag, del tag, mark tag, a│
+    «default»  sub, ins tag, «bright-black +i»del tag«default», mark tag, a
+  3 │  br tag, and a comment here.│
+    «default»  br tag, and a comment here.
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M09 inline HTML: Ctrl+C, b tag, em tag, span tag, sup and│
+    «default»  M09 inline HTML: «magenta»Ctrl«default»+«magenta»C«default», «default +b»b tag«default», «default +i»em tag«default», span tag, sup and
+  2 │  sub, ins tag, del tag, mark tag, a│
+    «default»  sub, ins tag, «default +i +d»del tag«default», mark tag, a
+  3 │  br tag, and a comment here.│
+    «default»  br tag, and a comment here.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M09 inline HTML: Ctrl+C, b tag, em tag, span tag, sup and sub, ins tag, del tag, mark tag, a│
+    «default»  M09 inline HTML: «yellow»Ctrl«default»+«yellow»C«default», «default +b»b tag«default», «default +i»em tag«default», span tag, sup and sub, ins tag, «bright-black +i»del tag«default», mark tag, a
+  2 │  br tag, and a comment here.│
+    «default»  br tag, and a comment here.
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M09 inline HTML: Ctrl+C, b tag, em tag, span tag, sup and sub, ins tag, del tag, mark tag, a│
+    «default»  M09 inline HTML: «magenta»Ctrl«default»+«magenta»C«default», «default +b»b tag«default», «default +i»em tag«default», span tag, sup and sub, ins tag, «default +i +d»del tag«default», mark tag, a
+  2 │  br tag, and a comment here.│
+    «default»  br tag, and a comment here.

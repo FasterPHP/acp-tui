@@ -1,0 +1,29 @@
+preamble (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  Markdown gallery│
+    «default»  «blue +b»Markdown gallery
+  2 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+    «default»  «blue +b»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3 ││
+  4 │  Every Markdown element in one agent message: CommonMark,│
+    «default»  Every Markdown element in one agent message: CommonMark,
+  5 │  GitHub Flavored Markdown and common extensions. Each│
+    «default»  GitHub Flavored Markdown and common extensions. Each
+  6 │  sample starts with a tag (M01 to M36) so a screen dump can│
+    «default»  sample starts with a tag (M01 to M36) so a screen dump can
+  7 │  be matched to its source.│
+    «default»  be matched to its source.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  Markdown gallery│
+    «default»  «blue +b»Markdown gallery
+  2 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+    «default»  «blue +b»━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3 ││
+  4 │  Every Markdown element in one agent message: CommonMark, GitHub Flavored Markdown and common│
+    «default»  Every Markdown element in one agent message: CommonMark, GitHub Flavored Markdown and common
+  5 │  extensions. Each sample starts with a tag (M01 to M36) so a screen dump can be matched to its│
+    «default»  extensions. Each sample starts with a tag (M01 to M36) so a screen dump can be matched to its
+  6 │  source.│
+    «default»  source.

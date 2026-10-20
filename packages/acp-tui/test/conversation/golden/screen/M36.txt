@@ -1,0 +1,25 @@
+M36 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M36 a details block with a summary and a list inside:│
+    «default»  M36 a details block with a summary and a list inside:
+  2 ││
+  3 │  Show the build steps│
+    «default»  «default +b»Show the build steps
+  4 ││
+  5 │  1. Install the dependencies.│
+    «default»  «blue»1. «default»Install the dependencies.
+  6 │  2. Run the tests.│
+    «default»  «blue»2. «default»Run the tests.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M36 a details block with a summary and a list inside:│
+    «default»  M36 a details block with a summary and a list inside:
+  2 ││
+  3 │  Show the build steps│
+    «default»  «default +b»Show the build steps
+  4 ││
+  5 │  1. Install the dependencies.│
+    «default»  «blue»1. «default»Install the dependencies.
+  6 │  2. Run the tests.│
+    «default»  «blue»2. «default»Run the tests.

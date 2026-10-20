@@ -1,0 +1,15 @@
+M10 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M10 emoji: shortcodes :smile: :rocket: :+1:│
+    «default»  M10 emoji: shortcodes :smile: :rocket: :+1:
+  2 │  :white_check_mark: :warning: and literal 😀  🚀  👍  ✅  ❌│
+    «default»  :white_check_mark: :warning: and literal 😀  🚀  👍  ✅  ❌
+  3 │  ⚠️  ❤️  👨‍👩‍ 🇬🇧 (variation selector, ZWJ sequence and flag).│
+    «default»  ⚠️  ❤️  👨‍👩‍ 🇬🇧 (variation selector, ZWJ sequence and flag).
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M10 emoji: shortcodes :smile: :rocket: :+1: :white_check_mark: :warning: and literal 😀  🚀  👍│
+    «default»  M10 emoji: shortcodes :smile: :rocket: :+1: :white_check_mark: :warning: and literal 😀  🚀  👍
+  2 │  ✅  ❌  ⚠️  ❤️  👨‍👩‍ 🇬🇧 (variation selector, ZWJ sequence and flag).│
+    «default»  ✅  ❌  ⚠️  ❤️  👨‍👩‍ 🇬🇧 (variation selector, ZWJ sequence and flag).

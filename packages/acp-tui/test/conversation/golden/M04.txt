@@ -1,0 +1,27 @@
+M04 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M04 links: inline inline link (example.com), reference│
+    «text»M04 links: inline «markdown.link ->https://example.com/inline»inline link«text» «muted ->https://example.com/inline»(example.com)«text», reference
+  2 │reference link (example.com), collapsed ref (example.com),│
+    «markdown.link ->https://example.com/reference»reference link«text» «muted ->https://example.com/reference»(example.com)«text», collapsed «markdown.link ->https://example.com/reference»ref«text» «muted ->https://example.com/reference»(example.com)«text»,
+  3 │shortcut ref (example.com), autolink│
+    «text»shortcut «markdown.link ->https://example.com/reference»ref«text» «muted ->https://example.com/reference»(example.com)«text», autolink
+  4 │https://example.com/autolink, email autolink│
+    «markdown.link ->https://example.com/autolink»https://example.com/autolink«text», email autolink
+  5 │someone@example.com, bare URL https://example.com/bare/url│
+    «markdown.link ->mailto:someone@example.com»someone@example.com«text», bare URL «markdown.link ->https://example.com/bare/url»https://example.com/bare/url
+  6 │and www.example.com/www, and a relative link README│
+    «text»and «markdown.link ->http://www.example.com/www»www.example.com/www«text», and a relative link «markdown.link ->./README.md»README
+  7 │(./README.md).│
+    «muted ->./README.md»(./README.md)«text».
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M04 links: inline inline link (example.com), reference reference link (example.com), collapsed ref│
+    «text»M04 links: inline «markdown.link ->https://example.com/inline»inline link«text» «muted ->https://example.com/inline»(example.com)«text», reference «markdown.link ->https://example.com/reference»reference link«text» «muted ->https://example.com/reference»(example.com)«text», collapsed «markdown.link ->https://example.com/reference»ref
+  2 │(example.com), shortcut ref (example.com), autolink https://example.com/autolink, email autolink│
+    «muted ->https://example.com/reference»(example.com)«text», shortcut «markdown.link ->https://example.com/reference»ref«text» «muted ->https://example.com/reference»(example.com)«text», autolink «markdown.link ->https://example.com/autolink»https://example.com/autolink«text», email autolink
+  3 │someone@example.com, bare URL https://example.com/bare/url and www.example.com/www, and a relative│
+    «markdown.link ->mailto:someone@example.com»someone@example.com«text», bare URL «markdown.link ->https://example.com/bare/url»https://example.com/bare/url«text» and «markdown.link ->http://www.example.com/www»www.example.com/www«text», and a relative
+  4 │link README (./README.md).│
+    «text»link «markdown.link ->./README.md»README«text» «muted ->./README.md»(./README.md)«text».

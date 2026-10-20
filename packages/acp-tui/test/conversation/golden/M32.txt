@@ -1,0 +1,17 @@
+M32 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M32 a deceptive label, where the label looks like one site│
+    «text»M32 a deceptive label, where the label looks like one site
+  2 │and the target is another: https://bank.example│
+    «text»and the target is another: «markdown.link ->https://evil.example/login»https://bank.example
+  3 │(evil.example) and a safe one for comparison:│
+    «muted ->https://evil.example/login»(evil.example)«text» and a safe one for comparison:
+  4 │https://example.com/same.│
+    «markdown.link ->https://example.com/same»https://example.com/same«text».
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M32 a deceptive label, where the label looks like one site and the target is another:│
+    «text»M32 a deceptive label, where the label looks like one site and the target is another:
+  2 │https://bank.example (evil.example) and a safe one for comparison: https://example.com/same.│
+    «markdown.link ->https://evil.example/login»https://bank.example«text» «muted ->https://evil.example/login»(evil.example)«text» and a safe one for comparison: «markdown.link ->https://example.com/same»https://example.com/same«text».

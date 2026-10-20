@@ -1,0 +1,77 @@
+M16 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M16 ordered lists, nested, starting at 7, and with a│
+    «text»M16 ordered lists, nested, starting at 7, and with a
+  2 │parenthesis:│
+    «text»parenthesis:
+  3 ││
+  4 │1. First│
+    «markdown.list»1. «text»First
+  5 │2. Second│
+    «markdown.list»2. «text»Second
+  6 │   a. Nested first│
+    «text»   «markdown.list»a. «text»Nested first
+  7 │   b. Nested second│
+    «text»   «markdown.list»b. «text»Nested second
+  8 │      1. Third level│
+    «text»      «markdown.list»1. «text»Third level
+  9 │3. Third│
+    «markdown.list»3. «text»Third
+ 10 ││
+ 11 │A separate list that starts at seven:│
+    «text»A separate list that starts at seven:
+ 12 ││
+ 13 │ 7. Starts at seven│
+    «markdown.list» 7. «text»Starts at seven
+ 14 │ 8. Eight│
+    «markdown.list» 8. «text»Eight
+ 15 │ 9. Nine│
+    «markdown.list» 9. «text»Nine
+ 16 │10. Ten (the marker widens)│
+    «markdown.list»10. «text»Ten (the marker widens)
+ 17 ││
+ 18 │A list with the parenthesis delimiter:│
+    «text»A list with the parenthesis delimiter:
+ 19 ││
+ 20 │1) Parenthesis delimiter│
+    «markdown.list»1) «text»Parenthesis delimiter
+ 21 │2) Parenthesis second│
+    «markdown.list»2) «text»Parenthesis second
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M16 ordered lists, nested, starting at 7, and with a parenthesis:│
+    «text»M16 ordered lists, nested, starting at 7, and with a parenthesis:
+  2 ││
+  3 │1. First│
+    «markdown.list»1. «text»First
+  4 │2. Second│
+    «markdown.list»2. «text»Second
+  5 │   a. Nested first│
+    «text»   «markdown.list»a. «text»Nested first
+  6 │   b. Nested second│
+    «text»   «markdown.list»b. «text»Nested second
+  7 │      1. Third level│
+    «text»      «markdown.list»1. «text»Third level
+  8 │3. Third│
+    «markdown.list»3. «text»Third
+  9 ││
+ 10 │A separate list that starts at seven:│
+    «text»A separate list that starts at seven:
+ 11 ││
+ 12 │ 7. Starts at seven│
+    «markdown.list» 7. «text»Starts at seven
+ 13 │ 8. Eight│
+    «markdown.list» 8. «text»Eight
+ 14 │ 9. Nine│
+    «markdown.list» 9. «text»Nine
+ 15 │10. Ten (the marker widens)│
+    «markdown.list»10. «text»Ten (the marker widens)
+ 16 ││
+ 17 │A list with the parenthesis delimiter:│
+    «text»A list with the parenthesis delimiter:
+ 18 ││
+ 19 │1) Parenthesis delimiter│
+    «markdown.list»1) «text»Parenthesis delimiter
+ 20 │2) Parenthesis second│
+    «markdown.list»2) «text»Parenthesis second

@@ -1,0 +1,13 @@
+M03 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M03 inline code: plain code, code with a ` backtick, code│
+    «text»M03 inline code: «markdown.code»plain code«text», «markdown.code»code with a ` backtick«text», «markdown.code»code
+  2 │with `` two backticks, **not bold** and <b>not html</b>.│
+    «markdown.code»with `` two backticks«text», «markdown.code»**not bold**«text» and «markdown.code»<b>not html</b>«text».
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M03 inline code: plain code, code with a ` backtick, code with `` two backticks, **not bold** and│
+    «text»M03 inline code: «markdown.code»plain code«text», «markdown.code»code with a ` backtick«text», «markdown.code»code with `` two backticks«text», «markdown.code»**not bold**«text» and
+  2 │<b>not html</b>.│
+    «markdown.code»<b>not html</b>«text».

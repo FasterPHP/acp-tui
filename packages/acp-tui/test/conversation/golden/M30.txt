@@ -1,0 +1,31 @@
+M30 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M30 a very long word and a very long URL:│
+    «text»M30 a very long word and a very long URL:
+  2 ││
+  3 │Supercalifragilisticexpialidociousantidisestablishmentarianis│
+    «text»Supercalifragilisticexpialidociousantidisestablishmentarianis
+  4 │mpneumonoultramicroscopicsilicovolcanoconiosis is one word.│
+    «text»mpneumonoultramicroscopicsilicovolcanoconiosis is one word.
+  5 ││
+  6 │https://example.com/a/very/long/path/that/keeps/going/and/goi│
+    «markdown.link ->https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/terminal/pane?query=string&with=parameters#and-a-fragment»https://example.com/a/very/long/path/that/keeps/going/and/goi
+  7 │ng/well/past/the/width/of/the/terminal/pane?query=string&with│
+    «markdown.link ->https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/terminal/pane?query=string&with=parameters#and-a-fragment»ng/well/past/the/width/of/the/terminal/pane?query=string&with
+  8 │=parameters#and-a-fragment│
+    «markdown.link ->https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/terminal/pane?query=string&with=parameters#and-a-fragment»=parameters#and-a-fragment
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M30 a very long word and a very long URL:│
+    «text»M30 a very long word and a very long URL:
+  2 ││
+  3 │Supercalifragilisticexpialidociousantidisestablishmentarianismpneumonoultramicroscopicsilicovolcan│
+    «text»Supercalifragilisticexpialidociousantidisestablishmentarianismpneumonoultramicroscopicsilicovolcan
+  4 │oconiosis is one word.│
+    «text»oconiosis is one word.
+  5 ││
+  6 │https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/termina│
+    «markdown.link ->https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/terminal/pane?query=string&with=parameters#and-a-fragment»https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/termina
+  7 │l/pane?query=string&with=parameters#and-a-fragment│
+    «markdown.link ->https://example.com/a/very/long/path/that/keeps/going/and/going/well/past/the/width/of/the/terminal/pane?query=string&with=parameters#and-a-fragment»l/pane?query=string&with=parameters#and-a-fragment

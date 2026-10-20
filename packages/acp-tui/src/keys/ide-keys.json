@@ -1,0 +1,217 @@
+{
+  "source": "docs/phase-1a-spike-report.md, S1 task 10.5 key tables (PhpStorm reworked and classic in session A1, Zed 1.18.1 in session B1, 2 to 4 October 2026), with design D11's alternatives table (mvp-chrome-and-keys). Keys are in the key map's normalised spelling. Checked by the key probe of mvp-chrome-and-keys task 8.1 (11 October 2026, at 7524af0, the probe now being tools/keys.tsx; docs/mvp-notes/chrome-and-keys.md, \"IDE checks\"): every kept key below as recorded, and the probed keys listed under each terminal's \"reaches\" arrive unchanged. day-two-feedback task 10.4 (16 October 2026, at 19ba8e2) probed the prompt box's selection, cut, undo and redo keys: Ctrl+Shift+Z is added as kept in all three terminals, the rest reach the app.",
+  "probe": "Per terminal, \"shiftEnter\" is the key map's name for what Shift+Enter sends (the prompt box's newline, the find bar's previous hit), and \"reaches\" lists the keys task 8.1 sent that reached the app, with the bytes on stdin. Not read by ide-keys.test.ts.",
+  "alternatives": "Each alternative is one of: {key, context, action}: bound by default to that action; {palette: \"<context>.<action>\"}: a palette entry (a catalogue action outside tui-palette's keystroke-only list); {outside: \"...\"}: a route outside the key map (the IDE's own paste, a pill), recorded but not checkable. A kept key bound by default needs at least one checkable alternative, and every checkable one must hold.",
+  "terminals": {
+    "phpstorm-reworked": {
+      "label": "PhpStorm 2026.2.3, reworked terminal",
+      "shiftEnter": "meta+return",
+      "reaches": [
+        { "key": "shift+tab", "bytes": "CSI Z" },
+        { "key": "ctrl+t", "bytes": "0x14" },
+        { "key": "o", "bytes": "o" },
+        { "key": "a", "bytes": "a" },
+        { "key": "meta+v", "bytes": "ESC v", "note": "Alt+V; no IDE menu opened; the reader's route since task 12.2" },
+        { "key": "escape escape", "bytes": "ESC and ESC in two reads 1 to 2 ms apart, joined by OpenTUI into one ESC ESC sequence (meta+escape), which src/renderer/double-esc.ts splits: a running turn was interrupted" },
+        { "key": "shift+left", "bytes": "CSI 1 ; 2 D", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+right", "bytes": "CSI 1 ; 2 C", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+home", "bytes": "CSI 1 ; 2 H", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+end", "bytes": "CSI 1 ; 2 F", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+shift+left", "bytes": "CSI 1 ; 6 D", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+shift+right", "bytes": "CSI 1 ; 6 C", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+x", "bytes": "0x18", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+z", "bytes": "0x1a", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+y", "bytes": "0x19", "note": "day-two-feedback task 10.4" }
+      ],
+      "kept": [
+        {
+          "key": "ctrl+f",
+          "how": "Kept by the IDE: opens PhpStorm's terminal find bar",
+          "alternatives": [{ "key": "f3", "context": "global", "action": "findNext" }, { "palette": "global.find" }]
+        },
+        {
+          "key": "ctrl+v",
+          "how": "Kept by the IDE: PhpStorm pastes the clipboard itself as one bracketed paste (no 0x16; task 8.1: an 18-character text as one paste event)",
+          "alternatives": [{ "outside": "PhpStorm's own bracketed paste, for text" }, { "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+v",
+          "how": "Kept by the IDE (Marcus, 11 October 2026, design Open Question 2); not probed in task 8.1. Without the kitty keyboard flags it is Ctrl+V's byte (0x16) in any case",
+          "alternatives": [{ "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+c",
+          "how": "Arrives as Ctrl+C's byte (0x03) without the kitty keyboard flags",
+          "alternatives": [{ "key": "shift+y", "context": "conversation", "action": "copyItemMarkdown" }, { "palette": "selection.copyRich" }]
+        },
+        {
+          "key": "ctrl+shift+z",
+          "how": "Arrives as Ctrl+Z's byte (0x1a) without the kitty keyboard flags, so it undoes instead of redoing (day-two-feedback task 10.4, 16 October 2026)",
+          "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "super+z",
+          "how": "Cmd+Z on a Mac: kept by PhpStorm for its own undo, so it never reaches the terminal (Marcus's Mac check, 17 October 2026, day-two-feedback task 13.4)",
+          "alternatives": [{ "key": "ctrl+z", "context": "prompt", "action": "undo" }, { "palette": "prompt.undo" }]
+        },
+        {
+          "key": "shift+super+z",
+          "how": "Cmd+Shift+Z on a Mac: kept by PhpStorm for its own redo (day-two-feedback task 13.4)",
+          "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "super+x",
+          "how": "Cmd+X on a Mac: kept by PhpStorm for its own cut; acp-tui binds Cut to Ctrl+X only (day-two-feedback task 13.4)",
+          "alternatives": [{ "key": "ctrl+x", "context": "prompt", "action": "cut" }, { "palette": "prompt.cut" }]
+        },
+        {
+          "key": "shift+f3",
+          "how": "On stdin as the xterm form CSI 1 ; 2 R, which OpenTUI 0.5.12 takes as a cursor position reply",
+          "alternatives": [{ "key": "meta+return", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
+        }
+      ]
+    },
+    "phpstorm-classic": {
+      "label": "PhpStorm 2026.2.3, classic terminal (JediTerm)",
+      "shiftEnter": "meta+return",
+      "reaches": [
+        { "key": "shift+tab", "bytes": "CSI Z" },
+        { "key": "ctrl+t", "bytes": "0x14" },
+        { "key": "o", "bytes": "o" },
+        { "key": "a", "bytes": "a" },
+        { "key": "meta+v", "bytes": "ESC v", "note": "Alt+V; no IDE menu opened; the reader's route since task 12.2" },
+        { "key": "escape escape", "bytes": "ESC and ESC in two reads 1 to 2 ms apart, joined by OpenTUI into one ESC ESC sequence (meta+escape), which src/renderer/double-esc.ts splits: a running turn was interrupted" },
+        { "key": "shift+left", "bytes": "CSI 1 ; 2 D", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+right", "bytes": "CSI 1 ; 2 C", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+home", "bytes": "CSI 1 ; 2 H", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+end", "bytes": "CSI 1 ; 2 F", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+shift+left", "bytes": "CSI 1 ; 6 D", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+shift+right", "bytes": "CSI 1 ; 6 C", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+x", "bytes": "0x18", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+z", "bytes": "0x1a", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+y", "bytes": "0x19", "note": "day-two-feedback task 10.4" }
+      ],
+      "kept": [
+        {
+          "key": "ctrl+f",
+          "how": "Kept by the IDE: opens PhpStorm's terminal find bar",
+          "alternatives": [{ "key": "f3", "context": "global", "action": "findNext" }, { "palette": "global.find" }]
+        },
+        {
+          "key": "ctrl+v",
+          "how": "Kept by the IDE: PhpStorm pastes the clipboard itself as one bracketed paste (no 0x16; task 8.1: an 18-character text as one paste event)",
+          "alternatives": [{ "outside": "PhpStorm's own bracketed paste, for text" }, { "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+v",
+          "how": "Kept by the IDE (Marcus, 11 October 2026, design Open Question 2); not probed in task 8.1. Without the kitty keyboard flags it is Ctrl+V's byte (0x16) in any case",
+          "alternatives": [{ "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+c",
+          "how": "Arrives as Ctrl+C's byte (0x03) without the kitty keyboard flags",
+          "alternatives": [{ "key": "shift+y", "context": "conversation", "action": "copyItemMarkdown" }, { "palette": "selection.copyRich" }]
+        },
+        {
+          "key": "ctrl+shift+z",
+          "how": "Arrives as Ctrl+Z's byte (0x1a) without the kitty keyboard flags, so it undoes instead of redoing (day-two-feedback task 10.4, 16 October 2026)",
+          "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "super+z",
+          "how": "Cmd+Z on a Mac: kept by PhpStorm for its own undo, so it never reaches the terminal (Marcus's Mac check, 17 October 2026, day-two-feedback task 13.4)",
+          "alternatives": [{ "key": "ctrl+z", "context": "prompt", "action": "undo" }, { "palette": "prompt.undo" }]
+        },
+        {
+          "key": "shift+super+z",
+          "how": "Cmd+Shift+Z on a Mac: kept by PhpStorm for its own redo (day-two-feedback task 13.4)",
+          "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "super+x",
+          "how": "Cmd+X on a Mac: kept by PhpStorm for its own cut; acp-tui binds Cut to Ctrl+X only (day-two-feedback task 13.4)",
+          "alternatives": [{ "key": "ctrl+x", "context": "prompt", "action": "cut" }, { "palette": "prompt.cut" }]
+        },
+        {
+          "key": "shift+f3",
+          "how": "On stdin as the xterm form CSI 1 ; 2 R, which OpenTUI 0.5.12 takes as a cursor position reply",
+          "alternatives": [{ "key": "meta+return", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
+        },
+        {
+          "key": "ctrl+c",
+          "how": "The IDE's Copy while JediTerm keeps a selection band of its own (a quick click can leave one); reaches otherwise",
+          "noneNeeded": "Ctrl+C no longer exits or cancels (design D11): detach is Ctrl+D and interrupt the double Esc",
+          "alternatives": [{ "key": "ctrl+d", "context": "global", "action": "detach" }, { "key": "escape", "context": "global", "action": "escape" }, { "palette": "selection.copy" }]
+        }
+      ]
+    },
+    "zed": {
+      "label": "Zed 1.18.1",
+      "shiftEnter": "linefeed",
+      "reaches": [
+        { "key": "shift+tab", "bytes": "CSI Z" },
+        { "key": "ctrl+v", "bytes": "0x16", "note": "acp-tui's host reader then read text/plain from the Wayland clipboard" },
+        { "key": "o", "bytes": "o" },
+        { "key": "a", "bytes": "a" },
+        { "key": "meta+v", "bytes": "ESC v", "note": "Alt+V; no IDE menu opened; the reader's route since task 12.2" },
+        { "key": "escape escape", "bytes": "ESC and ESC in two reads 1 to 2 ms apart, joined by OpenTUI into one ESC ESC sequence (meta+escape), which src/renderer/double-esc.ts splits: a running turn was interrupted" },
+        { "key": "shift+left", "bytes": "CSI 1 ; 2 D", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+right", "bytes": "CSI 1 ; 2 C", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+home", "bytes": "CSI 1 ; 2 H", "note": "day-two-feedback task 10.4" },
+        { "key": "shift+end", "bytes": "CSI 1 ; 2 F", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+shift+left", "bytes": "CSI 1 ; 6 D", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+shift+right", "bytes": "CSI 1 ; 6 C", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+x", "bytes": "0x18", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+z", "bytes": "0x1a", "note": "day-two-feedback task 10.4" },
+        { "key": "ctrl+y", "bytes": "0x19", "note": "day-two-feedback task 10.4" }
+      ],
+      "kept": [
+        {
+          "key": "ctrl+p",
+          "how": "Kept by the IDE: opens Zed's file finder",
+          "alternatives": [{ "key": "?", "context": "prompt", "action": "palette" }]
+        },
+        {
+          "key": "ctrl+t",
+          "how": "Kept by the IDE: opens Zed's project symbols (task 8.1: only a focus-out report, CSI O, reached the app)",
+          "alternatives": [{ "outside": "the effort pill" }, { "palette": "global.pickThoughtLevel" }]
+        },
+        {
+          "key": "f1",
+          "how": "Kept by the IDE: opens Zed's command palette",
+          "alternatives": [{ "palette": "global.keyHelp" }]
+        },
+        {
+          "key": "ctrl+j",
+          "how": "Kept by the IDE: toggles Zed's bottom dock",
+          "alternatives": [{ "key": "linefeed", "context": "prompt", "action": "newline" }]
+        },
+        {
+          "key": "ctrl+return",
+          "how": "Kept by the IDE: Zed's inline assist (bound to nothing in acp-tui)",
+          "alternatives": [{ "key": "return", "context": "prompt", "action": "submit" }]
+        },
+        {
+          "key": "ctrl+shift+v",
+          "how": "Kept by the IDE for Zed's paste (Marcus, 11 October 2026, design Open Question 2); not probed in task 8.1",
+          "alternatives": [{ "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+c",
+          "how": "Kept by the IDE for Zed's copy",
+          "alternatives": [{ "key": "shift+y", "context": "conversation", "action": "copyItemMarkdown" }, { "palette": "selection.copyRich" }]
+        },
+        {
+          "key": "ctrl+shift+z",
+          "how": "Kept by the IDE: nothing reaches the terminal (day-two-feedback task 10.4, 16 October 2026: no input after the mark; Zed binds ctrl-shift-z only to editor::Redo and project_panel::Redo, and no IDE action was seen)",
+          "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "shift+f3",
+          "how": "On stdin as the xterm form CSI 1 ; 2 R, which OpenTUI 0.5.12 takes as a cursor position reply",
+          "alternatives": [{ "key": "linefeed", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
+        }
+      ]
+    }
+  }
+}

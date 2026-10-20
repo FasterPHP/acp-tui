@@ -1,0 +1,11 @@
+M05 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M05 images: [image: Alt text of an inline image] and a│
+    «text»M05 images: «markdown.link ->https://example.com/image.png»[image: Alt text of an inline image]«text» and a
+  2 │reference image [image: reference image].│
+    «text»reference image «markdown.link ->https://example.com/reference»[image: reference image]«text».
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M05 images: [image: Alt text of an inline image] and a reference image [image: reference image].│
+    «text»M05 images: «markdown.link ->https://example.com/image.png»[image: Alt text of an inline image]«text» and a reference image «markdown.link ->https://example.com/reference»[image: reference image]«text».

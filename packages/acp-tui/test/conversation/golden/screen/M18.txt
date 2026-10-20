@@ -1,0 +1,117 @@
+M18 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M18 mixed lists, a loose item and code in an item:│
+    «default»  M18 mixed lists, a loose item and code in an item:
+  2 ││
+  3 │  1. Ordered parent│
+    «default»  «blue»1. «default»Ordered parent
+  4 │     ○ Unordered child│
+    «default»     «blue»○ «default»Unordered child
+  5 │     [ ] Task child│
+    «default»     [ ] Task child
+  6 │         1. Ordered grandchild│
+    «default»         «blue»1. «default»Ordered grandchild
+  7 ││
+  8 │  2. Ordered parent with two paragraphs│
+    «default»  «blue»2. «default»Ordered parent with two paragraphs
+  9 ││
+ 10 │     The second paragraph inside the item (a loose list).│
+    «default»     The second paragraph inside the item (a loose list).
+ 11 ││
+ 12 │                                                        ts  │
+    «default»     «bright-black bg:surface.code»                                                   ts  
+ 13 │       const insideList = true;                             │
+    «default»     «bright-black bg:surface.code»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                             
+ 14 │                                                            │
+    «default»     «bright-black bg:surface.code»                                                       
+ 15 ││
+ 16 │  3. Third parent│
+    «default»  «blue»3. «default»Third parent
+
+at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M18 mixed lists, a loose item and code in an item:│
+    «default»  M18 mixed lists, a loose item and code in an item:
+  2 ││
+  3 │  1. Ordered parent│
+    «default»  «blue»1. «default»Ordered parent
+  4 │     ○ Unordered child│
+    «default»     «blue»○ «default»Unordered child
+  5 │     [ ] Task child│
+    «default»     [ ] Task child
+  6 │         1. Ordered grandchild│
+    «default»         «blue»1. «default»Ordered grandchild
+  7 ││
+  8 │  2. Ordered parent with two paragraphs│
+    «default»  «blue»2. «default»Ordered parent with two paragraphs
+  9 ││
+ 10 │     The second paragraph inside the item (a loose list).│
+    «default»     The second paragraph inside the item (a loose list).
+ 11 ││
+ 12 │                                                        ts  │
+    «default»     «default bg:surface.code +d»                                                   ts  
+ 13 │       const insideList = true;                             │
+    «default»     «default bg:surface.code +d»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                             
+ 14 │                                                            │
+    «default»     «default bg:surface.code +d»                                                       
+ 15 ││
+ 16 │  3. Third parent│
+    «default»  «blue»3. «default»Third parent
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
+  1 │  M18 mixed lists, a loose item and code in an item:│
+    «default»  M18 mixed lists, a loose item and code in an item:
+  2 ││
+  3 │  1. Ordered parent│
+    «default»  «blue»1. «default»Ordered parent
+  4 │     ○ Unordered child│
+    «default»     «blue»○ «default»Unordered child
+  5 │     [ ] Task child│
+    «default»     [ ] Task child
+  6 │         1. Ordered grandchild│
+    «default»         «blue»1. «default»Ordered grandchild
+  7 ││
+  8 │  2. Ordered parent with two paragraphs│
+    «default»  «blue»2. «default»Ordered parent with two paragraphs
+  9 ││
+ 10 │     The second paragraph inside the item (a loose list).│
+    «default»     The second paragraph inside the item (a loose list).
+ 11 ││
+ 12 │                                                                                             ts  │
+    «default»     «bright-black bg:surface.code»                                                                                        ts  
+ 13 │       const insideList = true;                                                                  │
+    «default»     «bright-black bg:surface.code»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                                                                  
+ 14 │                                                                                                 │
+    «default»     «bright-black bg:surface.code»                                                                                            
+ 15 ││
+ 16 │  3. Third parent│
+    «default»  «blue»3. «default»Third parent
+
+at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
+  1 │  M18 mixed lists, a loose item and code in an item:│
+    «default»  M18 mixed lists, a loose item and code in an item:
+  2 ││
+  3 │  1. Ordered parent│
+    «default»  «blue»1. «default»Ordered parent
+  4 │     ○ Unordered child│
+    «default»     «blue»○ «default»Unordered child
+  5 │     [ ] Task child│
+    «default»     [ ] Task child
+  6 │         1. Ordered grandchild│
+    «default»         «blue»1. «default»Ordered grandchild
+  7 ││
+  8 │  2. Ordered parent with two paragraphs│
+    «default»  «blue»2. «default»Ordered parent with two paragraphs
+  9 ││
+ 10 │     The second paragraph inside the item (a loose list).│
+    «default»     The second paragraph inside the item (a loose list).
+ 11 ││
+ 12 │                                                                                             ts  │
+    «default»     «default bg:surface.code +d»                                                                                        ts  
+ 13 │       const insideList = true;                                                                  │
+    «default»     «default bg:surface.code +d»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                                                                  
+ 14 │                                                                                                 │
+    «default»     «default bg:surface.code +d»                                                                                            
+ 15 ││
+ 16 │  3. Third parent│
+    «default»  «blue»3. «default»Third parent

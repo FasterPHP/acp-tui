@@ -1,0 +1,3 @@
+- first item
+- second item, with **bold** text
+- third item

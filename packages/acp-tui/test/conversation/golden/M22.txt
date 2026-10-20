@@ -1,0 +1,27 @@
+M22 (markdown-gallery), rendered rows; see test/conversation/markdown/golden.ts for the format.
+
+in a pane 63 columns wide (61 behind the agent gutter):
+  1 │M22 indented code block (four spaces):│
+    «text»M22 indented code block (four spaces):
+  2 ││
+  3 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  4 │  $indented = 'code block';│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»$indented = 'code block';
+  5 │  echo $indented;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»echo $indented;
+  6 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+
+in a pane 100 columns wide (98 behind the agent gutter):
+  1 │M22 indented code block (four spaces):│
+    «text»M22 indented code block (four spaces):
+  2 ││
+  3 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+  4 │  $indented = 'code block';│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»$indented = 'code block';
+  5 │  echo $indented;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»echo $indented;
+  6 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  

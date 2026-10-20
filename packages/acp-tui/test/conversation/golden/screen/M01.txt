@@ -1,0 +1,19 @@
+M01 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M01 emphasis: star italic, underscore italic, star bold,│
+    «default»  M01 emphasis: «default +i»star italic«default», «default +i»underscore italic«default», «default +b»star bold«default»,
+  2 │  underscore bold, star bold italic, underscore bold italic,│
+    «default»  «default +b»underscore bold«default», «default +b +i»star bold italic«default», «default +b +i»underscore bold italic«default»,
+  3 │  bold with nested italic inside, italic with nested bold│
+    «default»  «default +b»bold with «default +b +i»nested italic «default +b»inside«default», «default +i»italic with «default +b +i»nested bold
+  4 │  inside, and intra_word_underscores stay literal.│
+    «default»  «default +i»inside«default», and intra_word_underscores stay literal.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M01 emphasis: star italic, underscore italic, star bold, underscore bold, star bold italic,│
+    «default»  M01 emphasis: «default +i»star italic«default», «default +i»underscore italic«default», «default +b»star bold«default», «default +b»underscore bold«default», «default +b +i»star bold italic«default»,
+  2 │  underscore bold italic, bold with nested italic inside, italic with nested bold inside, and│
+    «default»  «default +b +i»underscore bold italic«default», «default +b»bold with «default +b +i»nested italic «default +b»inside«default», «default +i»italic with «default +b +i»nested bold «default +i»inside«default», and
+  3 │  intra_word_underscores stay literal.│
+    «default»  intra_word_underscores stay literal.

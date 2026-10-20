@@ -1,0 +1,33 @@
+M28 (markdown-gallery), the screen cell by cell; see test/conversation/gallery-screen.ts for the format.
+
+at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M28 definition list (not GFM):│
+    «default»  M28 definition list (not GFM):
+  2 ││
+  3 │  Term one│
+    «default»  Term one
+  4 │  : The definition of term one.│
+    «default»  : The definition of term one.
+  5 ││
+  6 │  Term two│
+    «default»  Term two
+  7 │  : First definition of term two.│
+    «default»  : First definition of term two.
+  8 │  : Second definition of term two.│
+    «default»  : Second definition of term two.
+
+at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c) and light (OSC 10 #383a42, OSC 11 #fafafa) alike:
+  1 │  M28 definition list (not GFM):│
+    «default»  M28 definition list (not GFM):
+  2 ││
+  3 │  Term one│
+    «default»  Term one
+  4 │  : The definition of term one.│
+    «default»  : The definition of term one.
+  5 ││
+  6 │  Term two│
+    «default»  Term two
+  7 │  : First definition of term two.│
+    «default»  : First definition of term two.
+  8 │  : Second definition of term two.│
+    «default»  : Second definition of term two.
