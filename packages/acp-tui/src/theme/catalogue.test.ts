@@ -4,7 +4,7 @@
 // module reads is in the catalogue.
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { DEFAULT_THEME } from "./default-theme.ts";
 import { validateTheme } from "./resolve.ts";
 import { TOKENS, TOKEN_NAMES, TOOL_KINDS } from "./tokens.ts";
@@ -112,7 +112,7 @@ function tokenReads(): Map<string, string[]> {
   const add = (name: string, where: string) => void (/^[a-z][a-z0-9_.]*$/.test(name) && reads.set(name, [...(reads.get(name) ?? []), where]));
   for (const file of sources(SRC)) {
     const text = readFileSync(file, "utf8");
-    const where = relative(SRC, file);
+    const where = relative(SRC, file).split(sep).join("/");
     // The glyph registry names glyphs (`tool.status.ok`, `code.rule`), which share prefixes with token families.
     if (where === "conversation/glyphs.ts") continue;
     for (const pattern of patterns) for (const m of text.matchAll(pattern)) add(m[1]!, where);

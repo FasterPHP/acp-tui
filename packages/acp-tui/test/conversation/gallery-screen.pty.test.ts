@@ -10,10 +10,23 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DARK, LIGHT, runGallery, SCREEN_TAGS, screenGoldenText } from "./gallery-screen.ts";
 import type { CliRun } from "./cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 const SCREEN_GOLDEN_DIR = join(import.meta.dir, "golden", "screen");
 const WIDTHS = [63, 100] as const;
 const UPDATE = process.env["UPDATE_GOLDEN"] === "1";
+
+/**
+ * Whether a tag's golden dump cannot be matched under a bare ConPTY: one whose light section
+ * differs from the dark one (the light theme needs OSC 10/11 colour replies, which ConPTY never
+ * passes on: it passes only OSC 4), or one holding an emoji (ConPTY redraws some at its own widths).
+ */
+function windowsCannotMatch(tag: string): boolean {
+  const path = join(SCREEN_GOLDEN_DIR, `${tag}.txt`);
+  if (!existsSync(path)) return false;
+  const golden = readFileSync(path, "utf8");
+  return /^\s*at \d+x\d+, light \(/m.test(golden) || /\p{Emoji_Presentation}|\uFE0F/u.test(golden);
+}
 
 const dumps = new Map<string, Map<string, string[]>>();
 const runs: CliRun[] = [];
@@ -43,7 +56,8 @@ describe("golden screen dumps of the markdown gallery (task 4.7)", () => {
   });
 
   for (const tag of SCREEN_TAGS) {
-    test(`${tag} at ${WIDTHS.join(" and ")} columns, dark and light`, () => {
+    // Skipped on Windows for the tags it names: windowsCannotMatch.
+    test.skipIf(WINDOWS && windowsCannotMatch(tag))(`${tag} at ${WIDTHS.join(" and ")} columns, dark and light`, () => {
       const text = screenGoldenText(tag, WIDTHS, dumps);
       const path = join(SCREEN_GOLDEN_DIR, `${tag}.txt`);
       if (UPDATE) {

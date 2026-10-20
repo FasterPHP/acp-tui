@@ -11,6 +11,7 @@ import {
   FINAL_RESET,
   type LifecycleOptions,
 } from "../../src/renderer/lifecycle.ts";
+import { WINDOWS } from "../windows.ts";
 
 type DestroyMode = "ok" | "throws" | "deferred" | "never" | "rejects";
 
@@ -253,7 +254,8 @@ describe("lifecycle", () => {
     expect(process.listenerCount("SIGUSR1")).toBe(before);
   });
 
-  test("SIGUSR2 runs the theme listeners and never exits, even when one throws", async () => {
+  // Skipped on Windows: POSIX signals (SIGUSR2 does not exist there, so no listener is added; lifecycle-platform covers that).
+  test.skipIf(WINDOWS)("SIGUSR2 runs the theme listeners and never exits, even when one throws", async () => {
     const { lifecycle, events } = setup();
     lifecycle.onThemeSignal(() => events.push("theme 1"));
     lifecycle.onThemeSignal(() => {

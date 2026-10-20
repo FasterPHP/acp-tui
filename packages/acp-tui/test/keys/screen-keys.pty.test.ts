@@ -12,6 +12,7 @@ import { compactEnv } from "../pty/config-home.ts";
 import { diffSnapshots, freshRender, type PtySession, type ScreenSnapshot } from "../pty/harness.ts";
 import { lineWithoutBar, promptText, screenGap, statusRow, withoutBar } from "../pty/regions.ts";
 import { CLI, FAKE_AGENT, readEvents, sendPrompt, settle, startCli, type CliRun } from "../conversation/cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -60,7 +61,8 @@ async function history(items: number, cols = 63, rows = 21): Promise<CliRun> {
 }
 
 describe("screen keys (phase-1a task 8.4)", () => {
-  test("Repaint: overwritten cells are redrawn by Ctrl+L with the conversation cursor focused; draft, scroll position and content unchanged; colours re-queried", async () => {
+  // Skipped on Windows: it disturbs the emulator behind ConPTY's back, and ConPTY redraws only what changed in its own copy of the screen.
+  test.skipIf(WINDOWS)("Repaint: overwritten cells are redrawn by Ctrl+L with the conversation cursor focused; draft, scroll position and content unchanged; colours re-queried", async () => {
     const r = await history(30, 80, 24);
     const s = r.session;
     // A draft, the reader scrolled up a page, and focus in the conversation (Ctrl+L from any focus).

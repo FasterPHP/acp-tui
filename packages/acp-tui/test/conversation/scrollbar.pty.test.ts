@@ -14,6 +14,7 @@ import { osc52Payloads } from "../selection/pty.ts";
 import { sendPrompt, settle } from "./cli.ts";
 import { configEnv } from "../pty/config-home.ts";
 import { BAR, JEDITERM, TOP, conversationRows, barColumn, thumbRows, start, scrolledPercent, dragEvents, released, toMiddle, proportional, run, disposeRun } from "./scrollbar-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeRun);
 
@@ -24,7 +25,8 @@ describe("the bar", () => {
     expect(barColumn(s)).not.toContain("-");
   }, 90000);
 
-  test("by default the rightmost column is the bar: the track, and the thumb at the bottom while following", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("by default the rightmost column is the bar: the track, and the thumb at the bottom while following", async () => {
     const s = await start();
     const col = barColumn(s);
     expect(col).toMatch(/^-+T+$/);
@@ -34,7 +36,8 @@ describe("the bar", () => {
 });
 
 describe("Scrollbar pointer actions", () => {
-  test("Track click", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Track click", async () => {
     const s = await start();
     const rows = conversationRows(s);
     const middle = Math.floor(rows / 2);
@@ -57,7 +60,8 @@ describe("Scrollbar pointer actions", () => {
     expect(run!.events("scrollbar").map((e) => e["action"])).toEqual(["press", "drag", "release"]);
   }, 90000);
 
-  test("Press keeps focus and selection", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Press keeps focus and selection", async () => {
     const s = await start();
     // The prompt box has focus (from the start); select text in the conversation by a drag.
     s.mousePress(2, 2);
@@ -92,7 +96,8 @@ describe("Scrollbar pointer actions", () => {
   // report and the release in one read, while the offset set by the report before them still waits
   // for its frame, so the bottom the last report asked for is applied only after that frame, which
   // the fast stream has made taller. The release must still resume following.
-  test("Release in the read of the last drag report", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Release in the read of the last drag report", async () => {
     // About 400 chunks a second: the reply gains rows in every frame.
     const s = await start({ scenario: "stream-long", agentArgs: [], delayScale: 0.25 });
     await sendPrompt(s, "stream please");
@@ -122,7 +127,8 @@ describe("Scrollbar pointer actions", () => {
     expect(barColumn(s)).toMatch(/T$/);
   }, 120000);
 
-  test("Indicator only under wheel", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Indicator only under wheel", async () => {
     const s = await start({ mouse: "wheel" });
     const before = barColumn(s);
     expect(before).toMatch(/^-+T+$/);
@@ -158,7 +164,8 @@ describe("Scrollbar pointer actions", () => {
   // The motion reports of the reworked PhpStorm recording (test/fixtures, S1: the pointer moved
   // over the pane without a button, code 35), moved onto the bar's column and over the thumb,
   // replayed at the recorded timing.
-  test("Hover does nothing", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Hover does nothing", async () => {
     const s = await start({ env: JEDITERM });
     const thumb = thumbRows(s)!;
     const before = s.screenText();
@@ -178,7 +185,8 @@ describe("Scrollbar pointer actions", () => {
   }, 90000);
 });
 
-describe("Scrollbar drag", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("Scrollbar drag", () => {
   test("Slow drag over 5000 items", async () => {
     const s = await start();
     await toMiddle(s);

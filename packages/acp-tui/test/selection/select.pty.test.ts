@@ -141,7 +141,8 @@ describe("selection and copy (phase-1a tasks 14.2, 14.3)", () => {
     expect(s.screenText().some((l) => l.startsWith("  ┃ @@ -6,12 +6,7 @@"))).toBe(true);
   }, 30000);
 
-  test("Inside the cursor's item: with the terminal's colours known, the selection is the surface.selection fill, the rest of the item the cursor's", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Inside the cursor's item: with the terminal's colours known, the selection is the surface.selection fill, the rest of the item the cursor's", async () => {
     const colours = { foreground: "#bcbec4", background: "#191a1c" } satisfies OscColours;
     const { session: s } = await start([], localEnv(), colours);
     const para = rowOf(s, "  The third paragraph");
@@ -184,7 +185,8 @@ describe("selection and copy (phase-1a tasks 14.2, 14.3)", () => {
     expect(bar(list).char).not.toBe("▎");
   }, 30000);
 
-  test("Blank line in a selection: the blank line between two selected paragraphs shows as selected", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Blank line in a selection: the blank line between two selected paragraphs shows as selected", async () => {
     const colours = { foreground: "#bcbec4", background: "#191a1c" } satisfies OscColours;
     const { session: s } = await start([], localEnv(), colours);
     const first = rowOf(s, "  The first paragraph");
@@ -205,7 +207,8 @@ describe("selection and copy (phase-1a tasks 14.2, 14.3)", () => {
     expect(bg(3, blank)).not.toBe(selection);
   }, 30000);
 
-  test("Under an overlay:the palette opened over a selection shows no selection fill; the selection above it stays", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Under an overlay:the palette opened over a selection shows no selection fill; the selection above it stays", async () => {
     const colours = { foreground: "#bcbec4", background: "#191a1c" } satisfies OscColours;
     // 48 rows: the palette (about 37 rows) leaves the conversation's first rows above it (the
     // margins, the row budget and the scrollbar's columns of mvp-chrome-and-keys took rows at 40).

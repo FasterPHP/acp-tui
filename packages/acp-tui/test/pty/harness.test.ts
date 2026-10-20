@@ -7,6 +7,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import { startPty, type PtySession } from "./harness.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const PROBE = "packages/acp-tui/test/pty/screen-probe.tsx";
@@ -47,7 +48,8 @@ describe("PTY harness", () => {
     expect(await s.wait()).toBe(0);
   }, 15000);
 
-  test("records raw output and answers terminal queries", async () => {
+  // Skipped on Windows: ConPTY answers or swallows the terminal queries (CSI 6n, DECRQM) itself, so the harness never sees them.
+  test.skipIf(WINDOWS)("records raw output and answers terminal queries", async () => {
     const s = start();
     await s.waitFor("ready", 10000);
     // OpenTUI asks for the cursor position at start-up; the reply comes from xterm.

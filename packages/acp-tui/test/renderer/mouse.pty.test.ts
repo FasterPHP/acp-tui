@@ -10,6 +10,7 @@ import { loadFixture, MOUSE_MODES, parseModeChanges, sgrMotion, sgrWheel, type F
 import { lineWithoutBar, promptText, READY, statusRow, withoutBar } from "../pty/regions.ts";
 import { sendPrompt, settle, startCli, type CliRun, type StartOptions } from "../conversation/cli.ts";
 import { WHEEL_TABLE } from "../../src/renderer/wheel.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -83,7 +84,8 @@ async function afterChange(s: PtySession, before: string[]): Promise<string[]> {
 }
 
 describe("mouse policies (phase-1a task 8.5)", () => {
-  test("Modes enabled under full: 1000, 1002, 1003 (all motion, for the hover feedback, review C12) and 1006 on; all off after exit", async () => {
+  // Skipped on Windows: it compares the main screen or the raw stream around exit, which ConPTY clears, repaints and rewrites (mouse modes included).
+  test.skipIf(WINDOWS)("Modes enabled under full: 1000, 1002, 1003 (all motion, for the hover feedback, review C12) and 1006 on; all off after exit", async () => {
     const r = start({ scenario: "basic" });
     const s = r.session;
     await s.waitFor(READY, 10000);

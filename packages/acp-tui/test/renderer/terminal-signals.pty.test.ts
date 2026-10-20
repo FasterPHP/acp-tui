@@ -93,7 +93,8 @@ async function answer(s: PtySession): Promise<void> {
 }
 
 describe("Terminal title (task 7.1; day-one-feedback task 9)", () => {
-  test("Directory name by default: pushed at start-up, then the session directory's name, which the agent's own title does not change", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Directory name by default: pushed at start-up, then the session directory's name, which the agent's own title does not change", async () => {
     const cwd = tempDir();
     const name = basename(cwd);
     const s = start({ cwd, env: { TITLE_AGENT_TITLE: "Pool reuse" } });
@@ -118,7 +119,8 @@ describe("Terminal title (task 7.1; day-one-feedback task 9)", () => {
     await s.waitFor((p) => titles(p.rawOutput()).includes(`${name} · Pool reuse`), 15000);
   }, TIMEOUT);
 
-  test("Second instance in the same directory: the second is `name 2` for its whole run, and after the first was killed the third takes the free number", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Second instance in the same directory: the second is `name 2` for its whole run, and after the first was killed the third takes the free number", async () => {
     const cwd = tempDir();
     const name = basename(cwd);
     const first = start({ cwd });
@@ -155,7 +157,8 @@ describe("Terminal title (task 7.1; day-one-feedback task 9)", () => {
     await s.waitFor(READY, 10000);
   }, TIMEOUT);
 
-  test("Hostile title: one printable line, and no byte of it ends the sequence early", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Hostile title: one printable line, and no byte of it ends the sequence early", async () => {
     // BEL, an OSC 52 clipboard write, a bare ESC, a newline and a C1 introducer.
     const hostile = "Pool\x07 reuse\x1b]52;c;ZXZpbA==\x07 and\nmore\x1b\\ \x9d52;c;ZXZpbA==\x07 end";
     const s = start({ env: { TITLE_AGENT_TITLE: hostile, ...configEnv({ title: { format: "acp-tui | {title}" } }) } });
@@ -312,7 +315,8 @@ describe("Long turn against fake-agent's slow-turn (task 7.2)", () => {
 });
 
 describe("Mouse off in Zed (task 7.3)", () => {
-  test("Zed mode 1007: l at the first F2, h at the second, set after exit", async () => {
+  // Skipped on Windows: ConPTY answers or swallows the terminal queries (CSI 6n, DECRQM) itself, so the harness never sees them.
+  test.skipIf(WINDOWS)("Zed mode 1007: l at the first F2, h at the second, set after exit", async () => {
     const s = start({ env: ZED });
     await s.waitFor(READY, 15000);
     expect(s.rawOutput()).toContain("\x1b[?1007$p");
@@ -329,7 +333,8 @@ describe("Mouse off in Zed (task 7.3)", () => {
     expect(s.modesSet()).toContain(1007);
   }, TIMEOUT);
 
-  test("Zed started with the mouse off: l at start-up, h in the final reset, before the exit text", async () => {
+  // Skipped on Windows: ConPTY answers or swallows the terminal queries (CSI 6n, DECRQM) itself, so the harness never sees them.
+  test.skipIf(WINDOWS)("Zed started with the mouse off: l at start-up, h in the final reset, before the exit text", async () => {
     const store = join(tempDir(), "sessions.json");
     writeFileSync(store, JSON.stringify({ sessions: [] }));
     const s = start({

@@ -153,7 +153,8 @@ describe("only entries that can run now are active (task 13.12)", () => {
     await run.s.waitFor(READY, 10000);
     expect(statusRow(run.s)).not.toContain("density");
     run.s.sendKeys("Ctrl+P");
-    await run.s.waitFor(/Commands \d+/, 3000);
+    // The rows read below, not only the header: under ConPTY a frame can arrive in parts.
+    await run.s.waitFor((p) => [/^│ Cycle the density\b/, /^│ Open the session list\b/].every((re) => p.screenText().some((r) => re.test(r))), 3000);
     await run.s.flush();
     const density = rowOf(run.s, /^│ Cycle the density\b/);
     // Not drawn as unavailable: the same look as an entry that is not selected and can run.
@@ -169,7 +170,8 @@ describe("only entries that can run now are active (task 13.12)", () => {
     run.s.sendKeys({ text: "hello world" });
     await run.s.waitFor((p) => promptText(p)[0] === "hello world", 5000);
     run.s.sendKeys("Ctrl+P");
-    await run.s.waitFor(/Commands \d+/, 3000);
+    // The rows read below, not only the header: under ConPTY a frame can arrive in parts.
+    await run.s.waitFor((p) => [/^│ Open the session list\b/, /^│ Cut the selection\b/, /^│ Clear the selection\b/].every((re) => p.screenText().some((r) => re.test(r))), 3000);
     await run.s.flush();
     const active = look(run.s, rowOf(run.s, /^│ Open the session list\b/));
     expect(look(run.s, rowOf(run.s, /^│ Cut the selection\b/))).not.toBe(active);

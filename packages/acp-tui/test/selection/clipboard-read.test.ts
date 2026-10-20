@@ -42,7 +42,8 @@ describe("clipboard reader", () => {
   });
 
   test("no display, `--clipboard osc52` or `none`: the host is never read", async () => {
-    expect(await createClipboardReader({ env: {} }).read("ctrl+v")).toEqual({ kind: "none", reason: NO_CLIPBOARD_REASON });
+    // No display is a Linux state: macOS and Windows always have a clipboard.
+    expect(await createClipboardReader({ env: {}, platform: "linux" }).read("ctrl+v")).toEqual({ kind: "none", reason: NO_CLIPBOARD_REASON });
     const reads: string[][] = [];
     const text = host({ status: "read", representation: { mimeType: "text/plain", bytes: bytes("x") } }, reads);
     expect(await createClipboardReader({ mode: "osc52", host: text }).read("ctrl+v")).toEqual({ kind: "none", reason: NO_CLIPBOARD_REASON });

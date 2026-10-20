@@ -10,6 +10,7 @@ import { join, resolve } from "node:path";
 import { deriveSurfaces, parseHex } from "../../src/theme/index.ts";
 import { startPty, type OscColours, type PtySession } from "../pty/harness.ts";
 import { CARD_HEADER, READY } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -53,7 +54,8 @@ const promptTop = (s: PtySession): number => s.findLine(/^╭/);
 
 // The variant under the retired `chrome` spike name is gone (mvp-chrome-and-keys task 7.5): the palette and cards always run.
 for (const [name, appArgs] of [["plain shell", []]] as const) {
-  describe(`idle, no card open (${name})`, () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  describe.skipIf(WINDOWS)(`idle, no card open (${name})`, () => {
     test("no cell above the prompt box, nor its top border, is on surface.permission", async () => {
       const s = start(appArgs);
       await s.waitFor(READY, 10000);

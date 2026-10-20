@@ -75,7 +75,8 @@ describe("What a project file may set (task 2.3)", () => {
     run.s.sendKeys({ text: "go" }, "Enter");
     await run.s.waitFor(CARD_HEADER, 5000);
     await Bun.sleep(400); // the card's 300 ms guard
-    run.s.sendKeys("Tab");
+    // The card took the focus when it arrived, the prompt box being empty (a Tab would move it on
+    // to the prompt box: the card has one focus stop here).
     await run.s.waitFor((p) => /select/.test(statusRow(p)), 5000);
     run.s.sendKeys("Esc");
     // Esc returns focus to the prompt box (and arms interrupt, tui-keymap "Escape") and answers

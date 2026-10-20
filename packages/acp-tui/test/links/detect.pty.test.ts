@@ -52,8 +52,7 @@ const toast = (s: PtySession) => promptBox(s)[0] ?? "";
 const opened = (log: string) => (existsSync(log) ? readFileSync(log, "utf8").split("\n").slice(0, -1) : []);
 
 describe("one open per click (C9)", () => {
-  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
-  test.skipIf(WINDOWS)("One open in PhpStorm: a click on the label https://bank.example of a link to evil.example opens nothing in acp-tui, and a toast names evil.example", async () => {
+  test("One open in PhpStorm: a click on the label https://bank.example of a link to evil.example opens nothing in acp-tui, and a toast names evil.example", async () => {
     const { s, log, events } = await start(JETBRAINS);
     expect(s.screenText().some((l) => l.includes("A deceptive one: https://bank.example (evil.example)."))).toBe(true);
     const [x, y] = cellOf(s, "https://bank.example");

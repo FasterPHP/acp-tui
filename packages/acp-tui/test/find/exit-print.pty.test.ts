@@ -114,7 +114,8 @@ describe("--exit-print last-answer and transcript (tasks 15.4, 7.2)", () => {
     expect(bytes.replace(/\r/g, "")).toBe(`${RESUME}\n\n${lines.join("\n")}\n`);
   }, 60000);
 
-  test("Transcript by default (mvp-configuration task 4.3): exit.print transcript in the user's file prints the resume line, a blank line and the transcript, with no option", async () => {
+  // Skipped on Windows: it compares the main screen or the raw stream around exit, which ConPTY clears, repaints and rewrites (mouse modes included).
+  test.skipIf(WINDOWS)("Transcript by default (mvp-configuration task 4.3): exit.print transcript in the user's file prints the resume line, a blank line and the transcript, with no option", async () => {
     const home = realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-handback-config-")));
     mkdirSync(join(home, "acp-tui"));
     writeFileSync(join(home, "acp-tui", "config.jsonc"), `{ "exit": { "print": "transcript" } }`);
@@ -125,14 +126,16 @@ describe("--exit-print last-answer and transcript (tasks 15.4, 7.2)", () => {
     expect(bytes.replace(/\r/g, "")).toBe(`${RESUME}\n\n${lines.join("\n")}\n`);
   }, 60000);
 
-  test("last-answer: the resume line, a blank line, then the last agent answer", async () => {
+  // Skipped on Windows: it compares the main screen or the raw stream around exit, which ConPTY clears, repaints and rewrites (mouse modes included).
+  test.skipIf(WINDOWS)("last-answer: the resume line, a blank line, then the last agent answer", async () => {
     const { s } = start(["--exit-print", "last-answer"], { cols: 120 });
     await converseAndExit(s);
     expectPlain(exitBytes(s));
     expect(await rowsBelow(s)).toEqual([...wrapped(RESUME, 120), "", ...golden("list.txt").split("\n")]);
   }, 60000);
 
-  test("last-answer without a resume line (an agent that cannot load): the answer at once, on the row below the command line", async () => {
+  // Skipped on Windows: it compares the main screen or the raw stream around exit, which ConPTY clears, repaints and rewrites (mouse modes included).
+  test.skipIf(WINDOWS)("last-answer without a resume line (an agent that cannot load): the answer at once, on the row below the command line", async () => {
     const { s } = start(["--exit-print", "last-answer"], { cols: 120, resumable: false });
     await converseAndExit(s);
     const bytes = exitBytes(s);
@@ -162,13 +165,15 @@ describe("--exit-print last-answer and transcript (tasks 15.4, 7.2)", () => {
     for (let y = first; y < buffer.length; y++) expect(buffer.getLine(y)?.isWrapped ?? false).toBe(false);
   }, 60000);
 
-  test("the default summary prints the resume line alone, no conversation text", async () => {
+  // Skipped on Windows: it compares the main screen or the raw stream around exit, which ConPTY clears, repaints and rewrites (mouse modes included).
+  test.skipIf(WINDOWS)("the default summary prints the resume line alone, no conversation text", async () => {
     const { s } = start([], { cols: 120 });
     await converseAndExit(s);
     expect(await rowsBelow(s)).toEqual(wrapped(RESUME, 120));
   }, 60000);
 
-  test("No answer yet: last-answer before any agent message prints what summary would (here nothing: no prompt, so no resume line)", async () => {
+  // Skipped on Windows: it compares the main screen or the raw stream around exit, which ConPTY clears, repaints and rewrites (mouse modes included).
+  test.skipIf(WINDOWS)("No answer yet: last-answer before any agent message prints what summary would (here nothing: no prompt, so no resume line)", async () => {
     const { s } = start(["--exit-print", "last-answer"], { cols: 120 });
     await s.waitFor(READY, 10000);
     s.sendKeys("Ctrl+D");
@@ -177,7 +182,8 @@ describe("--exit-print last-answer and transcript (tasks 15.4, 7.2)", () => {
     expect(await rowsBelow(s)).toEqual([]);
   }, 60000);
 
-  test("Hostile transcript: tool output with OSC 52 and bidi controls prints no ESC byte and no bidi control character", async () => {
+  // Skipped on Windows: it compares the main screen or the raw stream around exit, which ConPTY clears, repaints and rewrites (mouse modes included).
+  test.skipIf(WINDOWS)("Hostile transcript: tool output with OSC 52 and bidi controls prints no ESC byte and no bidi control character", async () => {
     const { s } = start(["--exit-print", "transcript"], { cols: 120, scenario: "hostile" });
     await s.waitFor(READY, 10000);
     s.sendKeys({ text: PROMPT });

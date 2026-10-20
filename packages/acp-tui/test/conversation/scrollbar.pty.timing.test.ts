@@ -3,11 +3,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { sendPrompt, settle } from "./cli.ts";
 import { BAR, conversationRows, barColumn, thumbRows, start, scrolledPercent, promptTopBorder, framesBetween, released, run, disposeRun } from "./scrollbar-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeRun);
 
 describe("Scrollbar pointer actions", () => {
-  test("Drag back to the bottom", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Drag back to the bottom", async () => {
     // A reply streaming (stream-long, about 50 chunks a second) that soon overflows the conversation.
     const s = await start({ scenario: "stream-long", agentArgs: [], delayScale: 2 });
     await sendPrompt(s, "stream please");
@@ -46,7 +48,8 @@ describe("Scrollbar pointer actions", () => {
 });
 
 describe("Scrollbar drag", () => {
-  test("a fast drag up and down the whole track for 3 s: no frame's work at 100 ms, no gap over 250 ms, the budget kept", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("a fast drag up and down the whole track for 3 s: no frame's work at 100 ms, no gap over 250 ms, the budget kept", async () => {
     const s = await start();
     const r = run!;
     const thumb = thumbRows(s)!;

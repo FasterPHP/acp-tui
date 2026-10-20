@@ -64,7 +64,8 @@ describe("default layout (task 6.1)", () => {
     expect(screen[18]).toBe("");
     expect(screen[19]).toBe(statusRow(run.s));
     // `cwd`, `turn-state` and (room permitting; this temporary cwd is long) the hints; `connection`.
-    expect(screen[19]).toMatch(/^ \/\S+ {2}idle\s.*connected/);
+    // The cwd: `/tmp/…`, or `~\…` on Windows (keys/cli-pty.ts).
+    expect(screen[19]).toMatch(/^ [/~]\S+ {2}idle\s.*connected/);
     expect(screen[20]).toBe("");
   }, 20000);
 
@@ -74,7 +75,7 @@ describe("default layout (task 6.1)", () => {
     await finishTurn(run);
     const screen = run.s.screenText();
     expect(screen[0]).toBe("");
-    expect(screen[1]).toMatch(/^ fake-agent {2}\/\S+$/);
+    expect(screen[1]).toMatch(/^ fake-agent {2}[/~]\S+$/);
     // The conversation takes rows 3 to 14: the activity line (blank), the prompt box (one text row
     // and its padding row, no spacer in this layout) and the status row follow it.
     expect(screen[2]).not.toBe("");

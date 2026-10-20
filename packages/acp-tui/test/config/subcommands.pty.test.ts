@@ -59,7 +59,8 @@ function expectMainScreenOnly(raw: string): void {
 }
 
 describe("subcommands on the command line (task 9.1)", () => {
-  test("Subcommand wins: with a directory named config in the current directory, acp-tui config --check checks the configuration and no session starts", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Subcommand wins: with a directory named config in the current directory, acp-tui config --check checks the configuration and no session starts", async () => {
     const w = world();
     mkdirSync(join(w.cwd, "config"));
     const r = await run(["config", "--check"], w);
@@ -88,7 +89,8 @@ describe("subcommands on the command line (task 9.1)", () => {
     expect(await s.wait(10000)).toBe(0);
   }, 30000);
 
-  test("Check from the shell: an unknown token name in a theme file prints the theme file, the line and column and the token name, and exits non-zero without the full screen", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Check from the shell: an unknown token name in a theme file prints the theme file, the line and column and the token name, and exits non-zero without the full screen", async () => {
     const w = world({ config: `{ "theme": "mine" }`, themes: { mine: `{\n  "tokens": {\n    "acent": 4\n  }\n}\n` } });
     const r = await run(["config", "--check"], w);
     expect(r.code).toBe(1);
@@ -106,7 +108,8 @@ describe("subcommands on the command line (task 9.1)", () => {
     expect(Number(/is ([0-9.]+):1/.exec(line ?? "")?.[1])).toBeLessThan(3);
   }, 30000);
 
-  test("Paths printed: in a directory with no project file, the user's file, the themes directory and that no project file applies", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Paths printed: in a directory with no project file, the user's file, the themes directory and that no project file applies", async () => {
     const w = world();
     const r = await run(["config", "--path"], w);
     expect(r.code).toBe(0);
@@ -116,7 +119,8 @@ describe("subcommands on the command line (task 9.1)", () => {
     expectMainScreenOnly(r.raw);
   }, 30000);
 
-  test("Editor completion: config --print-schema prints a JSON Schema in which mouse is an enumeration of full, wheel and off with the default full and a description", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Editor completion: config --print-schema prints a JSON Schema in which mouse is an enumeration of full, wheel and off with the default full and a description", async () => {
     const w = world();
     const r = await run(["config", "--print-schema"], w);
     expect(r.code).toBe(0);
@@ -125,7 +129,8 @@ describe("subcommands on the command line (task 9.1)", () => {
     expect(schema.properties["mouse"]!.description).toBeTruthy();
   }, 30000);
 
-  test("Default loads as the default: config --print-default saved as the user's file, config --check reports no problem (task 9.2)", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Default loads as the default: config --print-default saved as the user's file, config --check reports no problem (task 9.2)", async () => {
     const w = world();
     const printed = await run(["config", "--print-default"], w);
     expect(printed.code).toBe(0);

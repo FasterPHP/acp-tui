@@ -38,7 +38,8 @@ describe("Large tree (tui-palette \"File picker\")", () => {
     mkdirSync(join(dir, "node_modules", "dep"), { recursive: true });
     writeFileSync(join(dir, "node_modules", "dep", "index.js"), "");
     writeFileSync(join(dir, ".gitignore"), "node_modules/\n");
-  });
+    // Writing 50000 files is not what is timed, and takes Windows far longer than the default 5 s.
+  }, 120000);
 
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 

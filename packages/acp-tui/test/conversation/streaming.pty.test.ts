@@ -15,6 +15,7 @@ import type { PtySession } from "../pty/harness.ts";
 import { READY } from "../pty/regions.ts";
 import { sendPrompt, startCli, type CliRun } from "./cli.ts";
 import { DARK, LIGHT, runGallery, SCREEN_ROWS, SCREEN_TAGS } from "./gallery-screen.ts";
+import { WINDOWS } from "../windows.ts";
 
 // Imported by a computed path: acp-tui does not depend on the fake-agent package.
 const { FENCE_FIRST_TEXT } = (await import(join(import.meta.dir, "../../../fake-agent/src/scenarios/fence-first.ts"))) as { FENCE_FIRST_TEXT: string };
@@ -67,7 +68,8 @@ function violations(s: PtySession, codeBg = CODE_BG): string[] {
   return out;
 }
 
-describe("Message opening with a fence (task 10.3)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("Message opening with a fence (task 10.3)", () => {
   for (const chunk of [7, 64]) {
     test(`fence-first in chunks of ${chunk}: in every frame the fence's lines are in a code block labelled php, and no row shows three backticks`, async () => {
       // Slowed down (30 ms between chunks, 100 ms for the larger ones), so most chunks get a frame.
@@ -111,7 +113,8 @@ function goldenDump(tag: string, width: number, theme: "dark" | "light"): string
   return section.split("\n").slice(1).join("\n").replace(/\n$/, "");
 }
 
-describe("Streamed gallery (task 10.3)", () => {
+// Skipped on Windows: golden screen dumps: the light theme needs OSC 10/11 colour replies, which ConPTY never passes on (it passes only OSC 4), and ConPTY redraws some emoji at its own widths.
+describe.skipIf(WINDOWS)("Streamed gallery (task 10.3)", () => {
   for (const [chunk, width, theme] of [
     [7, 63, "dark"],
     [64, 100, "light"],

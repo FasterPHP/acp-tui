@@ -5,11 +5,13 @@ import type { PtySession } from "../pty/harness.ts";
 import { settle } from "./cli.ts";
 import { configHome } from "../pty/config-home.ts";
 import { SURFACES, PARAGRAPH, wrap, open, bgOf, TOP, conversationRows, paragraphRows, textWidth, run, disposeRun } from "./scrollbar-layout-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeRun);
 
 describe("Conversation scrollbar", () => {
-  test("Scrollbar switched on by a reload: the next frame draws the bar, agent text wraps at column 60, and the same entry stays at the top", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Scrollbar switched on by a reload: the next frame draws the bar, agent text wraps at column 60, and the same entry stays at the top", async () => {
     const cfg = configHome({ layout: { scrollbar: false } });
     const s = await open({ cols: 63, rows: 21, turns: 2500, env: cfg.env });
     // Away from both ends of the 5000 items: the first item (Home from the empty prompt box), then

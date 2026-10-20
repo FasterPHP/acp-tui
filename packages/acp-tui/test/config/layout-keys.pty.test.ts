@@ -10,7 +10,10 @@ import type { PtySession } from "../pty/harness.ts";
 import { configHome } from "../pty/config-home.ts";
 import { JEDITERM_ENV } from "../pty/jediterm.ts";
 import { CARD_HEADER, promptBox, READY, REQUIRES_ACTION, statusRow } from "../pty/regions.ts";
-import { startCli, type CliRun } from "../keys/cli-pty.ts";
+import { cliHome, startCli, type CliRun } from "../keys/cli-pty.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { homeEnv } from "../windows.ts";
+import { userHome } from "../../src/platform/paths.ts";
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -55,7 +58,8 @@ describe("the config module and the problem list (task 3.4)", () => {
 
   test("Configuration problems at IDE-pane width: at 63 columns, with a long cwd and a reported cost, the status row shows config 2 and the cost; cwd or the hints give way first", async () => {
     const cfg = configHome(TWO_PROBLEMS);
-    const run = start(cfg.env, 63, 21);
+    // The real home, so the temporary cwd stays long on Windows too (keys/cli-pty.ts shortens it there).
+    const run = start({ ...cfg.env, ...homeEnv(userHome()) }, 63, 21);
     await finishTurn(run);
     await run.s.waitFor((p) => statusRow(p).includes("$0.01"), 5000);
     const row = statusRow(run.s);
@@ -76,7 +80,9 @@ describe("the config module and the problem list (task 3.4)", () => {
     run.s.sendKeys("Enter");
     await run.s.waitFor((p) => p.screenText().some((l) => l.includes("Configuration problems 2")), 5000);
     const text = run.s.screenText().join("\n");
-    expect(text).toContain(cfg.file.length < 90 ? cfg.file : "config.jsonc");
+    // The file as the list shows it, with `~` for home.
+    const shown = shortenHome(cfg.file, cliHome());
+    expect(text).toContain(shown.length < 90 ? shown : "config.jsonc");
     expect(text).toMatch(/1:14 density .*takes .*error/);
     expect(text).toMatch(/2:3 wheel_line .*not a known setting .*warning/);
   }, 30000);

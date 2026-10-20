@@ -12,6 +12,7 @@ import { deriveSurfaces } from "../../src/theme/index.ts";
 import type { OscColours, PtySession } from "../pty/harness.ts";
 import { cardRows, promptBox, READY, statusRow, uncard } from "../pty/regions.ts";
 import { boxRows, inner, rowOf, SIZE, startChrome, type ChromeRun } from "./cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -116,7 +117,8 @@ describe("permission card preview (task 13.1; mvp-chrome-and-keys task 5.1, with
     expect(cardRows(run.s)).toEqual([]);
   }, 20000);
 
-  test("with surfaces: every cell of the card is filled (permission fill, diff fills, the selection), framed in the warning colour", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("with surfaces: every cell of the card is filled (permission fill, diff fills, the selection), framed in the warning colour", async () => {
     const run = start({ scenario: "permission-diff", args: [], colours: DARK, env: { COLORTERM: "truecolor" } });
     await prompt(run);
     await run.s.waitFor(() => cardRows(run.s).length > 0, 5000);

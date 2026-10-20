@@ -15,6 +15,7 @@ import { deriveSurfaces } from "../../src/theme/index.ts";
 import { startCli, type CliRun } from "../keys/cli-pty.ts";
 import type { OscColours, PtySession } from "../pty/harness.ts";
 import { CARD_HEADER, cardRows, READY, withoutBar } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -49,7 +50,8 @@ function codeRowsFrom(s: PtySession, from: number): number[] {
 }
 
 describe("code blocks on their surface (tasks 3.7, 8.3, 8.4)", () => {
-  test("Code block on its surface: the paragraph on the default background, the code on surface.code across the content width with its label, and no RGB foreground once highlighted", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Code block on its surface: the paragraph on the default background, the code on surface.code across the content width with its label, and no RGB foreground once highlighted", async () => {
     run = startCli("fence-first", 0, { cols: COLS, rows: 21, colours: DARK, env: { COLORTERM: "truecolor" } });
     const s = run.s;
     await s.waitFor(READY, 10000);
@@ -132,7 +134,8 @@ describe("code blocks on their surface (tasks 3.7, 8.3, 8.4)", () => {
 });
 
 describe("hostile's fenced card imitation (task 10.5)", () => {
-  test("the code block stays on surface.code: no warm fill, no warning frame, no marker in the card's colour; the real card arrives docked", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("the code block stays on surface.code: no warm fill, no warning frame, no marker in the card's colour; the real card arrives docked", async () => {
     // Delay scale 20: hostile pauses 2 s between its message and the real request. 66 columns:
     // the imitation's 54-column lines fit the code block's room inside its padding unbroken.
     const cols = 66;

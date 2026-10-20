@@ -84,7 +84,8 @@ async function startLinks(env: Record<string, string | undefined>): Promise<{ s:
 }
 
 describe("OSC 8 (task 6.4)", () => {
-  test("Verified terminal: each allowed link is wrapped in OSC 8 with its target, row after row, and closed; a refused one never", async () => {
+  // Skipped on Windows: it reads the OSC 8 spans and their rows from the raw byte stream, which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Verified terminal: each allowed link is wrapped in OSC 8 with its target, row after row, and closed; a refused one never", async () => {
     const { s, dir } = await startLinks({ ...NO_TERMINAL, ACP_TUI_CAPABILITIES: "osc8" });
     const links = hyperlinks(s.rawOutput());
     const readme = pathToFileURL(join(dir, "README.md")).href;

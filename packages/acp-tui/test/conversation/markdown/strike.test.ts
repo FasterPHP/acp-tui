@@ -5,7 +5,7 @@
 // C8), and nothing else in acp-tui sets the strikethrough attribute.
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { TextAttributes, type TextChunk } from "@opentui/core";
 import { DEFAULT_GLYPHS } from "../../../src/conversation/glyphs.ts";
 import { rowsToChunks, STRIKE_OVERLAY } from "../../../src/conversation/markdown/draw.ts";
@@ -121,7 +121,7 @@ describe("only draw.ts sets the strikethrough attribute", () => {
       for (const name of readdirSync(dir)) {
         const path = join(dir, name);
         if (statSync(path).isDirectory()) walk(path);
-        else if (/\.tsx?$/.test(name) && /STRIKETHROUGH|strikethrough\s*:/.test(readFileSync(path, "utf8"))) found.push(relative(root, path));
+        else if (/\.tsx?$/.test(name) && /STRIKETHROUGH|strikethrough\s*:/.test(readFileSync(path, "utf8"))) found.push(relative(root, path).split(sep).join("/"));
       }
     };
     walk(root);

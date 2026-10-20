@@ -20,6 +20,9 @@ import { deriveSurfaces } from "../../src/theme/index.ts";
 import type { OscColours, PtySession } from "../pty/harness.ts";
 import { READY, RUNNING, statusRow } from "../pty/regions.ts";
 import { listBody, listRows, listWorld, mainText, unframe, type ListWorld } from "./list-world.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
+import { WINDOWS } from "../windows.ts";
 
 let session: PtySession | null = null;
 afterEach(async () => {
@@ -72,7 +75,8 @@ describe("Session list (task 7.1)", () => {
     { cols: 63, rows: 21 },
     { cols: 54, rows: 20 },
   ]) {
-    test(`at ${size.cols}x${size.rows} every row's title is visible, above the status row, at most rows - 4 tall, on the surface.overlay fill`, async () => {
+    // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+    test.skipIf(WINDOWS)(`at ${size.cols}x${size.rows} every row's title is visible, above the status row, at most rows - 4 tall, on the surface.overlay fill`, async () => {
       const w = listWorld();
       const repo = w.dir("repo");
       const titles = ["Render the template", "Fix the router", "Add the invoice model", "Tidy the config loader", "Speed up the test suite", "Rename the HTTP client"];
@@ -161,12 +165,15 @@ describe("Session list (task 7.1)", () => {
     expect(rows.length).toBe(4);
     // Every session row: the title column, the agent column, then the directory (cut in the
     // middle), all starting in the same columns; no time.
+    // The directory's start as the list shows it (`/tmp/`, or `~\AppData` on Windows, where the
+    // temporary directory is in the profile).
+    const head = shortenHome(repo, userHome()).slice(0, 5);
     const agentAt = rows[0]!.search(/ (fake|other) /) + 1;
     for (const row of rows) {
       expect(row).not.toContain("ago");
-      expect(row.slice(agentAt)).toMatch(/^(fake |other) {2}\/tmp\/.*(repo|elsewhere)$/);
+      expect(row.slice(agentAt)).toMatch(new RegExp(`^(fake |other) {2}${head.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")}.*(repo|elsewhere)$`));
     }
-    const directoryAt = rows.map((r) => r.indexOf("/tmp/"));
+    const directoryAt = rows.map((r) => r.indexOf(head));
     expect(new Set(directoryAt).size).toBe(1);
   }, 30000);
 
@@ -377,7 +384,7 @@ describe("Switching sessions is detach (task 7.4)", () => {
     await s.waitFor("answer c", 5000);
     await s.waitFor(READY, 5000);
     const squeezed = (text: string) => text.replace(/\s+/g, "");
-    const marker = squeezed(`opened in ${elsewhere} (launched from ${repo})`);
+    const marker = squeezed(`opened in ${shortenHome(elsewhere, userHome())} (launched from ${shortenHome(repo, userHome())})`);
     await s.waitFor(() => squeezed(s.screenText().join("")).includes(marker), 5000);
     // The marker is the conversation's last item: the answer comes before it.
     const screen = squeezed(s.screenText().join(""));
@@ -584,6 +591,8 @@ describe("Honest errors in the list (task 7.5)", () => {
     w.record({ agent: "gone", sessionId: "s-gone", directory: repo, title: "Session of a removed agent", at: Date.now() - MINUTE });
     const s = start(w, ["--resume"], { cwd: repo });
     await s.waitFor(() => listBody(s).some((r) => r.startsWith("Session of a removed agent")), 15000);
+    // The harness's page too, so the choice below cancels no request still in flight.
+    await s.waitFor(() => methods(w, "fake").includes("session/list") && listBody(s).some((r) => r.startsWith("Fix the router")), 15000);
     s.sendKeys({ text: "removed" }, "Enter");
     await s.waitFor(() => footerText(s).includes("cannot be launched now"), 5000);
     expect(footerText(s)).toContain("session s-gone was recorded with harness 'gone', which cannot be launched now: 'gone' is not a known harness");

@@ -9,6 +9,7 @@ import { GLYPH_NAMES, GLYPH_SET_NAMES, GLYPH_SETS } from "../../src/conversation
 import { sendPrompt } from "../conversation/cli.ts";
 import { READY, REQUIRES_ACTION, statusRow } from "../pty/regions.ts";
 import { configHome, run, CONVERSATION_GLYPHS, runGlyphs, disposeSessions } from "./glyphs-pty-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSessions);
 
@@ -86,7 +87,8 @@ describe("ASCII set (task 7.2)", () => {
 });
 
 describe("All sets (task 7.3)", () => {
-  test("glyphs --test prints every set with each glyph next to its name, on the main screen, and exits 0", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("glyphs --test prints every set with each glyph next to its name, on the main screen, and exits 0", async () => {
     const { code, output } = await runGlyphs(["--test"]);
     expect(code).toBe(0);
     // No alternate screen, no mouse reporting.

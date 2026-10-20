@@ -14,6 +14,7 @@ import type { OscColours, PtySession } from "../pty/harness.ts";
 import { activityRow, CARD_HEADER, INTERRUPT_ARMED, lineWithoutBar, promptBox, promptText, READY, screenGap, statusRow, withoutBar } from "../pty/regions.ts";
 import { configEnv } from "../pty/config-home.ts";
 import { answerPermission, sendPrompt, settle, startCli, type CliRun, type StartOptions } from "./cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 export interface SuiteOptions {
   /** Items the cursor moves up (from the end of 200 long-session items) before the resize and
@@ -131,7 +132,8 @@ export function interactionSuite(options: SuiteOptions = {}): void {
       await settle(s);
       // The latest tool call is #2, the edit.
       s.sendKeys("Ctrl+O");
-      await s.waitFor("@@ -5,6 +5,15 @@", 5000);
+      // The card's last row: under ConPTY a frame can arrive in parts.
+      await s.waitFor("19 + new line 12", 5000);
       const rows = conversationRows(s);
       const header = rows.findIndex((r) => /← ✓ edit .*#2$/.test(r));
       // mvp-rendering (task 9.1; review C13 and C14): the title fits on the line, so the card
@@ -213,7 +215,8 @@ export function interactionSuite(options: SuiteOptions = {}): void {
   });
 
   describe("conversation cursor (task 7.4)", () => {
-    test("Keyboard toggle of an older item: Tab, up five items onto a collapsed tool call, Enter", async () => {
+    // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+    test.skipIf(WINDOWS)("Keyboard toggle of an older item: Tab, up five items onto a collapsed tool call, Enter", async () => {
       run = start({ scenario: "five-tools", colours: DARK });
       const s = run.session;
       await sendPrompt(s, "five tools");

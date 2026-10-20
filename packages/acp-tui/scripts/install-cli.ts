@@ -44,7 +44,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathsFor, pathWithin, windowsProfile, type Platform } from "../src/platform/paths.ts";
 import { envValue } from "../src/agent/which.ts";
 
@@ -140,7 +140,7 @@ interface Parsed {
  */
 export function defaultDirectory(env: Record<string, string | undefined>, platform: Platform = process.platform): string {
   if (platform === "win32") return pathsFor(platform).join(windowsProfile(env), ".bun", "bin");
-  return join(env["HOME"] || homedir(), ".local/bin");
+  return pathsFor(platform).join(env["HOME"] || homedir(), ".local/bin");
 }
 
 function parse(argv: readonly string[], dir: string): Parsed {
@@ -200,7 +200,7 @@ export function onPath(dir: string, pathVariable: string | undefined, platform: 
   }
   const wanted = safeRealpath(dir);
   return (pathVariable ?? "")
-    .split(delimiter)
+    .split(pathsFor(platform).delimiter)
     .filter(Boolean)
     .some((entry) => resolve(entry) === resolve(dir) || safeRealpath(entry) === wanted);
 }

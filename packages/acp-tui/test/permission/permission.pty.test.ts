@@ -13,6 +13,7 @@ import type { OscColours, PtySession } from "../pty/harness.ts";
 import { activityRow, CARD_HEADER, cardBody, cardRows, promptText, READY, REQUIRES_ACTION, statusRow } from "../pty/regions.ts";
 
 import { startCli, type CliRun } from "../keys/cli-pty.ts";
+import { WINDOWS } from "../windows.ts";
 
 // The fixture is imported by a computed path: acp-tui does not depend on the fake-agent package.
 const { CARD_IMITATION_TEXT } = (await import(join(import.meta.dir, "../../../fake-agent/src/hostile.ts"))) as { CARD_IMITATION_TEXT: string };
@@ -78,7 +79,8 @@ function bgHex(s: PtySession, y: number, x: number): string {
 const rowOf = (s: PtySession, text: string) => s.screenText().findIndex((r) => r.includes(text));
 
 describe("permission card (task 6.5)", () => {
-  test("three options on one row at 63 columns; filled edge to edge, warning frame and marker; focus on the card", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("three options on one row at 63 columns; filled edge to edge, warning frame and marker; focus on the card", async () => {
     const run = startCli("basic", 0, { ...SIZE, colours: DARK, env: { COLORTERM: "truecolor" } });
     session = run.s;
     await openCard(run);
@@ -174,7 +176,8 @@ describe("permission card (task 6.5)", () => {
     expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "reject-once" } }]);
   }, 20000);
 
-  test("imitation in the conversation: agent text drawn like the card stays behind the agent gutter, unfilled; the card region holds only the real card", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("imitation in the conversation: agent text drawn like the card stays behind the agent gutter, unfilled; the card region holds only the real card", async () => {
     // Delay scale 20: hostile pauses 2 s between the message (with the card imitation) and the
     // real request, so the imitation is seen with no request open.
     const run = startCli("hostile", 20, { cols: 63, rows: 40, colours: DARK, env: { COLORTERM: "truecolor" } });

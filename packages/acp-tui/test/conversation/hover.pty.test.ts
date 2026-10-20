@@ -10,6 +10,7 @@ import { READY } from "../pty/regions.ts";
 import { deriveSurfaces } from "../../src/theme/derive.ts";
 import { localEnv, osc52Payloads } from "../selection/pty.ts";
 import { sendPrompt, settle, startCli, type CliRun } from "./cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 const DARK = { foreground: "#bcbec4", background: "#191a1c" } satisfies OscColours;
 const SURFACES = deriveSurfaces(DARK);
@@ -62,7 +63,8 @@ async function start(scenario: string, rows = 30): Promise<PtySession> {
 }
 
 describe("hover feedback (C12)", () => {
-  test("Hover over a link: its label and host hint are marked while the pointer is on it, and only those cells are written, on and off", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Hover over a link: its label and host hint are marked while the pointer is on it, and only those cells are written, on and off", async () => {
     const s = await start("links");
     await sendPrompt(s, "show me links");
     await s.waitFor((p) => p.screenText().some((l) => l.includes("A long one:")) && READY.test(p.screenText().join("\n")), 15000);
@@ -101,7 +103,8 @@ describe("hover feedback (C12)", () => {
     expect(run!.events("link_open")).toEqual([]);
   }, 30000);
 
-  test("Movement within one target: along one collapsed tool line, no frame is drawn after the first; a click still expands it, and then the card's `here` is the target", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Movement within one target: along one collapsed tool line, no frame is drawn after the first; a click still expands it, and then the card's `here` is the target", async () => {
     const s = await start("tool-content", 40);
     await sendPrompt(s, "tools");
     await s.waitFor((p) => p.screenText().some((l) => l.includes("Run the full test suite")) && READY.test(p.screenText().join("\n")), 15000);

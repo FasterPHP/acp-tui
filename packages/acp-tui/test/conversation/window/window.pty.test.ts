@@ -14,6 +14,7 @@ import type { OscColours, PtySession } from "../../pty/harness.ts";
 import { lineWithoutBar, screenGap, statusRow, withoutBar } from "../../pty/regions.ts";
 import { sendPrompt, settle, startCli, type CliRun } from "../cli.ts";
 import { longSessionEvents } from "./session.ts";
+import { WINDOWS } from "../../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -176,7 +177,8 @@ describe("conversation cursor (task 3.2)", () => {
   }
 
   // Scenario "Cursor far back in a long session".
-  test("Cursor far back: 1000 items, the conversation focused, Up 150 times: the entry 150 above the last is under the cursor, in view, marked by the cursor's bar", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Cursor far back: 1000 items, the conversation focused, Up 150 times: the entry 150 above the last is under the cursor, in view, marked by the cursor's bar", async () => {
     const { lookup, list } = entries(1000);
     const target = list.keys[list.keys.length - 1 - 150]!;
     const item = lookup(target)!;
@@ -198,7 +200,8 @@ describe("conversation cursor (task 3.2)", () => {
   }, 90000);
 
   // Scenario "Cursor on a group line".
-  test("Cursor on a group line: the line is marked by the cursor's bar on its faint fill; Enter opens the group below it and the cursor stays on the line", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Cursor on a group line: the line is marked by the cursor's bar on its faint fill; Enter opens the group below it and the cursor stays on the line", async () => {
     const { list } = entries(200);
     expect(list.entries.filter((e) => e.kind === "group").length).toBeGreaterThan(3);
     const s = await open(200);

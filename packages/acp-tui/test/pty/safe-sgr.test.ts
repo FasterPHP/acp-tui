@@ -71,8 +71,7 @@ describe.skipIf(WINDOWS)("Output stream over every scenario", () => {
   }
 });
 
-// Skipped on Windows: it scans the raw SGR bytes of the PTY stream, which ConPTY rewrites, or expects truecolour from a bare ConPTY.
-describe.skipIf(WINDOWS)("the struck-run scanner", () => {
+describe("the struck-run scanner", () => {
   test("collects what SGR 9 covers, through 29, 0 and colour arguments", () => {
     const raw = "a\x1b[1;9mstruck one\x1b[0m b \x1b[9;38;2;9;9;9mtwo\x1b[29mc\x1b[38;5;9md\x1b[9mx\x1b[m y";
     expect(struckRuns(raw)).toEqual(["struckone", "two", "x"]);
@@ -80,8 +79,7 @@ describe.skipIf(WINDOWS)("the struck-run scanner", () => {
 });
 
 // Spec tui-theme "Safe text attributes only", scenario "Strikethrough where it is drawn".
-// Skipped on Windows: it scans the raw SGR bytes of the PTY stream, which ConPTY rewrites, or expects truecolour from a bare ConPTY.
-describe.skipIf(WINDOWS)("Strikethrough where it is drawn", () => {
+describe("Strikethrough where it is drawn", () => {
   test("markdown-gallery under TERM_PROGRAM=zed sets SGR 9 only on its struck text, and nothing unsafe otherwise", async () => {
     // Tall enough to draw the whole gallery (about 360 rows at this width), so every struck cell is
     // drawn at least once.
