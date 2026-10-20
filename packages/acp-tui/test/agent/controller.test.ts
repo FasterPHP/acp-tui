@@ -108,6 +108,35 @@ describe("session controller (task 5.4) against fake-agent basic", () => {
     expect(controller.getSession().id).not.toBeNull();
   });
 
+  test("onActivity reports the session, the tool call that ended and the end of the turn, in order, and a hook that throws breaks nothing", async () => {
+    const seen: string[] = [];
+    const controller = await track(
+      await startSession({
+        command: fakeAgentCommand({ scenario: "basic" }),
+        cwd: tmpCwd(),
+        onActivity(activity) {
+          seen.push(activity);
+          throw new Error("a hook failing");
+        },
+      }),
+    );
+    expect(seen).toEqual(["session"]);
+    controller.prompt("please read and edit the file");
+    await waitFor(controller, (session) => session.state === "requires_action");
+    controller.answerPermission(
+      (() => {
+        const session = controller.getSession();
+        const record = session.order.map((id) => session.items.get(id)).find((item) => item?.kind === "permission_record");
+        if (record?.kind !== "permission_record") throw new Error("expected a permission record");
+        return record.options.find((option) => option.kind === "allow_once")!.optionId;
+      })(),
+    );
+    await waitFor(controller, (session) => session.state === "idle" && session.stopReason !== null);
+    expect(seen[0]).toBe("session");
+    expect(seen.at(-1)).toBe("turn_end");
+    expect(seen.filter((a) => a === "turn_end")).toHaveLength(1);
+  });
+
   test("detach sends neither session/cancel nor session/close, and the log proves it", async () => {
     const cwd = tmpCwd();
     const logDir = mkdtempSync(join(tmpdir(), "acp-tui-controller-log-"));

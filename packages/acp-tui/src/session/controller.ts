@@ -26,6 +26,7 @@ import {
   type AcpClient,
   type SessionSupport,
 } from "../agent/connection.ts";
+import { harnessActivity, type HarnessActivity } from "../agent/harness-activity.ts";
 import { killProcessTree } from "../agent/kill-tree.ts";
 import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
 import { createDebugLogger, type DebugLogger } from "../log.ts";
@@ -158,6 +159,10 @@ export interface StartSessionOptions {
   /** Called once `initialize` has been answered, when the harness is surely running (the Windows
    *  title is set again then: renderer/terminal-signals.ts `reassertTitle`). */
   onInitialized?(): void;
+  /** Called after a session was created or opened, a prompt was answered, or a tool call ended
+   *  (agent/harness-activity.ts): the moments a harness may have retitled the Windows console, so
+   *  the title is set again (renderer/terminal-signals.ts). Never for a replay's updates. */
+  onActivity?(activity: HarnessActivity): void;
   /** How long `detach()` waits for the child to exit on its own before killing it (ms). */
   detachGraceMs?: number;
   /** Answers elicitation requests and advertises the capability (the app always gives one). */
@@ -237,6 +242,14 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
     function dispatch(event: ModelEvent): void {
       apply(event);
       notify();
+      const activity = options.onActivity ? harnessActivity(event) : null;
+      if (activity) {
+        try {
+          options.onActivity?.(activity);
+        } catch {
+          // a hook never breaks the session
+        }
+      }
     }
     // The batched replay applies a slice of events, then notifies once (design decision 10).
     const handler = createClientHandler({ dispatch, apply, flush: notify, logger, now, ...(options.pace ? { pace: options.pace } : {}), ...(options.elicitation ? { elicitation: options.elicitation } : {}) });

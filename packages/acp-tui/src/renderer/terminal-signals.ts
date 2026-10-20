@@ -4,6 +4,7 @@
 // `destroy()` and before the exit text on every exit path, and is empty if `install` never ran.
 import { createEffect, createRoot, on } from "solid-js";
 import type { CliRenderer } from "@opentui/core";
+import type { HarnessActivity } from "../agent/harness-activity.ts";
 import type { DebugLogger } from "../log.ts";
 import type { SessionStore } from "../session/store.ts";
 import { DEFAULT_ATTENTION, installAttention, type AttentionSettings } from "./attention.ts";
@@ -30,6 +31,17 @@ export interface TerminalSignalsOptions {
   readonly platform?: NodeJS.Platform;
   /** Where a dropped write is logged (write-out.ts). */
   readonly logger?: DebugLogger;
+  /** For tests: runs `run` after `ms` and returns what cancels it (default `setTimeout`, unref'd). */
+  readonly schedule?: (run: () => void, ms: number) => () => void;
+}
+
+/** How long a tool call's end waits to set the title again, so a burst of them is one write (ms). */
+export const TITLE_REASSERT_DELAY_MS = 200;
+
+function defaultSchedule(run: () => void, ms: number): () => void {
+  const timer = setTimeout(run, ms);
+  timer.unref?.();
+  return () => clearTimeout(timer);
 }
 
 export interface TerminalSignals {
@@ -45,6 +57,14 @@ export interface TerminalSignals {
    * remembered and acted on as `install` finishes the title.
    */
   reassertTitle(): void;
+  /**
+   * The same for a moment when a harness may have retitled the console (windows-support D5, the
+   * built-in Claude harness sets `claude` as its worker starts, and a command a tool runs can set
+   * its own): a session created or opened and a turn that ended set the title at once, a tool
+   * call that ended after `TITLE_REASSERT_DELAY_MS`, a burst of them as one write. Windows only,
+   * for the reason `reassertTitle` gives; nothing on Linux and macOS.
+   */
+  harnessActivity(activity: HarnessActivity): void;
 }
 
 export function createTerminalSignals(options: TerminalSignalsOptions): TerminalSignals {
@@ -56,6 +76,13 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
   let alternate: AlternateScroll | null = null;
   // A harness answered `initialize` before the title existed (Windows only).
   let reassertAfterInstall = false;
+  const schedule = options.schedule ?? defaultSchedule;
+  let cancelPending: (() => void) | null = null;
+  const reassert = (): void => {
+    if (platform !== "win32") return;
+    if (title) title.reassert();
+    else reassertAfterInstall = true;
+  };
 
   return {
     install(renderer) {
@@ -98,12 +125,25 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
         );
       }
     },
-    reassertTitle() {
+    reassertTitle: reassert,
+    harnessActivity(activity) {
       if (platform !== "win32") return;
-      if (title) title.reassert();
-      else reassertAfterInstall = true;
+      if (activity !== "tool") {
+        // Covers a title that is already waiting to be set.
+        cancelPending?.();
+        cancelPending = null;
+        reassert();
+        return;
+      }
+      if (cancelPending) return;
+      cancelPending = schedule(() => {
+        cancelPending = null;
+        reassert();
+      }, TITLE_REASSERT_DELAY_MS);
     },
     restore() {
+      cancelPending?.();
+      cancelPending = null;
       for (const remove of removers.splice(0)) remove();
       return (title?.restore() ?? "") + (alternate?.restore() ?? "");
     },

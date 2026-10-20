@@ -44,6 +44,7 @@ import { sanitise, type SessionOpenMode } from "acp-model";
 import type { SessionInfo } from "@agentclientprotocol/sdk";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
+import type { HarnessActivity } from "../agent/harness-activity.ts";
 import { AD_HOC_AGENT, launchArgv, type LaunchDescription } from "../agent/resolve.ts";
 import { shortenHome } from "../layout/segments.ts";
 import type { DebugLogger } from "../log.ts";
@@ -108,6 +109,8 @@ export interface StartLaunchOptions {
   readonly pace?: Pace;
   /** Called each time a harness has answered `initialize` (a start, a switch to another harness). */
   readonly onHarnessInitialized?: () => void;
+  /** Called when a harness may have retitled the console (controller.ts `onActivity`). */
+  readonly onHarnessActivity?: (activity: HarnessActivity) => void;
   readonly now?: () => number;
   /** Home directory, shown as `~` in the directory marker; default the user's home. */
   readonly home?: string | null;
@@ -224,7 +227,7 @@ function homeOf(options: Pick<StartLaunchOptions, "home">): string | null {
 
 /** Launches and initialises the agent `launch` names, in the session directory (or the launch
  *  directory when that has gone), with no session yet. Throws the agent's start-up errors. */
-export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace" | "onHarnessInitialized">): Promise<ConnectedController> {
+export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace" | "onHarnessInitialized" | "onHarnessActivity">): Promise<ConnectedController> {
   const { launch, logger } = options;
   // The agent runs in the session directory; one the index recorded may have gone since.
   const processCwd = isDirectory(launch.directory) ? launch.directory : launch.launchDirectory;
@@ -238,6 +241,7 @@ export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logg
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
     ...(options.onHarnessInitialized ? { onInitialized: options.onHarnessInitialized } : {}),
+    ...(options.onHarnessActivity ? { onActivity: options.onHarnessActivity } : {}),
   });
 }
 

@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSession, type Session } from "acp-model";
 import type { CliRenderer } from "@opentui/core";
-import { createTerminalSignals } from "../../src/renderer/terminal-signals.ts";
+import { createTerminalSignals, TITLE_REASSERT_DELAY_MS } from "../../src/renderer/terminal-signals.ts";
 import { createTitleSlots } from "../../src/renderer/title-slot.ts";
 
 let dir: string;
@@ -84,6 +84,96 @@ describe("reassertTitle", () => {
       f.signals.install(f.renderer);
       expect(f.titles).toEqual(["acp-tui"]);
       f.signals.restore();
+    }
+  });
+});
+
+// windows-support D5, the built-in Claude harness: `claude.exe` names the tab as its process
+// starts (after `initialize`, at session/new), and a command a tool runs may too.
+describe("harnessActivity", () => {
+  function timed(platform: NodeJS.Platform) {
+    const f = fixture(platform);
+    const pending: { run: () => void; ms: number; cancelled: boolean }[] = [];
+    const signals = createTerminalSignals({
+      store: { snapshot: () => ({ ...createSession(), cwd: "/work/acp-tui" }), onChange: () => () => {}, ui: { mouse: "wheel" } } as never,
+      platform,
+      env: {},
+      titleSlots: createTitleSlots({ dir }),
+      schedule: (run, ms) => {
+        const entry = { run, ms, cancelled: false };
+        pending.push(entry);
+        return () => void (entry.cancelled = true);
+      },
+    });
+    signals.install(f.renderer);
+    const fire = () => pending.filter((e) => !e.cancelled).forEach((e) => ((e.cancelled = true), e.run()));
+    return { signals, titles: f.titles, pending, fire };
+  }
+
+  test("on Windows a session created or opened and a turn that ended set the title at once", () => {
+    const t = timed("win32");
+    expect(t.titles).toEqual(["acp-tui"]);
+    t.signals.harnessActivity("session");
+    expect(t.titles).toEqual(["acp-tui", "acp-tui"]);
+    t.signals.harnessActivity("turn_end");
+    expect(t.titles).toEqual(["acp-tui", "acp-tui", "acp-tui"]);
+    expect(t.pending).toHaveLength(0);
+    t.signals.restore();
+  });
+
+  test("on Windows a burst of tool call ends is one write after the delay", () => {
+    const t = timed("win32");
+    t.signals.harnessActivity("tool");
+    t.signals.harnessActivity("tool");
+    t.signals.harnessActivity("tool");
+    expect(t.titles).toEqual(["acp-tui"]);
+    expect(t.pending).toHaveLength(1);
+    expect(t.pending[0]!.ms).toBe(TITLE_REASSERT_DELAY_MS);
+    t.fire();
+    expect(t.titles).toEqual(["acp-tui", "acp-tui"]);
+    // The next one schedules again.
+    t.signals.harnessActivity("tool");
+    t.fire();
+    expect(t.titles).toHaveLength(3);
+    t.signals.restore();
+  });
+
+  test("a turn that ends covers a tool call's pending write", () => {
+    const t = timed("win32");
+    t.signals.harnessActivity("tool");
+    t.signals.harnessActivity("turn_end");
+    expect(t.titles).toHaveLength(2);
+    t.fire();
+    expect(t.titles).toHaveLength(2);
+    t.signals.restore();
+  });
+
+  test("a write waiting when the terminal is restored is cancelled", () => {
+    const t = timed("win32");
+    t.signals.harnessActivity("tool");
+    t.signals.restore();
+    expect(t.pending[0]!.cancelled).toBe(true);
+    t.fire();
+    expect(t.titles).toEqual(["acp-tui"]);
+  });
+
+  test("before the renderer is installed the first call is remembered, as reassertTitle does", () => {
+    const f = fixture("win32");
+    f.signals.harnessActivity("session");
+    f.signals.install(f.renderer);
+    expect(f.titles).toEqual(["acp-tui", "acp-tui"]);
+    f.signals.restore();
+  });
+
+  test("on Linux and macOS it writes nothing and schedules nothing", () => {
+    for (const platform of ["linux", "darwin"] as const) {
+      const t = timed(platform);
+      t.signals.harnessActivity("session");
+      t.signals.harnessActivity("turn_end");
+      t.signals.harnessActivity("tool");
+      expect(t.pending).toHaveLength(0);
+      expect(t.titles).toEqual(["acp-tui"]);
+      t.signals.restore();
     }
   });
 });

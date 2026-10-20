@@ -32,6 +32,7 @@
 //   longer configured, are refused with a message before anything runs.
 import type { ListSessionsResponse } from "@agentclientprotocol/sdk";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
+import type { HarnessActivity } from "../agent/harness-activity.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
 import { commandDisplayName } from "../agent/harness-name.ts";
 import { AD_HOC_AGENT, adHocSessionMessage, launchArgv, unconfiguredAgentMessage, type LaunchDescription } from "../agent/resolve.ts";
@@ -75,6 +76,8 @@ export interface SessionSwitcherOptions {
   readonly pace?: Pace;
   /** Called each time a harness has answered `initialize` (start-up, a switch to another harness). */
   readonly onHarnessInitialized?: () => void;
+  /** Called when a harness may have retitled the console (controller.ts `onActivity`). */
+  readonly onHarnessActivity?: (activity: HarnessActivity) => void;
   /** Reads the agent catalogue (each time the list asks); default `loadAgentCatalogue()`. */
   readonly catalogue?: () => AgentCatalogue;
   readonly now?: () => number;
@@ -176,6 +179,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
     ...(options.onHarnessInitialized ? { onHarnessInitialized: options.onHarnessInitialized } : {}),
+    ...(options.onHarnessActivity ? { onHarnessActivity: options.onHarnessActivity } : {}),
     ...(options.now ? { now: options.now } : {}),
   };
   const notify = (text: string): void => options.notify?.(text);
