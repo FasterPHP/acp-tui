@@ -4,7 +4,7 @@
 // configuration home and session directory; nothing reads ~/.config/acp-tui. The PTY tests of the
 // same scenarios through the real CLI are subcommands.pty.test.ts.
 import { beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkProblems, runConfigCommand } from "../../src/config-command.ts";
@@ -42,10 +42,10 @@ function world(files: { config?: string; themes?: Record<string, string>; projec
     env,
     configFile: join(dir, "config.jsonc"),
     themeFile: (name: string) => join(dir, "themes", `${name}.jsonc`),
-    async run(args: string[]) {
+    async run(args: string[], platform?: NodeJS.Platform) {
       const out: string[] = [];
       const err: string[] = [];
-      const code = await runConfigCommand(args, { stdout: { write: (t: string) => out.push(t) }, stderr: { write: (t: string) => err.push(t) } }, { cwd, env });
+      const code = await runConfigCommand(args, { stdout: { write: (t: string) => out.push(t) }, stderr: { write: (t: string) => err.push(t) } }, { cwd, env, ...(platform ? { platform } : {}) });
       return { code, stdout: out.join(""), stderr: err.join("") };
     },
   };
@@ -295,6 +295,61 @@ describe("config --check (task 9.1)", async () => {
     expect(lines[2]).toContain("--harness -odd");
     expect(r.stdout).not.toContain("agent_servers.fine");
     expect(r.stdout).toMatch(/0 errors, 3 warnings\n$/);
+  });
+
+  describe("Argument the interpreter would read (windows-support, tui-agent-session)", () => {
+    const entry = `{
+  "agent_servers": {
+    "auggie": { "command": "auggie", "args": ["--acp", "a&b", "--x=50%", "plain"] },
+    "other": { "command": "bun", "args": ["x|y<z>w"] }
+  }
+}
+`;
+
+    test("on Windows each argument holding & | < > ^ or % is a warning at that argument, naming the characters (exit 0)", async () => {
+      const w = world({ config: entry });
+      const r = await w.run(["--check"], "win32");
+      expect(r.code).toBe(0);
+      const lines = r.stdout.split("\n").filter((l) => l.includes(": warning: "));
+      expect(lines).toHaveLength(3);
+      // "a&b" is the second argument of the first entry: line 3, the string's own column.
+      expect(lines[0]).toContain(`${w.configFile}:3:`);
+      expect(lines[0]).toContain('warning: agent_servers.auggie.args.1 holds "&", which the command interpreter (cmd.exe) treats specially');
+      expect(lines[1]).toContain('agent_servers.auggie.args.2 holds "%"');
+      expect(lines[2]).toContain('agent_servers.other.args.0 holds "|", "<", ">"');
+      expect(r.stdout).not.toContain("args.0 holds \"&\"");
+      expect(r.stdout).not.toContain("auggie.args.0");
+      expect(r.stdout).not.toContain("auggie.args.3");
+      expect(r.stdout).toMatch(/0 errors, 3 warnings\n$/);
+    });
+
+    test("the warning's column is the argument's own", async () => {
+      const w = world({ config: `{ "agent_servers": { "a": { "command": "a", "args": ["ok", "x^y"] } } }\n` });
+      const r = await w.run(["--check"], "win32");
+      const text = readFileSync(w.configFile, "utf8");
+      expect(r.stdout).toContain(`${w.configFile}:1:${text.indexOf('"x^y"') + 1}: warning: agent_servers.a.args.1 holds "^"`);
+    });
+
+    test("on Linux and macOS the same file has no warning", async () => {
+      const w = world({ config: entry });
+      for (const platform of ["linux", "darwin"] as const) {
+        const r = await w.run(["--check"], platform);
+        expect(r.code).toBe(0);
+        expect(r.stdout).toBe("no configuration problems\n");
+      }
+    });
+
+    test("the warning is a configuration problem like any other, so the app's notice shows it too", () => {
+      const parsed = parseConfigText(entry, "/x/config.jsonc", { knownAgents: ["claude"], platform: "win32" });
+      expect(parsed.problems.map((p) => [p.path, p.severity])).toEqual([
+        ["agent_servers.auggie.args.1", "warning"],
+        ["agent_servers.auggie.args.2", "warning"],
+        ["agent_servers.other.args.0", "warning"],
+      ]);
+      // The entries stay launchable: a warning does not refuse them.
+      expect(Object.keys(parsed.sections.agent_servers as object)).toEqual(["auggie", "other"]);
+      expect(parsed.invalidAgents).toEqual({});
+    });
   });
 
   test("the subcommand names the loader warns about are the CLI's reserved ones", () => {

@@ -72,6 +72,8 @@ export interface SessionSwitcherOptions {
   readonly elicitation?: ElicitationHandler;
   /** Paces a load's replay around the renderer's frames (renderer/frame-pace.ts). */
   readonly pace?: Pace;
+  /** Called each time a harness has answered `initialize` (start-up, a switch to another harness). */
+  readonly onHarnessInitialized?: () => void;
   /** Reads the agent catalogue (each time the list asks); default `loadAgentCatalogue()`. */
   readonly catalogue?: () => AgentCatalogue;
   readonly now?: () => number;
@@ -172,6 +174,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     ...(logger ? { logger } : {}),
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
+    ...(options.onHarnessInitialized ? { onHarnessInitialized: options.onHarnessInitialized } : {}),
     ...(options.now ? { now: options.now } : {}),
   };
   const notify = (text: string): void => options.notify?.(text);

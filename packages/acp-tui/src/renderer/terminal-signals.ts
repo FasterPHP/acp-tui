@@ -26,6 +26,8 @@ export interface TerminalSignalsOptions {
   /** For tests: the clock of turn lengths. */
   readonly now?: () => number;
   readonly env?: Readonly<Record<string, string | undefined>>;
+  /** Default `process.platform` (tests). */
+  readonly platform?: NodeJS.Platform;
   /** Where a dropped write is logged (write-out.ts). */
   readonly logger?: DebugLogger;
 }
@@ -34,10 +36,19 @@ export interface TerminalSignals {
   install(renderer: CliRenderer): void;
   /** The restoring output for the final reset. */
   restore(): string;
+  /**
+   * Sets the title again once a harness has started (windows-support D5): on Windows, npm's `.cmd`
+   * shims run `title %COMSPEC%` as the harness starts, which renames the tab to `cmd.exe`. Only on
+   * Windows: on Linux and macOS a harness's output is a pipe, never the terminal, so nothing can
+   * retitle the tab and writing the same title again would only be noise. Nothing until `install`
+   * has run.
+   */
+  reassertTitle(): void;
 }
 
 export function createTerminalSignals(options: TerminalSignalsOptions): TerminalSignals {
   const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
   const store = options.store;
   const removers: (() => void)[] = [];
   let title: TerminalTitle | null = null;
@@ -79,6 +90,9 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
           }),
         );
       }
+    },
+    reassertTitle() {
+      if (platform === "win32") title?.reassert();
     },
     restore() {
       for (const remove of removers.splice(0)) remove();

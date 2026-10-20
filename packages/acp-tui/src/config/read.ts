@@ -18,9 +18,9 @@ function readProblem(file: string, error: string): ConfigProblem {
 }
 
 /** A file read and loaded; a read error counts as a file that did not parse. */
-export function loadSource(read: FileRead, file: string, kind: ConfigSourceKind, knownAgents: readonly string[]): ParsedSource {
+export function loadSource(read: FileRead, file: string, kind: ConfigSourceKind, knownAgents: readonly string[], platform?: NodeJS.Platform): ParsedSource {
   if (read.error !== null) return { file, kind, status: "syntax", sections: {}, rejected: [], invalidAgents: {}, notices: [], problems: [readProblem(file, read.error)] };
-  return parseConfigText(read.text, file, { kind, agentsRefused: kind === "user" ? read.unsafe : null, ...(kind === "user" ? { knownAgents } : {}) });
+  return parseConfigText(read.text, file, { kind, agentsRefused: kind === "user" ? read.unsafe : null, ...(kind === "user" ? { knownAgents } : {}), ...(platform ? { platform } : {}) });
 }
 
 export interface ReadConfigurationOptions {
@@ -56,9 +56,9 @@ export function readConfiguration(options: ReadConfigurationOptions): Configurat
   const knownAgents = options.knownAgents ?? [BUILT_IN_AGENT_NAME];
   const platform = options.platform ?? process.platform;
   const userFile = userConfigFile(env, platform);
-  const user = loadSource(read(userFile, { checkWriters: true, env, platform }), userFile, "user", knownAgents);
+  const user = loadSource(read(userFile, { checkWriters: true, env, platform }), userFile, "user", knownAgents, platform);
   const projectFile = options.sessionDirectory === null ? null : findProjectFile(options.sessionDirectory, { home: homeDirectory(env) });
-  const project = projectFile === null ? null : loadSource(read(projectFile, {}), projectFile, "project", knownAgents);
+  const project = projectFile === null ? null : loadSource(read(projectFile, {}), projectFile, "project", knownAgents, platform);
   const config = effectiveConfig({
     user: nextLastGood({}, user),
     project: project ? nextLastGood({}, project) : {},

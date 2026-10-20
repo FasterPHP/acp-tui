@@ -98,6 +98,9 @@ export interface TerminalTitle {
   restore(): string;
   /** Sets the title again from the session as it is now (the format changed). */
   refresh(): void;
+  /** Writes the title again even if it has not changed, for a program that retitled the tab
+   *  behind acp-tui's back (npm's `.cmd` shims run `title %COMSPEC%`); nothing before `restore`. */
+  reassert(): void;
 }
 
 export interface TitleOptions {
@@ -148,5 +151,9 @@ export function installTerminalTitle(
       return TITLE_POP;
     },
     refresh: () => apply(feed.snapshot()),
+    reassert() {
+      last = "";
+      apply(feed.snapshot());
+    },
   };
 }

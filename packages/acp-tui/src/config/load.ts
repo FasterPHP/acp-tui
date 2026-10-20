@@ -60,6 +60,23 @@ export interface ParseOptions {
   /** Agent names that exist without the file (the built-in entries), for checking
    *  `default_agent_server`; default: it is not checked. */
   readonly knownAgents?: readonly string[];
+  /** The platform the file is read on, for the checks that depend on it (the arguments the Windows
+   *  command interpreter reads); default `process.platform`. */
+  readonly platform?: NodeJS.Platform;
+}
+
+/** The characters of an argument that Windows' command interpreter (`cmd.exe`) reads as syntax
+ *  when it runs a `.cmd` or `.bat` harness: command separators, redirections, the escape and
+ *  variable expansion (windows-support D5). */
+export const CMD_SPECIAL_CHARACTERS: readonly string[] = ["&", "|", "<", ">", "^", "%"];
+
+/** What is odd about a harness argument on Windows, if anything: the interpreter characters it
+ *  holds. Null when it has none. */
+export function cmdArgumentWarning(arg: string): string | null {
+  const found = CMD_SPECIAL_CHARACTERS.filter((c) => arg.includes(c));
+  if (found.length === 0) return null;
+  const list = found.map((c) => `"${c}"`).join(", ");
+  return `holds ${list}, which the command interpreter (cmd.exe) treats specially when the harness is a command script (.cmd or .bat, as npm installs them), so Bun refuses to start such a script with ${found.length === 1 ? "it" : "them"} in an argument`;
 }
 
 /** Line starts of `text`, for offsets to 1-based line and column. */
@@ -546,6 +563,7 @@ export function parseConfigText(source: string | null, file: string, options: Pa
   const rejected: SectionName[] = [];
   const invalidAgents: Record<string, string> = {};
   const validAgents = new Set<string>();
+  const platform = options.platform ?? process.platform;
 
   // `agent_servers` before `default_agent_server`, which names one of them.
   const props = properties(root).sort((a, b) => Number(b.key === "agent_servers") - Number(a.key === "agent_servers"));
@@ -605,6 +623,13 @@ export function parseConfigText(source: string | null, file: string, options: Pa
         if (loader.validate(AgentServerSchema as unknown as AnySchema, entryNode, [written, name])) {
           entries[name] = valueOf(entryNode);
           validAgents.add(name);
+          if (platform === "win32") {
+            const args = findNodeAtLocation(entryNode!, ["args"]);
+            (args?.children ?? []).forEach((argNode, i) => {
+              const warning = argNode.type === "string" ? cmdArgumentWarning(String(argNode.value)) : null;
+              if (warning !== null) loader.problem(argNode, [written, name, "args", i], "warning", warning);
+            });
+          }
         } else {
           // `has an invalid command: it takes a non-empty string, not 42 (line 1, column 45)`.
           const first = loader.problems[before]!;
