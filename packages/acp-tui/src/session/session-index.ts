@@ -30,7 +30,7 @@ import { chmodSync, closeSync, mkdirSync, openSync, readFileSync, statSync, unli
 import { join } from "node:path";
 import { sanitise } from "acp-model";
 import { shortenHome } from "../layout/segments.ts";
-import { renameOver, type RenameOptions } from "../platform/replace-file.ts";
+import { renameOver, retryWhileBusy, type RenameOptions } from "../platform/replace-file.ts";
 import { APP_DIR_NAME, pathsFor, stateDirectory, stateHome, userHome, type Platform } from "../platform/paths.ts";
 
 /** The agent name recorded for a command given after `--` (also exported by agent/resolve.ts). */
@@ -104,8 +104,12 @@ export interface SessionIndexOptions {
   /** Sessions kept by compaction; default 1000. */
   readonly keep?: number;
   /** How compaction replaces the file (the rename, the wait between retries, the platform); default
-   *  the real rename, retried briefly on Windows while another process holds the file. */
+   *  the real rename, retried briefly on Windows while another process holds the file. The wait and
+   *  the platform also apply to opening the file to append. */
   readonly rename?: RenameOptions;
+  /** Opens the index to append and returns the descriptor; default `fs.openSync`, retried briefly on
+   *  Windows while another process holds the file without write sharing. */
+  readonly openAppend?: (path: string) => number;
 }
 
 export const INDEX_FILE_NAME = "sessions.jsonl";
@@ -321,7 +325,8 @@ export function openSessionIndex(options: SessionIndexOptions = {}): SessionInde
     try {
       prepare();
       if (lineCount === null) lineCount = countLines();
-      const fd = openSync(path, constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT, 0o600);
+      const open = options.openAppend ?? ((target: string) => openSync(target, constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT, 0o600));
+      const fd = retryWhileBusy(() => open(path), options.rename);
       try {
         ownerOnly(path);
         // One write of one line: O_APPEND puts each write at the end as a whole.

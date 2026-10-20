@@ -1,7 +1,7 @@
 // Renaming over a file another process holds open (spec tui-sessions "Session index writes survive
 // a busy file"): the retry rule on its own, with the rename and the wait injected.
 import { describe, expect, test } from "bun:test";
-import { renameOver } from "../../src/platform/replace-file.ts";
+import { renameOver, retryWhileBusy } from "../../src/platform/replace-file.ts";
 
 function failing(codes: readonly (string | null)[]) {
   const calls: string[] = [];
@@ -40,5 +40,33 @@ describe("renameOver", () => {
     const run = failing(["EPERM"]);
     expect(() => renameOver("a", "b", { ...run.options, platform: "linux" })).toThrow("EPERM");
     expect(run.calls).toHaveLength(1);
+  });
+});
+
+describe("retryWhileBusy", () => {
+  test("Windows: any step (opening to append) is retried while busy and its result returned", () => {
+    const sleeps: number[] = [];
+    let calls = 0;
+    const result = retryWhileBusy(
+      () => {
+        calls++;
+        if (calls <= 2) throw Object.assign(new Error("EBUSY"), { code: "EBUSY" });
+        return 7;
+      },
+      { sleep: (ms) => sleeps.push(ms), platform: "win32" },
+    );
+    expect(result).toBe(7);
+    expect(calls).toBe(3);
+    expect(sleeps).toEqual([50, 50]);
+  });
+
+  test("Linux: one attempt", () => {
+    let calls = 0;
+    const step = () => {
+      calls++;
+      throw Object.assign(new Error("EBUSY"), { code: "EBUSY" });
+    };
+    expect(() => retryWhileBusy(step, { sleep: () => expect.unreachable(), platform: "linux" })).toThrow("EBUSY");
+    expect(calls).toBe(1);
   });
 });

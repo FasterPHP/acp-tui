@@ -6,7 +6,7 @@
 // compaction, two processes appending at once, and an unwritable state
 // directory. Every index lives in a temporary state home.
 import { describe, expect, test } from "bun:test";
-import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, constants, existsSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { INDEX_FILE_NAME, openSessionIndex, stateHomeDir, type SessionIndexOptions } from "../../src/session/session-index.ts";
@@ -218,6 +218,42 @@ describe("Session index (tui-sessions)", () => {
     expect(fileLines(index.path)).toHaveLength(3);
     expect(open(home).listAll().map((r) => r.sessionId)).toEqual(["s-5", "s-4", "s-3"]);
     expect(readdirSync(join(home, "acp-tui"))).toEqual([INDEX_FILE_NAME]);
+  });
+
+  test("an append on Windows: opening the file refused twice because another process holds it without write sharing is retried, and nothing is shown", () => {
+    const home = stateHome();
+    const warnings: string[] = [];
+    const sleeps: number[] = [];
+    let opens = 0;
+    const index = open(home, {
+      onWarning: (m) => warnings.push(m),
+      rename: { platform: "win32", sleep: (ms) => sleeps.push(ms) },
+      openAppend: (path) => {
+        opens++;
+        if (opens <= 2) throw Object.assign(new Error("EBUSY: resource busy or locked, open"), { code: "EBUSY" });
+        return openSync(path, constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT, 0o600);
+      },
+    });
+    index.record({ agent: "fake", sessionId: "s-held", directory: "/w", at: T0 });
+    expect(opens).toBe(3);
+    expect(sleeps).toEqual([50, 50]);
+    expect(warnings).toEqual([]);
+    expect(open(home).listAll().map((r) => r.sessionId)).toEqual(["s-held"]);
+  });
+
+  test("an append on Linux and macOS: a refused open is reported at once", () => {
+    const home = stateHome();
+    let opens = 0;
+    const index = open(home, {
+      rename: { platform: "linux", sleep: () => expect.unreachable() },
+      openAppend: () => {
+        opens++;
+        throw Object.assign(new Error("EBUSY"), { code: "EBUSY" });
+      },
+    });
+    index.record({ agent: "fake", sessionId: "s-1", directory: "/w", at: T0 });
+    expect(opens).toBe(1);
+    expect(index.warning).toStartWith("sessions not recorded (EBUSY)");
   });
 
   test("a file held for good: five retries over 250 ms, then the usual warning and no stray temporary file", () => {
