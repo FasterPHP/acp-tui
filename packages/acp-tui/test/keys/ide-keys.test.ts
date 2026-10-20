@@ -62,8 +62,8 @@ function checkAlternatives(map: KeyMap): string[] {
 }
 
 describe("Alternatives for keys an IDE keeps (task 3.8)", () => {
-  test("the recorded table: three terminals, each kept key recorded with how and its alternatives, in the key map's spelling", () => {
-    expect(Object.keys(TERMINALS).sort()).toEqual(["phpstorm-classic", "phpstorm-reworked", "zed"]);
+  test("the recorded table: five terminals, each kept key recorded with how and its alternatives, in the key map's spelling", () => {
+    expect(Object.keys(TERMINALS).sort()).toEqual(["intellij-windows", "phpstorm-classic", "phpstorm-reworked", "windows-terminal", "zed"]);
     for (const { kept } of Object.values(TERMINALS)) {
       expect(kept.length).toBeGreaterThan(0);
       for (const k of kept) {
@@ -80,10 +80,23 @@ describe("Alternatives for keys an IDE keeps (task 3.8)", () => {
     expect(keys("phpstorm-reworked")).toEqual(["ctrl+f", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+v", "shift+f3", "shift+super+z", "super+x", "super+z"]);
     expect(keys("phpstorm-classic")).toEqual(["ctrl+c", "ctrl+f", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+v", "shift+f3", "shift+super+z", "super+x", "super+z"]);
     expect(keys("zed")).toEqual(["ctrl+j", "ctrl+p", "ctrl+return", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+t", "f1", "shift+f3"]);
+    // windows-support task 9.4 (Windows VM, 20 October 2026): Windows Terminal keeps Alt+Enter, its
+    // paste, its own commands and Ctrl+C with a selection; IntelliJ's terminal on Windows keeps what
+    // PhpStorm's reworked terminal does, minus the Mac's Cmd keys and with Ctrl+Shift+C and
+    // Ctrl+Shift+Z arriving unshifted.
+    expect(keys("windows-terminal")).toEqual(["ctrl+,", "ctrl+c", "ctrl+shift+p", "ctrl+shift+t", "ctrl+shift+v", "ctrl+shift+w", "ctrl+shift+z", "ctrl+tab", "ctrl+v", "meta+return", "shift+f3"]);
+    expect(keys("intellij-windows")).toEqual(["ctrl+f", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+v", "shift+f3"]);
   });
 
   test("Recorded table checked: every kept key bound by default has its listed alternatives bound or in the palette", () => {
     expect(checkAlternatives(DEFAULT_KEY_MAP)).toEqual([]);
+  });
+
+  test("Windows Terminal (task 9.4): Alt+Enter is bound by default, so its alternatives are checked; its own commands are bound to nothing", () => {
+    expect(boundTo(DEFAULT_KEY_MAP, "meta+return")).toEqual(["prompt.newline", "find.previous"]);
+    for (const key of ["ctrl+shift+p", "ctrl+shift+t", "ctrl+shift+w", "ctrl+tab", "ctrl+,"]) expect(boundTo(DEFAULT_KEY_MAP, key), key).toEqual([]);
+    // Taking away Ctrl+Enter, the newline's route there, is reported.
+    expect(checkAlternatives(loadKeyMap({ prompt: { "ctrl+return": null } }))).toEqual(["windows-terminal meta+return: ctrl+return is not bound to prompt.newline"]);
   });
 
   test("The Mac's Cmd keys (task 13.4): Cmd+Z and Cmd+Shift+Z are bound by default, so their alternatives are checked; Cmd+X is bound to nothing", () => {
@@ -100,19 +113,24 @@ describe("Alternatives for keys an IDE keeps (task 3.8)", () => {
   test("Recorded table checked: an unbound alternative is reported", () => {
     // `?` in an empty prompt box is the palette's route in Zed, which keeps Ctrl+P (task 12.1).
     expect(checkAlternatives(loadKeyMap({ prompt: { "?": null } }))).toEqual(["zed ctrl+p: ? is not bound to prompt.palette"]);
-    // Alt+V is the clipboard reader's route in PhpStorm and Zed, which keep Ctrl+Shift+V (and
-    // PhpStorm Ctrl+V) (task 12.2).
+    // Alt+V is the clipboard reader's route in PhpStorm, Zed, Windows Terminal and IntelliJ on Windows,
+    // which keep Ctrl+Shift+V (and the others Ctrl+V) (task 12.2).
     expect(checkAlternatives(loadKeyMap({ prompt: { "meta+v": null } }))).toEqual([
       "phpstorm-reworked ctrl+v: meta+v is not bound to prompt.paste",
       "phpstorm-reworked ctrl+shift+v: meta+v is not bound to prompt.paste",
       "phpstorm-classic ctrl+v: meta+v is not bound to prompt.paste",
       "phpstorm-classic ctrl+shift+v: meta+v is not bound to prompt.paste",
       "zed ctrl+shift+v: meta+v is not bound to prompt.paste",
+      "windows-terminal ctrl+v: meta+v is not bound to prompt.paste",
+      "windows-terminal ctrl+shift+v: meta+v is not bound to prompt.paste",
+      "intellij-windows ctrl+v: meta+v is not bound to prompt.paste",
+      "intellij-windows ctrl+shift+v: meta+v is not bound to prompt.paste",
     ]);
     // F3 is find's route in PhpStorm, which keeps Ctrl+F.
     expect(checkAlternatives(loadKeyMap({ global: { f3: null } }))).toEqual([
       "phpstorm-reworked ctrl+f: f3 is not bound to global.findNext",
       "phpstorm-classic ctrl+f: f3 is not bound to global.findNext",
+      "intellij-windows ctrl+f: f3 is not bound to global.findNext",
     ]);
   });
 

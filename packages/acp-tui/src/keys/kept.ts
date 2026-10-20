@@ -5,10 +5,12 @@
 // naming the terminal and the action's other routes there, and still bound (the
 // user may have freed it in the IDE, design 14.20). Both PhpStorm engines are
 // detected alike (`TERMINAL_EMULATOR=JetBrains-JediTerm`), so `jetbrains` takes
-// the keys either keeps. `config --check` evaluates all three recorded
-// terminals (`keptKeyCheckWarnings`), and also warns when the overrides leave
-// an action that a key reached there by default reachable only through the
-// palette. Pure: no OpenTUI or Solid.
+// the keys any of them keeps (IntelliJ's terminal on Windows is a third, recorded
+// from the Windows VM, windows-support task 9.4; its kept keys are PhpStorm's).
+// Windows Terminal (`WT_SESSION`) is the fourth detected terminal. `config --check`
+// evaluates all five recorded terminals (`keptKeyCheckWarnings`), and also warns
+// when the overrides leave an action that a key reached there by default
+// reachable only through the palette. Pure: no OpenTUI or Solid.
 import table from "./ide-keys.json";
 import { detectTerminal } from "../renderer/capabilities.ts";
 import { isPaletteAction } from "../overlay/palette-actions.ts";
@@ -16,24 +18,27 @@ import { DEFAULT_KEY_MAP, KEY_CONTEXTS, keyLabel, keysFor, normaliseKey, type Ke
 import { ESSENTIAL_ACTIONS, type KeyProblem, type KeysSection } from "./overrides.ts";
 
 /** The terminals ide-keys.json records. */
-export const RECORDED_TERMINALS = ["phpstorm-reworked", "phpstorm-classic", "zed"] as const;
+export const RECORDED_TERMINALS = ["phpstorm-reworked", "phpstorm-classic", "zed", "windows-terminal", "intellij-windows"] as const;
 export type RecordedTerminal = (typeof RECORDED_TERMINALS)[number];
 
 /** Terminals as acp-tui detects them: both PhpStorm engines are `jetbrains`. */
-export type KeptKeysTerminal = "jetbrains" | "zed";
+export type KeptKeysTerminal = "jetbrains" | "zed" | "windows-terminal";
 
 /** How a warning names a terminal. */
 const LABELS: Readonly<Record<RecordedTerminal | KeptKeysTerminal, string>> = {
   "phpstorm-reworked": "PhpStorm's reworked terminal",
   "phpstorm-classic": "PhpStorm's classic terminal",
   zed: "Zed",
+  "windows-terminal": "Windows Terminal",
+  "intellij-windows": "IntelliJ's terminal on Windows",
   jetbrains: "PhpStorm",
 };
 
 /** The recorded terminals a detected terminal stands for. */
 const RECORDED_FOR: Readonly<Record<KeptKeysTerminal, readonly RecordedTerminal[]>> = {
-  jetbrains: ["phpstorm-reworked", "phpstorm-classic"],
+  jetbrains: ["phpstorm-reworked", "phpstorm-classic", "intellij-windows"],
   zed: ["zed"],
+  "windows-terminal": ["windows-terminal"],
 };
 
 type Alternative = { key: string; context: string; action: string } | { palette: string } | { outside: string };
@@ -46,12 +51,13 @@ const TERMINALS = table.terminals as unknown as Record<RecordedTerminal, { label
 /**
  * The terminal in use for the kept-key table, by the per-terminal table's detection
  * (`detectTerminal`, renderer/capabilities.ts; mvp-configuration design D10 and D12): `jetbrains`
- * stands for both PhpStorm engines (`TERMINAL_EMULATOR=JetBrains-JediTerm`), `zed` for Zed, and
- * any other terminal keeps no recorded key (null).
+ * stands for both PhpStorm engines and IntelliJ's terminal (`TERMINAL_EMULATOR=JetBrains-JediTerm`),
+ * `zed` for Zed, `windows-terminal` for Windows Terminal (`WT_SESSION`, after the others, so an IDE
+ * started from it is still `jetbrains`), and any other terminal keeps no recorded key (null).
  */
 export function keptKeysTerminal(env: Readonly<Record<string, string | undefined>> = process.env): KeptKeysTerminal | null {
   const id = detectTerminal(env);
-  return id === "jetbrains" || id === "zed" ? id : null;
+  return id === "jetbrains" || id === "zed" || id === "windows-terminal" ? id : null;
 }
 
 /** The keys the recorded terminals keep, normalised. */
@@ -227,11 +233,14 @@ export function keptKeyCheckWarnings(section: KeysSection | undefined, map: KeyM
   return out;
 }
 
-/** "Zed", "PhpStorm" (both engines), "PhpStorm's reworked terminal and Zed". */
+/** "Zed", "PhpStorm" (both engines), "PhpStorm's reworked terminal and Zed". IntelliJ's terminal
+ *  on Windows shares PhpStorm's kept keys and is named only when no PhpStorm terminal is. */
 function terminalsLabel(terminals: readonly RecordedTerminal[]): string {
   const names: string[] = [];
   const both = terminals.includes("phpstorm-reworked") && terminals.includes("phpstorm-classic");
+  const phpstorm = terminals.includes("phpstorm-reworked") || terminals.includes("phpstorm-classic");
   for (const t of terminals) {
+    if (t === "intellij-windows" && phpstorm) continue;
     if (both && (t === "phpstorm-reworked" || t === "phpstorm-classic")) {
       if (!names.includes(LABELS.jetbrains)) names.push(LABELS.jetbrains);
     } else names.push(LABELS[t]);

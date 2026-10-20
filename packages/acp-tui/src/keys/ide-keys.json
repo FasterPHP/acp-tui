@@ -1,5 +1,5 @@
 {
-  "source": "docs/phase-1a-spike-report.md, S1 task 10.5 key tables (PhpStorm reworked and classic in session A1, Zed 1.18.1 in session B1, 2 to 4 October 2026), with design D11's alternatives table (mvp-chrome-and-keys). Keys are in the key map's normalised spelling. Checked by the key probe of mvp-chrome-and-keys task 8.1 (11 October 2026, at 7524af0, the probe now being tools/keys.tsx; docs/mvp-notes/chrome-and-keys.md, \"IDE checks\"): every kept key below as recorded, and the probed keys listed under each terminal's \"reaches\" arrive unchanged. day-two-feedback task 10.4 (16 October 2026, at 19ba8e2) probed the prompt box's selection, cut, undo and redo keys: Ctrl+Shift+Z is added as kept in all three terminals, the rest reach the app.",
+  "source": "docs/phase-1a-spike-report.md, S1 task 10.5 key tables (PhpStorm reworked and classic in session A1, Zed 1.18.1 in session B1, 2 to 4 October 2026), with design D11's alternatives table (mvp-chrome-and-keys). Keys are in the key map's normalised spelling. Checked by the key probe of mvp-chrome-and-keys task 8.1 (11 October 2026, at 7524af0, the probe now being tools/keys.tsx; docs/mvp-notes/chrome-and-keys.md, \"IDE checks\"): every kept key below as recorded, and the probed keys listed under each terminal's \"reaches\" arrive unchanged. day-two-feedback task 10.4 (16 October 2026, at 19ba8e2) probed the prompt box's selection, cut, undo and redo keys: Ctrl+Shift+Z is added as kept in all three terminals, the rest reach the app. windows-support task 9.4 (20 October 2026) adds Windows Terminal 1.24.12741 and 1.25.2733.0 and IntelliJ IDEA 2026.2.3 on Windows (JediTerm, PowerShell 5.1), probed in the Windows 11 VM by keyprobe.ts and nlprobe.ts (docs/mvp-notes/windows-vm-findings.md sections 2 and 6, docs/mvp-notes/windows-newline-keys.md section 3).",
   "probe": "Per terminal, \"shiftEnter\" is the key map's name for what Shift+Enter sends (the prompt box's newline, the find bar's previous hit), and \"reaches\" lists the keys task 8.1 sent that reached the app, with the bytes on stdin. Not read by ide-keys.test.ts.",
   "alternatives": "Each alternative is one of: {key, context, action}: bound by default to that action; {palette: \"<context>.<action>\"}: a palette entry (a catalogue action outside tui-palette's keystroke-only list); {outside: \"...\"}: a route outside the key map (the IDE's own paste, a pill), recorded but not checkable. A kept key bound by default needs at least one checkable alternative, and every checkable one must hold.",
   "terminals": {
@@ -188,8 +188,8 @@
         },
         {
           "key": "ctrl+return",
-          "how": "Kept by the IDE: Zed's inline assist (bound to nothing in acp-tui)",
-          "alternatives": [{ "key": "return", "context": "prompt", "action": "submit" }]
+          "how": "Kept by the IDE: Zed's inline assist. Bound to newline in acp-tui since windows-support (Windows Terminal), where it arrives; in Zed it never does",
+          "alternatives": [{ "key": "linefeed", "context": "prompt", "action": "newline" }]
         },
         {
           "key": "ctrl+shift+v",
@@ -210,6 +210,144 @@
           "key": "shift+f3",
           "how": "On stdin as the xterm form CSI 1 ; 2 R, which OpenTUI 0.5.12 takes as a cursor position reply",
           "alternatives": [{ "key": "linefeed", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
+        }
+      ]
+    },
+    "windows-terminal": {
+      "label": "Windows Terminal 1.24.12741 and 1.25.2733.0 (PowerShell 5.1, ConPTY)",
+      "shiftEnter": "shift+return",
+      "shiftEnterNote": "Only from 1.25, which answers the kitty keyboard query (CSI 13;2u). In 1.24 Shift+Enter is a bare CR (Enter), so Ctrl+Enter (LF in 1.24: linefeed; CSI 13;5u in 1.25: ctrl+return) is the newline key there and the splash names it (src/keys/newline-hint.ts)",
+      "reaches": [
+        { "key": "shift+tab", "bytes": "CSI Z" },
+        { "key": "ctrl+t", "bytes": "0x14" },
+        { "key": "o", "bytes": "o" },
+        { "key": "a", "bytes": "a" },
+        { "key": "meta+v", "bytes": "ESC v", "note": "Alt+V; the reader found no clipboard on Windows before the native backend (windows-vm-findings section 2)" },
+        { "key": "escape escape", "bytes": "ESC and ESC", "note": "Esc Esc interrupted a turn (cancelled), 1.24" },
+        { "key": "linefeed", "bytes": "0x0a", "note": "Ctrl+Enter and Ctrl+J in 1.24 (and in 1.25 without the kitty flags)" },
+        { "key": "ctrl+return", "bytes": "CSI 13;5u", "note": "Ctrl+Enter in 1.25 under OpenTUI's kitty flags (5)" },
+        { "key": "shift+return", "bytes": "CSI 13;2u", "note": "Shift+Enter in 1.25 under the kitty flags; a bare CR in 1.24, which sends" },
+        { "key": "ctrl+j", "bytes": "CSI 106;5u", "note": "Ctrl+J in 1.25 under the kitty flags" },
+        { "key": "shift+left", "bytes": "CSI 1 ; 2 D" },
+        { "key": "ctrl+x", "bytes": "0x18" },
+        { "key": "ctrl+z", "bytes": "0x1a" },
+        { "key": "ctrl+y", "bytes": "0x19" },
+        { "key": "ctrl+d", "bytes": "0x04" },
+        { "key": "ctrl+p", "bytes": "0x10" },
+        { "key": "ctrl+l", "bytes": "0x0c" },
+        { "key": "f1", "bytes": "ESC O P" },
+        { "key": "f3", "bytes": "ESC O R" }
+      ],
+      "kept": [
+        {
+          "key": "meta+return",
+          "how": "Kept by the terminal: Alt+Enter toggles full screen in every version (nothing reaches the app)",
+          "alternatives": [{ "key": "ctrl+return", "context": "prompt", "action": "newline" }, { "key": "shift+return", "context": "find", "action": "previous" }, { "key": "linefeed", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
+        },
+        {
+          "key": "ctrl+v",
+          "how": "Kept by the terminal: it pastes the clipboard itself as one bracketed paste (no 0x16)",
+          "alternatives": [{ "outside": "Windows Terminal's own bracketed paste, for text" }, { "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+v",
+          "how": "Kept by the terminal: its paste, as one bracketed paste",
+          "alternatives": [{ "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+z",
+          "how": "Arrives as Ctrl+Z's byte (0x1a) in 1.24 and without the kitty flags, so it undoes instead of redoing; 1.25 under the kitty flags sends CSI 122:90;6u, which is distinct",
+          "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "shift+f3",
+          "how": "On stdin as the xterm form CSI 1 ; 2 R (windows-vm-findings section 2), which OpenTUI takes as a cursor position reply",
+          "alternatives": [{ "key": "shift+return", "context": "find", "action": "previous" }, { "key": "linefeed", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
+        },
+        {
+          "key": "ctrl+c",
+          "how": "The terminal's Copy while it holds a selection of its own (Shift+drag); 0x03 and it reaches acp-tui otherwise",
+          "noneNeeded": "Ctrl+C no longer exits or cancels (design D11): detach is Ctrl+D and interrupt the double Esc",
+          "alternatives": [{ "key": "ctrl+d", "context": "global", "action": "detach" }, { "key": "escape", "context": "global", "action": "escape" }, { "palette": "selection.copy" }]
+        },
+        {
+          "key": "ctrl+shift+p",
+          "how": "Kept by the terminal: its command palette (bound to nothing in acp-tui)",
+          "alternatives": [{ "outside": "Windows Terminal's own command; acp-tui binds nothing here" }]
+        },
+        {
+          "key": "ctrl+shift+t",
+          "how": "Kept by the terminal: a new tab (bound to nothing in acp-tui)",
+          "alternatives": [{ "outside": "Windows Terminal's own command; acp-tui binds nothing here" }]
+        },
+        {
+          "key": "ctrl+shift+w",
+          "how": "Kept by the terminal: closes the pane (bound to nothing in acp-tui)",
+          "alternatives": [{ "outside": "Windows Terminal's own command; acp-tui binds nothing here" }]
+        },
+        {
+          "key": "ctrl+tab",
+          "how": "Kept by the terminal: the next tab (bound to nothing in acp-tui)",
+          "alternatives": [{ "outside": "Windows Terminal's own command; acp-tui binds nothing here" }]
+        },
+        {
+          "key": "ctrl+,",
+          "how": "Kept by the terminal: opens its settings (bound to nothing in acp-tui)",
+          "alternatives": [{ "outside": "Windows Terminal's own command; acp-tui binds nothing here" }]
+        }
+      ]
+    },
+    "intellij-windows": {
+      "label": "IntelliJ IDEA 2026.2.3 on Windows, terminal (JediTerm, PowerShell 5.1, ConPTY)",
+      "shiftEnter": "meta+return",
+      "reaches": [
+        { "key": "meta+return", "bytes": "ESC CR", "note": "Shift+Enter and Alt+Enter alike, in every mode (windows-newline-keys section 3): acp-tui's newline" },
+        { "key": "linefeed", "bytes": "0x0a", "note": "Ctrl+J; Ctrl+Enter is a plain CR here, which sends" },
+        { "key": "ctrl+d", "bytes": "0x04" },
+        { "key": "ctrl+p", "bytes": "0x10" },
+        { "key": "ctrl+t", "bytes": "0x14" },
+        { "key": "ctrl+l", "bytes": "0x0c" },
+        { "key": "ctrl+o", "bytes": "0x0f" },
+        { "key": "ctrl+w", "bytes": "0x17" },
+        { "key": "ctrl+x", "bytes": "0x18" },
+        { "key": "ctrl+y", "bytes": "0x19" },
+        { "key": "ctrl+a", "bytes": "0x01" },
+        { "key": "ctrl+z", "bytes": "0x1a" },
+        { "key": "f1", "bytes": "ESC O P" },
+        { "key": "f2", "bytes": "ESC O Q" },
+        { "key": "f3", "bytes": "CSI R", "note": "a bare CSI R, no parameters" },
+        { "key": "shift+f3", "bytes": "CSI 1 ; 2 R" }
+      ],
+      "kept": [
+        {
+          "key": "ctrl+f",
+          "how": "Kept by the IDE: opens the terminal's find (later keys went into its field)",
+          "alternatives": [{ "key": "f3", "context": "global", "action": "findNext" }, { "palette": "global.find" }]
+        },
+        {
+          "key": "ctrl+v",
+          "how": "Kept by the IDE: it pastes the clipboard itself as one bracketed paste (no 0x16)",
+          "alternatives": [{ "outside": "the IDE's own bracketed paste, for text" }, { "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+v",
+          "how": "Kept by the IDE: opens Choose Content to Paste",
+          "alternatives": [{ "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "ctrl+shift+c",
+          "how": "Arrives unshifted, as Ctrl+C's byte (0x03)",
+          "alternatives": [{ "key": "shift+y", "context": "conversation", "action": "copyItemMarkdown" }, { "palette": "selection.copyRich" }]
+        },
+        {
+          "key": "ctrl+shift+z",
+          "how": "Arrives unshifted, as Ctrl+Z's byte (0x1a), so it undoes instead of redoing",
+          "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "shift+f3",
+          "how": "On stdin as the xterm form CSI 1 ; 2 R, which OpenTUI takes as a cursor position reply",
+          "alternatives": [{ "key": "meta+return", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
         }
       ]
     }
