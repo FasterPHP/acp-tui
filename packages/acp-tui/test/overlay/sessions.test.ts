@@ -216,9 +216,9 @@ describe("agent selector rows (design decision 6)", () => {
     expect(shortenHome("/home/marcusx/a", "/home/marcus")).toBe("/home/marcusx/a");
   });
 
-  test("Windows: a session under the profile reads `~\\...`; an ad hoc command is named by its file", () => {
+  test("Windows: a session under the profile reads `~\\...`; an ad hoc command is named by its file without the extension", () => {
     expect(shortenHome("C:\\Users\\u\\work", "C:\\Users\\u", "win32")).toBe("~\\work");
-    expect(harnessName({ name: "ad hoc", command: ["C:\\tools\\my agent\\agent.cmd", "--x"] }, "win32")).toBe("agent.cmd");
+    expect(harnessName({ name: "ad hoc", command: ["C:\\tools\\my agent\\agent.cmd", "--x"] }, "win32")).toBe("agent");
     expect(harnessName({ name: "ad hoc", command: ["/usr/local/bin/bun"] }, "linux")).toBe("bun");
   });
 });

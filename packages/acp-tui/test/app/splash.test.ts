@@ -205,8 +205,8 @@ describe("splash rows (task 4.7)", () => {
     expect(splashLaunch({ agentName: "ad hoc", command: "bun", directory: "/work" }).harness).toBe("bun");
   });
 
-  test("Windows: an ad hoc command is named by its file, and the profile reads `~` in the identity row", () => {
-    expect(splashLaunch({ agentName: "ad hoc", command: "C:\\tools\\agent.cmd", directory: "C:\\Users\\u\\app" }, "win32").harness).toBe("agent.cmd");
+  test("Windows: an ad hoc command is named by its file without the extension, and the profile reads `~` in the identity row", () => {
+    expect(splashLaunch({ agentName: "ad hoc", command: "C:\\tools\\agent.cmd", directory: "C:\\Users\\u\\app" }, "win32").harness).toBe("agent");
     const layout = splashLayout({ ...INPUT, cwd: "C:\\Users\\u\\src\\app", home: "c:\\users\\U", platform: "win32" }, 63, 12);
     expect(text(layout.rows).join("\n")).toContain("~\\src\\app");
   });
