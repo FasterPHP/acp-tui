@@ -150,13 +150,16 @@ function repoWorld(session: LaunchDescription["session"] = { kind: "new" }, inde
 }
 
 /** Runs `body` with HOME set to `home`. */
+/** Runs `body` with `home` as the user's home: `HOME`, or the profile (`USERPROFILE`) on Windows. */
 async function withHome<T>(home: string, body: () => Promise<T>): Promise<T> {
-  const saved = process.env.HOME;
-  process.env.HOME = home;
+  const variable = process.platform === "win32" ? "USERPROFILE" : "HOME";
+  const saved = process.env[variable];
+  process.env[variable] = home;
   try {
     return await body();
   } finally {
-    process.env.HOME = saved;
+    if (saved === undefined) delete process.env[variable];
+    else process.env[variable] = saved;
   }
 }
 
@@ -177,7 +180,7 @@ describe("the session directory marker (IDE check 10.4, decision B)", () => {
     );
     expect(problem).toBeNull();
     expect(notices).toEqual([]);
-    expect(lastNotice(switcher)).toBe("opened in ~/repo-b (launched from ~)");
+    expect(lastNotice(switcher)).toBe(`opened in ${join("~", "repo-b")} (launched from ~)`);
     const session = switcher.current()!.controller.getSession();
     expect(session.items.get(session.order.at(-1)!)!.origin).toBe("replay");
   }, 20000);
@@ -186,7 +189,7 @@ describe("the session directory marker (IDE check 10.4, decision B)", () => {
     const { dir, notices, switcher } = repoWorld({ kind: "resume", id: "s-b" }, 2);
     await withHome(dir, () => switcher.start());
     expect(notices).toEqual(["2 harnesses have this session: opened with fake (latest)"]);
-    expect(lastNotice(switcher)).toBe("opened in ~/repo-b (launched from ~)");
+    expect(lastNotice(switcher)).toBe(`opened in ${join("~", "repo-b")} (launched from ~)`);
   }, 20000);
 
   test("Same directory: no marker", async () => {

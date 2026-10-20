@@ -112,12 +112,12 @@ describe("resolveLaunch for --resume <id> (tasks 5.2 and 12.5)", () => {
     expect(reads).toEqual([]);
   });
 
-  test("shellWord quotes only what needs it", () => {
-    expect(shellWord("bun")).toBe("bun");
-    expect(shellWord("/a/b-c.ts")).toBe("/a/b-c.ts");
-    expect(shellWord("my agent")).toBe("'my agent'");
-    expect(shellWord("it's")).toBe(`'it'\\''s'`);
-    expect(shellWord("")).toBe("''");
+  test("shellWord quotes only what needs it, for a POSIX shell", () => {
+    expect(shellWord("bun", "linux")).toBe("bun");
+    expect(shellWord("/a/b-c.ts", "linux")).toBe("/a/b-c.ts");
+    expect(shellWord("my agent", "linux")).toBe("'my agent'");
+    expect(shellWord("it's", "linux")).toBe(`'it'\\''s'`);
+    expect(shellWord("", "linux")).toBe("''");
   });
 
   test("shellWord and the rerun message are quoted for PowerShell on Windows", () => {
