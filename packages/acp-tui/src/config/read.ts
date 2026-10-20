@@ -17,9 +17,9 @@ function readProblem(file: string, error: string): ConfigProblem {
 }
 
 /** A file read and loaded; a read error counts as a file that did not parse. */
-export function loadSource(read: FileRead, file: string, kind: ConfigSourceKind, knownAgents: readonly string[]): ParsedSource {
+export function loadSource(read: FileRead, file: string, kind: ConfigSourceKind, knownAgents: readonly string[], platform?: NodeJS.Platform): ParsedSource {
   if (read.error !== null) return { file, kind, status: "syntax", sections: {}, rejected: [], invalidAgents: {}, notices: [], problems: [readProblem(file, read.error)] };
-  return parseConfigText(read.text, file, { kind, agentsRefused: kind === "user" ? read.unsafe : null, ...(kind === "user" ? { knownAgents } : {}) });
+  return parseConfigText(read.text, file, { kind, agentsRefused: kind === "user" ? read.unsafe : null, ...(kind === "user" ? { knownAgents } : {}), ...(platform ? { platform } : {}) });
 }
 
 export interface ReadConfigurationOptions {
@@ -30,6 +30,8 @@ export interface ReadConfigurationOptions {
   readonly overrides?: ConfigOverrides;
   /** Agent names that exist without the file; default the built-in. */
   readonly knownAgents?: readonly string[];
+  /** Default `process.platform` (tests). */
+  readonly platform?: NodeJS.Platform;
   /** Reads a file (tests); default `readConfigFile`. */
   readonly read?: (path: string, options: { checkWriters?: boolean }) => FileRead;
 }
@@ -52,9 +54,9 @@ export function readConfiguration(options: ReadConfigurationOptions): Configurat
   const read = options.read ?? readConfigFile;
   const knownAgents = options.knownAgents ?? [BUILT_IN_AGENT_NAME];
   const userFile = userConfigFile(env);
-  const user = loadSource(read(userFile, { checkWriters: true }), userFile, "user", knownAgents);
+  const user = loadSource(read(userFile, { checkWriters: true }), userFile, "user", knownAgents, options.platform);
   const projectFile = options.sessionDirectory === null ? null : findProjectFile(options.sessionDirectory, { home: homeDirectory(env) });
-  const project = projectFile === null ? null : loadSource(read(projectFile, {}), projectFile, "project", knownAgents);
+  const project = projectFile === null ? null : loadSource(read(projectFile, {}), projectFile, "project", knownAgents, options.platform);
   const config = effectiveConfig({
     user: nextLastGood({}, user),
     project: project ? nextLastGood({}, project) : {},
