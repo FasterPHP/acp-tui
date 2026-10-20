@@ -138,6 +138,15 @@ describe("installTerminalTitle", () => {
     expect(f.titles).toHaveLength(4);
   });
 
+  test("current is the title last set, and empty after restore", () => {
+    const f = fixture({ format: () => WITH_TITLE });
+    expect(f.handle.current()).toBe("acp-tui");
+    f.update({ state: "requires_action" });
+    expect(f.handle.current()).toBe(`${TITLE_MARKER} acp-tui`);
+    f.handle.restore();
+    expect(f.handle.current()).toBe("");
+  });
+
   test("reassert after restore writes nothing", () => {
     const f = fixture();
     f.handle.restore();
