@@ -169,7 +169,7 @@ acp-tui calls the program it launches and talks to over ACP a **harness**: Claud
 | `agent_servers` | object of harnesses | `{}` | Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or `--harness <name>`. Entries have Zed's shape, so they copy across from Zed's settings. Read only from your own file, never from a project file. |
 | `default_agent_server` | string | `"claude"` | The harness launched without a harness name or command: `"claude"` (built in) or the name of an `agent_servers` entry. The older name default_agent is still accepted. |
 
-Each `agent_servers` entry takes `command` (the program, looked up on the `PATH` when it has no slash), `args` (an array of strings) and `env` (strings added to acp-tui's own environment for the harness); a `"type": "custom"` key, which Zed writes, is accepted and ignored. The harness runs in the session directory, so use absolute paths in `args`. An entry of a built-in name replaces the built-in one.
+Each `agent_servers` entry takes `command` (the program: a name is looked up on the `PATH` only, the entry's own `PATH` when its `env` sets one, and never in the session directory, so a repository cannot slip in a program of the same name; a path, with a slash or on Windows a backslash or a drive letter, is used as written), `args` (an array of strings) and `env` (strings added to acp-tui's own environment for the harness); a `"type": "custom"` key, which Zed writes, is accepted and ignored. The harness runs in the session directory, so use absolute paths in `args`. An entry of a built-in name replaces the built-in one.
 
 **Telling a harness from a directory and a command.** The first argument is the harness when it names one (the built-in `claude` or an `agent_servers` entry), even when a directory of that name exists: write `./name` for the directory. Then at most one argument, the directory. A command after `--` is launched as given (an "ad hoc" harness) and wins over a harness name. A lone word that names no harness, no directory and no command on the `PATH` is an error before anything starts. The subcommands `config` and `glyphs` come first: a harness named like one is reached with `--harness config`, and `acp-tui config --check` warns about such a name, and about one that starts with `-`. `-r` is `--resume` and `-c` is `--continue`, as in Claude Code; they are not combined (`-rc` is an unknown option).
 
@@ -183,7 +183,7 @@ Each `agent_servers` entry takes `command` (the program, looked up on the `PATH`
 }
 ```
 
-Without an entry, `claude` is the only harness: the built-in entry runs `bunx @agentclientprotocol/claude-agent-acp@0.81.2`, which uses your Claude Code login. An entry named `claude` replaces it, for example to pin another version or to add environment variables (Claude Code reads `ANTHROPIC_MODEL` to choose the model). The commented default carries one example per harness below, each with the source its command was checked against on 13 October 2026; install the harness before you uncomment it.
+Without an entry, `claude` is the only harness: the built-in entry runs `@agentclientprotocol/claude-agent-acp@0.81.2` with the Bun that runs acp-tui (`bun x --bun ...`), and it uses your Claude Code login. An entry named `claude` replaces it, for example to pin another version or to add environment variables (Claude Code reads `ANTHROPIC_MODEL` to choose the model). The commented default carries one example per harness below, each with the source its command was checked against on 13 October 2026; install the harness before you uncomment it.
 
 | Name in the example | Harness | Command | Source |
 | --- | --- | --- | --- |
@@ -648,7 +648,7 @@ A project file cannot set keys in the `card` and `elicitation` contexts.
 
 ### Keys the IDE terminals keep
 
-PhpStorm, Zed and Windows Terminal keep some keys for themselves, so they never reach acp-tui. The table records what was measured in PhpStorm 2026.2.3 (reworked and classic terminals), Zed 1.18.1, Windows Terminal 1.24 and 1.25 and IntelliJ IDEA 2026.2.3 on Windows (`packages/acp-tui/src/keys/ide-keys.json`, which acp-tui also reads at run time). IntelliJ's terminal keeps what PhpStorm's does (`ctrl+f`, `ctrl+v`, `ctrl+shift+v`), and `ctrl+shift+c` and `ctrl+shift+z` arrive unshifted there too, so the PhpStorm rows apply to it. Every key here has an alternative route, in the last column. If you bind a kept key, acp-tui still binds it (you may have freed it in the IDE) but warns, naming the terminal and the action's other routes; `config --check` gives the warnings for all three terminals whatever you run it in. It also warns when your overrides leave an action that a key reached by default reachable in an IDE only through the palette.
+PhpStorm, Zed and Windows Terminal keep some keys for themselves, so they never reach acp-tui. The table records what was measured in PhpStorm 2026.2.3 (reworked and classic terminals), Zed 1.18.1, Windows Terminal 1.24 and 1.25 and IntelliJ IDEA 2026.2.3 on Windows (`packages/acp-tui/src/keys/ide-keys.json`, which acp-tui also reads at run time). IntelliJ's terminal keeps what PhpStorm's does (`ctrl+f`, `ctrl+v`, `ctrl+shift+v`), and `ctrl+shift+c` and `ctrl+shift+z` arrive unshifted there too, so the PhpStorm rows apply to it. Every key here has an alternative route, in the last column. If you bind a kept key, acp-tui still binds it (you may have freed it in the IDE) but warns, naming the terminal and the action's other routes; `config --check` gives the warnings for every terminal in the table whatever you run it in. It also warns when your overrides leave an action that a key reached by default reachable in an IDE only through the palette.
 
 | Terminal | Key kept | What happens | Alternatives |
 | --- | --- | --- | --- |
@@ -666,7 +666,7 @@ PhpStorm, Zed and Windows Terminal keep some keys for themselves, so they never 
 | Zed | `ctrl+t` | Opens Zed's project symbols | the effort pill; the palette's `Choose the thinking level` |
 | Zed | `f1` | Opens Zed's command palette | the palette's key help |
 | Zed | `ctrl+j` | Toggles Zed's bottom dock | Shift+Enter in the prompt box |
-| Zed | `ctrl+enter` | Zed's inline assist; it never reaches acp-tui there | `ctrl+j` in the prompt box |
+| Zed | `ctrl+enter` | Zed's inline assist; it never reaches acp-tui there | Shift+Enter in the prompt box (Zed sends it as a line feed) |
 | Zed | `ctrl+shift+v` | Zed's paste | `alt+v`; the palette's paste |
 | Zed | `ctrl+shift+c` | Zed's copy | `shift+y` in the conversation; the palette's rich copy |
 | Zed | `ctrl+shift+z` | Zed's redo: nothing reaches the terminal | `ctrl+y`; the palette's `Redo the edit` |
@@ -834,7 +834,7 @@ These are not settings and are not in `--help` or the schema.
 | --- | --- |
 | `ACP_TUI_LOG=<path>` | Appends a JSON-lines debug log (method names, ids, state transitions and timings; never prompt or message text). Records the configuration load (`config_loaded`) and each reload (`config_reload`, with the sections that changed). |
 | `ACP_TUI_CAPABILITIES` | Overrides the terminal's capability row for a run, on top of `terminals`: a comma list of names, each alone (on) or `name=true\|false`, such as `osc8` or `osc8=false,sgr9`; it also reaches `emoji` and `detectsUrls`, which `terminals` does not. For tests and IDE checks. |
-| `ACP_TUI_OPENER` | The program that opens links instead of `xdg-open` or `open`. |
+| `ACP_TUI_OPENER` | The program that opens links instead of `xdg-open`, `open` or, on Windows, the system's URL handler (`rundll32.exe url.dll,FileProtocolHandler`). |
 | `ACP_TUI_ROOT` | The checkout the installed stub runs. |
 | `ACP_TUI_TEST_HOOKS=crash` | Test only: F12 throws an uncaught error, to exercise the crash exit path. Unreachable from the command line, the configuration or the palette. |
 

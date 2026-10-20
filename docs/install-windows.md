@@ -1,6 +1,6 @@
 # Installing acp-tui on Windows
 
-How to run acp-tui on Windows 10 or 11 from PowerShell, in IntelliJ IDEA's terminal or in Windows Terminal, with Auggie or Claude Code as the harness (the coding agent program acp-tui launches). The commands are for Windows PowerShell 5.1 or PowerShell 7; where cmd.exe differs, it says so.
+How to run acp-tui on Windows 11 (x64; Windows 10 and Windows on ARM have not been checked) from PowerShell, in IntelliJ IDEA's terminal or in Windows Terminal, with Auggie or Claude Code as the harness (the coding agent program acp-tui launches). The commands are for Windows PowerShell 5.1 or PowerShell 7; where cmd.exe differs, it says so.
 
 ## What you need
 
@@ -91,7 +91,7 @@ On Windows `auggie` is a `.cmd` file made by npm, which acp-tui starts through `
 
 ### Claude Code (built in)
 
-With no configuration, plain `acp-tui` runs the built-in `claude` harness, `claude-agent-acp`, which Bun downloads on first use. It uses your Claude Code login, so sign in to Claude Code first. Other harnesses (Codex, OpenCode and the rest) are listed, with their commands, in [configuration.md](configuration.md#harnesses).
+With no configuration, plain `acp-tui` runs the built-in `claude` harness, `claude-agent-acp`, which Bun downloads on first use. It uses your Claude Code login, so sign in to Claude Code first. While it runs, the terminal tab reads `claude` rather than the directory's name: Claude Code names the tab itself. Other harnesses (Codex, OpenCode and the rest) are listed, with their commands, in [configuration.md](configuration.md#harnesses).
 
 ## 4. Terminals
 
@@ -102,6 +102,8 @@ Open the terminal (Alt+F12). It runs PowerShell, and `acp-tui` works there as in
 - Shift+Enter inserts a newline in the prompt box (and so does Alt+Enter).
 - Ctrl+V pastes (the IDE's paste, delivered to acp-tui as one paste).
 - Mouse wheel scrolling, selecting by dragging and Ctrl+D to leave behave as on other systems.
+
+- Ctrl+Break does not reach acp-tui: IntelliJ's terminal does not deliver it. Leave with Ctrl+D.
 
 Restart the terminal tab after `install-cli` if `acp-tui` is not found.
 
@@ -123,6 +125,20 @@ Before 1.25 Windows Terminal sends Shift+Enter exactly as Enter, which sends you
 ```
 
 Caveat: Windows Terminal has no per-profile bindings, so this applies to every tab, and it replaces PowerShell's own Shift+Enter (which starts a new line of a multi-line command) as well. Updating to 1.25 avoids that.
+
+Ctrl+V and Ctrl+Shift+V are Windows Terminal's own paste, which acp-tui receives as one paste, and Alt+Enter is its full-screen key. A plain click on a link is acp-tui's; Ctrl+click is Windows Terminal's own, and opens the link too.
+
+### Copy, paste and links (both terminals)
+
+- Copying uses the Windows clipboard: select by dragging (the copy happens when you release), or press Ctrl+C on a selection or, with the conversation focused, on the item under its cursor. The toast reads `copied N chars to the Windows clipboard`, and the text stays on the clipboard after acp-tui exits.
+- Alt+V, or the palette's paste (Ctrl+P, then `paste`), pastes from the Windows clipboard into the prompt box; Ctrl+V is the terminal's own paste.
+- Links open in your default browser: click one, or press `o` with the conversation's cursor on its item. A link to a file (`C:\work\app\src\Main.java`) opens in the file's program when it lies inside the session's directory.
+
+### Leaving acp-tui
+
+Ctrl+D leaves acp-tui (press it twice while a turn runs). In Windows Terminal, Ctrl+Break also leaves it cleanly: the screen is restored, the mouse is given back to the terminal, and the resume line is printed. Closing the window ends acp-tui and its harness with it. After Ctrl+Break through the installed command, cmd.exe asks `Terminate batch job (Y/N)?`, because `acp-tui.cmd` is a batch file; acp-tui has already exited by then, and either answer returns you to PowerShell.
+
+The resume line (`resume: acp-tui --resume <id>`) is quoted for PowerShell, so you can paste it as it is. One limit of Windows PowerShell 5.1, not of acp-tui: when it starts a program it drops an empty argument and mangles one that holds a double quote (PowerShell 7.3 and later do not). acp-tui's own arguments never need either; only an ad hoc harness command you type after `--` might.
 
 ## 5. Where acp-tui keeps its files
 
