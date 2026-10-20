@@ -492,6 +492,9 @@ export const DEFAULT_KEY_MAP_INPUT = {
     return: "next",
     "shift+return": "previous",
     "meta+return": "previous",
+    // Ctrl+Enter as in the prompt box: `linefeed` in Windows Terminal 1.24 and older, `ctrl+return`
+    // from 1.25 (kitty keyboard protocol), where Shift+Enter does not arrive in 1.24.
+    "ctrl+return": "previous",
     linefeed: "previous",
     escape: "close",
     tab: "conversation",

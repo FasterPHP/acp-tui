@@ -188,6 +188,8 @@ describe("loadKeyMap", () => {
       return: "next",
       "shift+return": "previous",
       "meta+return": "previous",
+      // Windows Terminal 1.25 sends Ctrl+Enter as CSI 13;5u.
+      "ctrl+return": "previous",
       // Zed sends Shift+Enter as a bare `\n` (S5, "Reaching find in the IDEs").
       linefeed: "previous",
       escape: "close",

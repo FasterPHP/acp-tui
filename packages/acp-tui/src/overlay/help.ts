@@ -7,7 +7,7 @@
 // selection stays one step away"), wrapped to the overlay's width. Shown in
 // the palette's overlay (Overlay.tsx). Pure.
 import { COMMAND_TITLES, KEY_ACTIONS, KEY_SCOPES, keyLabel, keysFor, normaliseKey, type KeyAction, type KeyContext, type KeyMap } from "../keys/keymap.ts";
-import { newlineKeyLabels } from "../keys/newline-hint.ts";
+import { findPreviousKeyLabels, findPreviousLabel, newlineHintState, newlineKeyLabels, type NewlineHintState } from "../keys/newline-hint.ts";
 import { SELECTION_HELP } from "../selection/help.ts";
 import { wrapText, type ListItem } from "./list.ts";
 
@@ -36,11 +36,13 @@ const ref = <C extends KeyContext>(context: C, action: KeyAction<C>, key?: strin
  * the same per terminal): the key, the words for where it is lost, and the routes, each either a key of the key map
  * (named by its label) or plain words.
  */
-const KEPT: readonly { readonly key: Ref; readonly by: string; readonly routes: readonly (Ref | string)[] }[] = [
+const KEPT: readonly { readonly key: Ref; readonly by: string; readonly routes: readonly (Ref | string | ((map: KeyMap, hint: NewlineHintState) => string | null))[]; readonly inWindowsTerminal?: string; readonly onlyInWindowsTerminal?: true }[] = [
   { key: ref("global", "find"), by: "Kept by PhpStorm", routes: [ref("global", "findNext"), "the palette"] },
-  { key: ref("prompt", "paste"), by: "Kept by PhpStorm", routes: ["its own paste for text", ref("prompt", "paste", "meta+v"), "the palette"] },
+  { key: ref("prompt", "paste"), by: "Kept by PhpStorm", inWindowsTerminal: "Kept by Windows Terminal", routes: ["its own paste for text", ref("prompt", "paste", "meta+v"), "the palette"] },
   // Ctrl+Shift+V, the reader's named key, is kept by both IDEs; Alt+V reaches all three (task 12.2).
-  { key: ref("prompt", "paste", "ctrl+shift+v"), by: "Kept by PhpStorm and Zed", routes: [ref("prompt", "paste", "meta+v"), "the palette"] },
+  // Windows Terminal pastes with both itself, as one bracketed paste (src/keys/ide-keys.json); its
+  // wording replaces the IDEs' only in Windows Terminal, so the text elsewhere is what it was.
+  { key: ref("prompt", "paste", "ctrl+shift+v"), by: "Kept by PhpStorm and Zed", inWindowsTerminal: "Kept by Windows Terminal", routes: [ref("prompt", "paste", "meta+v"), "the palette"] },
   // Ctrl+Shift+Z undoes in PhpStorm (it arrives as Ctrl+Z's byte) and never arrives in Zed (day-two-feedback task 12.4).
   { key: ref("prompt", "redo", "ctrl+shift+z"), by: "Kept by PhpStorm and Zed", routes: [ref("prompt", "redo", "ctrl+y"), "the palette"] },
   // PhpStorm on macOS keeps Cmd+Z and Cmd+Shift+Z (day-two-feedback task 13.4); Cmd+X is bound to nothing.
@@ -50,8 +52,10 @@ const KEPT: readonly { readonly key: Ref; readonly by: string; readonly routes: 
   { key: ref("global", "cycleThoughtLevel"), by: "Kept by Zed", routes: ["the effort pill", "the palette"] },
   { key: ref("global", "keyHelp"), by: "Kept by Zed", routes: ["the palette"] },
   { key: ref("prompt", "newline"), by: "Kept by Zed", routes: ["shift+enter"] },
+  // Windows Terminal keeps Alt+Enter for full screen; Ctrl+Enter (1.24: a line feed, 1.25: CSI 13;5u) or Ctrl+J reaches the app.
+  { key: ref("prompt", "newline", "meta+return"), by: "Kept by Windows Terminal", onlyInWindowsTerminal: true, routes: [ref("prompt", "newline", "ctrl+return"), ref("prompt", "newline", "ctrl+j")] },
   { key: ref("selection", "copyRich"), by: "Kept by Zed, or sent as ctrl+c", routes: [ref("conversation", "copyItemMarkdown"), "the palette"] },
-  { key: ref("global", "findPrevious"), by: "Lost in most terminals", routes: ["shift+enter in the find bar"] },
+  { key: ref("global", "findPrevious"), by: "Lost in most terminals", routes: [(map, hint) => { const label = findPreviousLabel(map, hint); return label === null ? null : `${label} in the find bar`; }] },
 ];
 
 /** A key's label when the key map binds it to the action: the given key, else the first. */
@@ -64,7 +68,7 @@ function refLabel(map: KeyMap, r: Ref): string | null {
 /** The kept key's label: `ctrl+j` for the newline (Zed keeps that one, not Shift+Enter). */
 function keptLabel(map: KeyMap, key: Ref): string | null {
   const keys = keysFor(map, key.context, key.action as never);
-  if (key.context === "prompt" && key.action === "newline") return keys.some((k) => keyLabel(k) === "ctrl+j") ? "ctrl+j" : null;
+  if (key.context === "prompt" && key.action === "newline" && key.key === undefined) return keys.some((k) => keyLabel(k) === "ctrl+j") ? "ctrl+j" : null;
   return refLabel(map, key);
 }
 
@@ -74,28 +78,32 @@ function labels(map: KeyMap, context: KeyContext, action: string): string[] {
 }
 
 /** Key help's entries for `map`, the selection paragraph wrapped to `inner` columns. */
-export function helpItems(map: KeyMap, inner: number): ListItem[] {
+export function helpItems(map: KeyMap, inner: number, hint: NewlineHintState = newlineHintState()): ListItem[] {
+  const windowsTerminal = hint.terminal === "windows-terminal";
   const items: ListItem[] = [];
   for (const { context, label } of HELP_GROUPS) {
     const titles = COMMAND_TITLES[context] as Record<string, string>;
     for (const action of KEY_ACTIONS[context]) {
-      const keys = context === "prompt" && action === "newline" ? newlineKeyLabels(map) : labels(map, context, action);
+      const keys =
+        context === "prompt" && action === "newline" ? newlineKeyLabels(map, hint) : context === "find" && action === "previous" ? findPreviousKeyLabels(map, hint) : labels(map, context, action);
       if (keys.length === 0) continue;
       items.push({ id: `help:${context}.${action}`, group: label, title: titles[action] ?? action, keys, groupNote: KEY_SCOPES[context] });
     }
   }
   for (const kept of KEPT) {
+    if (kept.onlyInWindowsTerminal && !windowsTerminal) continue;
     const key = keptLabel(map, kept.key);
     if (key === null) continue;
     const routes = kept.routes
       .map((r) => {
         if (typeof r === "string") return r;
+        if (typeof r === "function") return r(map, hint);
         const label = refLabel(map, r);
         return label === null ? null : `${label}${r.suffix ?? ""}`;
       })
       .filter((r): r is string => r !== null);
     if (routes.length === 0) continue;
-    items.push({ id: `help:kept.${kept.key.context}.${kept.key.action}`, group: ALTERNATIVES_GROUP, title: `${kept.by}: ${routes.join(", ")}`, keys: [key] });
+    items.push({ id: `help:kept.${kept.key.context}.${kept.key.action}${kept.onlyInWindowsTerminal ? ".windows-terminal" : ""}`, group: ALTERNATIVES_GROUP, title: `${windowsTerminal && kept.inWindowsTerminal !== undefined ? kept.inWindowsTerminal : kept.by}: ${routes.join(", ")}`, keys: [key] });
   }
   wrapText(SELECTION_HELP.join(" "), Math.max(8, inner), Number.MAX_SAFE_INTEGER).forEach((line, i) => {
     items.push({ id: `help:mouse.${i}`, group: MOUSE_GROUP, title: line });
