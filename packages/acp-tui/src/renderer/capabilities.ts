@@ -41,9 +41,9 @@
 //   conversation/markdown/wrap.ts), so the terminal never detects a cut-off URL. Zed detects only
 //   on Ctrl+click, which acp-tui leaves to it in every terminal: false.
 //
-// - Windows Terminal (windows-support design D9; the measured facts are in the row's comment below
-//   `TERMINAL_TABLE`): the row's `osc8`, `detectsUrls` and emoji classes are PROVISIONAL until
-//   they are measured in the Windows VM (windows-support task 9.2).
+// - Windows Terminal (windows-support design D9; measured in the Windows 11 VM in Windows Terminal
+//   1.24 and 1.25 on 20 October 2026, see the row's comment below `TERMINAL_TABLE`): OSC 8 on,
+//   URL detection off (it opens a bare URL only on Ctrl+click), flags and keycaps drawn as names.
 //
 // One table (mvp-configuration design D12): each terminal's row also holds its wheel step
 // (`wheelLines`, the wheel table of spec tui-screen "Wheel step per terminal", which `wheel.ts`
@@ -106,21 +106,23 @@ const JETBRAINS: TerminalCapabilities = Object.freeze({ ...NO_CAPABILITIES, dete
 const SGR9_ONLY: TerminalCapabilities = Object.freeze({ ...NO_CAPABILITIES, sgr9: true });
 const ZED: TerminalCapabilities = Object.freeze({ ...NO_CAPABILITIES, sgr9: true, osc8: true, emoji: ZED_EMOJI });
 /**
- * Windows Terminal. Measured in the Windows 11 VM (Windows Terminal 1.24, 20 October 2026): SGR 9
- * is drawn (`sgr9`), and the wheel sends one report per notch (3 rows per event, as the table's
- * default). PROVISIONAL, to be replaced by the results of windows-support task 9.2: `osc8` (on,
- * because Windows Terminal opens OSC 8 links with Ctrl+click; unverified under mouse reporting),
- * `detectsUrls` (on, because it underlines and opens URLs itself; unverified under mouse
- * reporting) and `emoji` (the JetBrains classes plus VS16, the most conservative choice: the VM
- * showed a skin tone, a family and a check mark drawn at two cells where OpenTUI laid out other
- * widths, a flag as a stray glyph and a keycap as a plain digit).
+ * Windows Terminal. Measured in the Windows 11 VM in Windows Terminal 1.24 and 1.25 (20 October
+ * 2026), with mouse reporting on and off: SGR 9 is drawn (`sgr9`), and the wheel sends one report
+ * per notch (3 rows per event, as the table's default). OSC 8 (`osc8`): a plain click on an OSC 8
+ * link is acp-tui's and opens it once (the terminal does not open it as well), a Ctrl+click is the
+ * terminal's and opens it once, with mouse reporting on or off. URL detection (`detectsUrls` off):
+ * the terminal opens a bare URL only on Ctrl+click, never on a plain click, so acp-tui opens it on
+ * a plain click itself (with the capability on, a plain click on a bare URL opened nothing). Emoji:
+ * ConPTY counts every class in 2 cells, as OpenTUI does, and ZWJ sequences, skin tones and VS16 are
+ * drawn intact; flags are drawn as a stray glyph (Windows ships no flag emoji) and a keycap
+ * overdraws the cell to its left, so those two are drawn as names, with `bare` as everywhere.
  */
 const WINDOWS_TERMINAL: TerminalCapabilities = Object.freeze({
   ...NO_CAPABILITIES,
   sgr9: true,
   osc8: true,
-  detectsUrls: true,
-  emoji: Object.freeze(["zwj", "flag", "keycap", "tone", "vs16", "bare"] as const),
+  detectsUrls: false,
+  emoji: Object.freeze(["flag", "keycap", "bare"] as const),
 });
 
 /** How each terminal is detected: `TERMINAL_EMULATOR` (both PhpStorm engines), then `TERM_PROGRAM`
@@ -142,11 +144,11 @@ const DEFAULT_WHEEL_LINES = 3;
 
 /**
  * The built-in rows. Capabilities: SGR 9 for Zed, Ghostty, kitty, WezTerm and iTerm2 (audit
- * section 5), none for JetBrains; OSC 8 for Zed only (verified on 9 October 2026); `detectsUrls`
+ * section 5), none for JetBrains; OSC 8 for Zed (verified on 9 October 2026) and Windows Terminal (20 October 2026); `detectsUrls`
  * for JetBrains only (review C9, 10 October 2026); no terminal has `combiningStrike` (JediTerm
  * gives each U+0336 a cell of its own, and in Zed the stroke is a fallback glyph offset by half a
  * cell, with SGR 9 drawn there anyway); emoji names as measured in JetBrains and Zed, OpenTUI's
- * own classes elsewhere (Windows Terminal's are provisional, see `WINDOWS_TERMINAL`). Wheel steps (phase-1a task 10.4, measured on 2 October 2026, so that one
+ * own classes elsewhere (Windows Terminal's measured on 20 October 2026, see `WINDOWS_TERMINAL`). Wheel steps (phase-1a task 10.4, measured on 2 October 2026, so that one
  * notch scrolls about 3 rows): PhpStorm reworked sends one report per notch (3 rows per event);
  * Zed 1.18.1 sends three per notch in one read, occasionally two around a change of direction (1
  * row per event); Windows Terminal 1.24 sends one report per notch (3 rows per event, 20 October 2026);

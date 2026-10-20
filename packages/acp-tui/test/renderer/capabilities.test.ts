@@ -23,9 +23,9 @@ const NONE: TerminalCapabilities = { sgr9: false, combiningStrike: false, osc8: 
 const JETBRAINS: TerminalCapabilities = { ...NONE, detectsUrls: true, emoji: ["zwj", "flag", "keycap", "tone", "bare"] };
 const SGR9: TerminalCapabilities = { ...NONE, sgr9: true };
 const ZED: TerminalCapabilities = { ...NONE, sgr9: true, osc8: true, emoji: ["zwj", "keycap", "tone", "vs16", "bare"] };
-// Windows Terminal (windows-support design D9): SGR 9 measured; osc8, detectsUrls and emoji are
-// provisional until task 9.2 measures them in the VM.
-const WINDOWS_TERMINAL: TerminalCapabilities = { ...NONE, sgr9: true, osc8: true, detectsUrls: true, emoji: ["zwj", "flag", "keycap", "tone", "vs16", "bare"] };
+// Windows Terminal (windows-support design D9), measured in 1.24 and 1.25: SGR 9 and OSC 8 drawn,
+// bare URLs opened by the terminal only on Ctrl+click, flags and keycaps not drawable.
+const WINDOWS_TERMINAL: TerminalCapabilities = { ...NONE, sgr9: true, osc8: true, emoji: ["flag", "keycap", "bare"] };
 
 /** An environment naming each terminal ID, and what the table gives it. */
 const TERMINALS: Record<TerminalId, { env: Record<string, string>; capabilities: TerminalCapabilities; wheelLines: number }> = {
@@ -63,12 +63,12 @@ describe("the per-terminal table", () => {
     expect(detectTerminal({ TERM_PROGRAM: "wezterm" })).toBe("wezterm");
   });
 
-  test("no built-in row has a combining strike, only Zed has verified OSC 8, and only JetBrains detects URLs (Windows Terminal's OSC 8 and URL detection are provisional)", () => {
+  test("no built-in row has a combining strike, only Zed and Windows Terminal have verified OSC 8, and only JetBrains detects URLs", () => {
     for (const id of TERMINAL_IDS) {
       const row = TERMINAL_TABLE[id].capabilities;
       expect(row.combiningStrike, id).toBe(false);
       expect(row.osc8, id).toBe(id === "zed" || id === "windows-terminal");
-      expect(row.detectsUrls, id).toBe(id === "jetbrains" || id === "windows-terminal");
+      expect(row.detectsUrls, id).toBe(id === "jetbrains");
     }
   });
 
