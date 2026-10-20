@@ -184,10 +184,15 @@ describe("names and links", () => {
     expect(displayPath("src/Db/Connection.php")).toBe("src/Db/Connection.php");
   });
 
-  test("the URI is percent-encoded from the real path", () => {
+  test.skipIf(process.platform === "win32")("the URI is percent-encoded from the real path", () => {
     expect(fileUri("/home/u/proj", "src/Db/Connection.php")).toBe("file:///home/u/proj/src/Db/Connection.php");
     expect(fileUri("/home/u/my proj", "a#b?c%d.txt")).toBe("file:///home/u/my%20proj/a%23b%3Fc%25d.txt");
     expect(fileUri("/p", "café/naïve.md")).toBe("file:///p/caf%C3%A9/na%C3%AFve.md");
     expect(fileUri("/p", "new\nline")).toBe("file:///p/new%0Aline");
+  });
+
+  test.if(process.platform === "win32")("on Windows the URI carries the drive letter and forward slashes", () => {
+    expect(fileUri("C:\\Users\\u\\proj", "src\\Db\\Connection.php")).toBe("file:///C:/Users/u/proj/src/Db/Connection.php");
+    expect(fileUri("C:\\Users\\u\\my proj", "a b.php")).toBe("file:///C:/Users/u/my%20proj/a%20b.php");
   });
 });
