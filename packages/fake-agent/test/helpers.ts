@@ -7,9 +7,10 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { ClientSideConnection, ndJsonStream, type Client, type SessionUpdate, type Stream } from "@agentclientprotocol/sdk";
 
-const REPO_ROOT = new URL("../../../", import.meta.url).pathname;
+const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const MAIN_TS = "packages/fake-agent/src/main.ts";
 
 export interface FakeAgentHandle {
@@ -52,7 +53,7 @@ export interface FakeAgentStreamHandle {
  * `options.client` is ignored.
  */
 export function spawnFakeAgentStream(options: Omit<SpawnFakeAgentOptions, "client"> & { readonly client?: Client }): FakeAgentStreamHandle {
-  const args = ["bun", `${REPO_ROOT}${MAIN_TS}`, "--scenario", options.scenario];
+  const args = ["bun", join(REPO_ROOT, MAIN_TS), "--scenario", options.scenario];
   args.push("--delay-scale", String(options.delayScale ?? 0));
   if (options.items !== undefined) {
     args.push("--items", String(options.items));

@@ -6,8 +6,9 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const CLI_PATH = new URL("../../src/cli.ts", import.meta.url).pathname;
+const CLI_PATH = fileURLToPath(new URL("../../src/cli.ts", import.meta.url));
 
 describe("acp-tui | cat (task 5.1)", () => {
   test("piped stdout exits non-zero with a clear message, without launching the agent", async () => {

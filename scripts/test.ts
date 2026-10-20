@@ -83,11 +83,12 @@ function parseArgs(argv: string[]) {
   return { parallelOnly, timingOnly, paths, flags };
 }
 
-// The test files under a directory, relative to the working directory.
+// The test files under a directory, relative to the working directory. Glob results use the
+// platform's separator, so a path is split on both.
 async function testFilesUnder(dir: string): Promise<string[]> {
   const files: string[] = [];
   for await (const file of new Bun.Glob("**/*").scan({ cwd: dir, onlyFiles: true })) {
-    if (file.split("/").some((part) => part === "node_modules" || part.startsWith("."))) continue;
+    if (file.split(/[\\/]/).some((part) => part === "node_modules" || part.startsWith("."))) continue;
     if (TEST_FILE.test(file)) files.push(relative(process.cwd(), resolve(dir, file)));
   }
   return files;

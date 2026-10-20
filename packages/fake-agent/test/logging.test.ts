@@ -3,11 +3,13 @@
 // log to assert that detach sends neither session/cancel nor session/close.
 import { describe, expect, test } from "bun:test";
 import { readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { spawnFakeAgent } from "./helpers.ts";
 
 describe("fake-agent --log (task 4.1)", () => {
   test("logs every received method, minus prompt text", async () => {
-    const logPath = `${process.env["TMPDIR"] ?? "/tmp"}/fake-agent-log-${Date.now()}.jsonl`;
+    const logPath = join(tmpdir(), `fake-agent-log-${Date.now()}.jsonl`);
 
     const handle = spawnFakeAgent({
       scenario: "basic",

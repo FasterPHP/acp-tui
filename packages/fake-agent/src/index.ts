@@ -2,6 +2,7 @@
 // exported so acp-tui's golden-file tests and benchmarks derive their
 // expectations from the same strings the agent sends. The agent itself runs
 // from main.ts.
+import { fileURLToPath } from "node:url";
 import type { ACP_MODEL_PACKAGE_NAME } from "acp-model";
 
 export const FAKE_AGENT_PACKAGE_NAME = "fake-agent" as const;
@@ -131,10 +132,10 @@ export {
   permissionDiffFixture,
 } from "./scenarios/permission-diff.ts";
 /** Absolute path of the session list fixture for `--sessions` (four sessions, two directories; see AGENTS.md). */
-export const SESSIONS_FIXTURE_PATH = new URL("../fixtures/sessions.json", import.meta.url).pathname;
+export const SESSIONS_FIXTURE_PATH = fileURLToPath(new URL("../fixtures/sessions.json", import.meta.url));
 
 /** Absolute path of the hostile-title session fixture for `--sessions` (see AGENTS.md). */
-export const SESSIONS_HOSTILE_FIXTURE_PATH = new URL("../fixtures/sessions-hostile.json", import.meta.url).pathname;
+export const SESSIONS_HOSTILE_FIXTURE_PATH = fileURLToPath(new URL("../fixtures/sessions-hostile.json", import.meta.url));
 export {
   STREAM_LONG_CHUNK_INTERVAL_MS,
   STREAM_LONG_CHUNK_SIZE,
