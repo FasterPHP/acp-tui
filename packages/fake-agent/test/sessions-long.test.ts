@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { LONG_SESSION_SESSION_ID, LONG_SESSION_UPDATED_AT } from "../src/index.ts";
-import { recordingClient, spawnFakeAgent } from "./helpers.ts";
+import { recordingClient, rejectionOf, spawnFakeAgent } from "./helpers.ts";
 
 /** The updates the first prompt of a fresh long-session sends. */
 async function firstPromptUpdates(items: number): Promise<SessionUpdate[]> {
@@ -102,9 +102,9 @@ describe("long-session through session/load (mvp-sessions task 2.3)", () => {
     try {
       const init = await handle.conn.initialize({ protocolVersion: 1 });
       expect(init.agentCapabilities?.loadSession).toBe(false);
-      await expect(
+      expect(await rejectionOf(
         handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: "/tmp", mcpServers: [] }),
-      ).rejects.toMatchObject({ code: -32601 });
+      )).toMatchObject({ code: -32601 });
     } finally {
       handle.stop();
     }

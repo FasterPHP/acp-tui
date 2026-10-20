@@ -10,7 +10,7 @@ import type { SessionInfo, SessionUpdate } from "@agentclientprotocol/sdk";
 import { HOSTILE_SESSION_TITLE } from "../src/hostile.ts";
 import { LOAD_UPDATE_DELAY_MS } from "../src/agent.ts";
 import { SESSIONS_FIXTURE_PATH, SESSIONS_HOSTILE_FIXTURE_PATH } from "../src/index.ts";
-import { makeTempDir, readLog, recordingClient, spawnFakeAgent, type SpawnFakeAgentOptions } from "./helpers.ts";
+import { makeTempDir, readLog, recordingClient, rejectionOf, spawnFakeAgent, type SpawnFakeAgentOptions } from "./helpers.ts";
 
 const ALL = ["--load", "--resume", "--list", "--sessions", SESSIONS_FIXTURE_PATH];
 
@@ -146,7 +146,7 @@ describe("session/load (mvp-sessions task 2.2)", () => {
     const { handle } = open({ args: ALL });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      await expect(handle.conn.loadSession({ sessionId: "nope", cwd: "/work/alpha", mcpServers: [] })).rejects.toMatchObject({
+      expect(await rejectionOf(handle.conn.loadSession({ sessionId: "nope", cwd: "/work/alpha", mcpServers: [] }))).toMatchObject({
         code: -32002,
         message: "Resource not found",
       });
@@ -178,7 +178,7 @@ describe("session/resume (mvp-sessions task 2.2)", () => {
       const init = await handle.conn.initialize({ protocolVersion: 1 });
       expect(init.agentCapabilities?.loadSession).toBe(false);
       await handle.conn.resumeSession({ sessionId: "sess-delta", cwd: "/work/beta" });
-      await expect(handle.conn.resumeSession({ sessionId: "nope", cwd: "/work/beta" })).rejects.toMatchObject({ code: -32002 });
+      expect(await rejectionOf(handle.conn.resumeSession({ sessionId: "nope", cwd: "/work/beta" }))).toMatchObject({ code: -32002 });
     } finally {
       handle.stop();
     }
@@ -240,7 +240,7 @@ describe("session/list (mvp-sessions task 2.2)", () => {
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
       expect((await listAll(handle.conn)).pages).toBe(4);
-      await expect(handle.conn.listSessions({ cursor: "garbage" })).rejects.toMatchObject({ code: -32602 });
+      expect(await rejectionOf(handle.conn.listSessions({ cursor: "garbage" }))).toMatchObject({ code: -32602 });
     } finally {
       handle.stop();
     }
@@ -329,11 +329,11 @@ describe("load failures and titles (mvp-sessions task 2.4)", () => {
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
       for (const sessionId of ["sess-beta", "sess-gamma"]) {
-        await expect(handle.conn.loadSession({ sessionId, cwd: "/work/alpha", mcpServers: [] })).rejects.toMatchObject({
+        expect(await rejectionOf(handle.conn.loadSession({ sessionId, cwd: "/work/alpha", mcpServers: [] }))).toMatchObject({
           code: -32002,
           message: "Resource not found",
         });
-        await expect(handle.conn.resumeSession({ sessionId, cwd: "/work/alpha" })).rejects.toMatchObject({ code: -32002 });
+        expect(await rejectionOf(handle.conn.resumeSession({ sessionId, cwd: "/work/alpha" }))).toMatchObject({ code: -32002 });
       }
       expect(updates).toHaveLength(0);
       // The session is still listed (the Toad case: listed but not loadable); the others load.

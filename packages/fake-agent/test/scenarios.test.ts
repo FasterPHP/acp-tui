@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { CRASH_EXIT_CODE } from "../src/scenarios/crash.ts";
 import { BIG_OUTPUT_LINE_COUNT } from "../src/scenarios/big-output.ts";
-import { spawnFakeAgent } from "./helpers.ts";
+import { rejectionOf, spawnFakeAgent } from "./helpers.ts";
 
 describe("fake-agent scenario knobs", () => {
   test("five-tools reports five tool calls in progress at once", async () => {
@@ -58,12 +58,12 @@ describe("fake-agent scenario knobs", () => {
       await handle.conn.initialize({ protocolVersion: 1 });
       const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
 
-      await expect(
+      expect(await rejectionOf(
         handle.conn.prompt({
           sessionId: session.sessionId,
           prompt: [{ type: "text", text: "go" }],
         }),
-      ).rejects.toBeDefined();
+      )).toBeDefined();
 
       const exitCode = await handle.proc.exited;
       expect(exitCode).toBe(CRASH_EXIT_CODE);

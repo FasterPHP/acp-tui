@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { CONFIG_OPTIONS_COMMANDS, CONFIG_OPTIONS_COMMANDS_AFTER_FIRST_TURN } from "../src/scenarios/config-options.ts";
-import { makeTempDir, readLog, spawnFakeAgent } from "./helpers.ts";
+import { makeTempDir, readLog, rejectionOf, spawnFakeAgent } from "./helpers.ts";
 
 type Kind = SessionUpdate["sessionUpdate"];
 
@@ -168,7 +168,7 @@ describe("fake-agent config-options-legacy scenario (task 2.2)", () => {
       await handle.conn.initialize({ protocolVersion: 1 });
       const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
       await handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "accept-edits" });
-      await expect(handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "nope" })).rejects.toBeDefined();
+      expect(await rejectionOf(handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "nope" }))).toBeDefined();
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(texts.join("")).toContain("Current mode: accept-edits");
     } finally {
@@ -185,7 +185,7 @@ describe("fake-agent config-options-legacy scenario (task 2.2)", () => {
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
       const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
-      await expect(handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "plan" })).rejects.toBeDefined();
+      expect(await rejectionOf(handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "plan" }))).toBeDefined();
     } finally {
       handle.stop();
     }

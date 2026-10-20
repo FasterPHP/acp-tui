@@ -96,6 +96,22 @@ export function spawnFakeAgentStream(options: Omit<SpawnFakeAgentOptions, "clien
   };
 }
 
+/**
+ * What `promise` rejects with; fails the test if it resolves. Use this, not
+ * `await expect(promise).rejects`, for a promise that settles on the child's output: Bun (1.4.3)
+ * waits for a pending promise given to `expect().rejects` in a nested event loop, and on Windows
+ * that loop does not read the child's stdout pipe, so the answer never arrives, the test times out
+ * and the file never exits. Awaiting the promise here keeps the wait in the test's own loop.
+ */
+export async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+  throw new Error("expected the promise to reject, but it resolved");
+}
+
 /** A client that keeps every `session/update` it receives, in order, and allows every permission request once. */
 export function recordingClient(): { readonly client: Client; readonly updates: SessionUpdate[] } {
   const updates: SessionUpdate[] = [];

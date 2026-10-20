@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { parseArgs } from "../src/cli.ts";
 import { parseSessionsFixture } from "../src/sessions.ts";
 import { SESSIONS_FIXTURE_PATH } from "../src/index.ts";
-import { makeTempDir, recordingClient, spawnFakeAgent } from "./helpers.ts";
+import { makeTempDir, recordingClient, rejectionOf, spawnFakeAgent } from "./helpers.ts";
 
 async function initializeWith(args: readonly string[]) {
   const { client } = recordingClient();
@@ -82,11 +82,11 @@ describe("fake-agent session capability switches (mvp-sessions task 2.1)", () =>
     const handle = spawnFakeAgent({ scenario: "basic", logPath, client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      await expect(handle.conn.loadSession({ sessionId: "x", cwd: "/tmp", mcpServers: [] })).rejects.toMatchObject({
+      expect(await rejectionOf(handle.conn.loadSession({ sessionId: "x", cwd: "/tmp", mcpServers: [] }))).toMatchObject({
         code: -32601,
       });
-      await expect(handle.conn.resumeSession({ sessionId: "x", cwd: "/tmp" })).rejects.toMatchObject({ code: -32601 });
-      await expect(handle.conn.listSessions({})).rejects.toMatchObject({ code: -32601 });
+      expect(await rejectionOf(handle.conn.resumeSession({ sessionId: "x", cwd: "/tmp" }))).toMatchObject({ code: -32601 });
+      expect(await rejectionOf(handle.conn.listSessions({}))).toMatchObject({ code: -32601 });
       const methods = (await Bun.file(logPath).text())
         .split("\n")
         .filter((line) => line !== "")
