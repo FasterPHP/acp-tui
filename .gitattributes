@@ -1,0 +1,15 @@
+# Text files are stored with LF and checked out with LF on every platform, so a Windows clone with
+# core.autocrlf=true still matches the byte-exact fixtures and generated files the tests compare.
+* text=auto eol=lf
+
+# Binary files: never converted.
+*.wasm binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary

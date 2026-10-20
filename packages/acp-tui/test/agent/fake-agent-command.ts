@@ -3,7 +3,9 @@
 // (mirrors fake-agent's own test/helpers.ts, from the client side this
 // time: acp-tui's launch.ts spawns this the same way it would spawn a real
 // agent).
-const FAKE_AGENT_MAIN = new URL("../../../fake-agent/src/main.ts", import.meta.url).pathname;
+import { fileURLToPath } from "node:url";
+
+const FAKE_AGENT_MAIN = fileURLToPath(new URL("../../../fake-agent/src/main.ts", import.meta.url));
 
 export interface FakeAgentCommandOptions {
   readonly scenario: string;
