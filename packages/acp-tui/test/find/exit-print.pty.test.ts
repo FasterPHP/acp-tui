@@ -91,7 +91,7 @@ function expectPlain(bytes: string): void {
 }
 
 /** The resume line of the session every test here starts (an ad hoc agent: its command after `--`). */
-const RESUME = `resume: acp-tui --resume fake-session-1 -- ${agentCommand(true).map(shellQuote).join(" ")}`;
+const RESUME = `resume: acp-tui --resume fake-session-1 -- ${agentCommand(true).map((word) => shellQuote(word)).join(" ")}`;
 
 /** `line` as the terminal wraps it at `cols` columns, each row without trailing spaces as the
  *  snapshot gives it (where a row ends at a space depends on the checkout's path). */

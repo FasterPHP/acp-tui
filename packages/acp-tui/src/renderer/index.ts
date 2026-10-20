@@ -11,6 +11,9 @@ export type { ExitTextInput } from "./exit-text.ts";
 export {
   createLifecycle,
   DEFAULT_EXIT_SIGNALS,
+  exitHookTimeoutFor,
+  exitSignalsFor,
+  WINDOWS_EXIT_SIGNALS,
   exitCodeFor,
   FALLBACK_RESET,
   FINAL_RESET,

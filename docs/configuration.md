@@ -141,7 +141,7 @@ One command line does fail on a broken file: `acp-tui fake` where `fake` is defi
 
 Harness commands are read only from your own file, and only if neither the file nor its directory can be written by another user or is owned by another user; otherwise `agent_servers` is refused with a problem saying why, and only the built-in harness is available.
 
-On Windows a file's mode says nothing about who can write it, so the rule there is about the owner and the place instead: the file and its directory must each be owned by you, by the Administrators group (which owns what you create from an elevated window) or by SYSTEM, and must lie in your profile (`%USERPROFILE%`) or in `XDG_CONFIG_HOME`. A file owned by another account, or one outside both, such as on a network share or under `C:\ProgramData`, has its `agent_servers` refused with a problem naming the owner or the place. If Windows cannot say who owns the file, acp-tui treats it as yours, and with `ACP_TUI_LOG` set it writes a `config_owner_unknown` event to the debug log.
+On Windows a file's mode says nothing about who can write it, so the rule there is about the owner and the place instead: the file and its directory must each be owned by you, by the Administrators group (which owns what you create from an elevated window) or by SYSTEM, and must lie in your profile (`%USERPROFILE%`), in `XDG_CONFIG_HOME` or in `%APPDATA%\acp-tui` (a company that redirects `%APPDATA%` to a network share is covered by the last). A file owned by another account, or one outside all three, such as elsewhere on a network share or under `C:\ProgramData`, has its `agent_servers` refused with a problem naming the owner or the place. If Windows cannot say who owns the file, acp-tui treats it as yours, and with `ACP_TUI_LOG` set it writes a `config_owner_unknown` event to the debug log.
 
 ## Live reload
 
@@ -248,7 +248,7 @@ Unset values keep the built-in ones (`config --print-default` lists them as comm
 | Setting | Values | Default | What it does |
 | --- | --- | --- | --- |
 | `exit.print` | `"summary"`, `"none"`, `"last-answer"`, `"transcript"` | `"summary"` | What is printed below the command line on exit: `"summary"` - the command that resumes the session, when it can be resumed; `"none"` - nothing; `"last-answer"` - that command, then the agent's last answer as plain text; `"transcript"` - that command, then the whole conversation as plain text. |
-| `clipboard` | `"auto"`, `"host"`, `"osc52"`, `"none"` | `"auto"` | Where copied text goes: `"auto"` - the system clipboard, else through the terminal by OSC 52; `"host"` - only the system clipboard, through Wayland or X11; `"osc52"` - only through the terminal by OSC 52, which also works over SSH; `"none"` - nowhere: copying is turned off. |
+| `clipboard` | `"auto"`, `"host"`, `"osc52"`, `"none"` | `"auto"` | Where copied text goes: `"auto"` - the system clipboard, else through the terminal by OSC 52; `"host"` - only the system clipboard (Wayland or X11 on Linux, the pasteboard on macOS, the Windows clipboard); `"osc52"` - only through the terminal by OSC 52, which also works over SSH; `"none"` - nowhere: copying is turned off. |
 | `selection.copy_on_release` | boolean | `true` | Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C. |
 
 The host clipboard is `wl-copy` or `xclip` on Linux (with a display) and `pbcopy` on macOS, each falling back to OpenTUI's own backend; Ctrl+V reads it (through `pbpaste` on macOS) under `auto` and `host` only.
