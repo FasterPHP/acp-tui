@@ -165,7 +165,7 @@ describe("Link target safety", () => {
       ["data:text/html;base64,PHA+", "scheme"],
       ["file:///etc/passwd", "scheme"],
       ["vbscript:x", "scheme"],
-      ["C:\\Windows", "scheme"],
+      ["C:\\Windows", process.platform === "win32" ? "outside" : "scheme"],
       ["../secret.txt", "outside"],
       ["src/../../secret.txt", "outside"],
       ["%2e%2e/secret.txt", "outside"],

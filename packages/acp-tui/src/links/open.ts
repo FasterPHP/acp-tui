@@ -3,9 +3,11 @@
 // checked again here against the session's working directory at the moment it is
 // opened, so a session switch or a stale row cannot open what the rules refuse.
 //
-// - The system opener (`xdg-open` on Linux and the BSDs, `open` on macOS) is
-//   started with `Bun.spawn` and the target as its single argument: no shell, no
-//   other argument. Every target is an absolute path or a URL whose scheme is
+// - The system opener (`xdg-open` on Linux and the BSDs, `open` on macOS, and on
+//   Windows `rundll32.exe url.dll,FileProtocolHandler` by its absolute path in the
+//   system directory, never `cmd /c start`, which would read `&` in a URL as a
+//   command separator) is started with `Bun.spawn` and the target as its single
+//   last argument: no shell. Every target is an absolute path or a URL whose scheme is
 //   `https`, `http` or `mailto`, so it can never be read as an option.
 //   `ACP_TUI_OPENER` names another program to start instead (the PTY tests point
 //   it at a script that records its argument vector).
@@ -22,17 +24,32 @@
 //   the browser comes forward; without one it opens as before. `ACP_TUI_OPENER`
 //   gets the token too.
 import { realpathSync } from "node:fs";
+import { win32 } from "node:path";
 import { classifyTarget, inside } from "../conversation/markdown/links.ts";
 import type { LinkTarget } from "../conversation/markdown/types.ts";
-import { resolveArgv } from "../agent/which.ts";
+import { envValue, resolveArgv } from "../agent/which.ts";
 
 export type Env = Readonly<Record<string, string | undefined>>;
 
 /** The opener program for this platform, or `ACP_TUI_OPENER`. */
 export function openerCommand(env: Env = process.env, platform: NodeJS.Platform = process.platform): string {
-  const own = env["ACP_TUI_OPENER"];
+  const own = envValue(env, "ACP_TUI_OPENER", platform);
   if (own) return own;
   return platform === "darwin" ? "open" : "xdg-open";
+}
+
+/** The Windows system directory: `SystemRoot` (any case) of `env`, else `C:\Windows`. */
+function systemRoot(env: Env, platform: NodeJS.Platform): string {
+  const root = envValue(env, "SystemRoot", platform);
+  return root && win32.isAbsolute(root) ? root : "C:\\Windows";
+}
+
+/** The opener's argument vector before the target. `ACP_TUI_OPENER` when set; on Windows the URL
+ *  handler of `url.dll` run by `rundll32.exe`, both by absolute path in the system directory (so no
+ *  directory on the `PATH` or the working directory can stand in for it); else `openerCommand`. */
+export function openerArgv(env: Env = process.env, platform: NodeJS.Platform = process.platform): string[] {
+  if (platform === "win32" && !envValue(env, "ACP_TUI_OPENER", platform)) return [win32.join(systemRoot(env, platform), "System32", "rundll32.exe"), "url.dll,FileProtocolHandler"];
+  return [openerCommand(env, platform)];
 }
 
 /** Whether acp-tui runs in an SSH session (the opener would run on the remote host). */
@@ -57,7 +74,7 @@ export type OpenPlan =
 export function planOpen(link: LinkTarget, cwd: string, env: Env = process.env, platform: NodeJS.Platform = process.platform): OpenPlan {
   const name = targetName(link);
   // The rules again, against the session's directory now.
-  const verdict = classifyTarget(link.href, cwd);
+  const verdict = classifyTarget(link.href, cwd, platform);
   if (!verdict.allowed) return { action: "refuse", toast: `not opened: ${name} is not an allowed link` };
   let target = verdict.open;
   if (verdict.kind === "file") {
@@ -73,7 +90,7 @@ export function planOpen(link: LinkTarget, cwd: string, env: Env = process.env, 
     target = real;
   }
   if (remoteSession(env)) return { action: "copy", text: target, toast: name };
-  return { action: "open", argv: [openerCommand(env, platform), target], toast: `opening ${name}` };
+  return { action: "open", argv: [...openerArgv(env, platform), target], toast: `opening ${name}` };
 }
 
 export interface Spawned {

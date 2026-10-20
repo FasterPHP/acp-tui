@@ -34,6 +34,12 @@
 // session (`SSH_CONNECTION`, `SSH_CLIENT` or `SSH_TTY`) a Mac has no host clipboard
 // here: the pasteboard is the remote machine's.
 //
+// On Windows (`win32`, outside SSH; spec tui-selection "Clipboard on Windows") the host is the
+// Windows clipboard, written and read by OpenTUI's native backend with no helper program (it wrote
+// 200 KB and Unicode text in 6 ms in the VM), and the clipboard keeps the text after acp-tui exits.
+// OSC 52 stays the fallback (Windows Terminal honours it; IntelliJ's terminal does not). Over SSH
+// the clipboard is the remote machine's, so there is no host.
+//
 // A process with neither `WAYLAND_DISPLAY` nor `DISPLAY` on Linux gets no host
 // backend at all here (a stub that answers `unsupported`) and starts no clipboard
 // program, so the native service is never started without a display; the service
@@ -65,13 +71,16 @@ import type { ClipboardMode } from "../renderer/options.ts";
 
 export type { ClipboardMode };
 
-/** The host clipboard in use: a Wayland or X11 display on Linux, the macOS pasteboard, or none. */
-export type HostKind = "wayland" | "x11" | "macos";
+/** The host clipboard in use: a Wayland or X11 display on Linux, the macOS pasteboard, the Windows clipboard, or none. */
+export type HostKind = "wayland" | "x11" | "macos" | "windows";
 
-/** Whether a host clipboard can exist at all: on macOS the pasteboard (locally), elsewhere a
- *  Wayland or X11 display. */
+/** Whether a host clipboard can exist at all: on macOS the pasteboard and on Windows the
+ *  clipboard (both only locally), elsewhere a Wayland or X11 display. */
 export function hostDisplay(env: Readonly<Record<string, string | undefined>> = process.env, platform: NodeJS.Platform = process.platform): HostKind | null {
-  if (platform === "darwin") return env["SSH_CONNECTION"] || env["SSH_CLIENT"] || env["SSH_TTY"] ? null : "macos";
+  if (platform === "darwin" || platform === "win32") {
+    if (env["SSH_CONNECTION"] || env["SSH_CLIENT"] || env["SSH_TTY"]) return null;
+    return platform === "darwin" ? "macos" : "windows";
+  }
   if (env["WAYLAND_DISPLAY"]) return "wayland";
   if (env["DISPLAY"]) return "x11";
   return null;
@@ -112,7 +121,8 @@ const MACOS_UTF8: Readonly<Record<string, string>> = { LANG: "en_US.UTF-8", LC_C
  *  text aliases), `xclip -selection clipboard` on X11, `pbcopy` on macOS. */
 export function findCopyHelper(display: HostKind | null, env: Readonly<Record<string, string | undefined>>): CopyHelper | null {
   const PATH = env["PATH"];
-  if (!PATH || !display) return null;
+  // Windows has no helper: the native backend writes the clipboard, which keeps the text.
+  if (!PATH || !display || display === "windows") return null;
   if (display === "macos") {
     const path = Bun.which("pbcopy", { PATH, cwd: "/" });
     return path ? { name: "pbcopy", argv: [path], env: MACOS_UTF8 } : null;
@@ -227,6 +237,7 @@ export function copyToast(chars: number, outcome: CopyOutcome, display: HostKind
   switch (outcome.path) {
     case "host": {
       // The macOS pasteboard keeps what the native backend wrote, so only a program is named.
+      if (display === "windows") return { text: `copied ${n} to the Windows clipboard`, ok: true };
       if (display === "macos") return { text: `copied ${n} to the macOS clipboard${outcome.via === "pbcopy" ? " (pbcopy)" : ""}`, ok: true };
       const how = outcome.via === "wl-copy" || outcome.via === "xclip" ? outcome.via : "until acp-tui exits";
       return { text: `copied ${n} to the ${display === "x11" ? "X11" : "Wayland"} clipboard (${how})`, ok: true };
