@@ -7,7 +7,7 @@
 //   resume: acp-tui --resume <id>
 //
 // with ` -- <command and arguments>` added for an agent given after `--`
-// (`adHocCommand`), each word quoted for a POSIX shell when it needs it, since
+// (`adHocCommand`), each word quoted when it needs it (for a POSIX shell, for PowerShell on Windows), since
 // the index never stores a command to run (design decision 2). It is printed
 // only when the session can be reopened (`canReopen`: the agent advertises
 // `loadSession` or `sessionCapabilities.resume`; and `hadPromptOrOpened`: it
@@ -27,6 +27,8 @@
 // addresses the cursor, so the text lands where the cursor is, on the row
 // below the command line.
 import { sanitise, type Session } from "acp-model";
+import { shellWordFor } from "../platform/shell-quote.ts";
+import type { Platform } from "../platform/paths.ts";
 import { handBackLines } from "../find/hand-back.ts";
 import type { ExitPrint } from "./options.ts";
 
@@ -39,11 +41,11 @@ function clean(text: string): string {
   return sanitise(text, "approval").replace(/[\t\n\v\f]+/g, " ");
 }
 
-/** A word for a POSIX shell: as is when it holds only safe characters, else in single quotes with
- *  each embedded single quote written `'\''`. */
-export function shellQuote(word: string): string {
-  if (/^[A-Za-z0-9_@%+=:,./-]+$/.test(word)) return word;
-  return `'${word.replaceAll("'", "'\\''")}'`;
+/** A word for the user's shell: for a POSIX shell as is when it holds only safe characters, else in
+ *  single quotes with each embedded single quote written `'\''`; on Windows (`platform`
+ *  `win32`) for PowerShell, in single quotes with an embedded single quote doubled. */
+export function shellQuote(word: string, platform: Platform = process.platform): string {
+  return shellWordFor(word, platform);
 }
 
 export interface ExitTextInput {
@@ -54,18 +56,20 @@ export interface ExitTextInput {
   readonly hadPromptOrOpened?: boolean;
   /** The agent command given after `--` (`ad hoc`), repeated in the resume line; default null (a named agent). */
   readonly adHocCommand?: readonly string[] | null;
+  /** The platform whose shell the resume line is quoted for; default `process.platform`. */
+  readonly platform?: Platform;
   /** The terminal's width in columns when acp-tui exits (`last-answer`, `transcript`); default 80. */
   readonly width?: number;
 }
 
 /** The resume line without its line ending, or null when the session cannot be reopened or has nothing to reopen. */
-export function resumeLine({ session, canReopen, hadPromptOrOpened, adHocCommand }: ExitTextInput): string | null {
+export function resumeLine({ session, canReopen, hadPromptOrOpened, adHocCommand, platform }: ExitTextInput): string | null {
   if (!session?.id || !canReopen || !hadPromptOrOpened) return null;
   const id = clean(session.id);
   // An ID that starts with `-` would read as an option after `--resume` (design decision 9).
-  const base = id.startsWith("-") ? `resume: acp-tui --resume=${shellQuote(id)}` : `resume: acp-tui --resume ${shellQuote(id)}`;
+  const base = id.startsWith("-") ? `resume: acp-tui --resume=${shellQuote(id, platform)}` : `resume: acp-tui --resume ${shellQuote(id, platform)}`;
   if (!adHocCommand || adHocCommand.length === 0) return base;
-  return `${base} -- ${adHocCommand.map((word) => shellQuote(clean(word))).join(" ")}`;
+  return `${base} -- ${adHocCommand.map((word) => shellQuote(clean(word), platform)).join(" ")}`;
 }
 
 /** The exit text to write after the final reset; empty for `none`, and for `summary` when the

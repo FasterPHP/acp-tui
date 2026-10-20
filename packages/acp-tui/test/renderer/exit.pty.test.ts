@@ -93,7 +93,7 @@ function expectCursorBelow(s: PtySession, rows: number): void {
 /** The resume line for fake-agent's first session, started with `agent` after `--` (mvp-sessions
  *  design decision 12). */
 function resumeLine(agent: readonly string[]): string {
-  return `resume: acp-tui --resume fake-session-1 -- ${agent.map(shellQuote).join(" ")}`;
+  return `resume: acp-tui --resume fake-session-1 -- ${agent.map((word) => shellQuote(word)).join(" ")}`;
 }
 
 /** Everything written after the final reset: the exit text, then any error. */

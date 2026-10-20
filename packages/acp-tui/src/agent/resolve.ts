@@ -25,6 +25,8 @@
 // was given, and how the agent and directory were chosen.
 import { realpathSync } from "node:fs";
 import type { CliOptions, SessionOption } from "../cli.ts";
+import type { Platform } from "../platform/paths.ts";
+import { shellWordFor } from "../platform/shell-quote.ts";
 import { AD_HOC_AGENT, openSessionIndex, type SessionIndex, type SessionRecord } from "../session/session-index.ts";
 import { AgentNameError, findAgent, loadAgentCatalogue, type AgentCatalogue } from "./catalogue.ts";
 
@@ -72,9 +74,10 @@ export interface ResolveContext {
   readonly index?: () => SessionIndex;
 }
 
-/** One word for a POSIX shell: as is when it is plain, else single-quoted. */
-export function shellWord(word: string): string {
-  return /^[A-Za-z0-9_@%+=:,./-]+$/.test(word) ? word : `'${word.replace(/'/g, `'\\''`)}'`;
+/** One word for the user's shell: as is when it is plain, else single-quoted (for PowerShell on
+ *  Windows, `platform` `win32`; for a POSIX shell elsewhere). */
+export function shellWord(word: string, platform: Platform = process.platform): string {
+  return shellWordFor(word, platform);
 }
 
 /** Thrown for `--resume <id>` when the index can name no agent to launch for it. */
@@ -152,8 +155,8 @@ export function resolveLaunch(options: Pick<CliOptions, "agentName" | "agentComm
 
 /** Why a session the index records with an `ad hoc` agent is not reopened from the index (the
  *  index never supplies a command to run, design decision 2), with the command line that does. */
-export function adHocSessionMessage(sessionId: string, command: readonly string[] | null): string {
-  const rerun = ["acp-tui", sessionId.startsWith("-") ? `--resume=${sessionId}` : "--resume", ...(sessionId.startsWith("-") ? [] : [sessionId]), "--", ...(command ?? ["<command>"])].map(shellWord).join(" ");
+export function adHocSessionMessage(sessionId: string, command: readonly string[] | null, platform: Platform = process.platform): string {
+  const rerun = ["acp-tui", sessionId.startsWith("-") ? `--resume=${sessionId}` : "--resume", ...(sessionId.startsWith("-") ? [] : [sessionId]), "--", ...(command ?? ["<command>"])].map((word) => shellWord(word, platform)).join(" ");
   return `session ${sessionId} was started with an ad hoc harness command, which acp-tui never runs from its index; reopen it with: ${rerun}`;
 }
 

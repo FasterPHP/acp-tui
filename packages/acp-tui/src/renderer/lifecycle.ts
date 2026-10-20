@@ -82,20 +82,40 @@ export const LEAVE_ALTERNATE_SCREEN = "\x1b[?1049l";
 export const FALLBACK_RESET = `${LEAVE_ALTERNATE_SCREEN}\x1b[<u\x1b[>4;0m\x1b[?2004l\x1b[?1004l${FINAL_RESET}`;
 
 export const DEFAULT_EXIT_SIGNALS: readonly NodeJS.Signals[] = ["SIGHUP", "SIGTERM", "SIGINT", "SIGQUIT"];
+/**
+ * On Windows (design D8): SIGQUIT does not exist there, and SIGBREAK (Ctrl+Break) does. Closing the
+ * window delivers SIGHUP.
+ */
+export const WINDOWS_EXIT_SIGNALS: readonly NodeJS.Signals[] = ["SIGHUP", "SIGTERM", "SIGINT", "SIGBREAK"];
+/** Bound on waiting for the exit hooks: Windows ends a console process about five seconds after the window closes. */
+export const EXIT_HOOK_TIMEOUT_MS = 3000;
+export const WINDOWS_EXIT_HOOK_TIMEOUT_MS = 1500;
+
+/** The signals that end acp-tui on `platform`. */
+export function exitSignalsFor(platform: NodeJS.Platform = process.platform): readonly NodeJS.Signals[] {
+  return platform === "win32" ? WINDOWS_EXIT_SIGNALS : DEFAULT_EXIT_SIGNALS;
+}
+
+/** The default bound on the exit hooks on `platform`. */
+export function exitHookTimeoutFor(platform: NodeJS.Platform = process.platform): number {
+  return platform === "win32" ? WINDOWS_EXIT_HOOK_TIMEOUT_MS : EXIT_HOOK_TIMEOUT_MS;
+}
 /** Handled without exiting (design D3): the theme re-derivation signal. */
 export const THEME_SIGNAL: NodeJS.Signals = "SIGUSR2";
 
 export interface LifecycleOptions {
   /** Runs before the renderer is destroyed, for example the session controller's `detach()`. */
   onExit?: ExitHook;
-  /** Bound on waiting for exit hooks; default 3000 ms. */
+  /** Bound on waiting for exit hooks; default 3000 ms (1500 ms on Windows). */
   exitHookTimeoutMs?: number;
   /** Bound on waiting for the renderer's `closed` after `destroy()`; default 1000 ms. */
   destroyTimeoutMs?: number;
   /** Default `process.exit`. */
   exit?: (code: number) => void;
-  /** Default: SIGHUP, SIGTERM, SIGINT, SIGQUIT. */
+  /** Default: SIGHUP, SIGTERM, SIGINT, SIGQUIT (SIGBREAK instead of SIGQUIT on Windows). */
   signals?: readonly NodeJS.Signals[];
+  /** The platform the signal list and the hook bound follow; default `process.platform`. */
+  platform?: NodeJS.Platform;
   /** Route `uncaughtException` and `unhandledRejection` into `shutdown`; default true. */
   handleErrors?: boolean;
   /**
@@ -123,7 +143,7 @@ export interface Lifecycle {
   /** Adds an exit hook (run in order, after `onExit`); returns a remover. */
   addExitHook(hook: ExitHook): () => void;
   /**
-   * Adds a listener for SIGUSR2 (design D3: theme re-derivation, task 5.3).
+   * Adds a listener for SIGUSR2, never delivered on Windows (design D3: theme re-derivation, task 5.3).
    * The signal never exits, with or without listeners; returns a remover.
    */
   onThemeSignal(listener: () => void): () => void;
@@ -192,12 +212,13 @@ async function destroyRenderer(renderer: CliRenderer, timeoutMs: number): Promis
 export function createLifecycle(options: LifecycleOptions = {}): Lifecycle {
   const hooks: ExitHook[] = options.onExit ? [options.onExit] : [];
   const themeListeners = new Set<() => void>();
-  const signals = options.signals ?? DEFAULT_EXIT_SIGNALS;
+  const platform = options.platform ?? process.platform;
+  const signals = options.signals ?? exitSignalsFor(platform);
   const handleErrors = options.handleErrors ?? true;
   const write = options.write ?? ((data: string) => void process.stdout.write(data));
   const writeError = options.writeError ?? ((text: string) => void process.stderr.write(text));
   const exit = options.exit ?? ((code: number) => process.exit(code));
-  const timeoutMs = options.exitHookTimeoutMs ?? 3000;
+  const timeoutMs = options.exitHookTimeoutMs ?? exitHookTimeoutFor(platform);
   const destroyTimeoutMs = options.destroyTimeoutMs ?? 1000;
 
   let renderer: CliRenderer | null = null;
@@ -271,7 +292,8 @@ export function createLifecycle(options: LifecycleOptions = {}): Lifecycle {
         handlers.set(signal, handler);
         process.on(signal, handler);
       }
-      if (!handlers.has(THEME_SIGNAL) && !signals.includes(THEME_SIGNAL)) {
+      // SIGUSR2 does not exist on Windows (Ctrl+L re-derives the theme there).
+      if (platform !== "win32" && !handlers.has(THEME_SIGNAL) && !signals.includes(THEME_SIGNAL)) {
         handlers.set(THEME_SIGNAL, themeSignal);
         process.on(THEME_SIGNAL, themeSignal);
       }
