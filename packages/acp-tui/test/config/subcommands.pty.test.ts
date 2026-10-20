@@ -15,6 +15,7 @@ import { commentedDefault } from "../../src/config/default-file.ts";
 import { startCli } from "../conversation/cli.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { READY } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -67,7 +68,8 @@ describe("subcommands on the command line (task 9.1)", () => {
     expectMainScreenOnly(r.raw);
   }, 30000);
 
-  test("Agent after the separator: acp-tui -- config, with a program named config on the PATH, launches config as the agent command", async () => {
+  // Skipped on Windows: it runs the POSIX sh launcher and a #!/bin/sh stub.
+  test.skipIf(WINDOWS)("Agent after the separator: acp-tui -- config, with a program named config on the PATH, launches config as the agent command", async () => {
     const w = world();
     const bin = join(w.home, "bin");
     mkdirSync(bin);

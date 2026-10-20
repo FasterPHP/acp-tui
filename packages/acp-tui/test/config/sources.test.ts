@@ -25,11 +25,12 @@ function workTree() {
 
 describe("Configuration file (task 2.1)", () => {
   test("XDG location: $XDG_CONFIG_HOME/acp-tui/config.jsonc when absolute, else ~/.config", () => {
-    expect(userConfigFile({ XDG_CONFIG_HOME: "/tmp/cfg", HOME: "/home/u" })).toBe("/tmp/cfg/acp-tui/config.jsonc");
-    expect(userConfigFile({ HOME: "/home/u" })).toBe("/home/u/.config/acp-tui/config.jsonc");
-    expect(userConfigFile({ XDG_CONFIG_HOME: "cfg", HOME: "/home/u" })).toBe("/home/u/.config/acp-tui/config.jsonc");
-    expect(configDirectory({ XDG_CONFIG_HOME: "/tmp/cfg" })).toBe("/tmp/cfg/acp-tui");
-    expect(themesDirectory({ XDG_CONFIG_HOME: "/tmp/cfg" })).toBe("/tmp/cfg/acp-tui/themes");
+    // The POSIX rule, whatever the host: the platform is named, so the expectations are literal.
+    expect(userConfigFile({ XDG_CONFIG_HOME: "/tmp/cfg", HOME: "/home/u" }, "linux")).toBe("/tmp/cfg/acp-tui/config.jsonc");
+    expect(userConfigFile({ HOME: "/home/u" }, "linux")).toBe("/home/u/.config/acp-tui/config.jsonc");
+    expect(userConfigFile({ XDG_CONFIG_HOME: "cfg", HOME: "/home/u" }, "linux")).toBe("/home/u/.config/acp-tui/config.jsonc");
+    expect(configDirectory({ XDG_CONFIG_HOME: "/tmp/cfg" }, "linux")).toBe("/tmp/cfg/acp-tui");
+    expect(themesDirectory({ XDG_CONFIG_HOME: "/tmp/cfg" }, "linux")).toBe("/tmp/cfg/acp-tui/themes");
   });
 
   test("XDG location: the file there is read, comments and trailing commas included", () => {

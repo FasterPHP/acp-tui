@@ -11,6 +11,7 @@ import { promptBox, READY } from "../pty/regions.ts";
 import { sendPrompt, startCli, type CliRun } from "../conversation/cli.ts";
 import { localEnv, osc52Payloads } from "../selection/pty.ts";
 import { fakeCompositor } from "./fake-compositor.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -49,7 +50,8 @@ const toast = (s: PtySession) => promptBox(s)[0] ?? "";
 const argv = (log: string) => readFileSync(log, "utf8").split("\n").slice(0, -1);
 
 describe("opening links (task 6.3)", () => {
-  test("Click opens: a click on a link starts the opener with the URL as its only argument, and the toast names the host", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("Click opens: a click on a link starts the opener with the URL as its only argument, and the toast names the host", async () => {
     const { s, log, events } = await start();
     expect(s.screenText().some((l) => l.includes("One link: the docs (example.com)."))).toBe(true);
     const [x, y] = cellOf(s, "the docs");
@@ -60,7 +62,8 @@ describe("opening links (task 6.3)", () => {
     expect(events("link_open")).toEqual([expect.objectContaining({ action: "open", kind: "web", trigger: "click" })]);
   }, 30000);
 
-  test("the host after the label opens the same link; a bare URL and a mail link open as written", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("the host after the label opens the same link; a bare URL and a mail link open as written", async () => {
     const { s, log } = await start();
     const [hx, hy] = cellOf(s, "(example.com).");
     s.mouseClick(hx + 3, hy);
@@ -113,7 +116,8 @@ describe("opening links (task 6.3)", () => {
     expect(events("link_open")).toEqual([expect.objectContaining({ action: "copy", kind: "web" })]);
   }, 30000);
 
-  test("a relative link opens the file's real path inside the working directory; one whose symlink leads outside is refused", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("a relative link opens the file's real path inside the working directory; one whose symlink leads outside is refused", async () => {
     const { s, log, dir } = await start();
     writeFileSync(join(dir, "README.md"), "# readme\n");
     const [x, y] = cellOf(s, "readme");
@@ -134,7 +138,8 @@ describe("opening links (task 6.3)", () => {
     expect(readFileSync(log, "utf8")).toBe("");
   }, 30000);
 
-  test("openLink (`o`): the cursor's item with one link opens it; with several a chooser lists them and Enter opens the chosen one", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("openLink (`o`): the cursor's item with one link opens it; with several a chooser lists them and Enter opens the chosen one", async () => {
     const { s, log, events } = await start();
     // Tab focuses the conversation; the cursor starts on the last item, the turn's end, which has
     // no link.
@@ -168,7 +173,8 @@ describe("opening links (task 6.3)", () => {
     expect(events("link_open").map((e) => e["trigger"])).toEqual(["key", "key"]);
   }, 30000);
 
-  test("the chooser takes a click as Enter (day-two-feedback task 13.6): a click on a link's row opens that link and closes the chooser", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("the chooser takes a click as Enter (day-two-feedback task 13.6): a click on a link's row opens that link and closes the chooser", async () => {
     const { s, log } = await start();
     s.sendKeys("Tab");
     await Bun.sleep(300);
@@ -185,7 +191,8 @@ describe("opening links (task 6.3)", () => {
     await s.waitFor((p) => !p.screenText().some((l) => l.includes("╭─ Links")), 5000);
   }, 30000);
 
-  test("C7: the opener gets an activation token from the compositor in XDG_ACTIVATION_TOKEN; the log says so, never the token", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("C7: the opener gets an activation token from the compositor in XDG_ACTIVATION_TOKEN; the log says so, never the token", async () => {
     const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-wayland-"));
     const socket = join(dir, "wayland-fake");
     const { server, seen } = fakeCompositor(socket);

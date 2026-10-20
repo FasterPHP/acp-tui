@@ -87,8 +87,8 @@ export class AgentNameError extends Error {
 /** The user's configuration file: `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, or
  *  `~/.config/acp-tui/config.jsonc` when XDG_CONFIG_HOME is unset or not absolute
  *  (`%APPDATA%\acp-tui\config.jsonc` on Windows). */
-export function configFilePath(env: Readonly<Record<string, string | undefined>> = process.env): string {
-  return userConfigFile(env);
+export function configFilePath(env: Readonly<Record<string, string | undefined>> = process.env, platform: NodeJS.Platform = process.platform): string {
+  return userConfigFile(env, platform);
 }
 
 /** Printable and on one line, for names and values quoted in messages. */

@@ -1,6 +1,7 @@
 // mvp-chrome-and-keys task 2.4: `basic` echoes the content block types of a prompt that is not a
 // single text block (`text`, `resource_link <uri>`), because the fake-agent log keeps only the
 // block count. A plain prompt gets the reply it always did.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { ContentBlock, SessionUpdate } from "@agentclientprotocol/sdk";
 import { describePromptBlocks } from "../src/scenarios/basic.ts";
@@ -21,7 +22,7 @@ async function reply(prompt: ContentBlock[]): Promise<SessionUpdate[]> {
   });
   try {
     await handle.conn.initialize({ protocolVersion: 1 });
-    const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     await handle.conn.prompt({ sessionId: session.sessionId, prompt });
   } finally {
     handle.stop();

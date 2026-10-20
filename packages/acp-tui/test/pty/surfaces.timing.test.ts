@@ -2,10 +2,12 @@
 // What the file covers is in the header of surfaces.test.ts; its helpers are in surfaces-helpers.ts.
 import { afterEach, describe, expect, test } from "bun:test";
 import { DARK, LIGHT, openPermission, showing, noneLeft, disposeSession } from "./surfaces-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
-describe("Theme switch signalled (task 5.3)", () => {
+// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+describe.skipIf(WINDOWS)("Theme switch signalled (task 5.3)", () => {
   test("SIGUSR2 after the terminal's answer changed: new surfaces on screen within one second, every cell repainted", async () => {
     const s = await openPermission(DARK);
     expect(showing(s, DARK)).toBe(true);

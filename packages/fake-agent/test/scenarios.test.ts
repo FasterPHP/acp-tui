@@ -1,5 +1,6 @@
 // Exercises the remaining scenario knobs (task 4.2's "quick to add" list):
 // five-tools, crash, prompt-error and big-output.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { CRASH_EXIT_CODE } from "../src/scenarios/crash.ts";
@@ -23,7 +24,7 @@ describe("fake-agent scenario knobs", () => {
 
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "run checks" }],
@@ -56,7 +57,7 @@ describe("fake-agent scenario knobs", () => {
 
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
 
       await expect(
         handle.conn.prompt({
@@ -85,7 +86,7 @@ describe("fake-agent scenario knobs", () => {
 
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
 
       let caught: unknown;
       try {
@@ -119,7 +120,7 @@ describe("fake-agent scenario knobs", () => {
 
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "run suite" }],

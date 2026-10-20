@@ -4,10 +4,11 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { DebugLogger } from "../../src/log.ts";
 import { startSession } from "../../src/session/controller.ts";
 
-const FAKE_AGENT_MAIN = new URL("../../../fake-agent/src/main.ts", import.meta.url).pathname;
+const FAKE_AGENT_MAIN = fileURLToPath(new URL("../../../fake-agent/src/main.ts", import.meta.url));
 
 function running(pid: number): boolean {
   try {

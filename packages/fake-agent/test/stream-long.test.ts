@@ -1,5 +1,6 @@
 // Phase-1a task 1.2: stream-long sends one 3000-line Markdown answer in
 // 20-character chunks at a fixed rate, and stops on session/cancel.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import {
@@ -42,7 +43,7 @@ describe("fake-agent stream-long scenario (phase-1a task 1.2)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "stream it" }],
@@ -87,7 +88,7 @@ describe("fake-agent stream-long scenario (phase-1a task 1.2)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       sessionId = session.sessionId;
       const result = await handle.conn.prompt({
         sessionId,

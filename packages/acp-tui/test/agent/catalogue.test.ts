@@ -22,6 +22,7 @@ import { builtInAgentCommand, CLAUDE_AGENT_PACKAGE, DEFAULT_AGENT_COMMAND, DEFAU
 import { launchAgent } from "../../src/agent/launch.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
 import { main, type StartAppOptions } from "../../src/cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 function temp(prefix: string): string {
   return realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix)));
@@ -80,9 +81,9 @@ describe("The default agent command", () => {
 
 describe("the configuration file's path", () => {
   test("$XDG_CONFIG_HOME/acp-tui/config.jsonc, else ~/.config when XDG_CONFIG_HOME is unset or not absolute", () => {
-    expect(configFilePath({ XDG_CONFIG_HOME: "/x/cfg", HOME: "/home/u" })).toBe("/x/cfg/acp-tui/config.jsonc");
-    expect(configFilePath({ HOME: "/home/u" })).toBe("/home/u/.config/acp-tui/config.jsonc");
-    expect(configFilePath({ XDG_CONFIG_HOME: "relative/cfg", HOME: "/home/u" })).toBe("/home/u/.config/acp-tui/config.jsonc");
+    expect(configFilePath({ XDG_CONFIG_HOME: "/x/cfg", HOME: "/home/u" }, "linux")).toBe("/x/cfg/acp-tui/config.jsonc");
+    expect(configFilePath({ HOME: "/home/u" }, "linux")).toBe("/home/u/.config/acp-tui/config.jsonc");
+    expect(configFilePath({ XDG_CONFIG_HOME: "relative/cfg", HOME: "/home/u" }, "linux")).toBe("/home/u/.config/acp-tui/config.jsonc");
   });
 
   test("the test run never points at the user's own configuration (test/preload/xdg.ts)", () => {
@@ -109,7 +110,8 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.launch?.problems).toEqual([]);
   });
 
-  test("Configured agent: the entry's env is added to the agent's environment, not in place of it", async () => {
+  // Skipped on Windows: the harness is "sh -c".
+  test.skipIf(WINDOWS)("Configured agent: the entry's env is added to the agent's environment, not in place of it", async () => {
     const agent = launchAgent(["sh", "-c", 'printf "%s|%s" "$ACP_TUI_TEST_AGENT_ENV" "$PATH"'], { env: { ACP_TUI_TEST_AGENT_ENV: "from-config" } });
     const out = await new Response(agent.stdout).text();
     await agent.exited;

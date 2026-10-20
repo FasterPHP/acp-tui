@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { READY } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const LAUNCHER = join(ROOT, "packages/acp-tui/bin/acp-tui");
@@ -82,7 +83,8 @@ async function runWithout(env: Record<string, string>): Promise<{ code: number; 
   return { code: await proc.exited, stdout, stderr };
 }
 
-describe("the package launcher (packages/acp-tui/bin/acp-tui)", () => {
+// Skipped on Windows: the package launcher is a POSIX sh script (Windows installs a .cmd stub, tested in install-cli.test.ts).
+describe.skipIf(WINDOWS)("the package launcher (packages/acp-tui/bin/acp-tui)", () => {
   test("is an executable POSIX sh script", () => {
     expect(statSync(LAUNCHER).mode & 0o111).toBe(0o111);
     expect(readFileSync(LAUNCHER, "utf8").split("\n")[0]).toBe("#!/bin/sh");

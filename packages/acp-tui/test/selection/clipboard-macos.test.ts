@@ -22,6 +22,7 @@ import {
   type ClipboardMode,
 } from "../../src/selection/clipboard.ts";
 import { exists, makeStubs, type StubName, type Stubs } from "./clipboard-stub.ts";
+import { WINDOWS } from "../windows.ts";
 
 function fakeRenderer(remote = false) {
   const writes: string[] = [];
@@ -67,7 +68,8 @@ function setup(names: readonly StubName[], extra: Record<string, string> = {}) {
   return { stubs, env: { PATH: stubs.bin, STUB_LOG: stubs.log, ...extra } };
 }
 
-describe("the host on macOS", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("the host on macOS", () => {
   test("the pasteboard, whatever the display variables say; none over SSH; Linux unchanged", () => {
     expect(hostDisplay({}, DARWIN)).toBe("macos");
     expect(hostDisplay({ DISPLAY: "/private/tmp/com.apple.launchd.x/org.xquartz:0" }, DARWIN)).toBe("macos");
@@ -94,7 +96,8 @@ describe("the host on macOS", () => {
   });
 });
 
-describe("copy on macOS", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("copy on macOS", () => {
   test("pbcopy gets the text on stdin with an argument list, no shell, a UTF-8 locale, and the toast names it", async () => {
     const { stubs: s, env } = setup(["pbcopy"], { LANG: "C" });
     const native = fakeHost();
@@ -184,7 +187,8 @@ describe("copy on macOS", () => {
   }
 });
 
-describe("paste on macOS", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("paste on macOS", () => {
   test("pbpaste's text is pasted, read with -Prefer txt and a UTF-8 locale; the native backend is not asked; the log names pbpaste, never the text", async () => {
     const text = "two\nlines é 漢 \u{1F600}";
     const { stubs: s, env } = setup(["pbpaste"], { STUB_PASTE: text, LANG: "C" });

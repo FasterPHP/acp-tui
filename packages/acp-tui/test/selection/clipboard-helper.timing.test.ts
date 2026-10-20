@@ -6,10 +6,12 @@ import { join } from "node:path";
 import { copyToast, createCopier } from "../../src/selection/clipboard.ts";
 import { alive, exists } from "./clipboard-stub.ts";
 import { fakeRenderer, fakeHost, setup, WAYLAND, disposeStubs } from "./clipboard-helper-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeStubs);
 
-describe("copy through the clipboard program", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("copy through the clipboard program", () => {
   test("Wayland: wl-copy gets the text on stdin with an argument list, no shell, and the copy does not wait for its serving child", async () => {
     const { stubs: s, env } = setup(["wl-copy"], WAYLAND);
     const host = fakeHost();

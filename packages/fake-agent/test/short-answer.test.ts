@@ -1,5 +1,6 @@
 // mvp-rendering task 9.4: short-answer sends a turn shaped like S7 session D4: a read, a thought
 // holding a summary and a numbered plan, an `other` call, an execute, then a one-sentence answer.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { SHORT_ANSWER_IDS, SHORT_ANSWER_TEXT, SHORT_ANSWER_THOUGHT } from "../src/scenarios/short-answer.ts";
@@ -28,7 +29,7 @@ describe("fake-agent short-answer scenario (mvp-rendering task 9.4)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(result.stopReason).toBe("end_turn");
       const steps = updates.map((u) => {

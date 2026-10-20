@@ -1,6 +1,7 @@
 // mvp session-models tasks 2.1 and 2.2: the config-options-models scenario advertises the older
 // model state (`models`, with `modes`, no config options) and implements session/set_model; other
 // scenarios answer it with method not found.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { SCENARIOS } from "../src/scenarios/index.ts";
 import { makeTempDir, readLog, spawnFakeAgent } from "./helpers.ts";
@@ -37,7 +38,7 @@ describe("fake-agent config-options-models scenario", () => {
     const handle = open("config-options-models");
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = (await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] })) as LegacyNewResponse;
+      const session = (await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] })) as LegacyNewResponse;
       expect(session.configOptions).toBeUndefined();
       expect(session.modes).toMatchObject({ currentModeId: "default" });
       expect(session.models?.currentModelId).toBe("fake-small");
@@ -57,7 +58,7 @@ describe("fake-agent config-options-models scenario", () => {
     const handle = open("config-options-models", texts, logPath);
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "one" }] });
       expect(texts.join("")).toContain("Current model: fake-small");
 
@@ -80,7 +81,7 @@ describe("fake-agent config-options-models scenario", () => {
     const handle = open("config-options-models", texts);
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await expect(handle.conn.extMethod("session/set_model", { sessionId: session.sessionId, modelId: "nope" })).rejects.toMatchObject({ code: -32602 });
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(texts.join("")).toContain("Current model: fake-small");
@@ -93,7 +94,7 @@ describe("fake-agent config-options-models scenario", () => {
     const handle = open("basic");
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await expect(handle.conn.extMethod("session/set_model", { sessionId: session.sessionId, modelId: "x" })).rejects.toMatchObject({ code: -32601 });
     } finally {
       handle.stop();
@@ -109,9 +110,9 @@ describe("fake-agent config-options-models scenario", () => {
     });
     try {
       await loading.conn.initialize({ protocolVersion: 1 });
-      const session = await loading.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await loading.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await loading.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
-      const loaded = (await loading.conn.loadSession({ sessionId: session.sessionId, cwd: "/tmp", mcpServers: [] })) as LegacyNewResponse;
+      const loaded = (await loading.conn.loadSession({ sessionId: session.sessionId, cwd: tmpdir(), mcpServers: [] })) as LegacyNewResponse;
       expect(loaded.models?.currentModelId).toBe("fake-small");
       expect(loaded.modes).toMatchObject({ currentModeId: "default" });
     } finally {

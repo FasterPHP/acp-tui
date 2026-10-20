@@ -11,6 +11,7 @@
     "bench:scale": "bun packages/acp-tui/bench/scale.ts",
     "bench:load": "bun packages/acp-tui/bench/load.ts",
     "bench:find": "bun packages/acp-tui/bench/find.ts",
+    "test:windows": "bun scripts/test-windows.ts",
     "install-cli": "bun packages/acp-tui/scripts/install-cli.ts",
     "typecheck": "tsc --noEmit -p packages/acp-model/tsconfig.json && tsc --noEmit -p packages/acp-tui/tsconfig.json && tsc --noEmit -p packages/fake-agent/tsconfig.json"
   },

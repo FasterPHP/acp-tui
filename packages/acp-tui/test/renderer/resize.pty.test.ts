@@ -16,6 +16,7 @@ import { DEFAULT_GLYPHS } from "../../src/conversation/glyphs.ts";
 import { readEvents } from "../conversation/cli.ts";
 import { diffSnapshots, freshRender, startPty, type PtySession, type ScreenSnapshot } from "../pty/harness.ts";
 import { CARD_HEADER, promptText, READY } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -130,7 +131,8 @@ describe("relayout and settle repaint on resize (task 4.5)", () => {
     expect(diffWithFresh(fresh, s)).toEqual([]);
   }, 60000);
 
-  test("main screen untouched by resizing: ten resizes, then detach", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("main screen untouched by resizing: ten resizes, then detach", async () => {
     const dir = tempDir();
     const { s, log } = start(dir, 100, 24);
     await s.waitFor(READY, 10000);

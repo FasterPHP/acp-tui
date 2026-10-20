@@ -15,6 +15,7 @@ import { shellQuote } from "../../src/renderer/exit-text.ts";
 import { FINAL_RESET } from "../../src/renderer/lifecycle.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { promptText, READY, REQUIRES_ACTION } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -102,7 +103,8 @@ function afterReset(s: PtySession): string {
   return raw.slice(raw.lastIndexOf(FINAL_RESET) + FINAL_RESET.length);
 }
 
-describe("every exit path restores the terminal (task 4.1)", () => {
+// Skipped on Windows: every test compares the main screen and the raw restore sequences of the PTY stream (ConPTY rewrites them) or sends POSIX signals.
+describe.skipIf(WINDOWS)("every exit path restores the terminal (task 4.1)", () => {
   // Without a prompt there is no session to resume, so nothing is printed (mvp-sessions design
   // decision 12): the cursor stays on the row below the command line.
   test("Ctrl+D: status 0, nothing below the command line", async () => {
@@ -188,7 +190,8 @@ describe("every exit path restores the terminal (task 4.1)", () => {
   }
 });
 
-describe("exit text below the command line (task 4.3)", () => {
+// Skipped on Windows: every test compares the main screen and the raw restore sequences of the PTY stream (ConPTY rewrites them) or sends POSIX signals.
+describe.skipIf(WINDOWS)("exit text below the command line (task 4.3)", () => {
   test("Summary in the main screen: after a prompt, the resume line alone on the rows after the command line", async () => {
     const { s, agent } = start({ scenario: "copy-fixtures", agentArgs: ["--load"] });
     await ready(s);

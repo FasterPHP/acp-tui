@@ -4,6 +4,7 @@
 // parallel-tests task 5.1: renamed to `.timing.test.ts`, since its tests check the gap against an
 // upper bound (and the arrival times with a tolerance), so they run in the serial pass; the test of
 // the option parsing is in slow-turn.test.ts.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
@@ -37,7 +38,7 @@ async function runTurn(delayScale: number, args: readonly string[]): Promise<{ e
   });
   try {
     await handle.conn.initialize({ protocolVersion: 1 });
-    const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     const response = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
     expect(response.stopReason).toBe("end_turn");
   } finally {

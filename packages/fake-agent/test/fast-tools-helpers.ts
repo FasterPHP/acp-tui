@@ -1,4 +1,5 @@
 // Shared by fast-tools.test.ts and fast-tools.timing.test.ts (split by the change parallel-tests, tasks 3.x). Not a test file.
+import { tmpdir } from "node:os";
 import { expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
@@ -30,7 +31,7 @@ export async function run(delayScale: number, cancelAfterMs?: number): Promise<{
   let ended = 0;
   try {
     await handle.conn.initialize({ protocolVersion: 1 });
-    const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     const started = performance.now();
     const pending = handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
     if (cancelAfterMs !== undefined) {

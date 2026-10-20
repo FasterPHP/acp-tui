@@ -17,6 +17,7 @@ import {
   type MouseModifiers,
 } from "./mouse.ts";
 import { diffSnapshots, snapshotBuffer, type ScreenSnapshot } from "./snapshot.ts";
+import { TEST_HOOKS_VAR } from "../../src/renderer/test-hooks.ts";
 import { JEDITERM_ENV, JediTermFilter } from "./jediterm.ts";
 
 export * from "./jediterm.ts";
@@ -59,6 +60,18 @@ export interface PtyStartOptions {
    * ignored, and APC strings printed as text. `env` still overrides the environment.
    */
   terminal?: "xterm" | "jediterm";
+}
+
+/**
+ * The `ACP_TUI_TEST_HOOKS` value for a PTY child: what the test named, plus `no-host-clipboard`, so
+ * no PTY test reaches the real clipboard on any platform (renderer/test-hooks.ts). A test that puts
+ * stub clipboard programs on `PATH` names `no-native-clipboard` instead, which keeps the stubs
+ * working and still creates no native backend.
+ */
+export function clipboardTestHooks(named: string | undefined): string {
+  const hooks = (named ?? "").split(",").map((n) => n.trim()).filter(Boolean);
+  if (!hooks.includes("no-native-clipboard") && !hooks.includes("no-host-clipboard")) hooks.push("no-host-clipboard");
+  return hooks.join(",");
 }
 
 /** Named keys and the bytes a terminal sends for them. */
@@ -153,6 +166,7 @@ export class PtySession {
     for (const [k, v] of Object.entries({ ...process.env, TERM: "xterm-256color", ...emulated, ...opts.env })) {
       if (v !== undefined) env[k] = v;
     }
+    env[TEST_HOOKS_VAR] = clipboardTestHooks(env[TEST_HOOKS_VAR]);
     this.proc = Bun.spawn(cmd, {
       cwd: opts.cwd,
       env,

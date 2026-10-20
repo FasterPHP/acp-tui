@@ -6,6 +6,7 @@
 // stand-in blocks, the prompt box's bottom border, and the configuration's
 // problems.
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import type { SessionConfigOption } from "@agentclientprotocol/sdk";
 import { createSession, type Session } from "acp-model";
 import { parseConfigText } from "../../src/config/load.ts";
@@ -20,7 +21,7 @@ import { deriveSessionView } from "../../src/layout/view.ts";
 import { FULL_VIEW, view } from "./fixtures.ts";
 import { screenRows } from "./screen-rows.tsx";
 
-const FILE = "/home/u/.config/acp-tui/config.jsonc";
+const FILE = join("/home/u/.config", "acp-tui", "config.jsonc");
 
 /** A store over one in-memory user file, edited by `set`. */
 function memoryStore(initial: string | null) {

@@ -2,6 +2,7 @@
 // session/load of the session `long-session` replays exactly the history the
 // scenario's first prompt sends (8303 updates at 5000 items), and a prompt
 // after the load gets the short reply, never the history again.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { LONG_SESSION_SESSION_ID, LONG_SESSION_UPDATED_AT } from "../src/index.ts";
@@ -13,7 +14,7 @@ async function firstPromptUpdates(items: number): Promise<SessionUpdate[]> {
   const handle = spawnFakeAgent({ scenario: "long-session", items, client });
   try {
     await handle.conn.initialize({ protocolVersion: 1 });
-    const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "replay everything" }] });
     return updates;
   } finally {
@@ -32,7 +33,7 @@ describe("long-session through session/load (mvp-sessions task 2.3)", () => {
     try {
       const init = await handle.conn.initialize({ protocolVersion: 1 });
       expect(init.agentCapabilities?.loadSession).toBe(true);
-      const response = await handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: "/tmp", mcpServers: [] });
+      const response = await handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: tmpdir(), mcpServers: [] });
       expect(response).toEqual({});
       expect(updates).toHaveLength(8303);
       expect(updates.filter((update) => update.sessionUpdate === "plan")).toHaveLength(200);
@@ -49,7 +50,7 @@ describe("long-session through session/load (mvp-sessions task 2.3)", () => {
     const handle = spawnFakeAgent({ scenario: "long-session", items: 300, args: ["--load"], client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      await handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: "/tmp", mcpServers: [] });
+      await handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: tmpdir(), mcpServers: [] });
       expect(updates).toEqual(expected);
     } finally {
       handle.stop();
@@ -61,7 +62,7 @@ describe("long-session through session/load (mvp-sessions task 2.3)", () => {
     const handle = spawnFakeAgent({ scenario: "long-session", items: 100, args: ["--load"], client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      await handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: "/tmp", mcpServers: [] });
+      await handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: tmpdir(), mcpServers: [] });
       updates.length = 0;
       const result = await handle.conn.prompt({
         sessionId: LONG_SESSION_SESSION_ID,
@@ -77,14 +78,14 @@ describe("long-session through session/load (mvp-sessions task 2.3)", () => {
 
   test("it is listed with --list, under the agent's working directory, with a fixed time", async () => {
     const { client } = recordingClient();
-    const handle = spawnFakeAgent({ scenario: "long-session", items: 40, args: ["--list", "--load"], cwd: "/tmp", client });
+    const handle = spawnFakeAgent({ scenario: "long-session", items: 40, args: ["--list", "--load"], cwd: tmpdir(), client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const { sessions } = await handle.conn.listSessions({ cwd: "/tmp" });
+      const { sessions } = await handle.conn.listSessions({ cwd: tmpdir() });
       expect(sessions).toEqual([
         {
           sessionId: LONG_SESSION_SESSION_ID,
-          cwd: "/tmp",
+          cwd: tmpdir(),
           title: "Long session (40 items)",
           updatedAt: LONG_SESSION_UPDATED_AT,
         },
@@ -103,7 +104,7 @@ describe("long-session through session/load (mvp-sessions task 2.3)", () => {
       const init = await handle.conn.initialize({ protocolVersion: 1 });
       expect(init.agentCapabilities?.loadSession).toBe(false);
       await expect(
-        handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: "/tmp", mcpServers: [] }),
+        handle.conn.loadSession({ sessionId: LONG_SESSION_SESSION_ID, cwd: tmpdir(), mcpServers: [] }),
       ).rejects.toMatchObject({ code: -32601 });
     } finally {
       handle.stop();
@@ -125,7 +126,7 @@ describe("long-session --history (mvp-conversation task 1.2)", () => {
     const handle = spawnFakeAgent({ scenario: "long-session", items: 5000, args: ["--history"], client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await until(updates, 8303, 60000);
       await Bun.sleep(100);
       expect(updates).toHaveLength(8303);
@@ -142,7 +143,7 @@ describe("long-session --history (mvp-conversation task 1.2)", () => {
     const handle = spawnFakeAgent({ scenario: "long-session", items: 300, args: ["--history"], client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       // The prompt is answered only after the whole history has gone out.
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "and now?" }] });
       expect(result.stopReason).toBe("end_turn");
@@ -159,15 +160,15 @@ describe("long-session --history (mvp-conversation task 1.2)", () => {
     const handle = spawnFakeAgent({ scenario: "long-session", items: 50, args: ["--history", "--load"], client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const first = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const first = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.prompt({ sessionId: first.sessionId, prompt: [{ type: "text", text: "wait" }] });
       const history = updates.length - 1;
       expect(history).toBeGreaterThan(50);
-      const second = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const second = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.prompt({ sessionId: second.sessionId, prompt: [{ type: "text", text: "wait" }] });
       expect(updates).toHaveLength(2 * (history + 1));
       updates.length = 0;
-      await handle.conn.loadSession({ sessionId: first.sessionId, cwd: "/tmp", mcpServers: [] });
+      await handle.conn.loadSession({ sessionId: first.sessionId, cwd: tmpdir(), mcpServers: [] });
       expect(updates).toHaveLength(history);
     } finally {
       handle.stop();
@@ -179,7 +180,7 @@ describe("long-session --history (mvp-conversation task 1.2)", () => {
     const handle = spawnFakeAgent({ scenario: "long-session", items: 50, client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await Bun.sleep(200);
       expect(updates).toHaveLength(0);
     } finally {

@@ -1,4 +1,5 @@
 // Phase-1a task 16.5: markdown-gallery sends the whole gallery as one agent message.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import * as fakeAgent from "../src/index.ts";
@@ -24,7 +25,7 @@ describe("fake-agent markdown-gallery scenario (phase-1a task 16.5)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "show me every Markdown element" }],
@@ -99,7 +100,7 @@ describe("fake-agent markdown-gallery scenario (phase-1a task 16.5)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(result.stopReason).toBe("end_turn");
       const texts = updates.map((update) => {

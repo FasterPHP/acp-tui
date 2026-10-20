@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { bracketedPaste, startPty, type PtySession } from "../pty/harness.ts";
 import { promptText, READY } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -40,7 +41,8 @@ function start(): { s: PtySession; sent: () => { method?: string; params?: { pro
 }
 
 describe("Prompt box input (opentui-0-6 task 4.1)", () => {
-  test("Paste with control characters: abcdef, a tab, g, then h on a second line; no ^ notation; nothing sent; Enter sends exactly that text", async () => {
+  // Skipped on Windows: the agent is fake-agent behind "sh -c tee", which records the lines acp-tui sends.
+  test.skipIf(WINDOWS)("Paste with control characters: abcdef, a tab, g, then h on a second line; no ^ notation; nothing sent; Enter sends exactly that text", async () => {
     const { s, sent } = start();
     await s.waitFor(READY, 10000);
     s.write(bracketedPaste("a\x07b\x00c\x1b[31md\x7fe\u0085f\tg\r\nh"));
