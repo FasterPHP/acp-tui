@@ -10,7 +10,7 @@ import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
-import { resolveLaunch, SessionAgentError, shellWord, type ResolveContext } from "../../src/agent/resolve.ts";
+import { adHocSessionMessage, resolveLaunch, SessionAgentError, shellWord, type ResolveContext } from "../../src/agent/resolve.ts";
 import { openSessionIndex, type SessionIndex } from "../../src/session/session-index.ts";
 
 function temp(prefix: string): string {
@@ -118,5 +118,17 @@ describe("resolveLaunch for --resume <id> (tasks 5.2 and 12.5)", () => {
     expect(shellWord("my agent")).toBe("'my agent'");
     expect(shellWord("it's")).toBe(`'it'\\''s'`);
     expect(shellWord("")).toBe("''");
+  });
+
+  test("shellWord and the rerun message are quoted for PowerShell on Windows", () => {
+    expect(shellWord("bun", "win32")).toBe("bun");
+    expect(shellWord("C:\\Program Files\\agent.exe", "win32")).toBe("'C:\\Program Files\\agent.exe'");
+    expect(shellWord("it's", "win32")).toBe("'it''s'");
+    expect(shellWord("", "win32")).toBe("''");
+    expect(adHocSessionMessage("s-9", ["C:\\Program Files\\agent\\agent.exe", "--acp", "it's"], "win32")).toBe(
+      "session s-9 was started with an ad hoc harness command, which acp-tui never runs from its index; reopen it with: acp-tui --resume s-9 -- 'C:\\Program Files\\agent\\agent.exe' --acp 'it''s'",
+    );
+    expect(adHocSessionMessage("s-9", ["a b"], "linux")).toContain("-- 'a b'");
+    expect(adHocSessionMessage("-s9", ["bun"], "win32")).toContain("acp-tui --resume=-s9 -- bun");
   });
 });

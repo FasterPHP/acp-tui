@@ -45,7 +45,7 @@ describe("exit text: the resume line only", () => {
   });
 
   test("ad hoc agent: the command repeated after `--`, plain words unquoted", () => {
-    const text = exitText("summary", { ...reopenable, session, adHocCommand: ["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"] });
+    const text = exitText("summary", { ...reopenable, session, adHocCommand: ["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"], platform: "linux" });
     expect(text).toBe("\rresume: acp-tui --resume sess-42 -- bun packages/fake-agent/src/main.ts --scenario basic\n");
   });
 
@@ -53,6 +53,7 @@ describe("exit text: the resume line only", () => {
     const line = resumeLine({
       ...reopenable,
       session,
+      platform: "linux",
       adHocCommand: ["my agent", "--flag=a b", "$HOME", "it's", "a;b", "plain", "", "x'y'z", "`id`", "a&&b", "~/x"],
     })!;
     expect(line).toBe(
@@ -62,12 +63,58 @@ describe("exit text: the resume line only", () => {
 
   test("an ID that starts with `-` is given as --resume=<id>, so it is not read as an option", () => {
     expect(resumeLine({ ...reopenable, session: { id: "-x1" } })).toBe("resume: acp-tui --resume=-x1");
-    expect(resumeLine({ ...reopenable, session: { id: "-a b" } })).toBe("resume: acp-tui --resume='-a b'");
+    expect(resumeLine({ ...reopenable, session: { id: "-a b" }, platform: "linux" })).toBe("resume: acp-tui --resume='-a b'");
+    expect(resumeLine({ ...reopenable, session: { id: "-a b" }, platform: "win32" })).toBe("resume: acp-tui --resume='-a b'");
+  });
+
+  describe("quoted for PowerShell on Windows", () => {
+    const windows = { ...reopenable, platform: "win32" } as const;
+
+    test("scenario: an ad hoc harness with a space in its path", () => {
+      const line = resumeLine({ ...windows, session, adHocCommand: ["C:\\Program Files\\agent\\agent.exe", "--acp"] });
+      expect(line).toBe("resume: acp-tui --resume sess-42 -- 'C:\\Program Files\\agent\\agent.exe' --acp");
+    });
+
+    test("an argument with a single quote has it doubled", () => {
+      const line = resumeLine({ ...windows, session, adHocCommand: ["agent.exe", "--title=it's", "x'y'z"] });
+      expect(line).toBe("resume: acp-tui --resume sess-42 -- agent.exe '--title=it''s' 'x''y''z'");
+    });
+
+    test("plain words, drive paths and backslashes stay bare; PowerShell's own operators are quoted", () => {
+      const line = resumeLine({
+        ...windows,
+        session,
+        adHocCommand: ["bun", "C:\\x\\y.ts", "--n=1", "$HOME", "a;b", "a,b", "@list", "%PATH%", "(x)", "a&b", "`id`", "", 'say "hi"', "{x}", "#c", "~"],
+      })!;
+      expect(line).toBe(
+        "resume: acp-tui --resume sess-42 -- bun C:\\x\\y.ts --n=1 '$HOME' 'a;b' 'a,b' '@list' '%PATH%' '(x)' 'a&b' '`id`' '' 'say \"hi\"' '{x}' '#c' '~'",
+      );
+    });
+
+    test("the typographic single quotes PowerShell reads as quotes are doubled too", () => {
+      expect(shellQuote("a\u2018b\u2019c", "win32")).toBe("'a\u2018\u2018b\u2019\u2019c'");
+    });
+
+    test("nothing in the line is POSIX-quoted, and POSIX quoting is unchanged elsewhere", () => {
+      expect(shellQuote("it's", "win32")).toBe("'it''s'");
+      expect(shellQuote("it's", "linux")).toBe("'it'\\''s'");
+      expect(shellQuote("it's", "darwin")).toBe("'it'\\''s'");
+      expect(shellQuote("a,b@c%d", "linux")).toBe("a,b@c%d");
+    });
+
+    test("an ID that starts with `-` still gives --resume=<id>", () => {
+      expect(resumeLine({ ...windows, session: { id: "-x1" } })).toBe("resume: acp-tui --resume=-x1");
+    });
+
+    test("the exit text carries the PowerShell line", () => {
+      const text = exitText("summary", { ...windows, session, adHocCommand: ["C:\\My Tools\\a.exe"] });
+      expect(text).toBe("\rresume: acp-tui --resume sess-42 -- 'C:\\My Tools\\a.exe'\n");
+    });
   });
 
   test("shellQuote round trips through sh", () => {
     for (const word of ["a b", "$HOME", "it's", "a;b", "$(echo hi)", "back\\slash", '"dq"', "*", "x=y", "a|b"]) {
-      const out = Bun.spawnSync(["sh", "-c", `printf %s ${shellQuote(word)}`]).stdout.toString();
+      const out = Bun.spawnSync(["sh", "-c", `printf %s ${shellQuote(word, "linux")}`]).stdout.toString();
       expect(out).toBe(word);
     }
   });
