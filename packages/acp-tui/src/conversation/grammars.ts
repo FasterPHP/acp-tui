@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 /**
  * The tree-sitter grammars acp-tui bundles for code-block highlighting (mvp-rendering design
  * decision 8, tasks 8.1 and 8.2). JavaScript, TypeScript, Markdown and Markdown inline are
- * OpenTUI's own bundled parsers and are not repeated here; these six are built by
+ * OpenTUI's own bundled parsers and are not repeated here; these nine are built by
  * `scripts/build-grammars.ts` from pinned commits and committed under `assets/grammars/`
  * with their highlight queries and licences (`manifest.json` records the sources).
  *
@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
  *
  * The aliases are the info strings OpenTUI's own mapping (`infoStringToFiletype`) does not
  * already turn into the filetype: `php`, `json`, `bash` (for `sh`, `zsh`, `ksh`), `sql`,
- * `python` (for `py`) and `yaml` (for `yml`) need none.
+ * `python` (for `py`) and `yaml` (for `yml`) need none; `kotlin` takes `kt` and `kts`, `xml` takes `pom`, `xsd` and `svg`.
  */
 
 /** The `assets/grammars` directory, resolved from this module so it works from source and from the launcher. */
@@ -35,6 +35,9 @@ export const BUNDLED_GRAMMARS: readonly BundledGrammar[] = [
   { filetype: "sql", aliases: ["mysql", "postgresql", "pgsql"] },
   { filetype: "python", aliases: ["python3"] },
   { filetype: "yaml" },
+  { filetype: "java" },
+  { filetype: "kotlin", aliases: ["kt", "kts"] },
+  { filetype: "xml", aliases: ["pom", "xsd", "svg"] },
 ];
 
 /** The registrations for `addDefaultParsers`, with absolute local paths. */

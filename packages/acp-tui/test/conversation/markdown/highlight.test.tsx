@@ -155,8 +155,8 @@ describe("Syntax highlighting with the bundled grammars (task 8.6)", () => {
     // The other languages of M21 are highlighted too; diff and the bare fence are not.
     const keywordIn = (rows: readonly Row[]) => rows.flatMap((r) => r.spans).some((s) => s.token !== "code.default" && s.code);
     const highlightedBlocks = blocks.map(keywordIn);
-    // php, php, ts, json, bash, diff, sql, none, python
-    expect(highlightedBlocks).toEqual([true, true, true, true, true, false, true, false, true]);
+    // php, php, ts, json, bash, diff, sql, none, python, java, kotlin, xml
+    expect(highlightedBlocks).toEqual([true, true, true, true, true, false, true, false, true, true, true, true]);
   }, 20000);
 
   test("fence-first: both PHP fences highlighted, with and without <?php, and the tag's block has class in code.keyword", async () => {
@@ -176,6 +176,24 @@ describe("Syntax highlighting with the bundled grammars (task 8.6)", () => {
     // The highlight recolours the block's rows, never their number or text.
     expect(rows!.length).toBe(before.length);
     expect(rows!.map(rowText)).toEqual(before.map(rowText));
+  }, 20000);
+
+  test("Java class: the modifiers and class are code.keyword, long is not code.default", async () => {
+    const [rows] = await highlighted("```java\npublic final class Account { private long id; }\n```\n");
+    for (const word of ["public", "final", "class", "private"]) expect(spanExactly(rows!, word)?.token, word).toBe("code.keyword");
+    expect(spanExactly(rows!, "long")?.token).toBe("code.type");
+  }, 20000);
+
+  test("Gradle Kotlin script: the string in a kts fence is code.string", async () => {
+    const [rows] = await highlighted('```kts\ndependencies { implementation("org.slf4j:slf4j-api:2.0.16") }\n```\n');
+    expect(tokensOf(rows!, "org.slf4j:slf4j-api:2.0.16")).toEqual(["code.string"]);
+  }, 20000);
+
+  test("Maven POM: the tag names in an xml fence are code.tag and the text junit is not", async () => {
+    const [rows] = await highlighted("```xml\n<dependency><groupId>junit</groupId></dependency>\n```\n");
+    expect(wordTokens(rows!, "dependency")).toEqual(["code.tag"]);
+    expect(wordTokens(rows!, "groupId")).toEqual(["code.tag"]);
+    expect(wordTokens(rows!, "junit")).not.toContain("code.tag");
   }, 20000);
 
   test("offsets are UTF-16 code units: text after non-ASCII characters is coloured in the right place", async () => {

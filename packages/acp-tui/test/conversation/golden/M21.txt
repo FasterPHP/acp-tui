@@ -170,6 +170,60 @@ in a pane 63 columns wide (61 behind the agent gutter):
     «muted ~ bg:surface.code»  «code.default bg:surface.code»print("tilde")
  93 │  │ (decorative) (bg:surface.code)
     «muted ~ bg:surface.code»  
+ 94 ││
+ 95 │java:│
+    «text»java:
+ 96 ││
+ 97 │    [label «muted bg:surface.code»java]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 98 │  public final class Account {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»public final class Account {
+ 99 │      private long id; // the account number│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    private long id; // the account number
+100 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+101 │      public String label() {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    public String label() {
+102 │          return "account-" + id;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»        return "account-" + id;
+103 │      }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    }
+104 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+105 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+106 ││
+107 │kotlin (a Gradle script):│
+    «text»kotlin (a Gradle script):
+108 ││
+109 │    [label «muted bg:surface.code»kts]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+110 │  dependencies {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»dependencies {
+111 │      implementation("org.slf4j:slf4j-api:2.0.16")│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    implementation("org.slf4j:slf4j-api:2.0.16")
+112 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+113 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+114 ││
+115 │xml (a Maven dependency):│
+    «text»xml (a Maven dependency):
+116 ││
+117 │    [label «muted bg:surface.code»xml]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+118 │  <dependency>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»<dependency>
+119 │    <groupId>junit</groupId>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  <groupId>junit</groupId>
+120 │    <artifactId>junit</artifactId>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  <artifactId>junit</artifactId>
+121 │    <version>4.13.2</version>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  <version>4.13.2</version>
+122 │  </dependency>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»</dependency>
+123 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
 
 in a pane 100 columns wide (98 behind the agent gutter):
   1 │M21 code blocks: php with the opening tag:│
@@ -338,4 +392,58 @@ in a pane 100 columns wide (98 behind the agent gutter):
  91 │  print("tilde")│ (bg:surface.code)
     «muted ~ bg:surface.code»  «code.default bg:surface.code»print("tilde")
  92 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 93 ││
+ 94 │java:│
+    «text»java:
+ 95 ││
+ 96 │    [label «muted bg:surface.code»java]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+ 97 │  public final class Account {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»public final class Account {
+ 98 │      private long id; // the account number│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    private long id; // the account number
+ 99 │  │ (bg:surface.code)
+    «muted ~ bg:surface.code»  
+100 │      public String label() {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    public String label() {
+101 │          return "account-" + id;│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»        return "account-" + id;
+102 │      }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    }
+103 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+104 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+105 ││
+106 │kotlin (a Gradle script):│
+    «text»kotlin (a Gradle script):
+107 ││
+108 │    [label «muted bg:surface.code»kts]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+109 │  dependencies {│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»dependencies {
+110 │      implementation("org.slf4j:slf4j-api:2.0.16")│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»    implementation("org.slf4j:slf4j-api:2.0.16")
+111 │  }│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»}
+112 │  │ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+113 ││
+114 │xml (a Maven dependency):│
+    «text»xml (a Maven dependency):
+115 ││
+116 │    [label «muted bg:surface.code»xml]│ (decorative) (bg:surface.code)
+    «muted ~ bg:surface.code»  
+117 │  <dependency>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»<dependency>
+118 │    <groupId>junit</groupId>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  <groupId>junit</groupId>
+119 │    <artifactId>junit</artifactId>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  <artifactId>junit</artifactId>
+120 │    <version>4.13.2</version>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»  <version>4.13.2</version>
+121 │  </dependency>│ (bg:surface.code)
+    «muted ~ bg:surface.code»  «code.default bg:surface.code»</dependency>
+122 │  │ (decorative) (bg:surface.code)
     «muted ~ bg:surface.code»  

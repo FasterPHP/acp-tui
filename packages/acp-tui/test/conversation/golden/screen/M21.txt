@@ -170,6 +170,60 @@ at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
     «default»  «bright-black bg:surface.code»  «bright-black bg:surface.code +i»# A tilde fence                                         
  93 │    print("tilde")                                          │
     «default»  «bright-black bg:surface.code»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                          
+ 94 │                                                            │
+    «default»  «bright-black bg:surface.code»                                                          
+ 95 ││
+ 96 │  java:│
+    «default»  java:
+ 97 ││
+ 98 │                                                      java  │
+    «default»  «bright-black bg:surface.code»                                                    java  
+ 99 │    public final class Account {                            │
+    «default»  «bright-black bg:surface.code»  «magenta bg:surface.code»public final class «yellow bg:surface.code»Account «default bg:surface.code»{                            
+100 │        private long id; // the account number              │
+    «default»  «bright-black bg:surface.code»      «magenta bg:surface.code»private «yellow bg:surface.code»long «default bg:surface.code»id; «bright-black bg:surface.code +i»// the account number              
+101 │                                                            │
+    «default»  «bright-black bg:surface.code»                                                          
+102 │        public String label() {                             │
+    «default»  «bright-black bg:surface.code»      «magenta bg:surface.code»public «yellow bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                             
+103 │            return "account-" + id;                         │
+    «default»  «bright-black bg:surface.code»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                         
+104 │        }                                                   │
+    «default»  «bright-black bg:surface.code»      «default bg:surface.code»}                                                   
+105 │    }                                                       │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»}                                                       
+106 │                                                            │
+    «default»  «bright-black bg:surface.code»                                                          
+107 ││
+108 │  kotlin (a Gradle script):│
+    «default»  kotlin (a Gradle script):
+109 ││
+110 │                                                       kts  │
+    «default»  «bright-black bg:surface.code»                                                     kts  
+111 │    dependencies {                                          │
+    «default»  «bright-black bg:surface.code»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                          
+112 │        implementation("org.slf4j:slf4j-api:2.0.16")        │
+    «default»  «bright-black bg:surface.code»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)        
+113 │    }                                                       │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»}                                                       
+114 │                                                            │
+    «default»  «bright-black bg:surface.code»                                                          
+115 ││
+116 │  xml (a Maven dependency):│
+    «default»  xml (a Maven dependency):
+117 ││
+118 │                                                       xml  │
+    «default»  «bright-black bg:surface.code»                                                     xml  
+119 │    <dependency>                                            │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                            
+120 │      <groupId>junit</groupId>                              │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                              
+121 │      <artifactId>junit</artifactId>                        │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                        
+122 │      <version>4.13.2</version>                             │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                             
+123 │    </dependency>                                           │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                           
 
 at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M21 code blocks: php with the opening tag:│
@@ -341,6 +395,60 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  «default bg:surface.code +d»  «default bg:surface.code +i +d»# A tilde fence                                         
  93 │    print("tilde")                                          │
     «default»  «default bg:surface.code +d»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                          
+ 94 │                                                            │
+    «default»  «default bg:surface.code +d»                                                          
+ 95 ││
+ 96 │  java:│
+    «default»  java:
+ 97 ││
+ 98 │                                                      java  │
+    «default»  «default bg:surface.code +d»                                                    java  
+ 99 │    public final class Account {                            │
+    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»public final class «bright-red bg:surface.code»Account «default bg:surface.code»{                            
+100 │        private long id; // the account number              │
+    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»private «bright-red bg:surface.code»long «default bg:surface.code»id; «default bg:surface.code +i +d»// the account number              
+101 │                                                            │
+    «default»  «default bg:surface.code +d»                                                          
+102 │        public String label() {                             │
+    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»public «bright-red bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                             
+103 │            return "account-" + id;                         │
+    «default»  «default bg:surface.code +d»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                         
+104 │        }                                                   │
+    «default»  «default bg:surface.code +d»      «default bg:surface.code»}                                                   
+105 │    }                                                       │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                       
+106 │                                                            │
+    «default»  «default bg:surface.code +d»                                                          
+107 ││
+108 │  kotlin (a Gradle script):│
+    «default»  kotlin (a Gradle script):
+109 ││
+110 │                                                       kts  │
+    «default»  «default bg:surface.code +d»                                                     kts  
+111 │    dependencies {                                          │
+    «default»  «default bg:surface.code +d»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                          
+112 │        implementation("org.slf4j:slf4j-api:2.0.16")        │
+    «default»  «default bg:surface.code +d»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)        
+113 │    }                                                       │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                       
+114 │                                                            │
+    «default»  «default bg:surface.code +d»                                                          
+115 ││
+116 │  xml (a Maven dependency):│
+    «default»  xml (a Maven dependency):
+117 ││
+118 │                                                       xml  │
+    «default»  «default bg:surface.code +d»                                                     xml  
+119 │    <dependency>                                            │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                            
+120 │      <groupId>junit</groupId>                              │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                              
+121 │      <artifactId>junit</artifactId>                        │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                        
+122 │      <version>4.13.2</version>                             │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                             
+123 │    </dependency>                                           │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                           
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M21 code blocks: php with the opening tag:│
@@ -508,6 +616,60 @@ at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
     «default»  «bright-black bg:surface.code»  «bright-black bg:surface.code +i»# A tilde fence                                                                              
  91 │    print("tilde")                                                                               │
     «default»  «bright-black bg:surface.code»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                                                               
+ 92 │                                                                                                 │
+    «default»  «bright-black bg:surface.code»                                                                                               
+ 93 ││
+ 94 │  java:│
+    «default»  java:
+ 95 ││
+ 96 │                                                                                           java  │
+    «default»  «bright-black bg:surface.code»                                                                                         java  
+ 97 │    public final class Account {                                                                 │
+    «default»  «bright-black bg:surface.code»  «magenta bg:surface.code»public final class «yellow bg:surface.code»Account «default bg:surface.code»{                                                                 
+ 98 │        private long id; // the account number                                                   │
+    «default»  «bright-black bg:surface.code»      «magenta bg:surface.code»private «yellow bg:surface.code»long «default bg:surface.code»id; «bright-black bg:surface.code +i»// the account number                                                   
+ 99 │                                                                                                 │
+    «default»  «bright-black bg:surface.code»                                                                                               
+100 │        public String label() {                                                                  │
+    «default»  «bright-black bg:surface.code»      «magenta bg:surface.code»public «yellow bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                                                                  
+101 │            return "account-" + id;                                                              │
+    «default»  «bright-black bg:surface.code»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                                                              
+102 │        }                                                                                        │
+    «default»  «bright-black bg:surface.code»      «default bg:surface.code»}                                                                                        
+103 │    }                                                                                            │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»}                                                                                            
+104 │                                                                                                 │
+    «default»  «bright-black bg:surface.code»                                                                                               
+105 ││
+106 │  kotlin (a Gradle script):│
+    «default»  kotlin (a Gradle script):
+107 ││
+108 │                                                                                            kts  │
+    «default»  «bright-black bg:surface.code»                                                                                          kts  
+109 │    dependencies {                                                                               │
+    «default»  «bright-black bg:surface.code»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                                                               
+110 │        implementation("org.slf4j:slf4j-api:2.0.16")                                             │
+    «default»  «bright-black bg:surface.code»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)                                             
+111 │    }                                                                                            │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»}                                                                                            
+112 │                                                                                                 │
+    «default»  «bright-black bg:surface.code»                                                                                               
+113 ││
+114 │  xml (a Maven dependency):│
+    «default»  xml (a Maven dependency):
+115 ││
+116 │                                                                                            xml  │
+    «default»  «bright-black bg:surface.code»                                                                                          xml  
+117 │    <dependency>                                                                                 │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                                                                 
+118 │      <groupId>junit</groupId>                                                                   │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                                                                   
+119 │      <artifactId>junit</artifactId>                                                             │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                                                             
+120 │      <version>4.13.2</version>                                                                  │
+    «default»  «bright-black bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                                                                  
+121 │    </dependency>                                                                                │
+    «default»  «bright-black bg:surface.code»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                                                                
 
 at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M21 code blocks: php with the opening tag:│
@@ -675,3 +837,57 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  «default bg:surface.code +d»  «default bg:surface.code +i +d»# A tilde fence                                                                              
  91 │    print("tilde")                                                                               │
     «default»  «default bg:surface.code +d»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                                                               
+ 92 │                                                                                                 │
+    «default»  «default bg:surface.code +d»                                                                                               
+ 93 ││
+ 94 │  java:│
+    «default»  java:
+ 95 ││
+ 96 │                                                                                           java  │
+    «default»  «default bg:surface.code +d»                                                                                         java  
+ 97 │    public final class Account {                                                                 │
+    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»public final class «bright-red bg:surface.code»Account «default bg:surface.code»{                                                                 
+ 98 │        private long id; // the account number                                                   │
+    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»private «bright-red bg:surface.code»long «default bg:surface.code»id; «default bg:surface.code +i +d»// the account number                                                   
+ 99 │                                                                                                 │
+    «default»  «default bg:surface.code +d»                                                                                               
+100 │        public String label() {                                                                  │
+    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»public «bright-red bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                                                                  
+101 │            return "account-" + id;                                                              │
+    «default»  «default bg:surface.code +d»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                                                              
+102 │        }                                                                                        │
+    «default»  «default bg:surface.code +d»      «default bg:surface.code»}                                                                                        
+103 │    }                                                                                            │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                                                            
+104 │                                                                                                 │
+    «default»  «default bg:surface.code +d»                                                                                               
+105 ││
+106 │  kotlin (a Gradle script):│
+    «default»  kotlin (a Gradle script):
+107 ││
+108 │                                                                                            kts  │
+    «default»  «default bg:surface.code +d»                                                                                          kts  
+109 │    dependencies {                                                                               │
+    «default»  «default bg:surface.code +d»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                                                               
+110 │        implementation("org.slf4j:slf4j-api:2.0.16")                                             │
+    «default»  «default bg:surface.code +d»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)                                             
+111 │    }                                                                                            │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                                                            
+112 │                                                                                                 │
+    «default»  «default bg:surface.code +d»                                                                                               
+113 ││
+114 │  xml (a Maven dependency):│
+    «default»  xml (a Maven dependency):
+115 ││
+116 │                                                                                            xml  │
+    «default»  «default bg:surface.code +d»                                                                                          xml  
+117 │    <dependency>                                                                                 │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                                                                 
+118 │      <groupId>junit</groupId>                                                                   │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                                                                   
+119 │      <artifactId>junit</artifactId>                                                             │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                                                             
+120 │      <version>4.13.2</version>                                                                  │
+    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                                                                  
+121 │    </dependency>                                                                                │
+    «default»  «default bg:surface.code +d»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                                                                
