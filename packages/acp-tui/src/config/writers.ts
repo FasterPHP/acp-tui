@@ -5,7 +5,8 @@
 // - Linux and macOS: the file or its directory is writable by group or others, or either is
 //   owned by another user.
 // - Windows, where every writable file reports mode 0666 and the mode says nothing: the file and
-//   its directory must lie in the user's profile or in XDG_CONFIG_HOME, and each must be owned by
+//   its directory must lie in the user's profile, in XDG_CONFIG_HOME or in `%APPDATA%\acp-tui`
+//   (which folder redirection may put on a share outside the profile), and each must be owned by
 //   the current user, the Administrators group (the owner of what an elevated user creates) or
 //   SYSTEM (the owner of the profile directory itself). The owners come from the Win32 API
 //   (platform/windows-owner.ts, loaded on Windows only); tests inject the lookup. When the lookup
@@ -14,7 +15,7 @@
 import { statSync } from "node:fs";
 import { dirname, win32 } from "node:path";
 import { createDebugLogger, type DebugLogEntry } from "../log.ts";
-import { pathWithin, windowsProfile, type Env, type Platform } from "../platform/paths.ts";
+import { appDataConfigDirectory, pathWithin, windowsProfile, type Env, type Platform } from "../platform/paths.ts";
 
 /** The Administrators group, `BUILTIN\Administrators`. */
 export const ADMINISTRATORS_SID = "S-1-5-32-544";
@@ -77,14 +78,18 @@ function windowsProblem(file: string, options: WriterCheckOptions): string | nul
   const profile = windowsProfile(env);
   const xdgValue = env["XDG_CONFIG_HOME"];
   const xdg = xdgValue && win32.isAbsolute(xdgValue) ? xdgValue : null;
-  const roots = xdg === null ? [profile] : [profile, xdg];
+  const appData = appDataConfigDirectory(env);
+  const roots = [profile, ...(xdg === null ? [] : [xdg]), appData];
+  // `%APPDATA%\acp-tui` is named only when redirection put it outside the profile.
+  const places = [`your profile ${profile}`, ...(xdg === null ? [] : [`XDG_CONFIG_HOME ${xdg}`]), ...(pathWithin(appData, profile, "win32") ? [] : [appData])];
+  const where = places.length === 1 ? places[0]! : `${places.slice(0, -1).join(", ")} and ${places[places.length - 1]}`;
   const paths: readonly (readonly [string, string])[] = [
     [file, "the file"],
     [win32.dirname(file), "the directory"],
   ];
   for (const [path, what] of paths) {
     if (!roots.some((root) => pathWithin(path, root, "win32"))) {
-      return `${what} ${path} is outside your profile ${profile}${xdg === null ? "" : ` and XDG_CONFIG_HOME ${xdg}`}`;
+      return `${what} ${path} is outside ${where}`;
     }
   }
   const log = options.log ?? ((entry: DebugLogEntry) => createDebugLogger(process.env["ACP_TUI_LOG"]).log(entry));

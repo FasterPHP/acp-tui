@@ -67,6 +67,12 @@ export function configDirectory(env: Env = process.env, platform: Platform = pro
   return pathsFor(platform).join(configHome(env, platform), APP_DIR_NAME);
 }
 
+/** `%APPDATA%\acp-tui`, the Windows default configuration directory whether or not
+ *  XDG_CONFIG_HOME overrides it (corporate folder redirection can put it outside the profile). */
+export function appDataConfigDirectory(env: Env = process.env): string {
+  return win32.join(windowsFolder(env, "APPDATA", ["AppData", "Roaming"]), APP_DIR_NAME);
+}
+
 /** acp-tui's state directory: `acp-tui` in the state home. */
 export function stateDirectory(env: Env = process.env, platform: Platform = process.platform): string {
   return pathsFor(platform).join(stateHome(env, platform), APP_DIR_NAME);
