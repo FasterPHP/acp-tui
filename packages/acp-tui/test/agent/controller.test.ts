@@ -92,6 +92,22 @@ describe("session controller (task 5.4) against fake-agent basic", () => {
     expect(kinds).not.toContain("plan");
   });
 
+  test("onInitialized is called once, when initialize has been answered, and a hook that throws does not fail the start-up", async () => {
+    const calls: number[] = [];
+    const controller = await track(
+      await startSession({
+        command: fakeAgentCommand({ scenario: "basic" }),
+        cwd: tmpCwd(),
+        onInitialized() {
+          calls.push(Date.now());
+          throw new Error("a hook failing");
+        },
+      }),
+    );
+    expect(calls).toHaveLength(1);
+    expect(controller.getSession().id).not.toBeNull();
+  });
+
   test("detach sends neither session/cancel nor session/close, and the log proves it", async () => {
     const cwd = tmpCwd();
     const logDir = mkdtempSync(join(tmpdir(), "acp-tui-controller-log-"));

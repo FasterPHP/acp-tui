@@ -26,6 +26,7 @@ import {
   type AcpClient,
   type SessionSupport,
 } from "../agent/connection.ts";
+import { killProcessTree } from "../agent/kill-tree.ts";
 import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
 import { createDebugLogger, type DebugLogger } from "../log.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
@@ -154,6 +155,9 @@ export interface StartSessionOptions {
   readonly logger?: DebugLogger;
   /** Clock override for tests; defaults to `Date.now`. */
   now?(): number;
+  /** Called once `initialize` has been answered, when the harness is surely running (the Windows
+   *  title is set again then: renderer/terminal-signals.ts `reassertTitle`). */
+  onInitialized?(): void;
   /** How long `detach()` waits for the child to exit on its own before killing it (ms). */
   detachGraceMs?: number;
   /** Answers elicitation requests and advertises the capability (the app always gives one). */
@@ -162,6 +166,9 @@ export interface StartSessionOptions {
    *  (renderer/frame-pace.ts); without one, timer turns. */
   pace?: Pace;
 }
+
+/** How long `detach()` waits for the process tree to be ended after the grace period (ms). */
+const KILL_TREE_WAIT_MS = 3000;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -285,12 +292,10 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
     .then(() => agent.exited.then(handleDisconnect))
     .catch(() => agent.exited.then(handleDisconnect));
 
+  // On Windows this ends the harness's whole process tree (agent/kill-tree.ts), so a harness run
+  // through `cmd.exe` leaves nothing behind; elsewhere it is `proc.kill()`.
   function kill(): void {
-    try {
-      agent.proc.kill();
-    } catch {
-      // already dead
-    }
+    void killProcessTree(agent.proc);
   }
 
   // One detach per agent process; a second call (exit after a switch began closing it) waits for
@@ -309,7 +314,16 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
         agent.exited.then(() => true),
         Bun.sleep(detachGraceMs).then(() => false),
       ]);
-      if (!exitedInTime) kill();
+      // On Windows the tree is ended by `taskkill`, so the detach waits for it (bounded), and an
+      // exit that follows leaves nothing of the harness running.
+      if (!exitedInTime) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const bound = new Promise<void>((resolve) => {
+          timer = setTimeout(resolve, KILL_TREE_WAIT_MS);
+        });
+        await Promise.race([killProcessTree(agent.proc), bound]);
+        clearTimeout(timer);
+      }
     })();
     return detaching;
   }
@@ -320,6 +334,11 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   } catch (error) {
     kill();
     throw error;
+  }
+  try {
+    options.onInitialized?.();
+  } catch {
+    // a hook never fails the start-up
   }
   const support = sessionSupport(init);
   const agentInfo = init.agentInfo ?? null;
