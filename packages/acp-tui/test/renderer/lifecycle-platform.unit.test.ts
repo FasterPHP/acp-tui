@@ -60,11 +60,13 @@ describe("exit signals per platform", () => {
     expect([...DEFAULT_EXIT_SIGNALS]).toEqual(["SIGHUP", "SIGTERM", "SIGINT", "SIGQUIT"]);
   });
 
-  test("the hooks' bound is 1.5 s on Windows and 3 s elsewhere", () => {
-    expect(exitHookTimeoutFor("win32")).toBe(1500);
+  test("the hooks' bound is 3 s on every platform: longer than the 2 s detach grace, so taskkill runs on Windows", () => {
+    expect(exitHookTimeoutFor("win32")).toBe(3000);
     expect(exitHookTimeoutFor("linux")).toBe(3000);
     expect(exitHookTimeoutFor("darwin")).toBe(3000);
-    expect(WINDOWS_EXIT_HOOK_TIMEOUT_MS).toBeLessThan(EXIT_HOOK_TIMEOUT_MS);
+    expect(WINDOWS_EXIT_HOOK_TIMEOUT_MS).toBe(EXIT_HOOK_TIMEOUT_MS);
+    // The controller's default detach grace (src/session/controller.ts) plus time for taskkill.
+    expect(WINDOWS_EXIT_HOOK_TIMEOUT_MS).toBeGreaterThan(2000);
   });
 });
 
