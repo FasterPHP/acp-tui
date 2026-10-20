@@ -10,6 +10,8 @@ import type { PtySession } from "../pty/harness.ts";
 import { promptText, READY } from "../pty/regions.ts";
 import { startCli } from "../keys/cli-pty.ts";
 import { listWorld } from "../session/list-world.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -175,7 +177,8 @@ describe("splash while the harness starts (day-two-feedback task group 2)", () =
     const rows = () => s.screenText();
     const at = rows().findIndex((r) => r.includes("connecting…"));
     expect(rows()[at]!.trim()).toMatch(/^Harness: fake · \S connecting…$/);
-    expect(rows()[at + 1]!.trim()).toBe(repo);
+    // The directory as the splash shows it, with `~` for home (the temporary directory is in the profile on Windows).
+    expect(rows()[at + 1]!.trim()).toBe(shortenHome(repo, userHome()));
     // Sample for a second: the spinner turns and nothing else on the screen changes.
     const seen: string[][] = [rows()];
     const stop = Date.now() + 1000;

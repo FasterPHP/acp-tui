@@ -82,10 +82,12 @@ describe("the opener", () => {
     writeFileSync(join(outside, "secret"), "s");
     symlinkSync(join(outside, "secret"), join(dir, "escape.md"));
     symlinkSync(join(dir, "docs/a.md"), join(dir, "alias.md"));
-    expect(planOpen(target("docs/a.md", dir), dir, LOCAL, "linux")).toEqual({ action: "open", argv: ["xdg-open", join(dir, "docs/a.md")], toast: "opening docs/a.md" });
-    expect(planOpen(target("alias.md", dir), dir, LOCAL, "linux")).toMatchObject({ action: "open", argv: ["xdg-open", join(dir, "docs/a.md")] });
-    expect(planOpen(target("escape.md", dir), dir, LOCAL, "linux")).toEqual({ action: "refuse", toast: "not opened: escape.md leads outside the working directory" });
-    expect(planOpen(target("missing.md", dir), dir, LOCAL, "linux")).toEqual({ action: "refuse", toast: "not opened: missing.md does not exist" });
+    // Real files, so the host's own path rules and opener.
+    const opener = openerArgv(LOCAL);
+    expect(planOpen(target("docs/a.md", dir), dir, LOCAL)).toEqual({ action: "open", argv: [...opener, join(dir, "docs/a.md")], toast: "opening docs/a.md" });
+    expect(planOpen(target("alias.md", dir), dir, LOCAL)).toMatchObject({ action: "open", argv: [...opener, join(dir, "docs/a.md")] });
+    expect(planOpen(target("escape.md", dir), dir, LOCAL)).toEqual({ action: "refuse", toast: "not opened: escape.md leads outside the working directory" });
+    expect(planOpen(target("missing.md", dir), dir, LOCAL)).toEqual({ action: "refuse", toast: "not opened: missing.md does not exist" });
   });
 
   test("the rules are applied again against the directory at the time of opening", () => {

@@ -249,7 +249,9 @@ describe("mentions sent as resource links (tui-palette, tui-agent-session \"Prom
     await run.s.waitFor(() => draft(run.s).endsWith("please"), 3000);
     run.s.sendKeys("Enter");
     const uri = (p: string) => pathToFileURL(join(cwd, p)).href;
-    await run.s.waitFor(`Prompt blocks: text, resource_link ${uri("src/Db/Query.php")}, resource_link ${uri("README.md")}`, 5000);
+    // Read with the rows joined and spaces dropped: Windows' longer temporary paths wrap the line.
+    const echoed = `Prompt blocks: text, resource_link ${uri("src/Db/Query.php")}, resource_link ${uri("README.md")}`.replace(/\s+/g, "");
+    await run.s.waitFor((p) => p.screenText().join("").replace(/\s+/g, "").includes(echoed), 5000);
     expect(prompts(run).map((p) => p.params.promptBlockCount)).toEqual([3]);
   }, 30000);
 

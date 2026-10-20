@@ -14,6 +14,9 @@ import { HISTORY_LOADING_NOTICE } from "../../src/app/PromptBox.tsx";
 import { openSessionIndex } from "../../src/session/session-index.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { promptBox, promptText, READY, statusRow } from "../pty/regions.ts";
+import { homeEnv, rowsAfterPrefill, WINDOWS } from "../windows.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -117,6 +120,8 @@ function conversationRows(s: PtySession): string[] {
  *  the app took the alternate screen or any error line (task 12.11): in the raw output, and no
  *  longer on the main screen. */
 function findingShownAndGone(s: PtySession): boolean {
+  // Not on Windows: ConPTY repaints instead of passing acp-tui's bytes on, so only the main screen is checked.
+  if (WINDOWS) return !mainText(s).includes("finding session");
   const raw = s.rawOutput();
   const at = raw.indexOf("acp-tui: finding session…\r\x1b[2K");
   const alternate = raw.indexOf("\x1b[?1049h");
@@ -138,7 +143,7 @@ describe("Opening a session by ID (tui-sessions, tasks 5.2 and 12.5)", () => {
     openSessionIndex({ stateHome: w.stateHome }).record({ agent: "fake", sessionId: "s-42", directory: repoB, title: "Index test" });
 
     // HOME is the scratch directory, so the marker reads `~/repo-b` and `~/home`.
-    const s = start(w, ["--resume", "s-42"], home, { cols: 61, rows: 21 }, { HOME: w.base });
+    const s = start(w, ["--resume", "s-42"], home, { cols: 61, rows: 21 }, homeEnv(w.base));
     await s.waitFor(READY, 15000);
     const received = w.received();
     expect(received.find((e) => e.method === "session/load")?.params).toEqual({ sessionId: "s-42", cwd: repoB, mcpServers: [] });
@@ -146,7 +151,7 @@ describe("Opening a session by ID (tui-sessions, tasks 5.2 and 12.5)", () => {
     // One agent process: one `initialize`.
     expect(received.filter((e) => e.method === "initialize")).toHaveLength(1);
     await s.waitFor("earlier answer", 5000);
-    await s.waitFor(() => (conversationRows(s).at(-1) ?? "").includes("opened in ~/repo-b (launched from ~/home)"), 5000);
+    await s.waitFor(() => (conversationRows(s).at(-1) ?? "").includes(`opened in ${join("~", "repo-b")} (launched from ${join("~", "home")})`), 5000);
     // A marker in the conversation, not a notice in the prompt box's border.
     expect(promptBox(s)[0]).toMatch(/^╭─+╮$/);
     expect(statusRow(s)).toContain("repo-b");
@@ -178,7 +183,7 @@ describe("Opening a session by ID (tui-sessions, tasks 5.2 and 12.5)", () => {
     expect(received.filter((e) => e.method === "initialize")).toHaveLength(1);
     expect(received.find((e) => e.method === "session/load")?.params).toEqual({ sessionId: "s-7", cwd: repoC, mcpServers: [] });
     await s.waitFor("listed answer", 5000);
-    await s.waitFor(() => (conversationRows(s).at(-1) ?? "").includes(`opened in ${repoC} (launched from ${w.base})`), 5000);
+    await s.waitFor(() => (conversationRows(s).at(-1) ?? "").includes(`opened in ${shortenHome(repoC, userHome())} (launched from ${shortenHome(w.base, userHome())})`), 5000);
 
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
@@ -199,11 +204,12 @@ describe("Opening a session by ID (tui-sessions, tasks 5.2 and 12.5)", () => {
     expect(await s.wait(15000)).toBe(1);
     await s.flush();
     expect(neverDrawn(s)).toBe(true);
-    expect(s.screenText()[0]).toBe("$ acp-tui");
-    expect(s.screenText()[1]).toBe("acp-tui: no session nosuch found; to choose a session by title and time: acp-tui --resume");
+    // On Windows ConPTY clears the prefilled command line, so the message is checked after it.
+    if (!WINDOWS) expect(s.screenText()[0]).toBe("$ acp-tui");
+    expect(rowsAfterPrefill(s.screenText())[0]).toBe("acp-tui: no session nosuch found; to choose a session by title and time: acp-tui --resume");
     // Only the error line is left: the finding line was removed before it was printed.
     expect(findingShownAndGone(s)).toBe(true);
-    expect(s.screenText()[2]).toBe("");
+    expect(rowsAfterPrefill(s.screenText())[1]).toBe("");
     const methods = w.received().map((e) => e.method);
     expect(methods).toEqual(["initialize", "session/list"]);
   });
@@ -226,7 +232,7 @@ describe("Opening a session by ID (tui-sessions, tasks 5.2 and 12.5)", () => {
     expect(await s.wait(15000)).toBe(1);
     await s.flush();
     expect(neverDrawn(s)).toBe(true);
-    expect(s.screenText()[1]).toStartWith("acp-tui: could not start ad hoc harness command 'acp-tui-no-such-agent'");
+    expect(rowsAfterPrefill(s.screenText())[0]).toStartWith("acp-tui: could not start ad hoc harness command 'acp-tui-no-such-agent'");
   });
 
   test("an ad hoc session in the index without -a or --: exit 1 saying how to reopen it, nothing launched", async () => {
@@ -250,10 +256,10 @@ describe("Session directory marker (tui-sessions, task 12.3)", () => {
     const fixture = w.sessions([{ sessionId: "s-wrap", cwd: project, title: "Wrap", turns: [turn("a question", "an answer")] }]);
     // The agent lists the session, so its directory is known (an agent that cannot list is opened
     // in the launch directory).
-    const s = start(w, ["--resume", "s-wrap", "--", ...w.fake(["--scenario", "copy-fixtures", "--load", "--list", "--sessions", fixture])], launchedFrom, { cols: 54, rows: 20 }, { HOME: w.base });
+    const s = start(w, ["--resume", "s-wrap", "--", ...w.fake(["--scenario", "copy-fixtures", "--load", "--list", "--sessions", fixture])], launchedFrom, { cols: 54, rows: 20 }, homeEnv(w.base));
     await s.waitFor(READY, 15000);
     await s.waitFor("an answer", 5000);
-    const marker = "opened in ~/projects/acp-tui-with-a-long-name (launched from ~/projects/gem/gem-portal-two)";
+    const marker = `opened in ${join("~", "projects", "acp-tui-with-a-long-name")} (launched from ${join("~", "projects", "gem", "gem-portal-two")})`;
     // Rows joined without whitespace: the wrap may fall at a space or after a `(`.
     const squeezed = (text: string) => text.replace(/\s+/g, "");
     await s.waitFor(() => squeezed(conversationRows(s).join("")).includes(squeezed(marker)), 5000);
@@ -263,8 +269,8 @@ describe("Session directory marker (tui-sessions, task 12.3)", () => {
     expect(first).toBeGreaterThanOrEqual(0);
     expect(first).toBeLessThan(rows.length - 1);
     const markerRows = rows.slice(first);
-    expect(markerRows.some((r) => r.includes("~/projects/acp-tui-with-a-long-name"))).toBe(true);
-    expect(markerRows.some((r) => r.includes("~/projects/gem/gem-portal-two)"))).toBe(true);
+    expect(markerRows.some((r) => r.includes(join("~", "projects", "acp-tui-with-a-long-name")))).toBe(true);
+    expect(markerRows.some((r) => r.includes(`${join("~", "projects", "gem", "gem-portal-two")})`))).toBe(true);
     for (const r of markerRows) expect(r.length).toBeLessThanOrEqual(54);
     // Still there after a resize (a notice used to time out and vanish; IDE check 10.4).
     s.resize(60, 20);
@@ -453,13 +459,13 @@ describe("Continue the latest session (tui-sessions, tasks 5.4 and 12.6)", () =>
     const w = world();
     const fresh = w.dir("new");
     goneDefault(w, ["--scenario", "basic", "--load"]);
-    const s = start(w, ["--continue"], fresh, { cols: 400, rows: 30 }, { HOME: w.base });
+    const s = start(w, ["--continue"], fresh, { cols: 400, rows: 30 }, homeEnv(w.base));
     expect(await s.wait(15000)).toBe(1);
     await s.flush();
     expect(neverDrawn(s)).toBe(true);
-    const rows = s.screenText();
-    expect(rows[1]).toStartWith("acp-tui: could not ask gone for its sessions (could not start harness 'gone' (command 'acp-tui-no-such-agent')");
-    expect(rows[2]).toBe("acp-tui: no session found for ~/new; to choose a session: acp-tui --resume");
+    const rows = rowsAfterPrefill(s.screenText());
+    expect(rows[0]).toStartWith("acp-tui: could not ask gone for its sessions (could not start harness 'gone' (command 'acp-tui-no-such-agent')");
+    expect(rows[1]).toBe(`acp-tui: no session found for ${join("~", "new")}; to choose a session: acp-tui --resume`);
     expect(findingShownAndGone(s)).toBe(true);
   });
 
@@ -472,7 +478,7 @@ describe("Continue the latest session (tui-sessions, tasks 5.4 and 12.6)", () =>
     expect(await s.wait(15000)).toBe(1);
     await s.flush();
     expect(neverDrawn(s)).toBe(true);
-    expect(s.screenText()[1]).toStartWith("acp-tui: could not start harness 'gone' (command 'acp-tui-no-such-agent')");
+    expect(rowsAfterPrefill(s.screenText())[0]).toStartWith("acp-tui: could not start harness 'gone' (command 'acp-tui-no-such-agent')");
     expect(mainText(s)).not.toContain("could not ask");
   });
 
@@ -513,11 +519,11 @@ describe("Continue the latest session (tui-sessions, tasks 5.4 and 12.6)", () =>
   test("No session for the directory: the message below the command line, exit 1, nothing drawn, no session/new", async () => {
     const w = world();
     const fresh = w.dir("new");
-    const s = start(w, ["--continue", "--", ...w.fake(["--scenario", "basic", "--load", "--list"])], fresh, { cols: 240, rows: 30 }, { HOME: w.base });
+    const s = start(w, ["--continue", "--", ...w.fake(["--scenario", "basic", "--load", "--list"])], fresh, { cols: 240, rows: 30 }, homeEnv(w.base));
     expect(await s.wait(15000)).toBe(1);
     await s.flush();
     expect(neverDrawn(s)).toBe(true);
-    expect(s.screenText()[1]).toBe("acp-tui: no session found for ~/new; to choose a session: acp-tui --resume");
+    expect(rowsAfterPrefill(s.screenText())[0]).toBe(`acp-tui: no session found for ${join("~", "new")}; to choose a session: acp-tui --resume`);
     expect(findingShownAndGone(s)).toBe(true);
     const received = w.received();
     expect(received.find((e) => e.method === "session/list")?.params?.["cwd"]).toBe(fresh);

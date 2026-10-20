@@ -10,7 +10,8 @@ import type { PtySession } from "../pty/harness.ts";
 import { configHome } from "../pty/config-home.ts";
 import { JEDITERM_ENV } from "../pty/jediterm.ts";
 import { CARD_HEADER, promptBox, READY, REQUIRES_ACTION, statusRow } from "../pty/regions.ts";
-import { startCli, type CliRun } from "../keys/cli-pty.ts";
+import { cliHome, startCli, type CliRun } from "../keys/cli-pty.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -76,7 +77,9 @@ describe("the config module and the problem list (task 3.4)", () => {
     run.s.sendKeys("Enter");
     await run.s.waitFor((p) => p.screenText().some((l) => l.includes("Configuration problems 2")), 5000);
     const text = run.s.screenText().join("\n");
-    expect(text).toContain(cfg.file.length < 90 ? cfg.file : "config.jsonc");
+    // The file as the list shows it, with `~` for home.
+    const shown = shortenHome(cfg.file, cliHome());
+    expect(text).toContain(shown.length < 90 ? shown : "config.jsonc");
     expect(text).toMatch(/1:14 density .*takes .*error/);
     expect(text).toMatch(/2:3 wheel_line .*not a known setting .*warning/);
   }, 30000);

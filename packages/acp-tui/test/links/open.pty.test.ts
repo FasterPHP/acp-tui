@@ -221,7 +221,8 @@ describe("opening links (task 6.3)", () => {
     }
   }, 30000);
 
-  test("C7: without a compositor the link opens all the same, with no token (an inherited one is not passed on)", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (and Wayland activation tokens are Linux's).
+  test.skipIf(WINDOWS)("C7: without a compositor the link opens all the same, with no token (an inherited one is not passed on)", async () => {
     const opener = stubOpener();
     writeFileSync(opener.script, '#!/bin/sh\n{ printf "%s\\n" "$#" "$1" "token=${XDG_ACTIVATION_TOKEN-unset}"; } > "$OPENER_LOG"\n');
     run = startCli({ scenario: "links", cols: 100, rows: 30, env: localEnv({ ACP_TUI_OPENER: opener.script, OPENER_LOG: opener.log, XDG_ACTIVATION_TOKEN: "stale" }) });

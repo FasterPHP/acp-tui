@@ -84,9 +84,10 @@ function fakeHost(status: "written" | "unsupported" | "failed"): HostClipboardSe
 
 describe("the clipboard paths (task 14.3)", () => {
   test("the display variables", () => {
-    expect(hostDisplay({ WAYLAND_DISPLAY: "wayland-1", DISPLAY: ":0" })).toBe("wayland");
-    expect(hostDisplay({ DISPLAY: ":0" })).toBe("x11");
-    expect(hostDisplay({})).toBeNull();
+    // The display variables are Linux's (macOS and Windows have the host clipboard whatever they say).
+    expect(hostDisplay({ WAYLAND_DISPLAY: "wayland-1", DISPLAY: ":0" }, "linux")).toBe("wayland");
+    expect(hostDisplay({ DISPLAY: ":0" }, "linux")).toBe("x11");
+    expect(hostDisplay({}, "linux")).toBeNull();
   });
 
   test("locally the host comes first, and OSC 52 only when it fails", async () => {
