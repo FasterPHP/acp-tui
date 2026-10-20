@@ -11,6 +11,7 @@ import { promptText, READY, RUNNING } from "../pty/regions.ts";
 import { sendPrompt, startCli, type CliRun } from "../conversation/cli.ts";
 import { deriveSurfaces } from "../../src/theme/index.ts";
 import { localEnv, osc52Payloads } from "../selection/pty.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -75,7 +76,8 @@ describe("Prompt box selection keys (task 8.2)", () => {
     expect(payloads(s)).toEqual([]);
   }, 30000);
 
-  test("Select to the line start: Shift+Home selects the draft and it is drawn as selected", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Select to the line start: Shift+Home selects the draft and it is drawn as selected", async () => {
     const s = start({ colours: COLOURS }).session;
     await typed(s, "fix the router");
     s.sendKeys({ text: SHIFT_HOME });
@@ -220,7 +222,8 @@ describe("Select all in the prompt box (day-two-feedback task 13.3)", () => {
     await s.waitFor((p) => promptText(p)[0] === "y", 5000);
   }, 30000);
 
-  test("Ctrl+A draws the selection, and with the conversation focused it does nothing", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Ctrl+A draws the selection, and with the conversation focused it does nothing", async () => {
     const s = start({ colours: COLOURS }).session;
     await typed(s, "hello world");
     const { y, x } = where(s, "hello world");
@@ -241,7 +244,8 @@ describe("Select all in the prompt box (day-two-feedback task 13.3)", () => {
 });
 
 describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
-  test("Selection is visible: the five cells of `world` have the surface.selection background and the rest of the draft the prompt box's own", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Selection is visible: the five cells of `world` have the surface.selection background and the rest of the draft the prompt box's own", async () => {
     const s = start({ colours: COLOURS }).session;
     await typed(s, "hello world");
     const { y, x } = where(s, "hello world");
@@ -288,7 +292,8 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
     for (let i = 6; i < 11; i++) expect(fg(i)).toBe(fg(0));
   }, 30000);
 
-  test("Drag in the prompt box: `world` is drawn as selected, nothing is written to the clipboard, and Backspace leaves `hello `", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Drag in the prompt box: `world` is drawn as selected, nothing is written to the clipboard, and Backspace leaves `hello `", async () => {
     const s = start({ colours: COLOURS }).session;
     await typed(s, "hello world");
     const { y, x } = where(s, "hello world");
@@ -319,7 +324,8 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
     expect(payloads(s)).toEqual([]);
   }, 30000);
 
-  test("Selection in the prompt box: Ctrl+C copies `world`, with the toast, and leaves the draft and its selection", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Selection in the prompt box: Ctrl+C copies `world`, with the toast, and leaves the draft and its selection", async () => {
     const s = start({ colours: COLOURS }).session;
     await typed(s, "hello world");
     s.sendKeys({ text: SHIFT_LEFT.repeat(5) });
@@ -334,7 +340,8 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
     expect(cell(s, x + 6, y).bg).toBe(fill);
   }, 30000);
 
-  test("Esc clears first: with a turn running, Esc clears the selection, leaves the draft and does not arm the interrupt", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Esc clears first: with a turn running, Esc clears the selection, leaves the draft and does not arm the interrupt", async () => {
     const s = start({ scenario: "slow-turn", delayScale: 4, colours: COLOURS }).session;
     await s.waitFor(READY, 10000);
     s.sendKeys({ text: "go" });
@@ -356,7 +363,8 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
     expect(s.screenText().join("\n")).toMatch(/running/);
   }, 30000);
 
-  test("One selection at a time: a word selected in the prompt box clears the conversation's selection, and Ctrl+C copies the prompt box's word", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("One selection at a time: a word selected in the prompt box clears the conversation's selection, and Ctrl+C copies the prompt box's word", async () => {
     const r = start({ scenario: "copy-fixtures", colours: COLOURS, config: { density: "compact", cards: { padding: { columns: 1 } } } });
     const s = r.session;
     await sendPrompt(s, "give me things to copy");

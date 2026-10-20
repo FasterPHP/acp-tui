@@ -11,6 +11,7 @@ import type { OscColours, PtySession } from "../pty/harness.ts";
 import { withoutBar } from "../pty/regions.ts";
 import { localEnv, osc52Payloads } from "../selection/pty.ts";
 import { sendPrompt, settle, startCli, type CliRun } from "./cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -68,7 +69,8 @@ const bg = (s: PtySession, y: number, x: number) => {
 };
 
 describe("card padding on the screen (tasks 5.2 and 5.4)", () => {
-  test("Same left inset everywhere: user text two columns after its bar, thought and tool card text two after the gutter, a blank fill row above and below each", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Same left inset everywhere: user text two columns after its bar, thought and tool card text two after the gutter, a blank fill row above and below each", async () => {
     const { s } = await shortAnswer({});
     const rows = rowsOf(s);
 
@@ -117,7 +119,8 @@ describe("card padding on the screen (tasks 5.2 and 5.4)", () => {
     expect(Math.max(...rows.map((r) => r.length))).toBeGreaterThan(55);
   }, 60000);
 
-  test("Padding from the setting: no padding rows and three columns", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Padding from the setting: no padding rows and three columns", async () => {
     const { s } = await shortAnswer({ cards: { padding: { rows: 0, columns: 3 } } });
     const rows = rowsOf(s);
     const user = columnOf(s, "go");
@@ -133,7 +136,8 @@ describe("card padding on the screen (tasks 5.2 and 5.4)", () => {
     expect(rows[code.y - 1]!).toMatch(/read/);
   }, 60000);
 
-  test("Wider sides on reload: the card's text moves one column and the conversation keeps its top entry", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Wider sides on reload: the card's text moves one column and the conversation keeps its top entry", async () => {
     const { s, cfg } = await shortAnswer({});
     const top = rowsOf(s).slice(1, 4);
     expect(columnOf(s, "# acp-tui").x).toBe(4);
@@ -147,7 +151,8 @@ describe("card padding on the screen (tasks 5.2 and 5.4)", () => {
   }, 60000);
 });
 
-describe("the cursor beside a user card's padding rows (task 5.4)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("the cursor beside a user card's padding rows (task 5.4)", () => {
   test("a selected user card: its bar and the cursor column run down the padding rows too, over the faint fill", async () => {
     const { s } = await shortAnswer({});
     s.sendKeys("Tab");

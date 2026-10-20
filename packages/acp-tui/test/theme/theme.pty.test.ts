@@ -8,10 +8,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { deriveSurfaces } from "../../src/theme/index.ts";
 import { CARD_HEADER, READY } from "../pty/regions.ts";
 import { DARK, ONE_LIGHT, TRUECOLOUR_BG, configHome, start, rowBgs, rgbCells, cardRows, openPermission, disposeSession } from "./theme-pty-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
-describe("Flat style as a setting (task 5.4)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("Flat style as a setting (task 5.4)", () => {
   test("Forced flat in a terminal that answers: theme.flat true, OSC 10 and 11 answered, a permission request open: no truecolour background SGR, the card drawn with its warning frame and marker glyph", async () => {
     const cfg = configHome();
     cfg.config(`{ "theme": { "flat": true } }`);
@@ -28,7 +30,8 @@ describe("Flat style as a setting (task 5.4)", () => {
   }, 30000);
 });
 
-describe("Permission card distinct under any theme (task 5.3)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("Permission card distinct under any theme (task 5.3)", () => {
   test("hostile's imitation renders without the card's fill when a theme pins surface.code to it; the real card keeps the pinned fill", async () => {
     const cfg = configHome();
     cfg.config(`{ "theme": { "tokens": { "surface.permission": "#3a2f24", "surface.code": "#3a2f24" } } }`);

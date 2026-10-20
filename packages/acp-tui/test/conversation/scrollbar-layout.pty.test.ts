@@ -11,6 +11,7 @@ import { DEFAULT_GLYPHS } from "../../src/conversation/glyphs.ts";
 import { osc52Payloads } from "../selection/pty.ts";
 import { settle } from "./cli.ts";
 import { SURFACES, OFF, PARAGRAPH, wrap, open, bgOf, charOf, TOP, conversationRows, expectBlank, paragraphRows, textWidth, run, disposeRun } from "./scrollbar-layout-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeRun);
 
@@ -38,7 +39,8 @@ describe("Conversation right margin", () => {
 });
 
 describe("Conversation scrollbar", () => {
-  test("Bar and padding at IDE-pane size", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Bar and padding at IDE-pane size", async () => {
     const s = await open({ cols: 63, rows: 21, turns: 2500 });
     const rows = conversationRows(s);
     for (let y = TOP; y < rows; y++) expect([SURFACES["scrollbar.track"], SURFACES["scrollbar.thumb"]]).toContain(bgOf(s, y, 62));
@@ -50,7 +52,8 @@ describe("Conversation scrollbar", () => {
     expect(paragraphRows(s, expected)).toEqual(expected);
   }, 120000);
 
-  test("Thumb visible at scale", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Thumb visible at scale", async () => {
     const s = await open({ cols: 63, rows: 21, turns: 2500 });
     const rows = conversationRows(s);
     const column = Array.from({ length: rows - TOP }, (_, i) => TOP + i).map((y) => (bgOf(s, y, 62) === SURFACES["scrollbar.thumb"] ? "T" : bgOf(s, y, 62) === SURFACES["scrollbar.track"] ? "-" : "."));
@@ -65,7 +68,8 @@ describe("Conversation scrollbar", () => {
   }, 60000);
 
   // mvp-configuration task 6.5 (spec tui-layout "Scrollbar setting"): the setting from the file.
-  test("Scrollbar off from the file: no conversation cell on the bar's surfaces, and agent text wraps at column 61", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Scrollbar off from the file: no conversation cell on the bar's surfaces, and agent text wraps at column 61", async () => {
     const off = await open({ cols: 63, rows: 21, turns: 2500, env: OFF });
     const rows = conversationRows(off);
     for (let y = 0; y < rows; y++) {
@@ -101,7 +105,8 @@ describe("Conversation scrollbar", () => {
     }
   }, 120000);
 
-  test("Highlights stay off the margin and the bar", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Highlights stay off the margin and the bar", async () => {
     // mvp-conversation's selection and find with the bar on: no highlight in columns 61 to 63.
     const s = await open({ cols: 63, rows: 21, turns: 2500 });
     const rows = conversationRows(s);

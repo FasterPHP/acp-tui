@@ -46,6 +46,7 @@ import type { OscColours, PtySession } from "../pty/harness.ts";
 import { READY, withoutBar } from "../pty/regions.ts";
 import { sendPrompt, settle, startCli, type CliRun } from "./cli.ts";
 import { longSessionEvents } from "./window/session.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -88,7 +89,8 @@ function conversation(s: PtySession): string[] {
   return lines.slice(first, last + 1);
 }
 
-describe("Same density (task 10.4)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("Same density (task 10.4)", () => {
   test("long-session, 200 items, 63 columns, compact: the phase-1a rows plus only the rows added on purpose; tool lines in four or more palette colours", async () => {
     run = startCli({ scenario: "long-session", cols: COLS, rows: 2000, colours: DARK, agentArgs: ["--items", "200"] });
     const s = run.session;

@@ -18,6 +18,7 @@ import { promptText, READY, statusRow } from "../pty/regions.ts";
 import { sendPrompt, settle, startCli, type CliRun } from "../conversation/cli.ts";
 import { deriveSurfaces } from "../../src/theme/index.ts";
 import { FIRST, CTRL_F, F3, SHIFT_F3, SHIFT_F3_XTERM, conversationRows, findBar, locate, currentHit, bgHex, findEvents, openAndType, closeBar, hitCount, openGroup } from "./find-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -159,7 +160,8 @@ describe("find at 200 items (task 15.2)", () => {
     ["flat theme: underlined, the current one in inverse video", undefined],
     ["truecolour: on find.other, the current one on find.current, in the default foreground", { foreground: "#d0d0d0", background: "#1c1c1c" }],
   ] as const) {
-    test(`other visible hits are drawn fainter (${name})`, async () => {
+    // Skipped on Windows (the truecolour variant): it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+    test.skipIf(WINDOWS && colours !== undefined)(`other visible hits are drawn fainter (${name})`, async () => {
       // Tool titles and plan entries (fake-agent's plans are not in the model helper, so the count
       // is read from the bar).
       const query = "Read ";

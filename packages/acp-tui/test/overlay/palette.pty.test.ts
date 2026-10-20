@@ -16,6 +16,7 @@ import { promptBox, promptText, READY, statusRow } from "../pty/regions.ts";
 import { startCli, tempDir } from "../keys/cli-pty.ts";
 import { boxRows, inner, rowOf, startChrome, type ChromeRun } from "./cli.ts";
 import { HOSTILE_OSC52, PALETTE_AGENT_REFUSAL } from "./palette-agent.ts";
+import { WINDOWS } from "../windows.ts";
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -100,7 +101,8 @@ describe("palette (task 6.1)", () => {
     expect(rows).toContainEqual(expect.stringMatching(/^Choose the model +Fake Aurora {2}click the pill$/));
   }, 20000);
 
-  test("Headers do not read as disabled: on the terminal's default background (task 12.7), each group header is bold in the default foreground, not in the key hints' muted colour", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Headers do not read as disabled: on the terminal's default background (task 12.7), each group header is bold in the default foreground, not in the key hints' muted colour", async () => {
     const run = start({ scenario: "config-options", colours: DARK, env: { COLORTERM: "truecolor" } });
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys("Ctrl+P");
@@ -442,7 +444,8 @@ describe("key help (task 6.8)", () => {
     run.s.sendKeys("Ctrl+P");
     await run.s.waitFor(/Commands \d+/, 3000);
     run.s.sendKeys({ text: "key help" });
-    await run.s.waitFor(/Commands 1 /, 3000);
+    // The filtered list itself, not only its count: under ConPTY a frame can arrive in parts.
+    await run.s.waitFor(() => /^Key help +f1$/.test(listRows(run.s, "Commands")[1] ?? ""), 3000);
     expect(listRows(run.s, "Commands").slice(0, 2)).toEqual(["Session", expect.stringMatching(/^Key help +f1$/)]);
     run.s.sendKeys("Enter");
     await run.s.waitFor(/Keys \d+/, 3000);
@@ -593,7 +596,8 @@ describe("the lists after Marcus's look (task 12.7)", () => {
     expect(params(run, "session/set_config_option")).toEqual([expect.objectContaining({ configId: "mode", value: "plan" })]);
   }, 20000);
 
-  test("Instructions apart from the entries: with OSC 10 and 11 answered, every cell of the palette outside the selected entry is on the default background (no surface.overlay fill), no character of the draft shows through, the frame is the prompt box's in its accent colour, and the instructions in the bottom border are muted", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Instructions apart from the entries: with OSC 10 and 11 answered, every cell of the palette outside the selected entry is on the default background (no surface.overlay fill), no character of the draft shows through, the frame is the prompt box's in its accent colour, and the instructions in the bottom border are muted", async () => {
     const run = start({ scenario: "config-options", colours: DARK, env: { COLORTERM: "truecolor" } });
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "hello there" });
@@ -710,6 +714,8 @@ describe("the lists after Marcus's second look (task 12.8)", () => {
     expect(sessionGroup.filter((r) => !/session/i.test(r)).length).toBeGreaterThan(3);
     run.s.sendKeys({ text: "session" });
     await run.s.waitFor(() => /^› session/.test(inner(boxRows(run.s, "Commands")[1] ?? "")), 3000);
+    // The filtered list in full: under ConPTY a frame can arrive in parts.
+    await run.s.waitFor(() => listRows(run.s, "Commands").some((r) => r === "Open the session list"), 3000);
     await run.s.flush();
     const shown = listRows(run.s, "Commands").filter((r) => r !== "");
     // Headers are kept above their matching entries, and are never matched themselves.

@@ -20,6 +20,7 @@ import { deriveSurfaces } from "../../src/theme/index.ts";
 import type { OscColours, PtySession } from "../pty/harness.ts";
 import { CARD_HEADER, cardRows, READY } from "../pty/regions.ts";
 import { startChrome, type ChromeOptions, type ChromeRun } from "../overlay/cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -103,7 +104,8 @@ async function settle(s: PtySession): Promise<void> {
 }
 
 for (const [name, opts] of TERMINALS) {
-  describe(`a click on a permission option (task 12.5), ${name}`, () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  describe.skipIf(WINDOWS)(`a click on a permission option (task 12.5), ${name}`, () => {
     test("press and release on `3 reject once`: the answer row has focus with that option selected, and nothing in the card is painted", async () => {
       const run = await openCard(opts);
       expect(selectedOptions(run.s)).toEqual([]);

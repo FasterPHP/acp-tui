@@ -10,6 +10,7 @@ import { deriveSurfaces } from "../../src/theme/index.ts";
 import type { OscColours, PtySession } from "../pty/harness.ts";
 import { activityRow, CARD_HEADER, lineWithoutBar, READY, withoutBar } from "../pty/regions.ts";
 import { answerPermission, count, sendPrompt, settle, startCli, type CliRun } from "./cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 // The corpus is imported by a computed path: acp-tui does not depend on the fake-agent package.
 const { HOSTILE_PAYLOADS } = (await import(join(import.meta.dir, "../../../fake-agent/src/hostile.ts"))) as {
@@ -299,7 +300,8 @@ describe("sanitised content behind a role gutter (task 7.2)", () => {
   }, 30000);
 });
 
-describe("the terminal's own background outside cards (task 7.7)", () => {
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+describe.skipIf(WINDOWS)("the terminal's own background outside cards (task 7.7)", () => {
   test("Collapsed items and agent text at 63x21: every cell of those rows outside the cursor's highlight has the default background", async () => {
     run = startCli({ scenario: "basic", cols: 63, rows: 21, colours: DARK });
     const s = run.session;

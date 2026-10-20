@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DARK, LIGHT, runGallery, SCREEN_TAGS, screenGoldenText } from "./gallery-screen.ts";
 import type { CliRun } from "./cli.ts";
+import { WINDOWS } from "../windows.ts";
 
 const SCREEN_GOLDEN_DIR = join(import.meta.dir, "golden", "screen");
 const WIDTHS = [63, 100] as const;
@@ -37,7 +38,8 @@ afterAll(async () => {
   }
 });
 
-describe("golden screen dumps of the markdown gallery (task 4.7)", () => {
+// Skipped on Windows: golden screen dumps: the light theme needs OSC 10/11 colour replies, which ConPTY never passes on (it passes only OSC 4), and ConPTY redraws some emoji at its own widths.
+describe.skipIf(WINDOWS)("golden screen dumps of the markdown gallery (task 4.7)", () => {
   test("every tag is on screen at both widths, in both themes, and nothing else", () => {
     for (const [key, dump] of dumps) expect([...dump.keys()].sort(), key).toEqual([...SCREEN_TAGS].sort());
   });

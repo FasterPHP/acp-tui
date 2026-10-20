@@ -22,6 +22,7 @@ import { READY, RUNNING, statusRow } from "../pty/regions.ts";
 import { listBody, listRows, listWorld, mainText, unframe, type ListWorld } from "./list-world.ts";
 import { shortenHome } from "../../src/layout/segments.ts";
 import { userHome } from "../../src/platform/paths.ts";
+import { WINDOWS } from "../windows.ts";
 
 let session: PtySession | null = null;
 afterEach(async () => {
@@ -74,7 +75,8 @@ describe("Session list (task 7.1)", () => {
     { cols: 63, rows: 21 },
     { cols: 54, rows: 20 },
   ]) {
-    test(`at ${size.cols}x${size.rows} every row's title is visible, above the status row, at most rows - 4 tall, on the surface.overlay fill`, async () => {
+    // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+    test.skipIf(WINDOWS)(`at ${size.cols}x${size.rows} every row's title is visible, above the status row, at most rows - 4 tall, on the surface.overlay fill`, async () => {
       const w = listWorld();
       const repo = w.dir("repo");
       const titles = ["Render the template", "Fix the router", "Add the invoice model", "Tidy the config loader", "Speed up the test suite", "Rename the HTTP client"];

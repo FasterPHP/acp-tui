@@ -100,7 +100,8 @@ async function toPermission(s: PtySession): Promise<void> {
 }
 
 describe("relayout and settle repaint on resize (task 4.5)", () => {
-  test("resize storm leaves no stale cell: 120x25, 80x20, 150x30, 63x21 within a second", async () => {
+  // Skipped on Windows: it disturbs the emulator behind ConPTY's back, and ConPTY redraws only what changed in its own copy of the screen.
+  test.skipIf(WINDOWS)("resize storm leaves no stale cell: 120x25, 80x20, 150x30, 63x21 within a second", async () => {
     const dir = tempDir();
     const { s, log } = start(dir, 120, 25);
     await toPermission(s);
@@ -169,7 +170,8 @@ describe("relayout and settle repaint on resize (task 4.5)", () => {
     expect(s.countModeChanges(1049, false)).toBe(1);
   }, 60000);
 
-  test("Ctrl+L rewrites every cell (the private flag works): disturbed cells are put right", async () => {
+  // Skipped on Windows: it disturbs the emulator behind ConPTY's back, and ConPTY redraws only what changed in its own copy of the screen.
+  test.skipIf(WINDOWS)("Ctrl+L rewrites every cell (the private flag works): disturbed cells are put right", async () => {
     const dir = tempDir();
     const { s, log } = start(dir, 80, 24);
     await toPermission(s);

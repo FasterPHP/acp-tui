@@ -47,7 +47,8 @@ describe("screen probe (2.1)", () => {
 });
 
 describe("OSC 10 and 11 replies (2.2)", () => {
-  test("configured colours reach the probe by its own query; OSC 4 stays unanswered", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("configured colours reach the probe by its own query; OSC 4 stays unanswered", async () => {
     const p = probe(["--colours"], { colours: { foreground: "#d4d4d4", background: "#1e1f22" } });
     const own = await p.waitLog((e) => e.kind === "colours" && e.path === "osc");
     expect(own).toMatchObject({ foreground: "#d4d4d4", background: "#1e1f22" });
@@ -61,7 +62,8 @@ describe("OSC 10 and 11 replies (2.2)", () => {
     expect(await quit(p)).toBe(0);
   }, 20000);
 
-  test("BEL-terminated replies and a colour changed with setColours", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("BEL-terminated replies and a colour changed with setColours", async () => {
     const p = probe(["--colours"], { colours: { foreground: "#ffffff", background: "#000000", terminator: "bel" } });
     expect(await p.waitLog((e) => e.kind === "colours" && e.path === "osc")).toMatchObject({
       foreground: "#ffffff",
@@ -77,7 +79,8 @@ describe("OSC 10 and 11 replies (2.2)", () => {
     expect(await quit(q)).toBe(0);
   }, 20000);
 
-  test("no reply configured: the probe logs no colours", async () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("no reply configured: the probe logs no colours", async () => {
     const p = probe(["--colours"]);
     const own = await p.waitLog((e) => e.kind === "colours" && e.path === "osc");
     expect(own.foreground).toBeNull();
@@ -158,7 +161,8 @@ describe("mode tracker and main-screen snapshot (2.4)", () => {
     expect(modesSet(parseModeChanges(out))).toEqual([7, 1003, 1006, 1049]);
   });
 
-  test("a probe that leaves mode 1000 set is reported; a clean exit reports no mouse mode or 1049", async () => {
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("a probe that leaves mode 1000 set is reported; a clean exit reports no mouse mode or 1049", async () => {
     const dirty = probe(["--leave-modes", "1000,1006"]);
     await dirty.waitLog((e) => e.kind === "ready");
     expect(await quit(dirty)).toBe(0);
