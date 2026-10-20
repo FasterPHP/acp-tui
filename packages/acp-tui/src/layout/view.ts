@@ -44,6 +44,8 @@ export interface SessionView {
   cwd: string | null;
   /** Home directory, so the `cwd` module can shorten paths to `~`. */
   home: string | null;
+  /** The platform whose path rules the `cwd` module applies (tests inject `win32`); absent = this one. */
+  platform?: NodeJS.Platform;
   /** `connecting` until `initialize` and `session/new` have completed. */
   connection: ConnectionState | "connecting";
   turnState: TurnState;

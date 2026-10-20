@@ -69,10 +69,11 @@
 import { decodePasteBytes, TextAttributes, type BoxRenderable, type KeyEvent, type OptimizedBuffer, type PasteEvent } from "@opentui/core";
 import { useRenderer } from "@opentui/solid";
 import { batch, createEffect, createSignal, For, on, onCleanup, Show, type JSX } from "solid-js";
-import { homedir } from "node:os";
 import { relative, sep } from "node:path";
 import { sanitise, type Item, type Session } from "acp-model";
 import { useApp } from "../app/context.ts";
+import { shortenHome } from "../layout/segments.ts";
+import { userHome } from "../platform/paths.ts";
 import { LIVE_GLYPHS } from "../conversation/live-glyphs.ts";
 import { groupKeyItem } from "../conversation/window/entries.ts";
 import { typedText } from "../card/elicitation.tsx";
@@ -588,6 +589,5 @@ function round(ms: number): number {
 function shortPath(path: string, cwd: string): string {
   const rel = relative(cwd, path);
   if (rel !== "" && !rel.startsWith("..") && !rel.startsWith(sep)) return `.${sep}${rel}`;
-  const home = homedir();
-  return home && path.startsWith(home + sep) ? `~${path.slice(home.length)}` : path;
+  return shortenHome(path, userHome());
 }

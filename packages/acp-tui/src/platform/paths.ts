@@ -34,6 +34,25 @@ export function windowsProfile(env: Env = process.env): string {
   return profile && win32.isAbsolute(profile) ? profile : homedir();
 }
 
+/**
+ * The user's home directory, as the chrome shows it with `~`. On Windows the profile
+ * (`USERPROFILE`, else the system's home), never `HOME`, which Git Bash and MSYS set to a POSIX
+ * path (`/c/Users/u`) that no Windows path starts with; elsewhere `HOME`, else the system's home.
+ */
+export function userHome(env: Env = process.env, platform: Platform = process.platform): string {
+  return platform === "win32" ? windowsProfile(env) : env["HOME"] || homedir();
+}
+
+/**
+ * The last component of a path (a directory's name, a command's file name), whichever separator
+ * it uses on `platform` (`/` and `\` on Windows). A path with no component (a root) comes back as
+ * its root, so a name is never empty.
+ */
+export function baseName(path: string, platform: Platform = process.platform): string {
+  const rules = pathsFor(platform);
+  return rules.basename(path) || rules.parse(path).root || path;
+}
+
 /** A Windows known folder from its variable (`APPDATA`), else its usual place in the profile. */
 function windowsFolder(env: Env, variable: string, inProfile: readonly string[]): string {
   const value = env[variable];

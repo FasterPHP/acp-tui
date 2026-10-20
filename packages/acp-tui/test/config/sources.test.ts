@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { effectiveConfig, mergeRaw } from "../../src/config/effective.ts";
 import { defaultConfig } from "../../src/config/schema.ts";
-import { configDirectory, findProjectFile, readConfigFile, themesDirectory, userConfigFile } from "../../src/config/sources.ts";
+import { configDirectory, findProjectFile, readConfigFile, themesDirectory, userConfigFile, within } from "../../src/config/sources.ts";
 import { createConfigStore } from "../../src/config/store.ts";
 
 const temp = (prefix: string) => realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix)));
@@ -193,5 +193,21 @@ describe("Byte order mark ignored (windows-support)", () => {
     const store = createConfigStore({ env: { XDG_CONFIG_HOME: xdg, HOME: xdg }, sessionDirectory: null });
     expect(store.config().mouse).toBe("off");
     expect(store.problems()).toEqual([]);
+  });
+});
+
+describe("within (the project file search stops above the home directory)", () => {
+  test("Windows: case and the kind of separator do not matter", () => {
+    expect(within("C:\\Users\\u\\work", "c:\\users\\U", "win32")).toBe(true);
+    expect(within("C:/Users/u/work", "C:\\Users\\u\\", "win32")).toBe(true);
+    expect(within("C:\\Users\\u", "C:\\Users\\u", "win32")).toBe(true);
+    expect(within("C:\\Users", "C:\\Users\\u", "win32")).toBe(false);
+    expect(within("C:\\Users\\u2", "C:\\Users\\u", "win32")).toBe(false);
+  });
+
+  test("Linux and macOS: exact", () => {
+    expect(within("/home/u/work", "/home/u", "linux")).toBe(true);
+    expect(within("/home/U/work", "/home/u", "linux")).toBe(false);
+    expect(within("/home/u2", "/home/u", "darwin")).toBe(false);
   });
 });

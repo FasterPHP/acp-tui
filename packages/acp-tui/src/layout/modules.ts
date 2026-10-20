@@ -3,6 +3,7 @@
 // From tokens.ts, not the theme index, so the configuration schema (and with it cli.ts) can
 // import the layout engine without loading OpenTUI or Solid before the JSX preload.
 import { TOKENS, type TokenName } from "../theme/tokens.ts";
+import { baseName } from "../platform/paths.ts";
 import { shortenHome, truncateMiddle, type Segment } from "./segments.ts";
 import { renderTemplate, type Fields } from "./template.ts";
 import { hintsForKeyMap } from "../keys/hints.ts";
@@ -197,8 +198,8 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
     fields: ["cwd", "path", "basename"],
     defaults: defaults("{cwd}", 30, "muted", { maxWidth: 40 }),
     render: (view, s) => {
-      const path = view.cwd === null ? null : truncateMiddle(shortenHome(view.cwd, view.home), s.maxWidth ?? 40);
-      const base = view.cwd === null ? null : view.cwd.replace(/\/+$/, "").split("/").pop() || "/";
+      const path = view.cwd === null ? null : truncateMiddle(shortenHome(view.cwd, view.home, view.platform), s.maxWidth ?? 40);
+      const base = view.cwd === null ? null : baseName(view.cwd, view.platform);
       return fromTemplate(s, { cwd: path, path, basename: base === null ? null : truncateMiddle(base, s.maxWidth ?? 40) });
     },
   },

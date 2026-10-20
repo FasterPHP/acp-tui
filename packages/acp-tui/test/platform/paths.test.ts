@@ -3,7 +3,7 @@
 // Windows", scenario "LOCALAPPDATA location"), and the path containment test. The platform and
 // the environment are injected, so the Windows paths are checked on Linux too.
 import { describe, expect, test } from "bun:test";
-import { configDirectory, configHome, pathWithin, stateDirectory, stateHome } from "../../src/platform/paths.ts";
+import { baseName, configDirectory, configHome, pathWithin, stateDirectory, stateHome, userHome } from "../../src/platform/paths.ts";
 import { themesDirectory, userConfigFile } from "../../src/config/sources.ts";
 import { sessionIndexPath, stateHomeDir } from "../../src/session/session-index.ts";
 import { titleSlotDir } from "../../src/renderer/title-slot.ts";
@@ -82,5 +82,27 @@ describe("pathWithin", () => {
     expect(pathWithin("C:\\x", "C:\\", "win32")).toBe(true);
     expect(pathWithin("\\\\server\\share\\u\\x", "\\\\SERVER\\share", "win32")).toBe(true);
     expect(pathWithin("C:\\Users\\u\\..\\v", "C:\\Users\\u", "win32")).toBe(false);
+  });
+});
+
+describe("the home directory and names shown in the chrome (spec tui-layout \"Windows paths in the chrome\")", () => {
+  test("Windows: the profile, never HOME (Git Bash sets HOME to a POSIX path)", () => {
+    expect(userHome({ USERPROFILE: "C:\\Users\\u", HOME: "/c/Users/u" }, "win32")).toBe("C:\\Users\\u");
+  });
+
+  test("Linux and macOS: HOME, which the tests and the user can set", () => {
+    expect(userHome({ HOME: "/home/u", USERPROFILE: "C:\\Users\\u" }, "linux")).toBe("/home/u");
+    expect(userHome({ HOME: "/Users/u" }, "darwin")).toBe("/Users/u");
+  });
+
+  test("a directory's name is its last component whichever separator the path uses", () => {
+    expect(baseName("C:\\Users\\u\\src\\app", "win32")).toBe("app");
+    expect(baseName("C:/Users/u/src/app/", "win32")).toBe("app");
+    expect(baseName("C:\\Users\\u\\bin\\auggie.cmd", "win32")).toBe("auggie.cmd");
+    expect(baseName("C:\\", "win32")).toBe("C:\\");
+    expect(baseName("/home/u/app", "linux")).toBe("app");
+    expect(baseName("/home/u/app//", "linux")).toBe("app");
+    expect(baseName("/", "linux")).toBe("/");
+    expect(baseName("bun", "linux")).toBe("bun");
   });
 });

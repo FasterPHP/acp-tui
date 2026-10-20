@@ -6,7 +6,7 @@
 // compaction, two processes appending at once, and an unwritable state
 // directory. Every index lives in a temporary state home.
 import { describe, expect, test } from "bun:test";
-import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { INDEX_FILE_NAME, openSessionIndex, stateHomeDir, type SessionIndexOptions } from "../../src/session/session-index.ts";
@@ -185,6 +185,76 @@ describe("Session index (tui-sessions)", () => {
     // Appends carry on after the rewrite.
     index.record({ agent: "fake", sessionId: "s-new", directory: "/w" });
     expect(fileLines(index.path)).toHaveLength(1001);
+  });
+
+  test("compaction on Windows: a rename refused twice because another process holds the file is retried, and nothing is shown", () => {
+    const home = stateHome();
+    const warnings: string[] = [];
+    const attempts: string[] = [];
+    const sleeps: number[] = [];
+    const index = open(home, {
+      compactAt: 5,
+      keep: 3,
+      onWarning: (m) => warnings.push(m),
+      rename: {
+        platform: "win32",
+        sleep: (ms) => sleeps.push(ms),
+        rename: (from, to) => {
+          attempts.push(to);
+          if (attempts.length <= 2) throw Object.assign(new Error("EPERM: operation not permitted, rename"), { code: "EPERM" });
+          renameSync(from, to);
+        },
+      },
+    });
+    for (let n = 0; n < 6; n++) index.record({ agent: "fake", sessionId: `s-${n}`, directory: "/w", at: T0 + n * 1000 });
+    expect(attempts).toHaveLength(3);
+    expect(sleeps).toEqual([50, 50]);
+    expect(warnings).toEqual([]);
+    expect(index.warning).toBeNull();
+    expect(fileLines(index.path)).toHaveLength(3);
+    expect(open(home).listAll().map((r) => r.sessionId)).toEqual(["s-5", "s-4", "s-3"]);
+    expect(readdirSync(join(home, "acp-tui"))).toEqual([INDEX_FILE_NAME]);
+  });
+
+  test("a file held for good: five retries over 250 ms, then the usual warning and no stray temporary file", () => {
+    const home = stateHome();
+    const warnings: string[] = [];
+    let attempts = 0;
+    let slept = 0;
+    const index = open(home, {
+      compactAt: 3,
+      onWarning: (m) => warnings.push(m),
+      rename: {
+        platform: "win32",
+        sleep: (ms) => (slept += ms),
+        rename: () => {
+          attempts++;
+          throw Object.assign(new Error("EBUSY"), { code: "EBUSY" });
+        },
+      },
+    });
+    for (let n = 0; n < 4; n++) index.record({ agent: "fake", sessionId: `s-${n}`, directory: "/w", at: T0 + n });
+    expect(attempts).toBe(6);
+    expect(slept).toBe(250);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toStartWith("sessions not recorded (EBUSY)");
+    expect(readdirSync(join(home, "acp-tui"))).toEqual([INDEX_FILE_NAME]);
+  });
+
+  test("Linux and macOS run the rename once, and any other error is reported at once", () => {
+    const home = stateHome();
+    let attempts = 0;
+    const refuse = (code: string) => () => {
+      attempts++;
+      throw Object.assign(new Error(code), { code });
+    };
+    const busy = open(home, { compactAt: 2, rename: { platform: "linux", sleep: () => expect.unreachable(), rename: refuse("EPERM") } });
+    for (let n = 0; n < 3; n++) busy.record({ agent: "fake", sessionId: `s-${n}`, directory: "/w" });
+    expect(attempts).toBe(1);
+    const other = open(stateHome(), { compactAt: 2, rename: { platform: "win32", sleep: () => expect.unreachable(), rename: refuse("ENOSPC") } });
+    for (let n = 0; n < 3; n++) other.record({ agent: "fake", sessionId: `s-${n}`, directory: "/w" });
+    expect(attempts).toBe(2);
+    expect(other.warning).toStartWith("sessions not recorded (ENOSPC)");
   });
 
   test(

@@ -3,6 +3,7 @@
 // East Asian wide characters counting two. Bun's built-in `stringWidth` is the
 // same function OpenTUI 0.5.12 uses internally (its own `stringWidth` is not
 // part of the public exports).
+import type { Platform } from "../platform/paths.ts";
 import type { TokenName } from "../theme/index.ts";
 
 export interface Segment {
@@ -115,9 +116,21 @@ export function fitSegments(segments: readonly Segment[], width: number): Segmen
 }
 
 /** Replaces a leading home directory with `~` (the status row's `cwd` module, the session list,
- *  the session directory notice). */
-export function shortenHome(path: string, home: string | null): string {
-  if (!home || home === "/") return path;
+ *  the session directory notice). On Windows the home directory matches whichever separator the
+ *  path uses and whatever its case, as the file system does; the rest of the path is kept as written. */
+export function shortenHome(path: string, home: string | null, platform: Platform = process.platform): string {
+  if (!home) return path;
+  if (platform === "win32") {
+    const h = home.replace(/[\\/]+$/, "");
+    // A root (`C:\`) is not a home directory worth abbreviating, as `/` is not.
+    if (h === "" || /^[A-Za-z]:$/.test(h)) return path;
+    const key = (text: string) => text.replace(/\//g, "\\").toUpperCase();
+    const head = path.slice(0, h.length);
+    if (key(head) !== key(h) || head.length !== h.length) return path;
+    const next = path.charAt(h.length);
+    return next === "" ? "~" : next === "\\" || next === "/" ? `~${path.slice(h.length)}` : path;
+  }
+  if (home === "/") return path;
   const h = home.endsWith("/") ? home.slice(0, -1) : home;
   if (path === h) return "~";
   if (path.startsWith(`${h}/`)) return `~${path.slice(h.length)}`;
