@@ -1,0 +1,47 @@
+# The Windows check, on demand only (windows-support D10): there is no push or pull_request trigger,
+# so it costs nothing until someone asks. `bun run test:windows` starts it for the current branch
+# with `gh workflow run` and waits for the result; it is the final check before a push to main.
+name: windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or commit to test (default: the ref the run was started on)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      # Bun 1.4.3 is the version the Windows work was verified on (Bun.spawn({ terminal }) over ConPTY);
+      # keep it exact, like the dependencies, and raise it deliberately.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.3"
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # The whole suite, both passes (`scripts/test.ts`: everything but the timing tests in parallel,
+      # then the *.timing.test.ts files serially), so the run covers what `bun run test` covers
+      # elsewhere. The hosted runner has 4 vCPUs, so 4 workers (default 12) keep the PTY tests from
+      # starving each other. Skips for Windows are in the tests (`test.skipIf(WINDOWS)`) and show in
+      # the summary counts.
+      - name: Test
+        shell: bash
+        env:
+          ACP_TUI_TEST_WORKERS: "4"
+        run: bun run test
+
+      - name: Typecheck
+        run: bun run typecheck

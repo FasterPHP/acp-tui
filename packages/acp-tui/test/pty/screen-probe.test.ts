@@ -9,6 +9,7 @@ import { diffSnapshots, freshRender, startPty } from "./harness.ts";
 import { modesSet, parseModeChanges } from "./modes.ts";
 import { sgrMotion, sgrPress, sgrRelease, sgrWheel } from "./mouse.ts";
 import { ROOT, PROBE, probe, quit, track, createDir, disposeSessions } from "./screen-probe-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 beforeAll(createDir);
 afterEach(disposeSessions);
@@ -174,7 +175,8 @@ describe("mode tracker and main-screen snapshot (2.4)", () => {
 
   const PREFILL = "$ bun probe\r\n\x1b[1;31mred bold\x1b[0m and \x1b[38;2;10;20;30mrgb\x1b[0m\r\n$ ";
 
-  test("the main screen is unchanged after a clean probe run", async () => {
+  // Skipped on Windows: it compares main-screen snapshots or full renders of a PTY stream (ConPTY rewrites them), or runs sh.
+  test.skipIf(WINDOWS)("the main screen is unchanged after a clean probe run", async () => {
     const p = probe([], { prefill: PREFILL });
     await p.waitLog((e) => e.kind === "ready");
     const before = await p.s.mainBefore();
@@ -188,7 +190,8 @@ describe("mode tracker and main-screen snapshot (2.4)", () => {
     expect(p.s.mainSnapshot().cursor).toEqual({ x: 2, y: 2 });
   }, 15000);
 
-  test("a change to the main screen is reported", async () => {
+  // Skipped on Windows: it compares main-screen snapshots or full renders of a PTY stream (ConPTY rewrites them), or runs sh.
+  test.skipIf(WINDOWS)("a change to the main screen is reported", async () => {
     const s = startPty(["sh", "-c", "printf '\\033[2Jx\\033[1;32mgreen\\033[0m'; sleep 0.1"], {
       cols: 40,
       rows: 5,
@@ -203,7 +206,8 @@ describe("mode tracker and main-screen snapshot (2.4)", () => {
 });
 
 describe("freshRender (2.5)", () => {
-  test("two probes at the same size compare equal", async () => {
+  // Skipped on Windows: it compares main-screen snapshots or full renders of a PTY stream (ConPTY rewrites them), or runs sh.
+  test.skipIf(WINDOWS)("two probes at the same size compare equal", async () => {
     const p = probe();
     await p.s.waitFor("SCREEN-PROBE ready 80x24");
     await p.s.flush();
@@ -215,7 +219,8 @@ describe("freshRender (2.5)", () => {
     expect(await quit(p)).toBe(0);
   }, 20000);
 
-  test("a resized probe equals a fresh one at the final size; a different size does not", async () => {
+  // Skipped on Windows: it compares main-screen snapshots or full renders of a PTY stream (ConPTY rewrites them), or runs sh.
+  test.skipIf(WINDOWS)("a resized probe equals a fresh one at the final size; a different size does not", async () => {
     const p = probe();
     await p.s.waitFor("ready 80x24");
     p.s.resize(100, 30);
