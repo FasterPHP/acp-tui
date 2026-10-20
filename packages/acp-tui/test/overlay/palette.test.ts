@@ -132,9 +132,11 @@ describe("Key help (task 6.8)", () => {
     const global = items.filter((i) => i.group === "Anywhere");
     expect(global.find((i) => i.title === "Move focus to the next region")?.keys).toEqual(["tab"]);
     expect(global.find((i) => i.title === "Interrupt the running turn (press twice)")?.keys).toEqual(["esc"]);
-    // Every bound key of every context is in help.
+    // Every bound key of every context is in help, except the newline's Ctrl+Enter, which help names
+    // only in Windows Terminal without the kitty protocol (windows-support design D7; newline-hint.test.ts).
     for (const context of KEY_CONTEXTS) {
       for (const [key, action] of Object.entries(DEFAULT_KEY_MAP[context])) {
+        if (context === "prompt" && key === "ctrl+return") continue;
         const title = (COMMAND_TITLES[context] as Record<string, string>)[action];
         expect(items.some((i) => i.title === title && (i.keys ?? []).includes(keyLabel(key)))).toBe(true);
       }
