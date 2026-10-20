@@ -52,6 +52,8 @@ function main(): void {
         ...(options.chunk === undefined ? {} : { chunk: options.chunk }),
         longGap: options.longGap,
         startDelayMs: options.startDelayMs,
+        ...(options.authRequired === undefined ? {} : { authRequired: options.authRequired }),
+        ...(options.agentInfo === undefined ? {} : { agentInfo: options.agentInfo }),
         sessions: {
           load: options.load,
           resume: options.resume,
