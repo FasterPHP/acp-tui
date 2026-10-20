@@ -83,13 +83,17 @@ function parseArgs(argv: string[]) {
   return { parallelOnly, timingOnly, paths, flags };
 }
 
+// A path with `/` for its separator on every platform (Bun takes it on Windows), so a path
+// argument written with `/` is found as a substring and a `./` prefix names the file.
+const slashed = (path: string): string => path.replaceAll("\\", "/");
+
 // The test files under a directory, relative to the working directory. Glob results use the
 // platform's separator, so a path is split on both.
 async function testFilesUnder(dir: string): Promise<string[]> {
   const files: string[] = [];
   for await (const file of new Bun.Glob("**/*").scan({ cwd: dir, onlyFiles: true })) {
     if (file.split(/[\\/]/).some((part) => part === "node_modules" || part.startsWith("."))) continue;
-    if (TEST_FILE.test(file)) files.push(relative(process.cwd(), resolve(dir, file)));
+    if (TEST_FILE.test(file)) files.push(slashed(relative(process.cwd(), resolve(dir, file))));
   }
   return files;
 }
@@ -103,8 +107,8 @@ async function selected(paths: string[]): Promise<string[]> {
   let all: string[] | undefined;
   for (const arg of paths) {
     if (existsSync(arg) && statSync(arg).isDirectory()) for (const f of await testFilesUnder(arg)) chosen.add(f);
-    else if (existsSync(arg)) chosen.add(relative(process.cwd(), resolve(arg)));
-    else for (const f of (all ??= await testFilesUnder("."))) if (f.includes(arg)) chosen.add(f);
+    else if (existsSync(arg)) chosen.add(slashed(relative(process.cwd(), resolve(arg))));
+    else for (const f of (all ??= await testFilesUnder("."))) if (f.includes(slashed(arg))) chosen.add(f);
   }
   return [...chosen].sort();
 }

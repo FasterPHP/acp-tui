@@ -19,6 +19,7 @@ import { FINAL_RESET } from "../../src/renderer/lifecycle.ts";
 import { plainLines } from "../../src/find/hand-back.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { promptText, READY, REQUIRES_ACTION } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -100,7 +101,8 @@ function wrapped(line: string, cols: number): string[] {
 }
 
 describe("--exit-print last-answer and transcript (tasks 15.4, 7.2)", () => {
-  test("transcript: the resume line, a blank line, then the conversation's plain text below the command line", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("transcript: the resume line, a blank line, then the conversation's plain text below the command line", async () => {
     const { s } = start(["--exit-print", "transcript"], { cols: 120 });
     await converseAndExit(s);
     const bytes = exitBytes(s);
@@ -140,7 +142,8 @@ describe("--exit-print last-answer and transcript (tasks 15.4, 7.2)", () => {
     expect(bytes.replace(/\r/g, "")).toBe(`${answer.join("\n")}\n`);
   }, 60000);
 
-  test("JediTerm emulation at 60 columns: the transcript is wrapped by acp-tui, below the command line", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("JediTerm emulation at 60 columns: the transcript is wrapped by acp-tui, below the command line", async () => {
     const cols = 60;
     const { s } = start(["--exit-print", "transcript"], { cols, terminal: "jediterm" });
     await converseAndExit(s);

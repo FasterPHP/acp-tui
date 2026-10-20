@@ -5,6 +5,7 @@
 // exit.pty.test.ts and test/session/resume-line.pty.test.ts.
 import { describe, expect, test } from "bun:test";
 import { exitText, resumeLine, shellQuote } from "../../src/renderer/exit-text.ts";
+import { WINDOWS } from "../windows.ts";
 
 const session = { id: "sess-42" };
 const reopenable = { canReopen: true, hadPromptOrOpened: true } as const;
@@ -112,7 +113,8 @@ describe("exit text: the resume line only", () => {
     });
   });
 
-  test("shellQuote round trips through sh", () => {
+  // Skipped on Windows: it runs sh, which Windows does not have.
+  test.skipIf(WINDOWS)("shellQuote round trips through sh", () => {
     for (const word of ["a b", "$HOME", "it's", "a;b", "$(echo hi)", "back\\slash", '"dq"', "*", "x=y", "a|b"]) {
       const out = Bun.spawnSync(["sh", "-c", `printf %s ${shellQuote(word, "linux")}`]).stdout.toString();
       expect(out).toBe(word);

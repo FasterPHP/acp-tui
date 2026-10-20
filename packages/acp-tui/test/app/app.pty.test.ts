@@ -16,6 +16,7 @@ import { join, resolve } from "node:path";
 import { compactEnv } from "../pty/config-home.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { CARD_HEADER, promptText, READY, REQUIRES_ACTION, statusRow, withoutBar } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -106,7 +107,8 @@ async function expectMainScreen(s: PtySession, extra: (lines: string[]) => void 
 }
 
 describe("acp-tui against fake-agent at 80x24 (task 6.2; alternate screen, phase-1a task 3.2)", () => {
-  test("the status row shows the cwd, idle, the hints and connected below the prompt box; Ctrl+D detaches", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("the status row shows the cwd, idle, the hints and connected below the prompt box; Ctrl+D detaches", async () => {
     const log = join(tempDir(), "agent.log");
     const s = startCli(fakeAgent(log));
     await s.waitFor(READY, 10000);
@@ -132,7 +134,8 @@ describe("acp-tui against fake-agent at 80x24 (task 6.2; alternate screen, phase
     expect(sent).toEqual(["initialize", "session/new"]);
   });
 
-  test("the answer, tool lines and permission prompt show on the alternate screen; Ctrl+D mid-turn detaches without session/cancel or session/close and leaves the main screen unchanged", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("the answer, tool lines and permission prompt show on the alternate screen; Ctrl+D mid-turn detaches without session/cancel or session/close and leaves the main screen unchanged", async () => {
     const log = join(tempDir(), "agent.log");
     const s = startCli(fakeAgent(log));
     await s.waitFor(READY, 10000);
@@ -195,7 +198,8 @@ describe("acp-tui against fake-agent at 80x24 (task 6.2; alternate screen, phase
     expect(sent).not.toContain("session/close");
   });
 
-  test("SIGTERM: exit code 143, terminal restored, main screen unchanged, no session/cancel or session/close", async () => {
+  // Skipped on Windows: it sends SIGTERM, which ends a Windows process outright instead of running its handler.
+  test.skipIf(WINDOWS)("SIGTERM: exit code 143, terminal restored, main screen unchanged, no session/cancel or session/close", async () => {
     const log = join(tempDir(), "agent.log");
     const s = startCli(fakeAgent(log));
     await s.waitFor(READY, 10000);
@@ -212,7 +216,8 @@ describe("acp-tui against fake-agent at 80x24 (task 6.2; alternate screen, phase
 });
 
 describe("prompt errors and agent crashes on the full screen (spec tui-agent-session, task 4.6)", () => {
-  test("prompt error: the turn ends, idle again, the error as a line in the conversation", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("prompt error: the turn ends, idle again, the error as a line in the conversation", async () => {
     const log = join(tempDir(), "agent.log");
     const s = startCli(fakeAgent(log, "prompt-error"));
     await s.waitFor(READY, 10000);
@@ -234,7 +239,8 @@ describe("prompt errors and agent crashes on the full screen (spec tui-agent-ses
     expectRestored(s);
   });
 
-  test("agent crashes mid-turn: the turn ends, `disconnected` in the status row, the exit code in the conversation, acp-tui stays open", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("agent crashes mid-turn: the turn ends, `disconnected` in the status row, the exit code in the conversation, acp-tui stays open", async () => {
     const log = join(tempDir(), "agent.log");
     const s = startCli(fakeAgent(log, "crash"));
     await s.waitFor(READY, 10000);
@@ -262,7 +268,8 @@ describe("prompt errors and agent crashes on the full screen (spec tui-agent-ses
 });
 
 describe("agent fails to start (spec tui-agent-session)", () => {
-  test("missing command: terminal restored, error names the command below the earlier lines, exit 1", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("missing command: terminal restored, error names the command below the earlier lines, exit 1", async () => {
     const s = startCli(["--", "acp-tui-no-such-agent"]); // behind its own `--` (Bun drops the first; a lone word is no command)
     expect(await s.wait(10000)).toBe(1);
     await s.flush();
@@ -270,7 +277,8 @@ describe("agent fails to start (spec tui-agent-session)", () => {
     await expectMainScreen(s, (extra) => expect(extra.join("\n")).toContain("acp-tui: could not start ad hoc harness command 'acp-tui-no-such-agent'"));
   });
 
-  test("agent exits before initialize: error names the command and quotes its stderr tail, exit 1", async () => {
+  // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
+  test.skipIf(WINDOWS)("agent exits before initialize: error names the command and quotes its stderr tail, exit 1", async () => {
     const s = startCli(["bun", "-e", "process.stderr.write('first line\\nlast line\\n'); process.exit(2)"]);
     expect(await s.wait(10000)).toBe(1);
     await s.flush();

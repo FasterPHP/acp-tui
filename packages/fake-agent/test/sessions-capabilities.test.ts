@@ -2,6 +2,7 @@
 // are off by default, so every existing scenario is unchanged, and
 // `initialize` advertises exactly the switched capabilities. Also the CLI
 // parsing of every session switch and the fixture validation.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -82,10 +83,10 @@ describe("fake-agent session capability switches (mvp-sessions task 2.1)", () =>
     const handle = spawnFakeAgent({ scenario: "basic", logPath, client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      expect(await rejectionOf(handle.conn.loadSession({ sessionId: "x", cwd: "/tmp", mcpServers: [] }))).toMatchObject({
+      expect(await rejectionOf(handle.conn.loadSession({ sessionId: "x", cwd: tmpdir(), mcpServers: [] }))).toMatchObject({
         code: -32601,
       });
-      expect(await rejectionOf(handle.conn.resumeSession({ sessionId: "x", cwd: "/tmp" }))).toMatchObject({ code: -32601 });
+      expect(await rejectionOf(handle.conn.resumeSession({ sessionId: "x", cwd: tmpdir() }))).toMatchObject({ code: -32601 });
       expect(await rejectionOf(handle.conn.listSessions({}))).toMatchObject({ code: -32601 });
       const methods = (await Bun.file(logPath).text())
         .split("\n")
@@ -117,7 +118,7 @@ describe("fake-agent session CLI switches", () => {
     const options = parseArgs(
       [
         "--load", "--resume", "--list", "--title-update",
-        "--sessions", "/tmp/s.json", "--persist", "--page-size", "2",
+        "--sessions", join(tmpdir(), "s.json"), "--persist", "--page-size", "2",
         "--load-error", "a", "--load-error", "b",
       ],
       {},
@@ -127,7 +128,7 @@ describe("fake-agent session CLI switches", () => {
       resume: true,
       list: true,
       titleUpdate: true,
-      sessionsPath: "/tmp/s.json",
+      sessionsPath: join(tmpdir(), "s.json"),
       persist: true,
       pageSize: 2,
       loadErrors: ["a", "b"],

@@ -1,6 +1,7 @@
 // Phase-1a task 1.4: the hostile scenario puts the whole sanitiser corpus in
 // every agent-supplied field, and acp-model (reducer plus sanitiser) stores
 // none of it.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { createSession, reduce, sanitise, type Item, type Session } from "acp-model";
 import type {
@@ -48,7 +49,7 @@ async function runHostile(): Promise<Capture> {
   });
   try {
     const init: InitializeResponse = await handle.conn.initialize({ protocolVersion: 1 });
-    const created: NewSessionResponse = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const created: NewSessionResponse = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     await handle.conn.prompt({ sessionId: created.sessionId, prompt: [{ type: "text", text: "go" }] });
 
     const request = requests[0] as RequestPermissionRequest;
@@ -77,7 +78,7 @@ async function runHostile(): Promise<Capture> {
 
     let model: Session = createSession();
     let at = 0;
-    model = reduce(model, { type: "session_created", response: created, cwd: "/tmp", agentInfo: init.agentInfo ?? null, at: at++ });
+    model = reduce(model, { type: "session_created", response: created, cwd: tmpdir(), agentInfo: init.agentInfo ?? null, at: at++ });
     model = reduce(model, { type: "prompt_sent", text: "go", at: at++ });
     for (const update of updates) {
       if (update.sessionUpdate === "tool_call_update") {

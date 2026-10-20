@@ -1,5 +1,6 @@
 // Phase-1a task 1.6: config-options offers mode, model and thought_level, and
 // session/set_config_option returns the full rebuilt list.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionConfigOption } from "@agentclientprotocol/sdk";
 import { rejectionOf, spawnFakeAgent } from "./helpers.ts";
@@ -24,7 +25,7 @@ describe("fake-agent config-options scenario (phase-1a task 1.6)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const options = session.configOptions ?? [];
       expect(options.map((o) => o.id)).toEqual(["mode", "model", "thought_level"]);
       expect(options.map(valueCount)).toEqual([4, 20, 4]);
@@ -41,7 +42,7 @@ describe("fake-agent config-options scenario (phase-1a task 1.6)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const before = byId(session.configOptions ?? []);
 
       const response = await handle.conn.setSessionConfigOption({
@@ -87,7 +88,7 @@ describe("fake-agent config-options scenario (phase-1a task 1.6)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.setSessionConfigOption({ sessionId: session.sessionId, configId: "thought_level", value: "high" });
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "status" }] });
       expect(texts.join("")).toContain("mode=ask model=model-01 thought_level=high");
@@ -103,7 +104,7 @@ describe("fake-agent config-options scenario (phase-1a task 1.6)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       expect(await rejectionOf(
         handle.conn.setSessionConfigOption({ sessionId: session.sessionId, configId: "nope", value: "x" }),
       )).toBeDefined();
@@ -122,7 +123,7 @@ describe("fake-agent config-options scenario (phase-1a task 1.6)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       expect(await rejectionOf(
         handle.conn.setSessionConfigOption({ sessionId: session.sessionId, configId: "model", value: "x" }),
       )).toBeDefined();

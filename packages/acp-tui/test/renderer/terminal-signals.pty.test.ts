@@ -12,6 +12,7 @@ import { parseModeChanges, startPty, type PtySession } from "../pty/harness.ts";
 import { configEnv } from "../pty/config-home.ts";
 import { CARD_HEADER, promptText, READY, REQUIRES_ACTION } from "../pty/regions.ts";
 import { OPTION_GUARD_MS } from "../../src/app/permission.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -190,7 +191,8 @@ describe("Terminal title (task 7.1; day-one-feedback task 9)", () => {
       expect(raw.split(TITLE_POP)).toHaveLength(2);
     }, TIMEOUT);
 
-    test("SIGTERM: restored", async () => {
+    // Skipped on Windows: it sends SIGTERM with process.kill, which ends a Windows process outright instead of running its handler.
+    test.skipIf(WINDOWS)("SIGTERM: restored", async () => {
       const s = start();
       await s.waitFor(READY, 15000);
       s.kill("SIGTERM");

@@ -8,7 +8,8 @@
 import { describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { basename, delimiter, dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { displayPath, fileUri, fuzzyScore, listFiles, rankFiles } from "../../src/overlay/files.ts";
 
 function tree(files: Record<string, string>): string {
@@ -54,7 +55,7 @@ describe("listFiles: the walk", () => {
       ".git/config": "",
       "README.md": "",
     });
-    symlinkSync(join(dir, "src"), join(dir, "src-link"));
+    symlinkSync(join(dir, "src"), join(dir, "src-link"), "junction"); // a junction needs no privilege on Windows; the type is ignored elsewhere
     const { paths, result } = await list(dir, { walkOnly: true });
     expect(paths).toEqual([".gitignore", "README.md", "pkg/.gitignore", "pkg/a.ts", "pkg/keep.log", "src-link", "src/Db/Connection.php"]);
     expect(result).toEqual({ source: "walk", capped: false });
@@ -114,7 +115,7 @@ describe.if(hasGit)("listFiles: git ls-files in a work tree", () => {
   // repository's own `git`; Windows does the same with `git.cmd` and no `PATH` entry at all.
   test.skipIf(process.platform === "win32")("a git in the session directory is never run, even with `.` on the PATH: the PATH's git lists the files", async () => {
     const dir = tree({ "tracked.txt": "" });
-    const marker = join(dir, "..", `${dir.split("/").at(-1)}-ran`);
+    const marker = join(dir, "..", `${basename(dir)}-ran`);
     writeFileSync(join(dir, "git"), `#!/bin/sh\necho ran > '${marker}'\n`);
     chmodSync(join(dir, "git"), 0o755);
     expect(Bun.spawnSync(["git", "init", "-q"], { cwd: dir }).exitCode).toBe(0);
@@ -184,15 +185,12 @@ describe("names and links", () => {
     expect(displayPath("src/Db/Connection.php")).toBe("src/Db/Connection.php");
   });
 
-  test.skipIf(process.platform === "win32")("the URI is percent-encoded from the real path", () => {
-    expect(fileUri("/home/u/proj", "src/Db/Connection.php")).toBe("file:///home/u/proj/src/Db/Connection.php");
-    expect(fileUri("/home/u/my proj", "a#b?c%d.txt")).toBe("file:///home/u/my%20proj/a%23b%3Fc%25d.txt");
-    expect(fileUri("/p", "café/naïve.md")).toBe("file:///p/caf%C3%A9/na%C3%AFve.md");
-    expect(fileUri("/p", "new\nline")).toBe("file:///p/new%0Aline");
-  });
-
-  test.if(process.platform === "win32")("on Windows the URI carries the drive letter and forward slashes", () => {
-    expect(fileUri("C:\\Users\\u\\proj", "src\\Db\\Connection.php")).toBe("file:///C:/Users/u/proj/src/Db/Connection.php");
-    expect(fileUri("C:\\Users\\u\\my proj", "a b.php")).toBe("file:///C:/Users/u/my%20proj/a%20b.php");
+  test("the URI is percent-encoded from the real path", () => {
+    // The root of the current drive is `file:///` on POSIX and `file:///C:/` on Windows.
+    const root = pathToFileURL(resolve("/")).href;
+    expect(fileUri("/home/u/proj", "src/Db/Connection.php")).toBe(`${root}home/u/proj/src/Db/Connection.php`);
+    expect(fileUri("/home/u/my proj", "a#b?c%d.txt")).toBe(`${root}home/u/my%20proj/a%23b%3Fc%25d.txt`);
+    expect(fileUri("/p", "café/naïve.md")).toBe(`${root}p/caf%C3%A9/na%C3%AFve.md`);
+    expect(fileUri("/p", "new\nline")).toBe(`${root}p/new%0Aline`);
   });
 });

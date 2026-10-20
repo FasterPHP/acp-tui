@@ -1,6 +1,7 @@
 // Task 4.1: proves the SDK runs on Bun from both sides at once -- fake-agent
 // as a real child process on AgentSideConnection, driven here by
 // ClientSideConnection, exactly as acp-tui will drive it.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { spawnFakeAgent } from "./helpers.ts";
 
@@ -21,7 +22,7 @@ describe("fake-agent round trip (task 4.1)", () => {
       expect(initResult.protocolVersion).toBe(1);
       expect(initResult.agentInfo?.name).toBe("fake-agent");
 
-      const sessionResult = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const sessionResult = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       expect(sessionResult.sessionId).toBeTruthy();
     } finally {
       handle.stop();

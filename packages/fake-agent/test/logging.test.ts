@@ -26,7 +26,7 @@ describe("fake-agent --log (task 4.1)", () => {
     const secretPromptText = "do not leak this exact string into the log";
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: secretPromptText }],

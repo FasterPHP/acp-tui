@@ -1,5 +1,6 @@
 // Phase-1a task 1.5: permission-diff requests permission for an edit with a
 // 60-line diff and the four option kinds, in a fixed order.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { RequestPermissionRequest, ToolCallContent } from "@agentclientprotocol/sdk";
 import { PERMISSION_DIFF_LINE_COUNT } from "../src/scenarios/permission-diff.ts";
@@ -37,7 +38,7 @@ describe("fake-agent permission-diff scenario (phase-1a task 1.5)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "edit the router" }],
@@ -79,7 +80,7 @@ describe("fake-agent permission-diff scenario (phase-1a task 1.5)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "edit the router" }],

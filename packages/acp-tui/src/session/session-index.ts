@@ -26,11 +26,12 @@
 // read, since the file is not trusted. When the state directory cannot be
 // written, the index says so once through `onWarning` (and `warning`), and
 // every later write fails quietly: acp-tui carries on (task 4.3).
-import { chmodSync, closeSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeSync, constants } from "node:fs";
+import { chmodSync, closeSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeSync, constants } from "node:fs";
 import { join } from "node:path";
 import { sanitise } from "acp-model";
 import { shortenHome } from "../layout/segments.ts";
-import { APP_DIR_NAME, pathsFor, stateDirectory, stateHome, type Platform } from "../platform/paths.ts";
+import { renameOver, type RenameOptions } from "../platform/replace-file.ts";
+import { APP_DIR_NAME, pathsFor, stateDirectory, stateHome, userHome, type Platform } from "../platform/paths.ts";
 
 /** The agent name recorded for a command given after `--` (also exported by agent/resolve.ts). */
 export const AD_HOC_AGENT = "ad hoc";
@@ -102,6 +103,9 @@ export interface SessionIndexOptions {
   readonly compactAt?: number;
   /** Sessions kept by compaction; default 1000. */
   readonly keep?: number;
+  /** How compaction replaces the file (the rename, the wait between retries, the platform); default
+   *  the real rename, retried briefly on Windows while another process holds the file. */
+  readonly rename?: RenameOptions;
 }
 
 export const INDEX_FILE_NAME = "sessions.jsonl";
@@ -245,7 +249,7 @@ export function openSessionIndex(options: SessionIndexOptions = {}): SessionInde
     if (warning !== null) return;
     // Short enough for the prompt box's top border at about 60 columns with the default state
     // directory; a longer one is cut at its end.
-    warning = `sessions not recorded (${errorCode(error)}): ${shortenHome(dir, (options.env ?? process.env)["HOME"] ?? null)}`;
+    warning = `sessions not recorded (${errorCode(error)}): ${shortenHome(dir, userHome(options.env ?? process.env))}`;
     options.onWarning?.(warning);
   }
 
@@ -301,7 +305,7 @@ export function openSessionIndex(options: SessionIndexOptions = {}): SessionInde
       closeSync(fd);
     }
     try {
-      renameSync(tmp, path);
+      renameOver(tmp, path, options.rename);
     } catch (error) {
       try {
         unlinkSync(tmp);

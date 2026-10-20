@@ -2,6 +2,7 @@
 // acp-model's reducer and checks the item count, the needle, the item kinds,
 // the failure and plan cadence and the execute output bounds. The old
 // row-estimate test (task 4.3, sized for the inline replay budget) is retired.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { createSession, reduce, type Item, type Session, type ToolCallItem } from "acp-model";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
@@ -37,7 +38,7 @@ async function runLongSession(items?: number): Promise<Run> {
   });
   try {
     await handle.conn.initialize({ protocolVersion: 1 });
-    const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     const result = await handle.conn.prompt({
       sessionId: session.sessionId,
       prompt: [{ type: "text", text: "replay everything" }],
@@ -196,7 +197,7 @@ describe("fake-agent long-session content", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(result.stopReason).toBe("end_turn");
     } finally {
@@ -228,7 +229,7 @@ describe("fake-agent long-session later prompts", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const first = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "one" }] });
       turn = 1;
       const second = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "two" }] });

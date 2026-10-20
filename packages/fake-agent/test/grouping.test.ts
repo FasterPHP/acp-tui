@@ -1,6 +1,7 @@
 // mvp-conversation task 1.1: the `grouping` scenario's update sequence. One turn: read #1, a quiet
 // `other` call, a thought, read #2, an `other` call that asks for permission, read #3, and reads
 // #3 to #5 completing in the order #5, #3, #4.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { RequestPermissionRequest, SessionUpdate } from "@agentclientprotocol/sdk";
 import {
@@ -41,7 +42,7 @@ async function run(answer: "allow" | "reject" = "allow") {
   });
   try {
     await handle.conn.initialize({ protocolVersion: 1 });
-    const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     const response = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
     return { events, updates, requests, response };
   } finally {

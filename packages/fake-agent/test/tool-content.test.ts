@@ -1,6 +1,7 @@
 // mvp-rendering task 1.3: tool-content sends four calls whose text content is Markdown, the way
 // claude-agent-acp sends it: a 140-character command with fenced output, a fenced 60-line file,
 // 5000 lines of fenced output and a refused call.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate, ToolCallContent } from "@agentclientprotocol/sdk";
 import {
@@ -48,7 +49,7 @@ describe("fake-agent tool-content scenario (mvp-rendering task 1.3)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(result.stopReason).toBe("end_turn");
 

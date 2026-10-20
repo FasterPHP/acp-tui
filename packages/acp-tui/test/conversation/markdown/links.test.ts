@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { DEFAULT_GLYPHS } from "../../../src/conversation/glyphs.ts";
 import { rowsToChunks } from "../../../src/conversation/markdown/draw.ts";
 import { MessageLayout } from "../../../src/conversation/markdown/layout.ts";
@@ -139,7 +140,7 @@ describe("Link target safety", () => {
     const source = "[readme](docs/README.md), [out](../../outside/secret.txt) and [abs](/etc/hosts)";
     expect(text(source, 100)).toEqual(["readme (docs/README.md), out (../../outside/secret.txt) and abs (/etc/hosts)"]);
     expect(linked(source).map((s) => s.text)).toEqual(["readme", "(docs/README.md)"]);
-    expect(linked(source)[0]!.link).toMatchObject({ kind: "file", open: join(dir, "docs/README.md"), url: `file://${join(dir, "docs/README.md")}`, shown: "docs/README.md" });
+    expect(linked(source)[0]!.link).toMatchObject({ kind: "file", open: join(dir, "docs/README.md"), url: pathToFileURL(join(dir, "docs/README.md")).href, shown: "docs/README.md" });
     const m33 = galleryByTag(100).get("M33")!.flatMap((r) => r?.spans ?? []);
     expect(m33.filter((s) => s.link).map((s) => s.text).join(" ")).toBe("inside the working directory (src/index.ts)");
   });
@@ -152,20 +153,22 @@ describe("Link target safety", () => {
   });
 
   test("classifyTarget: the allow-list and every refusal", () => {
+    // The POSIX rules, whatever the host (the Windows rules are in links-windows.test.ts).
     const cwd = "/work/project";
-    expect(classifyTarget("https://example.com/a?b#c", cwd)).toEqual({ allowed: true, kind: "web", open: "https://example.com/a?b#c", url: "https://example.com/a?b#c", shown: "example.com" });
-    expect(classifyTarget("HTTP://Example.COM:8080/x", cwd)).toMatchObject({ allowed: true, shown: "example.com:8080" });
-    expect(classifyTarget("mailto:a@b.example", cwd)).toMatchObject({ allowed: true, kind: "mail", shown: "a@b.example" });
-    expect(classifyTarget("src/../README.md", cwd)).toMatchObject({ allowed: true, open: "/work/project/README.md" });
-    expect(classifyTarget("my%20notes.md#top", cwd)).toMatchObject({ allowed: true, open: "/work/project/my notes.md", url: "file:///work/project/my%20notes.md" });
-    expect(classifyTarget(".", cwd)).toMatchObject({ allowed: true, open: "/work/project" });
+    const classify = (href: string, base: string) => classifyTarget(href, base, "linux");
+    expect(classify("https://example.com/a?b#c", cwd)).toEqual({ allowed: true, kind: "web", open: "https://example.com/a?b#c", url: "https://example.com/a?b#c", shown: "example.com" });
+    expect(classify("HTTP://Example.COM:8080/x", cwd)).toMatchObject({ allowed: true, shown: "example.com:8080" });
+    expect(classify("mailto:a@b.example", cwd)).toMatchObject({ allowed: true, kind: "mail", shown: "a@b.example" });
+    expect(classify("src/../README.md", cwd)).toMatchObject({ allowed: true, open: "/work/project/README.md" });
+    expect(classify("my%20notes.md#top", cwd)).toMatchObject({ allowed: true, open: "/work/project/my notes.md", url: "file:///work/project/my%20notes.md" });
+    expect(classify(".", cwd)).toMatchObject({ allowed: true, open: "/work/project" });
     const refusals: [string, RefusedTarget["reason"]][] = [
       ["javascript:alert(1)", "scheme"],
       ["JavaScript:alert(2)", "scheme"],
       ["data:text/html;base64,PHA+", "scheme"],
       ["file:///etc/passwd", "scheme"],
       ["vbscript:x", "scheme"],
-      ["C:\\Windows", process.platform === "win32" ? "outside" : "scheme"],
+      ["C:\\Windows", "scheme"],
       ["../secret.txt", "outside"],
       ["src/../../secret.txt", "outside"],
       ["%2e%2e/secret.txt", "outside"],
@@ -183,8 +186,8 @@ describe("Link target safety", () => {
       ["", "empty"],
       [`https://example.com/${"a".repeat(MAX_LINK_TARGET)}`, "length"],
     ];
-    for (const [href, reason] of refusals) expect([href, classifyTarget(href, cwd)]).toEqual([href, { allowed: false, reason }]);
-    expect(classifyTarget(`https://example.com/${"a".repeat(MAX_LINK_TARGET - 20)}`, cwd).allowed).toBe(true);
+    for (const [href, reason] of refusals) expect([href, classify(href, cwd)]).toEqual([href, { allowed: false, reason }]);
+    expect(classify(`https://example.com/${"a".repeat(MAX_LINK_TARGET - 20)}`, cwd).allowed).toBe(true);
   });
 
   test("a target over 2048 characters is refused and shown cut in the middle", () => {

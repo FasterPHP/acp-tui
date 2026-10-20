@@ -2,6 +2,7 @@
 // `config-options` (commands, a second commands update, an agent-initiated config option change)
 // and in its legacy-mode variant `config-options-legacy` (`current_mode_update`). Each update is
 // checked at the client and in fake-agent's log (`session/update/sent`).
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { CONFIG_OPTIONS_COMMANDS, CONFIG_OPTIONS_COMMANDS_AFTER_FIRST_TURN } from "../src/scenarios/config-options.ts";
@@ -38,7 +39,7 @@ describe("fake-agent config-options commands and agent-initiated changes (task 2
     const handle = spawnFakeAgent({ scenario: "config-options", logPath, client: seen.client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const prompt = () => handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
 
       // 1. After session/new: a command with an input hint and one without.
@@ -94,7 +95,7 @@ describe("fake-agent config-options commands and agent-initiated changes (task 2
     const handle = spawnFakeAgent({ scenario: "config-options", client: seen.client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.setSessionConfigOption({ sessionId: session.sessionId, configId: "thought_level", value: "low" });
       for (let turn = 0; turn < 2; turn += 1) {
         await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
@@ -113,7 +114,7 @@ describe("fake-agent config-options commands and agent-initiated changes (task 2
     const handle = spawnFakeAgent({ scenario: "basic", logPath, client: { ...seen.client, async requestPermission() { return { outcome: { outcome: "cancelled" } }; } } });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
     } finally {
       handle.stop();
@@ -130,7 +131,7 @@ describe("fake-agent config-options-legacy scenario (task 2.2)", () => {
     const handle = spawnFakeAgent({ scenario: "config-options-legacy", logPath, client: seen.client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       expect(session.configOptions ?? []).toEqual([]);
       expect(session.modes?.currentModeId).toBe("default");
       expect(session.modes?.availableModes.map((mode) => mode.id)).toEqual(["default", "plan", "accept-edits"]);
@@ -166,7 +167,7 @@ describe("fake-agent config-options-legacy scenario (task 2.2)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "accept-edits" });
       expect(await rejectionOf(handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "nope" }))).toBeDefined();
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
@@ -184,7 +185,7 @@ describe("fake-agent config-options-legacy scenario (task 2.2)", () => {
     const handle = spawnFakeAgent({ scenario: "config-options", client: collector().client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       expect(await rejectionOf(handle.conn.setSessionMode({ sessionId: session.sessionId, modeId: "plan" }))).toBeDefined();
     } finally {
       handle.stop();

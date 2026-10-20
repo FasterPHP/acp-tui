@@ -19,6 +19,7 @@ import { startPty, type PtySession } from "../pty/harness.ts";
 import { READY, withoutBar } from "../pty/regions.ts";
 import { CLI, FAKE_AGENT, PREFILL, readEvents, sendPrompt, startCli, type CliRun } from "../conversation/cli.ts";
 import { localEnv } from "../selection/pty.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -157,7 +158,8 @@ describe("OSC 8 (task 6.4)", () => {
     expectHyperlinksLogged(false);
   }, 30000);
 
-  test("the agent's environment holds none of the renderer's overrides (opentui-0-6 task 3.3)", async () => {
+  // Skipped on Windows: the agent is an "sh -c" wrapper that records its environment.
+  test.skipIf(WINDOWS)("the agent's environment holds none of the renderer's overrides (opentui-0-6 task 3.3)", async () => {
     // The agent is a shell that records its environment and then runs fake-agent; acp-tui runs
     // as Zed, where every override applies (FORCE_HYPERLINK=1, COLORTERM, the two probe switches).
     const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-agent-env-"));

@@ -17,6 +17,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
 import { CARD_HEADER, promptText, READY, REQUIRES_ACTION, RUNNING, statusRow } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 import { startCli, type CliRun } from "./cli-pty.ts";
 
 let session: PtySession | undefined;
@@ -367,10 +368,10 @@ describe("detach during a running turn records no failure", () => {
   // survivable").
   // The alternate screen is gone after exit, so everything drawn from the detach on is read
   // from the raw output.
+  // The signal rows are left out on Windows: a signal sent with process.kill ends a Windows process outright instead of running its handler.
   test.each([
     ["confirmed Ctrl+D", 0],
-    ["SIGTERM", 143],
-    ["SIGHUP", 129],
+    ...(WINDOWS ? [] : ([["SIGTERM", 143], ["SIGHUP", 129]] as const)),
   ] as const)("%s", async (how, code) => {
     const run = startCli("basic", 200);
     session = run.s;

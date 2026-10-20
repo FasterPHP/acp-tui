@@ -4,6 +4,7 @@
 // The timing tests of this file are in activation.timing.test.ts (parallel-tests: they run in the serial pass).
 import { describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
+import { join } from "node:path";
 import { activationToken, decodeMessages, encodeMessage, openerEnv, readString, readUint, requestToken, waylandSocket } from "../../src/links/activation.ts";
 import { fakeCompositor } from "./fake-compositor.ts";
 import { socketDir } from "./activation-helpers.ts";
@@ -22,7 +23,7 @@ describe("the activation token (C7)", () => {
   });
 
   test("the compositor's socket: WAYLAND_DISPLAY under XDG_RUNTIME_DIR, or absolute; none without it", () => {
-    expect(waylandSocket({ WAYLAND_DISPLAY: "wayland-1", XDG_RUNTIME_DIR: "/run/user/1000" })).toBe("/run/user/1000/wayland-1");
+    expect(waylandSocket({ WAYLAND_DISPLAY: "wayland-1", XDG_RUNTIME_DIR: "/run/user/1000" })).toBe(join("/run/user/1000", "wayland-1"));
     expect(waylandSocket({ WAYLAND_DISPLAY: "/tmp/w" })).toBe("/tmp/w");
     expect(waylandSocket({ WAYLAND_DISPLAY: "wayland-1" })).toBeNull();
     expect(waylandSocket({})).toBeNull();

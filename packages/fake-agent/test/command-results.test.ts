@@ -1,6 +1,7 @@
 // day-one-feedback task 2.1: command-results sends the shapes in which agents report a shell
 // command's result: Auggie 0.36.0's failure (a bare fence around its envelope, and rawOutput),
 // its success (rawOutput only), claude-agent-acp's failure and success, and two near misses.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate, ToolCallContent } from "@agentclientprotocol/sdk";
 import {
@@ -52,7 +53,7 @@ describe("fake-agent command-results scenario (day-one-feedback task 2.1)", () =
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(result.stopReason).toBe("end_turn");
 

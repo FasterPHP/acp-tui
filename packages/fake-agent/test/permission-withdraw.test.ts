@@ -2,6 +2,7 @@
 // scripted client. The client is built with the SDK's `client()` API, whose request handlers see
 // the request's abort signal (the legacy `Client` interface does not pass it on), which is how a
 // client learns that the agent sent `$/cancel_request`.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { RequestError, client, type RequestPermissionRequest, type SessionUpdate } from "@agentclientprotocol/sdk";
 import { REQUEST_CANCELLED_CODE } from "../src/scenarios/permission-withdraw.ts";
@@ -46,7 +47,7 @@ async function run(
   try {
     const stopReason = await app.connectWith(handle.stream, async (cx) => {
       await cx.request("initialize", { protocolVersion: 1 });
-      const session = await cx.request("session/new", { cwd: "/tmp", mcpServers: [] });
+      const session = await cx.request("session/new", { cwd: tmpdir(), mcpServers: [] });
       const response = await cx.request("session/prompt", { sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       return response.stopReason;
     });

@@ -15,6 +15,7 @@ import { batch, createEffect, onCleanup as onCleanupRoot, createMemo, createRoot
 import { createStore, produce, type SetStoreFunction } from "solid-js/store";
 import { createSession, type Item, type Session } from "acp-model";
 import { deriveSessionView, FOLLOWING, type ArmedState, type Focus, type ScrollPosition, type SessionView } from "../layout/view.ts";
+import { userHome } from "../platform/paths.ts";
 import type { MousePolicy } from "../renderer/options.ts";
 import type { TokenName } from "../theme/index.ts";
 import { createConversationViewModel, type ConversationViewModel } from "../conversation/view-model.ts";
@@ -154,7 +155,7 @@ export interface SessionStore {
 }
 
 export interface SessionStoreOptions {
-  /** Home directory for the `cwd` module; default `process.env.HOME`. */
+  /** Home directory for the `cwd` module; default the user's home. */
   home?: string | null;
   /** The mouse policy chosen on the command line; default `full`. */
   mouse?: MousePolicy;
@@ -254,7 +255,7 @@ function applyUpdate(set: SetStoreFunction<SessionStateStore>, previous: Session
 }
 
 export function createSessionStore(options: SessionStoreOptions = {}): SessionStore {
-  const home = options.home === undefined ? (process.env["HOME"] ?? null) : options.home;
+  const home = options.home === undefined ? userHome() : options.home;
   const clock = options.now ?? Date.now;
   let current = createSession();
   const initial = metadataOf(current);

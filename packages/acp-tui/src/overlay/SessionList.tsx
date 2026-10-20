@@ -45,6 +45,7 @@ import type { SessionSwitcher } from "../session/switch.ts";
 import type { TokenName } from "../theme/index.ts";
 import { spanStyle as toSpan } from "../theme/index.ts";
 import { filterItems, moveSelection, overlayLayout, type OverlaySegment } from "./list.ts";
+import { userHome } from "../platform/paths.ts";
 import { listPointer } from "./pointer.ts";
 import {
   DETAIL_MIN_WIDTHS,
@@ -74,7 +75,7 @@ export type SessionListHost = Pick<
   startNew(): void;
   /** Clock for the activity times; default `Date.now`. */
   now?(): number;
-  /** Home directory for `~`; default `process.env.HOME`. */
+  /** Home directory for `~`; default the user's home. */
   readonly home?: string | null;
 };
 
@@ -121,7 +122,7 @@ function SessionListOverlay(props: {
   const dims = useTerminalDimensions();
   const host = props.host;
   const now = () => host.now?.() ?? Date.now();
-  const home = host.home === undefined ? (process.env["HOME"] ?? null) : host.home;
+  const home = host.home === undefined ? userHome() : host.home;
 
   const [scope, setScope] = createSignal<SessionScope>("directory");
   const [filter, setFilter] = createSignal("");

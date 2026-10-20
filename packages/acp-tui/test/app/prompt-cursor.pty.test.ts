@@ -11,6 +11,7 @@ import { type PtySession } from "../pty/harness.ts";
 import { configHome } from "../pty/config-home.ts";
 import { promptText, READY } from "../pty/regions.ts";
 import { LEFT, FOCUS_IN, FOCUS_OUT, F12, start, shapes, lastShape, shapeIs, typed, disposeSession } from "./prompt-cursor-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
@@ -121,7 +122,8 @@ describe("Cursor shape restored (task 7.2)", () => {
     }, 30000);
   }
 
-  test("SIGTERM", async () => {
+  // Skipped on Windows: it sends SIGTERM, which ends a Windows process outright instead of running its handler.
+  test.skipIf(WINDOWS)("SIGTERM", async () => {
     const s = start({ config: configHome({ density: "compact", prompt: { cursor: "bar" } }) });
     await s.waitFor(READY, 10000);
     await s.waitFor(shapeIs("5"), 5000);

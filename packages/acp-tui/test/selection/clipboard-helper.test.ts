@@ -10,10 +10,12 @@ import { join } from "node:path";
 import { copyToast, createCopier, findCopyHelper, runCopyHelper, type ClipboardMode } from "../../src/selection/clipboard.ts";
 import { exists, makeStubs } from "./clipboard-stub.ts";
 import { fakeRenderer, fakeHost, setup, WAYLAND, X11, disposeStubs } from "./clipboard-helper-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeStubs);
 
-describe("finding the clipboard program", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("finding the clipboard program", () => {
   test("only on the environment's PATH, and only for the display in use", () => {
     const { stubs: s } = setup(["wl-copy", "xclip"], {});
     expect(findCopyHelper("wayland", { PATH: s.bin })).toEqual({ name: "wl-copy", argv: [join(s.bin, "wl-copy"), "--type", "text/plain"] });
@@ -30,7 +32,8 @@ describe("finding the clipboard program", () => {
   });
 });
 
-describe("copy through the clipboard program", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("copy through the clipboard program", () => {
   test("X11: xclip -selection clipboard", async () => {
     const { stubs: s, env } = setup(["xclip"], X11);
     const copier = createCopier({ renderer: fakeRenderer(), host: fakeHost(), env });
@@ -48,7 +51,8 @@ describe("copy through the clipboard program", () => {
   });
 });
 
-describe("falling back to the native backend", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("falling back to the native backend", () => {
   test("no program installed: the native backend, and the toast says the text lasts until acp-tui exits", async () => {
     const { env } = setup([], WAYLAND);
     const host = fakeHost();
@@ -94,7 +98,8 @@ describe("falling back to the native backend", () => {
   });
 });
 
-describe("where no program runs", () => {
+// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+describe.skipIf(WINDOWS)("where no program runs", () => {
   test("a remote session: OSC 52 only", async () => {
     const { stubs: s, env } = setup(["wl-copy"], WAYLAND);
     const renderer = fakeRenderer(true);

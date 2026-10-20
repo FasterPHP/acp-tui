@@ -35,6 +35,7 @@ import {
   shellQuote,
 } from "../../scripts/install-cli.ts";
 import { commentedDefault } from "../../src/config/default-file.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const SCRIPT = join(ROOT, "packages/acp-tui/scripts/install-cli.ts");
@@ -96,7 +97,8 @@ function install(
 /** The configuration file acp-tui reads under a HOME with no XDG_CONFIG_HOME. */
 const configIn = (home: string): string => join(home, ".config/acp-tui/config.jsonc");
 
-describe("install-cli", () => {
+// Skipped on Windows: these tests install and run the POSIX sh stub with real mode bits; the Windows .cmd stub is tested below with the platform injected.
+describe.skipIf(WINDOWS)("install-cli", () => {
   test("Installed and used: through `bun run install-cli`, then from another directory with the user's own `--`", async () => {
     const home = scratch();
     const bin = join(home, "bin");

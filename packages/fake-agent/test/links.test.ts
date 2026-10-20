@@ -1,5 +1,6 @@
 // mvp-rendering tasks 6.3 and 6.4: links sends two agent messages, one with a single link and one
 // with several allowed links, a refused `javascript:` link and a URL that wraps at 100 columns.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { LINKS_LONG_URL, LINKS_MANY_ID, LINKS_MANY_TEXT, LINKS_ONE_ID, LINKS_ONE_TEXT } from "../src/scenarios/links.ts";
@@ -28,7 +29,7 @@ describe("fake-agent links scenario (mvp-rendering tasks 6.3 and 6.4)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(result.stopReason).toBe("end_turn");
       const sent = updates.map((update) => {
