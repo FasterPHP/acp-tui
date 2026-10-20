@@ -15,6 +15,7 @@
 // stay, wrapped between whole hints, never cut mid-word.
 import { interruptHintKey } from "../keys/hints.ts";
 import { actionLabel, type KeyMap } from "../keys/keymap.ts";
+import { newlineLabel } from "../keys/newline-hint.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
 import type { ChromeGlyphs } from "../layout/glyphs.ts";
 import { AD_HOC_AGENT } from "../session/session-index.ts";
@@ -99,12 +100,13 @@ export interface SplashHint {
  * The splash's hints, from the key map in use: send, newline, the agent's commands (`/`), file
  * mention (`@`, typed into the prompt box, not a key map action), the command palette (`?`, task
  * 12.1), interrupt (the double Esc, or one under `interrupt: single`) and detach. A hint whose
- * action has no key is left out.
+ * action has no key is left out. The newline key is `shift+enter` unless the terminal is Windows
+ * Terminal without the kitty keyboard protocol, where it is `ctrl+enter` (`keys/newline-hint.ts`).
  */
 export function splashHints(map: KeyMap, interrupt?: InterruptSetting): SplashHint[] {
   const hints: { key: string | null; label: string }[] = [
     { key: actionLabel(map, "prompt", "submit"), label: "send" },
-    { key: actionLabel(map, "prompt", "newline"), label: "newline" },
+    { key: newlineLabel(map), label: "newline" },
     { key: actionLabel(map, "prompt", "agentCommands"), label: "commands" },
     { key: "@", label: "files" },
     { key: actionLabel(map, "prompt", "palette"), label: "help" },

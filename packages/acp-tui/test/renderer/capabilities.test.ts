@@ -1,6 +1,7 @@
 // mvp-rendering task 2.1 (design decision 5) and mvp-configuration task 4.2 (design D12): the one
 // per-terminal table (capabilities and the wheel step), its detection by TERMINAL_EMULATOR, then
-// TERM_PROGRAM, then TERM, the `terminals` setting over it, and ACP_TUI_CAPABILITIES on top.
+// TERM_PROGRAM, then TERM, then WT_SESSION, the `terminals` setting over it, and
+// ACP_TUI_CAPABILITIES on top.
 import { describe, expect, test } from "bun:test";
 import {
   capabilityOverrides,
@@ -22,6 +23,9 @@ const NONE: TerminalCapabilities = { sgr9: false, combiningStrike: false, osc8: 
 const JETBRAINS: TerminalCapabilities = { ...NONE, detectsUrls: true, emoji: ["zwj", "flag", "keycap", "tone", "bare"] };
 const SGR9: TerminalCapabilities = { ...NONE, sgr9: true };
 const ZED: TerminalCapabilities = { ...NONE, sgr9: true, osc8: true, emoji: ["zwj", "keycap", "tone", "vs16", "bare"] };
+// Windows Terminal (windows-support design D9): SGR 9 measured; osc8, detectsUrls and emoji are
+// provisional until task 9.2 measures them in the VM.
+const WINDOWS_TERMINAL: TerminalCapabilities = { ...NONE, sgr9: true, osc8: true, detectsUrls: true, emoji: ["zwj", "flag", "keycap", "tone", "vs16", "bare"] };
 
 /** An environment naming each terminal ID, and what the table gives it. */
 const TERMINALS: Record<TerminalId, { env: Record<string, string>; capabilities: TerminalCapabilities; wheelLines: number }> = {
@@ -31,6 +35,7 @@ const TERMINALS: Record<TerminalId, { env: Record<string, string>; capabilities:
   kitty: { env: { TERM: "xterm-kitty" }, capabilities: SGR9, wheelLines: 3 },
   wezterm: { env: { TERM_PROGRAM: "WezTerm" }, capabilities: SGR9, wheelLines: 3 },
   iterm2: { env: { TERM_PROGRAM: "iTerm.app" }, capabilities: SGR9, wheelLines: 3 },
+  "windows-terminal": { env: { WT_SESSION: "5f2c3a1e-8d9b-4c6a-9e0f-7b1d2a3c4e5f", WT_PROFILE_ID: "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}" }, capabilities: WINDOWS_TERMINAL, wheelLines: 3 },
   default: { env: { TERM_PROGRAM: "vscode", TERM: "xterm-256color" }, capabilities: NONE, wheelLines: 3 },
 };
 
@@ -58,13 +63,27 @@ describe("the per-terminal table", () => {
     expect(detectTerminal({ TERM_PROGRAM: "wezterm" })).toBe("wezterm");
   });
 
-  test("no built-in row has a combining strike, only Zed has verified OSC 8, and only JetBrains detects URLs", () => {
+  test("no built-in row has a combining strike, only Zed has verified OSC 8, and only JetBrains detects URLs (Windows Terminal's OSC 8 and URL detection are provisional)", () => {
     for (const id of TERMINAL_IDS) {
       const row = TERMINAL_TABLE[id].capabilities;
       expect(row.combiningStrike, id).toBe(false);
-      expect(row.osc8, id).toBe(id === "zed");
-      expect(row.detectsUrls, id).toBe(id === "jetbrains");
+      expect(row.osc8, id).toBe(id === "zed" || id === "windows-terminal");
+      expect(row.detectsUrls, id).toBe(id === "jetbrains" || id === "windows-terminal");
     }
+  });
+
+  test("Windows Terminal is detected by WT_SESSION (any non-empty value), only after TERMINAL_EMULATOR, TERM_PROGRAM and TERM have had their chance", () => {
+    // Scenario "Detected": WT_SESSION and neither TERMINAL_EMULATOR nor TERM_PROGRAM.
+    expect(detectTerminal({ WT_SESSION: "5f2c3a1e-8d9b-4c6a-9e0f-7b1d2a3c4e5f" })).toBe("windows-terminal");
+    expect(effectiveTerminal({ WT_SESSION: "x" }).wheelLines).toBe(3);
+    expect(detectTerminal({ WT_SESSION: "" })).toBe("default");
+    // Scenario "IntelliJ started from Windows Terminal": the IDE inherits WT_SESSION.
+    expect(detectTerminal({ TERMINAL_EMULATOR: "JetBrains-JediTerm", WT_SESSION: "x" })).toBe("jetbrains");
+    expect(terminalCapabilities({ TERMINAL_EMULATOR: "JetBrains-JediTerm", WT_SESSION: "x" })).toEqual(JETBRAINS);
+    expect(detectTerminal({ TERM_PROGRAM: "zed", WT_SESSION: "x" })).toBe("zed");
+    expect(detectTerminal({ TERM: "xterm-kitty", WT_SESSION: "x" })).toBe("kitty");
+    // A TERM nobody names (WSL under Windows Terminal) does not hide it.
+    expect(detectTerminal({ TERM: "xterm-256color", WT_SESSION: "x" })).toBe("windows-terminal");
   });
 
   test("JediTerm wins when TERMINAL_EMULATOR and TERM_PROGRAM disagree (a Zed shell started from PhpStorm)", () => {
@@ -104,6 +123,13 @@ describe("the terminals setting over the table (mvp-configuration task 4.2)", ()
       const other: TerminalId = id === "zed" ? "kitty" : "zed";
       expect(effectiveTerminal(env, { [other]: { wheel_lines: 9, hyperlinks: true, strikethrough: "overlay" } })).toEqual({ id, capabilities, wheelLines, wheelSource: "table" });
     }
+  });
+
+  test("Setting for Windows Terminal: the terminals entry replaces the wheel step", () => {
+    const env = TERMINALS["windows-terminal"].env;
+    expect(effectiveTerminal(env, { "windows-terminal": { wheel_lines: 5 } })).toEqual({ id: "windows-terminal", capabilities: WINDOWS_TERMINAL, wheelLines: 5, wheelSource: "terminals" });
+    // An entry for another terminal changes nothing there.
+    expect(effectiveTerminal(env, { jetbrains: { wheel_lines: 5 } }).wheelLines).toBe(3);
   });
 
   test("strikethrough: sgr9 sets SGR 9, overlay U+0336, colour neither", () => {

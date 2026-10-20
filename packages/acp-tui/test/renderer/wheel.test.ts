@@ -16,7 +16,7 @@ describe("detection", () => {
 
   test("the table gives about 3 rows per notch in the measured IDEs (task 10.4)", () => {
     // PhpStorm reworked: 1 report per notch; Zed 1.18.1: 3 reports per notch (2 at times).
-    expect(WHEEL_TABLE).toEqual({ jetbrains: 3, zed: 1, ghostty: 3, kitty: 3, wezterm: 3, iterm2: 3, default: 3 });
+    expect(WHEEL_TABLE).toEqual({ jetbrains: 3, zed: 1, ghostty: 3, kitty: 3, wezterm: 3, iterm2: 3, "windows-terminal": 3, default: 3 });
     expect(WHEEL_TABLE.jetbrains * 1).toBe(3);
     expect(WHEEL_TABLE.zed * 3).toBe(3);
   });

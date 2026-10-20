@@ -71,6 +71,48 @@ describe("splash screen (task 4.7)", () => {
     expect(all).not.toContain("…");
   }, 20000);
 
+  // windows-support task 9.3 (design D7; spec tui-keymap "Newline key in Windows Terminal"): the
+  // hint is `ctrl+enter` in Windows Terminal until the kitty keyboard answer arrives (the test harness's
+  // terminal gives none; the test writes it as input, as Windows Terminal 1.25 would), `shift+enter` elsewhere.
+  const WINDOWS_TERMINAL = { TERMINAL_EMULATOR: undefined, TERM_PROGRAM: undefined, WT_SESSION: "5f2c3a1e-8d9b-4c6a-9e0f-7b1d2a3c4e5f" };
+  const newlineHint = (s: PtySession) => s.screenText().slice(1, 13).join("\n").match(/(\S+) newline/)?.[1];
+
+  test("Windows Terminal without the kitty answer (1.24): the key row reads ctrl+enter newline and does not name shift+enter; Ctrl+Enter (a line feed) inserts a newline", async () => {
+    const run = startCli("config-options", 0, { cols: 63, rows: 21, env: WINDOWS_TERMINAL });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    await run.s.waitFor((p) => p.screenText().join("\n").includes("ctrl+d detach"), 5000);
+    expect(newlineHint(run.s)).toBe("ctrl+enter");
+    expect(conversation(run.s).join("\n")).not.toContain("shift+enter");
+    run.s.write("aaa\nbbb");
+    await run.s.waitFor((p) => promptText(p).join("|") === "aaa|bbb", 5000);
+    await Bun.sleep(300);
+    expect(run.methods()).not.toContain("session/prompt");
+  }, 20000);
+
+  test("Windows Terminal answering the kitty query (1.25): the key row reads shift+enter newline, and Shift+Enter and Ctrl+Enter both insert a newline", async () => {
+    const run = startCli("config-options", 0, { cols: 63, rows: 21, env: WINDOWS_TERMINAL });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    await run.s.waitFor((p) => newlineHint(p) === "ctrl+enter", 5000);
+    run.s.write("\x1b[?5u");
+    await run.s.waitFor((p) => newlineHint(p) === "shift+enter", 5000);
+    run.s.write("aaa\x1b[13;2ubbb\x1b[13;5uccc");
+    await run.s.waitFor((p) => promptText(p).join("|") === "aaa|bbb|ccc", 5000);
+    await Bun.sleep(300);
+    expect(run.methods()).not.toContain("session/prompt");
+  }, 20000);
+
+  test("IntelliJ started from Windows Terminal (both TERMINAL_EMULATOR and WT_SESSION set): the key row reads shift+enter newline", async () => {
+    const run = startCli("config-options", 0, { cols: 63, rows: 21, env: { ...WINDOWS_TERMINAL, TERMINAL_EMULATOR: "JetBrains-JediTerm" } });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    await run.s.waitFor((p) => p.screenText().join("\n").includes("ctrl+d detach"), 5000);
+    expect(newlineHint(run.s)).toBe("shift+enter");
+    run.s.write("aaa\x1b\rbbb");
+    await run.s.waitFor((p) => promptText(p).join("|") === "aaa|bbb", 5000);
+  }, 20000);
+
   test("first prompt: the splash is gone and the user's message is the first item", async () => {
     // delay-scale 1000: the turn's first step waits 5 s, so the user's message is all there is.
     const run = startCli("basic", 1000, { cols: 63, rows: 21 });

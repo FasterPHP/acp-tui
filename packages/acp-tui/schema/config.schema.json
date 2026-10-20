@@ -84,7 +84,7 @@
     },
     "terminals": {
       "default": {},
-      "description": "Per-terminal values (jetbrains, zed, ghostty, kitty, wezterm, iterm2, default) over the built-in table: wheel_lines, strikethrough and hyperlinks.",
+      "description": "Per-terminal values (jetbrains, zed, ghostty, kitty, wezterm, iterm2, windows-terminal, default) over the built-in table: wheel_lines, strikethrough and hyperlinks.",
       "type": "object",
       "properties": {
         "jetbrains": {
@@ -213,6 +213,31 @@
           "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
         },
         "iterm2": {
+          "type": "object",
+          "properties": {
+            "wheel_lines": {
+              "description": "Rows scrolled per wheel event in this terminal.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "strikethrough": {
+              "description": "How struck-through text is drawn: \"sgr9\" - the terminal's own line through the text; \"overlay\" - a combining stroke character, U+0336, after each character; \"colour\" - no line: struck text is told apart by its colour and italic.",
+              "type": "string",
+              "enum": [
+                "sgr9",
+                "overlay",
+                "colour"
+              ]
+            },
+            "hyperlinks": {
+              "description": "Whether links are written as OSC 8 hyperlinks, which the terminal makes clickable; applies from the next start.",
+              "type": "boolean"
+            }
+          },
+          "description": "Values replacing the built-in ones for this terminal; unset values keep the built-in ones."
+        },
+        "windows-terminal": {
           "type": "object",
           "properties": {
             "wheel_lines": {

@@ -5,7 +5,9 @@
 // 9 October 2026). So, like the wheel step (`wheel.ts`), the
 // answer comes from a table keyed by what the environment names: `TERMINAL_EMULATOR`
 // (`JetBrains-JediTerm` for both PhpStorm terminals), then `TERM_PROGRAM` (Zed, Ghostty,
-// WezTerm, iTerm2), then `TERM` (kitty, Ghostty). The first variable that matches a row decides;
+// WezTerm, iTerm2), then `TERM` (kitty, Ghostty), then `WT_SESSION` (Windows Terminal, any
+// non-empty value; last because an IDE started from Windows Terminal inherits it, as does
+// anything started inside it). The first variable that matches a row decides;
 // anything else, and an unset environment, gets no capability.
 //
 // - `sgr9`: the terminal draws SGR 9. Where it does, struck text carries the attribute as well
@@ -39,6 +41,10 @@
 //   conversation/markdown/wrap.ts), so the terminal never detects a cut-off URL. Zed detects only
 //   on Ctrl+click, which acp-tui leaves to it in every terminal: false.
 //
+// - Windows Terminal (windows-support design D9; the measured facts are in the row's comment below
+//   `TERMINAL_TABLE`): the row's `osc8`, `detectsUrls` and emoji classes are PROVISIONAL until
+//   they are measured in the Windows VM (windows-support task 9.2).
+//
 // One table (mvp-configuration design D12): each terminal's row also holds its wheel step
 // (`wheelLines`, the wheel table of spec tui-screen "Wheel step per terminal", which `wheel.ts`
 // used to keep apart), and `detectTerminal` is the one detection function for both. The
@@ -67,10 +73,13 @@ export interface TerminalCapabilities {
 }
 
 /** The environment variables a terminal is named by, in the order they are tried. */
-export const CAPABILITY_KEYS = ["TERMINAL_EMULATOR", "TERM_PROGRAM", "TERM"] as const;
+export const CAPABILITY_KEYS = ["TERMINAL_EMULATOR", "TERM_PROGRAM", "TERM", "WT_SESSION"] as const;
 export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
 
-/** A variable and value (compared without case) that name a terminal of the table. */
+/** The `value` of a match that any non-empty value of the variable satisfies (`WT_SESSION` holds a GUID). */
+export const ANY_VALUE = "*";
+
+/** A variable and value (compared without case; `ANY_VALUE` for any non-empty one) that name a terminal of the table. */
 export interface TerminalMatch {
   readonly id: Exclude<TerminalId, "default">;
   readonly key: CapabilityKey;
@@ -96,9 +105,27 @@ export const NO_CAPABILITIES: TerminalCapabilities = Object.freeze({ sgr9: false
 const JETBRAINS: TerminalCapabilities = Object.freeze({ ...NO_CAPABILITIES, detectsUrls: true, emoji: JETBRAINS_EMOJI });
 const SGR9_ONLY: TerminalCapabilities = Object.freeze({ ...NO_CAPABILITIES, sgr9: true });
 const ZED: TerminalCapabilities = Object.freeze({ ...NO_CAPABILITIES, sgr9: true, osc8: true, emoji: ZED_EMOJI });
+/**
+ * Windows Terminal. Measured in the Windows 11 VM (Windows Terminal 1.24, 20 October 2026): SGR 9
+ * is drawn (`sgr9`), and the wheel sends one report per notch (3 rows per event, as the table's
+ * default). PROVISIONAL, to be replaced by the results of windows-support task 9.2: `osc8` (on,
+ * because Windows Terminal opens OSC 8 links with Ctrl+click; unverified under mouse reporting),
+ * `detectsUrls` (on, because it underlines and opens URLs itself; unverified under mouse
+ * reporting) and `emoji` (the JetBrains classes plus VS16, the most conservative choice: the VM
+ * showed a skin tone, a family and a check mark drawn at two cells where OpenTUI laid out other
+ * widths, a flag as a stray glyph and a keycap as a plain digit).
+ */
+const WINDOWS_TERMINAL: TerminalCapabilities = Object.freeze({
+  ...NO_CAPABILITIES,
+  sgr9: true,
+  osc8: true,
+  detectsUrls: true,
+  emoji: Object.freeze(["zwj", "flag", "keycap", "tone", "vs16", "bare"] as const),
+});
 
 /** How each terminal is detected: `TERMINAL_EMULATOR` (both PhpStorm engines), then `TERM_PROGRAM`
- *  (Zed, Ghostty, WezTerm, iTerm2), then `TERM` (kitty, Ghostty). */
+ *  (Zed, Ghostty, WezTerm, iTerm2), then `TERM` (kitty, Ghostty), then `WT_SESSION` (Windows
+ *  Terminal). */
 export const TERMINAL_MATCHES: readonly TerminalMatch[] = [
   { id: "jetbrains", key: "TERMINAL_EMULATOR", value: "JetBrains-JediTerm" },
   { id: "zed", key: "TERM_PROGRAM", value: "zed" },
@@ -107,6 +134,7 @@ export const TERMINAL_MATCHES: readonly TerminalMatch[] = [
   { id: "iterm2", key: "TERM_PROGRAM", value: "iTerm.app" },
   { id: "ghostty", key: "TERM", value: "xterm-ghostty" },
   { id: "kitty", key: "TERM", value: "xterm-kitty" },
+  { id: "windows-terminal", key: "WT_SESSION", value: ANY_VALUE },
 ];
 
 /** The wheel step of the terminals not measured. */
@@ -118,10 +146,11 @@ const DEFAULT_WHEEL_LINES = 3;
  * for JetBrains only (review C9, 10 October 2026); no terminal has `combiningStrike` (JediTerm
  * gives each U+0336 a cell of its own, and in Zed the stroke is a fallback glyph offset by half a
  * cell, with SGR 9 drawn there anyway); emoji names as measured in JetBrains and Zed, OpenTUI's
- * own classes elsewhere. Wheel steps (phase-1a task 10.4, measured on 2 October 2026, so that one
+ * own classes elsewhere (Windows Terminal's are provisional, see `WINDOWS_TERMINAL`). Wheel steps (phase-1a task 10.4, measured on 2 October 2026, so that one
  * notch scrolls about 3 rows): PhpStorm reworked sends one report per notch (3 rows per event);
  * Zed 1.18.1 sends three per notch in one read, occasionally two around a change of direction (1
- * row per event); PhpStorm classic and every other terminal are not measured and take 3.
+ * row per event); Windows Terminal 1.24 sends one report per notch (3 rows per event, 20 October 2026);
+ * PhpStorm classic and every other terminal are not measured and take 3.
  */
 export const TERMINAL_TABLE: Readonly<Record<TerminalId, TerminalRow>> = Object.freeze({
   jetbrains: { wheelLines: 3, capabilities: JETBRAINS },
@@ -130,6 +159,7 @@ export const TERMINAL_TABLE: Readonly<Record<TerminalId, TerminalRow>> = Object.
   kitty: { wheelLines: DEFAULT_WHEEL_LINES, capabilities: SGR9_ONLY },
   wezterm: { wheelLines: DEFAULT_WHEEL_LINES, capabilities: SGR9_ONLY },
   iterm2: { wheelLines: DEFAULT_WHEEL_LINES, capabilities: SGR9_ONLY },
+  "windows-terminal": { wheelLines: 3, capabilities: WINDOWS_TERMINAL },
   default: { wheelLines: DEFAULT_WHEEL_LINES, capabilities: NO_CAPABILITIES },
 });
 
@@ -142,7 +172,7 @@ export function detectTerminal(
   for (const key of CAPABILITY_KEYS) {
     const value = env[key]?.toLowerCase();
     if (!value) continue;
-    const match = matches.find((candidate) => candidate.key === key && candidate.value.toLowerCase() === value);
+    const match = matches.find((candidate) => candidate.key === key && (candidate.value === ANY_VALUE || candidate.value.toLowerCase() === value));
     if (match) return match.id;
   }
   return "default";

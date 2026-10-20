@@ -92,6 +92,8 @@ describe("send and newline (task 8.3)", () => {
     ["Shift+Enter, JetBrains ESC CR", "\x1b\r"],
     ["Shift+Enter, xterm modifyOtherKeys CSI 27;2;13~", "\x1b[27;2;13~"],
     ["Ctrl+J, legacy LF", "\n"],
+    ["Ctrl+Enter, legacy LF (Windows Terminal 1.24)", "\n"],
+    ["Ctrl+Enter, kitty CSI 13;5u (Windows Terminal 1.25)", "\x1b[13;5u"],
     ["Ctrl+J, kitty CSI 106;5u", "\x1b[106;5u"],
   ])("%s inserts a newline and sends nothing; Enter then sends", async (_name, bytes) => {
     const run = startCli();

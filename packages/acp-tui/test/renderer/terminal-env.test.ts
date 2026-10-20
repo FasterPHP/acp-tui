@@ -25,6 +25,8 @@ describe("rendererEnv", () => {
     expect(knownTruecolour({ COLORTERM: "24bit" })).toBe(true);
     expect(knownTruecolour({ TERMINAL_EMULATOR: "JetBrains-JediTerm" })).toBe(true);
     expect(knownTruecolour({ TERM_PROGRAM: "zed" })).toBe(true);
+    expect(knownTruecolour({ WT_SESSION: "5f2c3a1e-8d9b-4c6a-9e0f-7b1d2a3c4e5f" })).toBe(true);
+    expect(knownTruecolour({ WT_SESSION: "" })).toBe(false);
     expect(knownTruecolour({ TERM_PROGRAM: "vscode", TERM: "xterm-256color" })).toBe(false);
   });
 });

@@ -136,9 +136,9 @@ describe("Key override validation (task 8.2)", () => {
     expect(resolveKeyOverrides({ prompt: { return: "newline" } }).map.prompt["return"]).toBe("submit");
     expect(resolveKeyOverrides({ global: { "ctrl+d": null } }).problems[0]!.message).toContain("detach with no key");
     expect(resolveKeyOverrides({ card: { return: null } }).problems[0]!.message).toContain("confirm with no key");
-    const newline = resolveKeyOverrides({ prompt: { "shift+return": null, "meta+return": null, linefeed: null, "ctrl+j": null } });
-    expect(newline.problems).toHaveLength(4);
-    expect(keysFor(newline.map, "prompt", "newline")).toHaveLength(4);
+    const newline = resolveKeyOverrides({ prompt: { "shift+return": null, "meta+return": null, "ctrl+return": null, linefeed: null, "ctrl+j": null } });
+    expect(newline.problems).toHaveLength(5);
+    expect(keysFor(newline.map, "prompt", "newline")).toHaveLength(5);
     // Moving submit to another key first is fine.
     expect(resolveKeyOverrides({ prompt: { return: null, "ctrl+s": "submit" } }).problems).toEqual([]);
   });
@@ -172,6 +172,27 @@ describe("Kept keys per terminal (task 8.3)", () => {
     expect(keptKeysTerminal({ TERM: "xterm-kitty" })).toBeNull();
     expect(keptKeysTerminal({ TERMINAL_EMULATOR: "JetBrains-JediTerm", TERM_PROGRAM: "zed" })).toBe("jetbrains");
     expect(keptKeysTerminal({})).toBeNull();
+    // Windows Terminal (windows-support task 9.4): WT_SESSION, tried last, so IntelliJ started from it
+    // (which inherits WT_SESSION) is still jetbrains.
+    expect(keptKeysTerminal({ WT_SESSION: "5f2c3a1e-8d9b-4c6a-9e0f-7b1d2a3c4e5f" })).toBe("windows-terminal");
+    expect(keptKeysTerminal({ TERMINAL_EMULATOR: "JetBrains-JediTerm", WT_SESSION: "x" })).toBe("jetbrains");
+    expect(keptKeysTerminal({ TERM_PROGRAM: "zed", WT_SESSION: "x" })).toBe("zed");
+  });
+
+  test("Override on a kept key: Alt+Enter bound to an action warns that Windows Terminal keeps it and names the action's other routes", () => {
+    const section: KeysSection = { conversation: { "alt+return": "export" } };
+    const { map, problems } = keysFromConfig(section, FILES, { terminal: keptKeysTerminal({ WT_SESSION: "x" }), read: () => `{ "keys": { "conversation": { "alt+return": "export" } } }` });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({ severity: "warning", path: "keys.conversation.alt+return" });
+    expect(problems[0]!.message).toBe("Windows Terminal keeps alt+enter, so it may never reach acp-tui there; the routes to export there are e and the palette");
+    expect(map.conversation["meta+return"]).toBe("export");
+    // The same key is no warning in a terminal that does not keep it, and none of Windows Terminal's
+    // own commands is bound by default.
+    expect(keptKeyWarnings(section, map, "jetbrains")).toEqual([]);
+    expect(keptKeyWarnings({ conversation: { "ctrl+shift+p": "export" } }, resolveKeyOverrides({ conversation: { "ctrl+shift+p": "export" } }).map, "windows-terminal")).toHaveLength(1);
+    // config --check reports it whatever the terminal running the check.
+    const checked = keptKeyCheckWarnings(section, map);
+    expect(checked.map((w) => w.message)).toEqual([expect.stringContaining("Windows Terminal keeps alt+enter")]);
   });
 
   test("Ctrl+P in Zed: a warning says Zed keeps ctrl+p and names f3, ctrl+f and the palette as the routes to find; ? still opens the palette", () => {

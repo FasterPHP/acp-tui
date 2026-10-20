@@ -354,7 +354,7 @@ export type KeyMap = { readonly [C in KeyContext]: Readonly<Record<string, KeyAc
 /**
  * Defaults (design 6.6). Shift+Enter arrives as `shift+return` (kitty `CSI 13;2u` and xterm
  * modifyOtherKeys `CSI 27;2;13~`) or as `meta+return` (JetBrains `ESC CR`); Ctrl+J as `linefeed`
- * (legacy `\n`) or `ctrl+j` (kitty). See docs/phase-0-notes/keys.md.
+ * (legacy `\n`) or `ctrl+j` (kitty); Ctrl+Enter as `linefeed` or `ctrl+return`. See docs/phase-0-notes/keys.md.
  */
 export const DEFAULT_KEY_MAP_INPUT = {
   global: {
@@ -378,6 +378,10 @@ export const DEFAULT_KEY_MAP_INPUT = {
     return: "submit",
     "shift+return": "newline",
     "meta+return": "newline",
+    // Ctrl+Enter: a line feed (`linefeed`, as Ctrl+J) in Windows Terminal 1.24 and older, and
+    // `CSI 13;5u` (`ctrl+return`) from 1.25 and in any terminal with the kitty keyboard protocol
+    // (windows-support design D7). IntelliJ and PhpStorm send a plain `\r` for it, which submits.
+    "ctrl+return": "newline",
     linefeed: "newline",
     "ctrl+j": "newline",
     up: "lineUp",

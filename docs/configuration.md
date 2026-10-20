@@ -222,7 +222,7 @@ A model or provider without an ACP agent of its own, such as DeepSeek, is reache
 | `wheel_lines` | whole number from 1 or `null` | `null` | Rows scrolled per wheel event in every terminal; null uses the per-terminal table. |
 | `terminals` | object keyed by terminal | `{}` | Per-terminal values over the built-in table (below). |
 
-`terminals` is keyed by `jetbrains` (both PhpStorm terminals), `zed`, `ghostty`, `kitty`, `wezterm`, `iterm2` and `default` (any other terminal). The terminal is recognised from `TERMINAL_EMULATOR`, then `TERM_PROGRAM`, then `TERM`. Each entry takes:
+`terminals` is keyed by `jetbrains` (both PhpStorm terminals, and IntelliJ's on Windows), `zed`, `ghostty`, `kitty`, `wezterm`, `iterm2`, `windows-terminal` and `default` (any other terminal). The terminal is recognised from `TERMINAL_EMULATOR`, then `TERM_PROGRAM`, then `TERM`, then `WT_SESSION` (Windows Terminal; last, because an IDE started from it inherits `WT_SESSION`). Each entry takes:
 
 | Setting | Values | What it does |
 | --- | --- | --- |
@@ -646,7 +646,7 @@ A project file cannot set keys in the `card` and `elicitation` contexts.
 
 ### Keys the IDE terminals keep
 
-PhpStorm and Zed keep some keys for themselves, so they never reach acp-tui. The table records what was measured in PhpStorm 2026.2.3 (reworked and classic terminals) and Zed 1.18.1 (`packages/acp-tui/src/keys/ide-keys.json`, which acp-tui also reads at run time). Every key here has an alternative route, in the last column. If you bind a kept key, acp-tui still binds it (you may have freed it in the IDE) but warns, naming the terminal and the action's other routes; `config --check` gives the warnings for all three terminals whatever you run it in. It also warns when your overrides leave an action that a key reached by default reachable in an IDE only through the palette.
+PhpStorm, Zed and Windows Terminal keep some keys for themselves, so they never reach acp-tui. The table records what was measured in PhpStorm 2026.2.3 (reworked and classic terminals), Zed 1.18.1, Windows Terminal 1.24 and 1.25 and IntelliJ IDEA 2026.2.3 on Windows (`packages/acp-tui/src/keys/ide-keys.json`, which acp-tui also reads at run time). IntelliJ's terminal keeps what PhpStorm's does (`ctrl+f`, `ctrl+v`, `ctrl+shift+v`), and `ctrl+shift+c` and `ctrl+shift+z` arrive unshifted there too, so the PhpStorm rows apply to it. Every key here has an alternative route, in the last column. If you bind a kept key, acp-tui still binds it (you may have freed it in the IDE) but warns, naming the terminal and the action's other routes; `config --check` gives the warnings for all three terminals whatever you run it in. It also warns when your overrides leave an action that a key reached by default reachable in an IDE only through the palette.
 
 | Terminal | Key kept | What happens | Alternatives |
 | --- | --- | --- | --- |
@@ -664,13 +664,20 @@ PhpStorm and Zed keep some keys for themselves, so they never reach acp-tui. The
 | Zed | `ctrl+t` | Opens Zed's project symbols | the effort pill; the palette's `Choose the thinking level` |
 | Zed | `f1` | Opens Zed's command palette | the palette's key help |
 | Zed | `ctrl+j` | Toggles Zed's bottom dock | Shift+Enter in the prompt box |
-| Zed | `ctrl+enter` | Zed's inline assist (bound to nothing in acp-tui) | `enter` |
+| Zed | `ctrl+enter` | Zed's inline assist; it never reaches acp-tui there | `ctrl+j` in the prompt box |
 | Zed | `ctrl+shift+v` | Zed's paste | `alt+v`; the palette's paste |
 | Zed | `ctrl+shift+c` | Zed's copy | `shift+y` in the conversation; the palette's rich copy |
 | Zed | `ctrl+shift+z` | Zed's redo: nothing reaches the terminal | `ctrl+y`; the palette's `Redo the edit` |
 | Zed | `shift+f3` | Arrives in a form OpenTUI takes for a cursor report | Shift+Enter in the find bar; the palette's previous hit |
+| Windows Terminal | `alt+enter` | Full screen; nothing reaches acp-tui | `ctrl+enter` in the prompt box; Shift+Enter (1.25) or Ctrl+Enter (1.24) in the find bar; the palette's previous hit |
+| Windows Terminal | `ctrl+v` | Windows Terminal pastes the clipboard itself, as one bracketed paste | Windows Terminal's own paste; `alt+v`; the palette's paste |
+| Windows Terminal | `ctrl+shift+v` | Windows Terminal's paste | `alt+v`; the palette's paste |
+| Windows Terminal | `ctrl+shift+z` | Arrives as Ctrl+Z's byte in 1.24 (1.25 sends it distinctly), so it undoes instead of redoing | `ctrl+y`; the palette's `Redo the edit` |
+| Windows Terminal | `shift+f3` | Arrives in a form OpenTUI takes for a cursor report | Shift+Enter (1.25) or Ctrl+Enter (1.24) in the find bar; the palette's previous hit |
+| Windows Terminal | `ctrl+c` | Windows Terminal's Copy while it holds a selection of its own (Shift+drag); it reaches acp-tui otherwise | the palette's copy |
+| Windows Terminal | `ctrl+shift+p`, `ctrl+shift+t`, `ctrl+shift+w`, `ctrl+tab`, `ctrl+,` | Windows Terminal's command palette, new tab, close pane, next tab and settings (bound to nothing in acp-tui) | none needed |
 
-Shift+Enter is the newline key everywhere tested (PhpStorm sends `ESC CR`, Zed `\n`), with Ctrl+J as a fallback where the terminal passes it.
+Shift+Enter is the newline key everywhere tested (PhpStorm and IntelliJ send `ESC CR`, Zed `\n`, and a terminal that answers the kitty keyboard query sends `CSI 13;2u`, as Windows Terminal 1.25 does), with Ctrl+J as a fallback where the terminal passes it. Ctrl+Enter is a newline key too (Windows Terminal sends a line feed for it in 1.24 and `CSI 13;5u` in 1.25; IntelliJ and PhpStorm send a plain Enter, which sends). Windows Terminal 1.24 and older cannot tell Shift+Enter from Enter, so there the splash and key help name `ctrl+enter` instead.
 
 For example, moving export from `e` to Ctrl+T is accepted, and `config --check` warns that Zed keeps Ctrl+T, so there `export` is reachable only through the palette (run inside Zed, acp-tui itself reports that warning as a configuration problem at start-up and on reload):
 
