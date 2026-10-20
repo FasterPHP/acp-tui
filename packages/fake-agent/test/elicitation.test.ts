@@ -1,6 +1,7 @@
 // Phase-1a task 1.7: @agentclientprotocol/sdk 1.5.0 exposes elicitation on
 // both sides, so the scenario sends a three-question form and then a URL
 // request through the SDK's own AgentSideConnection.createElicitation.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type {
   CompleteElicitationNotification,
@@ -40,7 +41,7 @@ describe("fake-agent elicitation scenario (phase-1a task 1.7)", () => {
         protocolVersion: 1,
         clientCapabilities: { elicitation: { form: {}, url: {} } },
       });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "ask me things" }],
@@ -86,7 +87,7 @@ describe("fake-agent elicitation scenario (phase-1a task 1.7)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "ask me things" }],
@@ -113,7 +114,7 @@ describe("fake-agent elicitation scenario (phase-1a task 1.7)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "ask me things" }],

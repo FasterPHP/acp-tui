@@ -14,6 +14,7 @@ import { boxRows, startChrome, type ChromeRun } from "../overlay/cli.ts";
 import { localEnv, osc52Payloads } from "../selection/pty.ts";
 import { configEnv } from "../pty/config-home.ts";
 import { planUrlOpen } from "../../src/card/url.ts";
+import { WINDOWS } from "../windows.ts";
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -81,7 +82,8 @@ describe("elicitation card (task 5.6)", () => {
     expect(boxRows(run.s, "◊ ")[0]).toStartWith("╭─ ◊ Question  Open a link");
   }, 20000);
 
-  test("Open the URL: the opener gets exactly the URL as its one argument, a notice names the host, the card waits for elicitation/complete", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts and test/card/url.test.ts).
+  test.skipIf(WINDOWS)("Open the URL: the opener gets exactly the URL as its one argument, a notice names the host, the card waits for elicitation/complete", async () => {
     const run = start();
     await toUrl(run);
     expect(card(run.s)).toContain("1 open   2 copy   3 accept   4 decline");

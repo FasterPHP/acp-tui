@@ -17,6 +17,7 @@ import { configEnv } from "../pty/config-home.ts";
 import { alive, makeStubs, type Stubs } from "./clipboard-stub.ts";
 import { deriveSurfaces } from "../../src/theme/index.ts";
 import type { OscColours } from "../pty/harness.ts";
+import { WINDOWS } from "../windows.ts";
 
 const GOLDEN = join(import.meta.dir, "golden");
 const golden = (name: string) => readFileSync(join(GOLDEN, name), "utf8").replace(/\n$/, "");
@@ -460,16 +461,18 @@ describe("clipboard and copy settings from the configuration", () => {
 describe("copied text kept after exit (mvp-chrome-and-keys task 12.6)", () => {
   // `PATH` is only the stubs' directory (./clipboard-stub.ts, with a `bun` link for the agent), so
   // the real `wl-copy` is never found; `WAYLAND_DISPLAY` names a socket that does not exist in
-  // the empty `XDG_RUNTIME_DIR`, so the native backend could reach no compositor either.
+  // the empty `XDG_RUNTIME_DIR`, so the native backend could reach no compositor either (and the
+  // `no-native-clipboard` test hook creates no native backend on any platform).
   let stubs: Stubs | undefined;
   afterEach(() => {
     stubs?.cleanup();
     stubs = undefined;
   });
 
-  test("Copy survives detach: the drag's text goes to wl-copy on stdin, the notice names it, and acp-tui exits while wl-copy's serving child runs on", async () => {
+  // Skipped on Windows: the stub wl-copy is a Bun script run through its shebang and read through /proc, which Windows lacks.
+  test.skipIf(WINDOWS)("Copy survives detach: the drag's text goes to wl-copy on stdin, the notice names it, and acp-tui exits while wl-copy's serving child runs on", async () => {
     stubs = makeStubs(["wl-copy"]);
-    const env = localEnv({ PATH: stubs.bin, STUB_LOG: stubs.log, WAYLAND_DISPLAY: "acp-tui-test-no-compositor" });
+    const env = localEnv({ PATH: stubs.bin, STUB_LOG: stubs.log, WAYLAND_DISPLAY: "acp-tui-test-no-compositor", ACP_TUI_TEST_HOOKS: "no-native-clipboard" });
     const { session: s, events } = await start([], env);
     const row = rowOf(s, "  The first paragraph");
     await drag(s, [2, row], [], [2 + 8, row]);

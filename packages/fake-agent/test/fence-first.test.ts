@@ -1,5 +1,6 @@
 // mvp-rendering task 1.2: fence-first sends one message that opens with a `php` fence holding a
 // file with `<?php`, then a second `php` fence without the tag, in 7-character chunks.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import {
@@ -35,7 +36,7 @@ describe("fake-agent fence-first scenario (mvp-rendering task 1.2)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       expect(result.stopReason).toBe("end_turn");
 
@@ -70,7 +71,7 @@ describe("fake-agent fence-first scenario (mvp-rendering task 1.2)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
       const texts = updates.map((update) => (update.sessionUpdate === "agent_message_chunk" && update.content.type === "text" ? update.content.text : ""));
       expect(texts).toEqual(fenceFirstChunks(64));

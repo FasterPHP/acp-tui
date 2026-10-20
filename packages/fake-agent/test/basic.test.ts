@@ -1,6 +1,7 @@
 // Task 4.2: asserts the "basic" scenario's update sequence, the answered
 // permission path and the cancelled-mid-permission path, all over a real
 // spawned child process.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { editFixture } from "../src/diff-fixture.ts";
@@ -28,7 +29,7 @@ describe("fake-agent basic scenario (task 4.2)", () => {
 
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "hello" }],
@@ -149,7 +150,7 @@ describe("fake-agent basic scenario (task 4.2)", () => {
 
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "hello" }],

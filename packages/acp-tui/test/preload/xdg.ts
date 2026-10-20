@@ -18,4 +18,7 @@ const base = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-test-xdg-
 process.env.XDG_CONFIG_HOME = join(base, "config");
 process.env.XDG_STATE_HOME = join(base, "state");
 mkdirSync(process.env.XDG_CONFIG_HOME, { recursive: true });
+// No real clipboard from a test or a process it starts (renderer/test-hooks.ts `no-host-clipboard`):
+// on macOS and Windows the host clipboard exists whatever the environment says.
+process.env.ACP_TUI_TEST_HOOKS = [...(process.env.ACP_TUI_TEST_HOOKS ?? "").split(",").map((n) => n.trim()).filter(Boolean), "no-host-clipboard"].join(",");
 afterAll(() => rmSync(base, { recursive: true, force: true }));

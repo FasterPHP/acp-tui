@@ -1,5 +1,6 @@
 // day-one-feedback task 2.2: usage-without-cost reports the cost once, at the end of turn 1, and
 // sends usage updates with `used` and `size` only in turn 2, as claude-agent-acp 0.81.2 does.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { USAGE_WITHOUT_COST_FIRST, USAGE_WITHOUT_COST_LATER } from "../src/scenarios/usage-without-cost.ts";
@@ -21,7 +22,7 @@ describe("fake-agent usage-without-cost scenario (day-one-feedback task 2.2)", (
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       for (const turn of [1, 2]) {
         const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: `turn ${turn}` }] });
         expect(result.stopReason).toBe("end_turn");

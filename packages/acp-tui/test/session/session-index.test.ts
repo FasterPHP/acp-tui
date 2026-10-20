@@ -10,6 +10,7 @@ import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readdirS
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { INDEX_FILE_NAME, openSessionIndex, stateHomeDir, type SessionIndexOptions } from "../../src/session/session-index.ts";
+import { WINDOWS } from "../windows.ts";
 
 const WRITER = resolve(import.meta.dir, "index-writer.ts");
 const T0 = Date.parse("2026-10-04T09:00:00.000Z");
@@ -28,9 +29,9 @@ function fileLines(path: string): string[] {
 
 describe("where the index lives", () => {
   test("$XDG_STATE_HOME/acp-tui/sessions.jsonl, else ~/.local/state", () => {
-    expect(stateHomeDir({ XDG_STATE_HOME: "/x/state", HOME: "/home/u" })).toBe("/x/state");
-    expect(stateHomeDir({ HOME: "/home/u" })).toBe("/home/u/.local/state");
-    expect(stateHomeDir({ XDG_STATE_HOME: "rel", HOME: "/home/u" })).toBe("/home/u/.local/state");
+    expect(stateHomeDir({ XDG_STATE_HOME: "/x/state", HOME: "/home/u" }, "linux")).toBe("/x/state");
+    expect(stateHomeDir({ HOME: "/home/u" }, "linux")).toBe("/home/u/.local/state");
+    expect(stateHomeDir({ XDG_STATE_HOME: "rel", HOME: "/home/u" }, "linux")).toBe("/home/u/.local/state");
     const home = stateHome();
     expect(openSessionIndex({ env: { XDG_STATE_HOME: home } }).path).toBe(join(home, "acp-tui", INDEX_FILE_NAME));
   });
@@ -69,14 +70,16 @@ describe("Session index (tui-sessions)", () => {
     expect(index.find("s-2").record).toMatchObject({ agent: "ad hoc", command: ["bun", "fake.ts", "--scenario", "basic"], title: null });
   });
 
-  test("the directory is 0700 and the file 0600", () => {
+  // Skipped on Windows: it asserts or sets POSIX mode bits (Windows has no mode bits for the owner-only index).
+  test.skipIf(WINDOWS)("the directory is 0700 and the file 0600", () => {
     const home = stateHome();
     open(home).record({ agent: "fake", sessionId: "s-1", directory: "/w" });
     expect(statSync(join(home, "acp-tui")).mode & 0o777).toBe(0o700);
     expect(statSync(join(home, "acp-tui", INDEX_FILE_NAME)).mode & 0o777).toBe(0o600);
   });
 
-  test("an existing directory and file open to others are made owner-only", () => {
+  // Skipped on Windows: it asserts or sets POSIX mode bits (Windows has no mode bits for the owner-only index).
+  test.skipIf(WINDOWS)("an existing directory and file open to others are made owner-only", () => {
     const home = stateHome();
     mkdirSync(join(home, "acp-tui"), { mode: 0o755 });
     chmodSync(join(home, "acp-tui"), 0o755);
@@ -180,7 +183,8 @@ describe("Session index (tui-sessions)", () => {
     // The 999 others are the newest: s-501 to s-1499.
     expect(all.at(-1)?.sessionId).toBe("s-501");
     expect(index.find("s-500").record).toBeNull();
-    expect(statSync(index.path).mode & 0o777).toBe(0o600);
+    // Windows has no mode bits: the owner-only check is for POSIX.
+    if (!WINDOWS) expect(statSync(index.path).mode & 0o777).toBe(0o600);
     expect(readdirSync(join(home, "acp-tui"))).toEqual([INDEX_FILE_NAME]);
     // Appends carry on after the rewrite.
     index.record({ agent: "fake", sessionId: "s-new", directory: "/w" });
@@ -213,7 +217,8 @@ describe("Session index (tui-sessions)", () => {
 });
 
 describe("an unwritable state directory (task 4.3)", () => {
-  test("the index says so once, and every call carries on", () => {
+  // Skipped on Windows: it asserts or sets POSIX mode bits (Windows has no mode bits for the owner-only index).
+  test.skipIf(WINDOWS)("the index says so once, and every call carries on", () => {
     const home = stateHome();
     const dir = join(home, "acp-tui");
     mkdirSync(dir, { mode: 0o700 });
@@ -242,7 +247,8 @@ describe("an unwritable state directory (task 4.3)", () => {
     }
   });
 
-  test("a state home where the directory cannot even be created", () => {
+  // Skipped on Windows: it asserts or sets POSIX mode bits (Windows has no mode bits for the owner-only index).
+  test.skipIf(WINDOWS)("a state home where the directory cannot even be created", () => {
     const home = stateHome();
     chmodSync(home, 0o500);
     try {

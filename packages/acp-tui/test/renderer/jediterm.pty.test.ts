@@ -15,6 +15,7 @@ import { join, resolve } from "node:path";
 import { deriveSurfaces, lightness, parseHex } from "../../src/theme/index.ts";
 import { startPty, type PtySession, type PtyStartOptions } from "../pty/harness.ts";
 import { CARD_HEADER, READY, REQUIRES_ACTION } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -49,7 +50,8 @@ async function ready(s: PtySession): Promise<void> {
   expect(s.term.buffer.active.type).toBe("alternate");
 }
 
-describe("JediTerm emulation: exit text below the command line (bug 1) and no start-up junk (bug 2)", () => {
+// Skipped on Windows: the exit paths compare the main screen and send SIGTERM, and the surfaces tests expect truecolour from a bare ConPTY.
+describe.skipIf(WINDOWS)("JediTerm emulation: exit text below the command line (bug 1) and no start-up junk (bug 2)", () => {
   const paths: [string, (s: PtySession) => Promise<void>, number][] = [
     ["Ctrl+D", async (s) => s.sendKeys("Ctrl+D"), 0],
     ["SIGTERM", async (s) => s.kill("SIGTERM"), 143],
@@ -117,7 +119,8 @@ async function openPermission(s: PtySession): Promise<void> {
   await s.flush();
 }
 
-describe("JediTerm emulation: truecolour surfaces (bug 3)", () => {
+// Skipped on Windows: the exit paths compare the main screen and send SIGTERM, and the surfaces tests expect truecolour from a bare ConPTY.
+describe.skipIf(WINDOWS)("JediTerm emulation: truecolour surfaces (bug 3)", () => {
   test("OSC 10 and 11 answered: truecolour fills, and the selected option differs from the card", async () => {
     const { s } = start({ colours: DARK });
     await openPermission(s);

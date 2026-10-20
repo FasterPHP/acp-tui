@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { loadAgentCatalogue } from "../../src/agent/catalogue.ts";
 import { main, type StartAppOptions } from "../../src/cli.ts";
 import { createConfigStore } from "../../src/config/store.ts";
+import { WINDOWS } from "../windows.ts";
 
 function temp(prefix: string): string {
   return realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix)));
@@ -88,7 +89,8 @@ describe("Zed's entry shape", () => {
   });
 });
 
-describe("World-writable file (task 1.6)", () => {
+// Skipped on Windows: mode bits decide this check on POSIX; Windows checks the file owner instead (test/config/writers.test.ts).
+describe.skipIf(WINDOWS)("World-writable file (task 1.6)", () => {
   test("a user's file of mode 0666 defining agent_servers.fake: acp-tui -a fake exits non-zero, saying harness commands are not read from a file other users can write", async () => {
     const { home, file } = configHome(FAKE, { file: 0o666 });
     const r = await run(["-a", "fake"], home);

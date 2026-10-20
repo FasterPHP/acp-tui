@@ -68,6 +68,7 @@ import {
 } from "@opentui/core";
 import { NULL_LOGGER, type DebugLogger } from "../log.ts";
 import type { ClipboardMode } from "../renderer/options.ts";
+import { testHooks } from "../renderer/test-hooks.ts";
 
 export type { ClipboardMode };
 
@@ -75,8 +76,11 @@ export type { ClipboardMode };
 export type HostKind = "wayland" | "x11" | "macos" | "windows";
 
 /** Whether a host clipboard can exist at all: on macOS the pasteboard and on Windows the
- *  clipboard (both only locally), elsewhere a Wayland or X11 display. */
+ *  clipboard (both only locally), elsewhere a Wayland or X11 display. The test hook
+ *  `no-host-clipboard` (renderer/test-hooks.ts) makes it null everywhere, so a test never reaches a
+ *  real clipboard. */
 export function hostDisplay(env: Readonly<Record<string, string | undefined>> = process.env, platform: NodeJS.Platform = process.platform): HostKind | null {
+  if (testHooks(env).has("no-host-clipboard")) return null;
   if (platform === "darwin" || platform === "win32") {
     if (env["SSH_CONNECTION"] || env["SSH_CLIENT"] || env["SSH_TTY"]) return null;
     return platform === "darwin" ? "macos" : "windows";
@@ -298,6 +302,7 @@ export function createCopier(options: CopierOptions): Copier {
   const env = options.env ?? process.env;
   const modeNow = modeReader(options.mode);
   const display = hostDisplay(env, options.platform);
+  const noNative = testHooks(env).has("no-native-clipboard");
   const logger = options.logger ?? NULL_LOGGER;
   // One service per kind of path set (with or without the host), made at the first copy that
   // needs it, so a reload that changes the mode (`osc52` to `auto`) gets the host paths.
@@ -305,7 +310,7 @@ export function createCopier(options: CopierOptions): Copier {
   const get = (hostPaths: boolean): { service: ClipboardService; withHelper: HelperHost | null } => {
     let made = services.get(hostPaths);
     if (!made) {
-      const native = (): HostClipboardService => options.host ?? (display && hostPaths ? createHostClipboard({ maxWriteBytes: MAX_WRITE_BYTES }) : NO_HOST);
+      const native = (): HostClipboardService => options.host ?? (display && hostPaths && !noNative ? createHostClipboard({ maxWriteBytes: MAX_WRITE_BYTES }) : NO_HOST);
       const helper = hostPaths ? findCopyHelper(display, env) : null;
       const withHelper = helper ? helperHost(helper, env, native, options.helperTimeoutMs ?? HELPER_TIMEOUT_MS) : null;
       made = { service: createClipboard({ host: withHelper ?? native(), terminal: createRendererClipboardAdapter(options.renderer) }), withHelper };
@@ -515,13 +520,14 @@ export function createClipboardReader(options: ClipboardReaderOptions = {}): Cli
   const env = options.env ?? process.env;
   const modeNow = modeReader(options.mode);
   const display = hostDisplay(env, options.platform);
+  const noNative = testHooks(env).has("no-native-clipboard");
   const logger = options.logger ?? NULL_LOGGER;
   let host: HostClipboardService | null = null;
   let withHelper: PasteHelperHost | null = null;
   // Only asked for while the mode reads the host.
   const get = (): HostClipboardService => {
     if (host) return host;
-    const native = (): HostClipboardService => options.host ?? (display ? createHostClipboard({ maxReadBytes: MAX_READ_BYTES, maxWriteBytes: MAX_WRITE_BYTES }) : NO_HOST);
+    const native = (): HostClipboardService => options.host ?? (display && !noNative ? createHostClipboard({ maxReadBytes: MAX_READ_BYTES, maxWriteBytes: MAX_WRITE_BYTES }) : NO_HOST);
     const helper = findPasteHelper(display, env);
     withHelper = helper ? pasteHelperHost(helper, env, native, options.helperTimeoutMs ?? HELPER_TIMEOUT_MS) : null;
     host = withHelper ?? native();

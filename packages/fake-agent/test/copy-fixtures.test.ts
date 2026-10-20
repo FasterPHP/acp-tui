@@ -1,5 +1,6 @@
 // Phase-1a task 1.3: copy-fixtures sends the content spike S4 copies from, one
 // item per fixture, and exports the fixtures for acp-tui's golden files.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import * as fakeAgent from "../src/index.ts";
@@ -22,7 +23,7 @@ describe("fake-agent copy-fixtures scenario (phase-1a task 1.3)", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({
         sessionId: session.sessionId,
         prompt: [{ type: "text", text: "give me things to copy" }],

@@ -9,10 +9,12 @@ import { deriveSurfaces, lightness, parseHex, type SurfaceName, type TerminalCol
 import { modesSet, parseModeChanges } from "./harness.ts";
 import { CARD_HEADER, REQUIRES_ACTION } from "./regions.ts";
 import { DARK, LIGHT, openPermission, cardLines, type Bg, bgAt, rowBg, rgb, TRUECOLOUR_BG, same, surface, showing, noneLeft, disposeSession } from "./surfaces-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
-describe("OSC 10 and 11 answered, OSC 4 unanswered", () => {
+// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+describe.skipIf(WINDOWS)("OSC 10 and 11 answered, OSC 4 unanswered", () => {
   for (const [name, colours] of [["dark", DARK], ["light", LIGHT]] as const) {
     test(`${name} background: truecolour fills for the status row, the user message and the permission card`, async () => {
       const s = await openPermission({ ...colours, terminator: name === "light" ? "bel" : "st" });
@@ -55,7 +57,8 @@ describe("OSC 10 and 11 answered, OSC 4 unanswered", () => {
   }
 });
 
-describe("The user card's bar (mvp-configuration, 13 October 2026)", () => {
+// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+describe.skipIf(WINDOWS)("The user card's bar (mvp-configuration, 13 October 2026)", () => {
   test("a theme setting user recolours the bar without touching accent", async () => {
     const s = await openPermission({ ...DARK, terminator: "st" }, `{ "theme": { "tokens": { "user": 5 } } }`);
     const user = s.findLine(/^ {3}go$/);
@@ -68,7 +71,8 @@ describe("The user card's bar (mvp-configuration, 13 October 2026)", () => {
 // S1 re-check, bug 3 (follow-up): the selected option must be clearly lighter than the card on a
 // dark theme and darker on a light one. The measure is the CIE L* difference, at least 5 (the same
 // threshold as the unit tests in src/theme/surfaces.test.ts).
-describe("Selected permission option contrast", () => {
+// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+describe.skipIf(WINDOWS)("Selected permission option contrast", () => {
   const MIN_DELTA_L = 5;
 
   for (const [name, colours] of [["dark", DARK], ["light", LIGHT]] as const) {
@@ -100,7 +104,8 @@ describe("Selected permission option contrast", () => {
   }
 });
 
-describe("Flat fallback without colour replies", () => {
+// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+describe.skipIf(WINDOWS)("Flat fallback without colour replies", () => {
   test("no reply: no truecolour background SGR anywhere, and the permission card is still framed", async () => {
     const s = await openPermission(undefined);
     expect(s.oscQueries).toContain(10);
@@ -143,7 +148,8 @@ describe("Flat fallback without colour replies", () => {
   }, 30000);
 });
 
-describe("Live theme", () => {
+// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+describe.skipIf(WINDOWS)("Live theme", () => {
   test("a colour-scheme report (CSI ? 997 ; n n) makes OpenTUI re-query and the fills follow the new colours", async () => {
     const s = await openPermission(DARK);
     const status = () => s.findLine(REQUIRES_ACTION);
@@ -158,7 +164,8 @@ describe("Live theme", () => {
   }, 30000);
 });
 
-describe("Theme switch signalled (task 5.3)", () => {
+// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+describe.skipIf(WINDOWS)("Theme switch signalled (task 5.3)", () => {
   test("OpenTUI enables colour-scheme reports (CSI ? 2031 h) itself", async () => {
     const s = await openPermission(DARK);
     expect(modesSet(parseModeChanges(s.rawOutput()))).toContain(2031);

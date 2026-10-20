@@ -13,6 +13,7 @@ import { promptBox, READY, withoutBar } from "../pty/regions.ts";
 import { sendPrompt, startCli, type CliRun } from "../conversation/cli.ts";
 import { LINKS_LONG_URL } from "fake-agent";
 import { localEnv, osc52Payloads } from "../selection/pty.ts";
+import { WINDOWS } from "../windows.ts";
 
 let run: CliRun | undefined;
 afterEach(async () => {
@@ -51,7 +52,8 @@ const toast = (s: PtySession) => promptBox(s)[0] ?? "";
 const opened = (log: string) => (existsSync(log) ? readFileSync(log, "utf8").split("\n").slice(0, -1) : []);
 
 describe("one open per click (C9)", () => {
-  test("One open in PhpStorm: a click on the label https://bank.example of a link to evil.example opens nothing in acp-tui, and a toast names evil.example", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("One open in PhpStorm: a click on the label https://bank.example of a link to evil.example opens nothing in acp-tui, and a toast names evil.example", async () => {
     const { s, log, events } = await start(JETBRAINS);
     expect(s.screenText().some((l) => l.includes("A deceptive one: https://bank.example (evil.example)."))).toBe(true);
     const [x, y] = cellOf(s, "https://bank.example");
@@ -63,7 +65,8 @@ describe("one open per click (C9)", () => {
     expect(events("link_open")).toEqual([expect.objectContaining({ action: "defer", kind: "web", trigger: "click" })]);
   }, 30000);
 
-  test("PhpStorm: the host hint after the deceptive label, and a label that is no URL, open through acp-tui; a bare URL is left to the IDE with no toast", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("PhpStorm: the host hint after the deceptive label, and a label that is no URL, open through acp-tui; a bare URL is left to the IDE with no toast", async () => {
     const { s, log, events } = await start(JETBRAINS);
     const [hx, hy] = cellOf(s, "(evil.example)");
     s.mouseClick(hx + 2, hy);
@@ -85,7 +88,8 @@ describe("one open per click (C9)", () => {
     expect(events("link_open").map((e) => e["action"])).toEqual(["open", "open", "defer"]);
   }, 30000);
 
-  test("a click with Ctrl, Alt or Shift held is the terminal's: acp-tui opens nothing, here or in PhpStorm", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("a click with Ctrl, Alt or Shift held is the terminal's: acp-tui opens nothing, here or in PhpStorm", async () => {
     const { s, log, events } = await start(NO_TERMINAL);
     const [x, y] = cellOf(s, "the docs");
     for (const mods of [{ ctrl: true }, { alt: true }, { shift: true }]) {
@@ -100,7 +104,8 @@ describe("one open per click (C9)", () => {
     expect(opened(log)).toEqual(["1", "https://example.com/docs"]);
   }, 30000);
 
-  test("A1, PhpStorm: the long bare URL is drawn on one row without its scheme, shortened with …; a click opens the full URL through acp-tui and a drag copies it whole", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("A1, PhpStorm: the long bare URL is drawn on one row without its scheme, shortened with …; a click opens the full URL through acp-tui and a drag copies it whole", async () => {
     const { s, log, events } = await start(JETBRAINS);
     const rows = s.screenText();
     const y = rows.findIndex((l) => l.includes("example.com/a/very/long/"));
@@ -136,7 +141,8 @@ describe("one open per click (C9)", () => {
     expect(withoutBar(s.screenText()).some((l) => l.trim() === LINKS_LONG_URL.slice(0, s.cols - 5))).toBe(true);
   }, 30000);
 
-  test("Zed is unchanged: the deceptive label and a bare URL open their targets through acp-tui on a plain click", async () => {
+  // Skipped on Windows: the opener is a #!/bin/sh stub that records its arguments (the Windows opener is rundll32, covered by the argv tests in test/links/open.test.ts).
+  test.skipIf(WINDOWS)("Zed is unchanged: the deceptive label and a bare URL open their targets through acp-tui on a plain click", async () => {
     const { s, log, events } = await start(ZED);
     const [x, y] = cellOf(s, "https://bank.example");
     s.mouseClick(x + 9, y);

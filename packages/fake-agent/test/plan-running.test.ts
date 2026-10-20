@@ -1,5 +1,6 @@
 // Phase-1a task 6.4: plan-running reaches "two tool calls in progress, a five-entry plan with two
 // completed and the third in progress", holds it, and honours cancel while holding.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { PLAN_RUNNING_ENTRIES, PLAN_RUNNING_TOOL_TITLES } from "../src/scenarios/plan-running.ts";
@@ -21,7 +22,7 @@ async function run(delayScale: number, cancelAfterMs?: number) {
   });
   try {
     await handle.conn.initialize({ protocolVersion: 1 });
-    const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+    const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
     const turn = handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "go" }] });
     if (cancelAfterMs !== undefined) {
       await Bun.sleep(cancelAfterMs);

@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { FINAL_RESET } from "../../src/renderer/lifecycle.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const SPIKE = "packages/acp-tui/test/renderer/lifecycle.tsx";
@@ -122,7 +123,8 @@ function expectCursorBelowCommand(s: PtySession, extraRows = 0) {
   expect(s.mainSnapshot().cursor).toEqual({ x: 0, y: 3 + extraRows });
 }
 
-describe("terminal restored on every exit path, without clearing", () => {
+// Skipped on Windows: it compares the raw restore sequences and main screen of the PTY stream (ConPTY rewrites them) and sends POSIX signals.
+describe.skipIf(WINDOWS)("terminal restored on every exit path, without clearing", () => {
   test("normal exit", async () => {
     const r = await run("q");
     expect(r.code).toBe(0);

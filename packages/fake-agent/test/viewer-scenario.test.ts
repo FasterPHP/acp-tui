@@ -1,5 +1,6 @@
 // The "viewer" scenario (acp-tui tasks 9.1, 9.2): permission for the earlier
 // of two tool calls, then completions in the opposite order to their start.
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { spawnFakeAgent } from "./helpers.ts";
@@ -23,7 +24,7 @@ describe("fake-agent viewer scenario", () => {
     });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const session = await handle.conn.newSession({ cwd: "/tmp", mcpServers: [] });
+      const session = await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
       const result = await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "check" }] });
       expect(result.stopReason).toBe("end_turn");
       expect(seenAtPermission).toEqual(["v1", "v2"]);

@@ -4,10 +4,12 @@
 // halves of the old 65-test file run in different workers.
 import { afterEach, describe, expect, test } from "bun:test";
 import { ROWS, RUN_LIMIT_MS, SCENARIOS, disposeSession, findUnsafeSgr, runScenario } from "./safe-sgr-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
-describe("Output stream over every scenario", () => {
+// Skipped on Windows: it scans the raw SGR bytes of the PTY stream, which ConPTY rewrites.
+describe.skipIf(WINDOWS)("Output stream over every scenario", () => {
   for (const terminal of ["jetbrains"] as const) {
     for (const name of Object.keys(SCENARIOS)) {
       test(`${name} (${terminal} terminal): no SGR with a colon, none with parameter 9, 53 or 58`, async () => {

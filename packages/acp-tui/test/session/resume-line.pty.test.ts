@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { READY, statusRow } from "../pty/regions.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -151,7 +152,8 @@ async function expectResumed(w: World, s: PtySession, id: string, firstRunLength
   expect(second.map((e) => e.method)).not.toContain("session/prompt");
 }
 
-describe("Resume line runs (tui-screen, task 8.2)", () => {
+// Skipped on Windows: it runs the printed resume line with "sh -c" and a #!/bin/sh wrapper (Windows prints a PowerShell line; its text is tested in exit-text.test.ts).
+describe.skipIf(WINDOWS)("Resume line runs (tui-screen, task 8.2)", () => {
   test("named agent: `resume: acp-tui --resume <id>` run from another directory opens the same session in repo-b", async () => {
     const w = world();
     const [command, ...args] = w.fake();

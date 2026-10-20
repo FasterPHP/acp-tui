@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import { startPty, type PtySession } from "./harness.ts";
+import { WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const SPIKE = "packages/acp-tui/test/pty/theme-rows.tsx";
@@ -69,7 +70,8 @@ async function quit(s: PtySession) {
 // it (256-colour only) it maps them to the nearest palette index. The default
 // foreground must survive both.
 for (const colorterm of ["truecolor", ""]) {
-  describe(`Default foreground is not forced to white (COLORTERM=${colorterm || "unset"})`, () => {
+  // Skipped on Windows: it reads the raw colour bytes of the PTY stream, which a bare ConPTY rewrites.
+  describe.skipIf(WINDOWS)(`Default foreground is not forced to white (COLORTERM=${colorterm || "unset"})`, () => {
     test("rows styled with a default-foreground token use the terminal's own foreground", async () => {
       const s = await run(colorterm);
       for (const tag of ["TEXT", "CORE", "DONE"]) {
@@ -124,7 +126,8 @@ for (const colorterm of ["truecolor", ""]) {
   });
 }
 
-describe("Token styling can be swapped", () => {
+// Skipped on Windows: it reads the raw colour bytes of the PTY stream, which a bare ConPTY rewrites.
+describe.skipIf(WINDOWS)("Token styling can be swapped", () => {
   test("mapping accent to another index recolours every accent element and nothing else", async () => {
     const base = await run("truecolor");
     const snapshot = (s: PtySession) =>

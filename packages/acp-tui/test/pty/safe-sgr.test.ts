@@ -38,6 +38,7 @@ import {
   track,
   unsafeSgr,
 } from "./safe-sgr-helpers.ts";
+import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
@@ -128,7 +129,8 @@ describe("the printed-colour scanner", () => {
 // S1 bug 4 (phase-1a, spec tui-theme "Text follows the terminal's palette"): agent Markdown
 // whose message starts with a list was drawn in explicit white (`38;2;255;255;255`), invisible on
 // a light theme, because `content` reached OpenTUI's MarkdownRenderable before its style.
-describe("Agent Markdown uses theme tokens only", () => {
+// Skipped on Windows: it scans the raw SGR bytes of the PTY stream, which ConPTY rewrites, or expects truecolour from a bare ConPTY.
+describe.skipIf(WINDOWS)("Agent Markdown uses theme tokens only", () => {
   const LIGHT = { foreground: "#383a42", background: "#fafafa" };
   const AGENT = join(import.meta.dir, "markdown-agent.ts");
 

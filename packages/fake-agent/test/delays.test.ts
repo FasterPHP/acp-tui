@@ -2,6 +2,7 @@
 // the answer to `session/list`, by absolute times that `--delay-scale 0` (the test default) does not shrink.
 //
 // The timing tests of this file are in delays.timing.test.ts (parallel-tests: they run in the serial pass).
+import { tmpdir } from "node:os";
 import { describe, expect, test } from "bun:test";
 import { recordingClient, spawnFakeAgent } from "./helpers.ts";
 import { SLACK_MS, timed } from "./delays-helpers.ts";
@@ -24,7 +25,7 @@ describe("fake-agent delays", () => {
     const handle = spawnFakeAgent({ scenario: "basic", args: ["--list", "--list-delay", "400"], client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const list = await timed(() => handle.conn.listSessions({ cwd: "/tmp" }));
+      const list = await timed(() => handle.conn.listSessions({ cwd: tmpdir() }));
       expect(list.value.sessions).toEqual([]);
       expect(list.ms).toBeGreaterThanOrEqual(400 - SLACK_MS);
     } finally {
