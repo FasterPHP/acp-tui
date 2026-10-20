@@ -22,7 +22,7 @@ import type { z } from "zod";
 import { BLOCK_NAMES, DEFAULT_LAYOUT } from "../layout/layout.ts";
 import { MODULE_IDS, MODULES } from "../layout/modules.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS } from "../keys/keymap.ts";
-import { DEFAULT_AGENT_COMMAND, BUILT_IN_AGENT_NAME } from "../agent/command.ts";
+import { DEFAULT_AGENT_EXAMPLE_COMMAND, BUILT_IN_AGENT_NAME } from "../agent/command.ts";
 import { TERMINAL_TABLE, type TerminalCapabilities } from "../renderer/capabilities.ts";
 import { describeSchema } from "./load.ts";
 import {
@@ -184,15 +184,16 @@ export interface AgentExample {
  * The agent examples (task 12.7). Each command was checked against the agent's own documentation
  * or the ACP agents list (agentclientprotocol.com/overview/agents) on 13 October 2026, and its
  * comment names the source. DeepSeek has no ACP agent of its own, so it is reached through
- * OpenCode. `claude` repeats the built-in entry (`DEFAULT_AGENT_COMMAND`), so its command is
- * always the one acp-tui runs without the entry.
+ * OpenCode. `claude` repeats the built-in entry (`DEFAULT_AGENT_EXAMPLE_COMMAND`): the same
+ * package and arguments acp-tui runs without the entry, through `bunx` from the PATH rather than
+ * the Bun running acp-tui, whose path differs from machine to machine.
  */
 export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
     name: BUILT_IN_AGENT_NAME,
     about:
-      "the built-in claude as acp-tui runs it without an entry, plus Claude Code's ANTHROPIC_MODEL to choose the model. Change args to run another version of claude-agent-acp. Sources: npm @agentclientprotocol/claude-agent-acp, and code.claude.com/docs/en/settings for ANTHROPIC_MODEL.",
-    entry: { command: DEFAULT_AGENT_COMMAND[0]!, args: DEFAULT_AGENT_COMMAND.slice(1), env: { ANTHROPIC_MODEL: "opus" } },
+      "the built-in claude as acp-tui runs it without an entry (which uses the Bun running acp-tui in place of bunx), plus Claude Code's ANTHROPIC_MODEL to choose the model. Change args to run another version of claude-agent-acp. Sources: npm @agentclientprotocol/claude-agent-acp, and code.claude.com/docs/en/settings for ANTHROPIC_MODEL.",
+    entry: { command: DEFAULT_AGENT_EXAMPLE_COMMAND[0]!, args: DEFAULT_AGENT_EXAMPLE_COMMAND.slice(1), env: { ANTHROPIC_MODEL: "opus" } },
   },
   {
     name: "codex",

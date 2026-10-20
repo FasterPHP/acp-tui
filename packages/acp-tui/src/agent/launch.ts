@@ -5,6 +5,7 @@
 // its content -- see console-capture.ts for the same reasoning).
 import type { DebugLogger } from "../log.ts";
 import { RingBuffer } from "./ring-buffer.ts";
+import { mergeEnvironment, resolveArgv, type Env } from "./which.ts";
 
 export interface LaunchedAgent {
   readonly proc: Bun.Subprocess<"pipe", "pipe", "pipe">;
@@ -52,23 +53,34 @@ export interface LaunchOptions {
   /** The harness's name in the catalogue, or `ad hoc`, for error messages. */
   harness?: string;
   logger?: DebugLogger;
+  /** acp-tui's own environment, under the entry's; default `process.env` (tests). */
+  baseEnv?: Env;
+  /** Default `process.platform` (tests). */
+  platform?: NodeJS.Platform;
 }
 
-/** Launches `command` as the agent process. Throws `AgentLaunchError` if `Bun.spawn` itself fails
- *  (for example ENOENT for a missing executable) -- Bun.spawn throws synchronously in that case. */
+/** Launches `command` as the agent process. Its program is resolved from the `PATH` first (never
+ *  from `cwd`; src/agent/which.ts) and started by that path. Throws `AgentLaunchError` when the
+ *  program is on no `PATH` entry (nothing is started) or `Bun.spawn` itself fails (for example
+ *  ENOENT for a missing path) -- Bun.spawn throws synchronously in that case. Messages name the
+ *  command as given, not the resolved path. */
 export function launchAgent(command: readonly string[], options: LaunchOptions = {}): LaunchedAgent {
   if (command.length === 0) {
     throw new AgentLaunchError(command, new Error("empty command"), options.harness);
   }
 
+  const platform = options.platform ?? process.platform;
+  // `env` replaces the child's environment in Bun.spawn, so the entry's variables are added to
+  // acp-tui's own rather than passed alone (on Windows an entry's `PATH` replaces `Path`).
+  const env = options.env && Object.keys(options.env).length > 0 ? mergeEnvironment(options.baseEnv ?? process.env, options.env, platform) : undefined;
   let proc: Bun.Subprocess<"pipe", "pipe", "pipe">;
   try {
+    // Resolved with the environment the harness gets, so an entry's `PATH` is the one searched.
+    const argv = resolveArgv(command, { env: env ?? options.baseEnv ?? process.env, platform });
     proc = Bun.spawn({
-      cmd: [...command],
+      cmd: argv,
       cwd: options.cwd,
-      // `env` replaces the child's environment in Bun.spawn, so the entry's variables are added to
-      // acp-tui's own rather than passed alone.
-      ...(options.env && Object.keys(options.env).length > 0 ? { env: { ...process.env, ...options.env } } : {}),
+      ...(env ? { env } : {}),
       stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",

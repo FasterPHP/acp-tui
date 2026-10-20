@@ -6,9 +6,9 @@
 // The ranking time budget for 50000 paths is in files.timing.test.ts (parallel-tests: it runs in
 // the serial pass).
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { displayPath, fileUri, fuzzyScore, listFiles, rankFiles } from "../../src/overlay/files.ts";
 
 function tree(files: Record<string, string>): string {
@@ -20,7 +20,7 @@ function tree(files: Record<string, string>): string {
   return dir;
 }
 
-async function list(cwd: string, options: { walkOnly?: boolean; cap?: number } = {}) {
+async function list(cwd: string, options: { walkOnly?: boolean; cap?: number; env?: Record<string, string | undefined> } = {}) {
   const paths: string[] = [];
   let batches = 0;
   let result: { source: string; capped: boolean } | null = null;
@@ -106,6 +106,35 @@ describe.if(hasGit)("listFiles: git ls-files in a work tree", () => {
     // From a subdirectory, the paths are relative to it.
     const sub = await list(join(dir, "src"));
     expect(sub.paths).toEqual([".gitignore", "Db/Connection.php"]);
+  });
+
+  // spec tui-agent-session "Programs resolved from the PATH only": the Linux analogue of "Script in
+  // a cloned repository". A relative `PATH` entry (`.`) is read against the spawn's `cwd` by the
+  // system's own lookup, so before resolution came first `Bun.spawn(["git", ...], { cwd })` ran the
+  // repository's own `git`; Windows does the same with `git.cmd` and no `PATH` entry at all.
+  test.skipIf(process.platform === "win32")("a git in the session directory is never run, even with `.` on the PATH: the PATH's git lists the files", async () => {
+    const dir = tree({ "tracked.txt": "" });
+    const marker = join(dir, "..", `${dir.split("/").at(-1)}-ran`);
+    writeFileSync(join(dir, "git"), `#!/bin/sh\necho ran > '${marker}'\n`);
+    chmodSync(join(dir, "git"), 0o755);
+    expect(Bun.spawnSync(["git", "init", "-q"], { cwd: dir }).exitCode).toBe(0);
+    const realGit = Bun.which("git")!;
+    const { paths, result } = await list(dir, { env: { ...process.env, PATH: [".", dirname(realGit)].join(delimiter) } });
+    expect(existsSync(marker)).toBe(false);
+    expect(result).toEqual({ source: "git", capped: false });
+    expect(paths).toEqual(["git", "tracked.txt"]);
+  });
+
+  test("with no git on the PATH it walks, and a git in the session directory is not run", async () => {
+    const dir = tree({ "a.txt": "" });
+    const marker = join(dir, "..", `${dir.split(/[\\/]/).at(-1)}-ran`);
+    writeFileSync(join(dir, "git"), `#!/bin/sh\necho ran > '${marker}'\n`);
+    writeFileSync(join(dir, "git.cmd"), `@echo ran> "${marker}"\r\n`);
+    chmodSync(join(dir, "git"), 0o755);
+    const { paths, result } = await list(dir, { env: { PATH: "." } });
+    expect(existsSync(marker)).toBe(false);
+    expect(result).toEqual({ source: "walk", capped: false });
+    expect(paths).toEqual(["a.txt", "git", "git.cmd"]);
   });
 
   test("outside a work tree it walks", async () => {

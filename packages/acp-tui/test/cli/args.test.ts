@@ -11,7 +11,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
-import { DEFAULT_AGENT_COMMAND } from "../../src/agent/command.ts";
+import { CLAUDE_AGENT_PACKAGE } from "../../src/agent/command.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
 import { CliArgumentError, HELP_TEXT, main, OBSOLETE_SPIKE_NOTICE, parseArgs, type CliContext, type StartAppOptions } from "../../src/cli.ts";
 import { SELECTION_HELP } from "../../src/selection/help.ts";
@@ -212,7 +212,7 @@ describe("cli --help text (task 5.1)", () => {
   });
 
   test("documents the default agent command", () => {
-    expect(HELP_TEXT).toContain(DEFAULT_AGENT_COMMAND.join(" "));
+    expect(HELP_TEXT).toContain(`bun x --bun ${CLAUDE_AGENT_PACKAGE}`);
   });
 
   test("describes the session options, named agents, the directory argument and the -- rule (mvp-sessions tasks 3.4 and 12.8)", () => {

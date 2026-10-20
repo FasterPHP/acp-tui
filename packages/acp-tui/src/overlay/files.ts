@@ -3,7 +3,9 @@
 // the input path when `@` opens and streamed into the list in batches.
 //
 // In a git work tree the list is `git ls-files --cached --others
-// --exclude-standard -z`, run with an argument list (never through a shell), so
+// --exclude-standard -z`, run with an argument list (never through a shell) and
+// with `git` resolved from the `PATH` first (src/agent/which.ts: never a `git`
+// or `git.cmd` in the session directory), so
 // it follows exactly Git's own ignore rules, nested `.gitignore` files
 // included. Anywhere else (git fails, or is not installed) it is a directory
 // walk that skips `.git` and follows each directory's `.gitignore` through the
@@ -17,6 +19,7 @@ import { opendir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { sanitise } from "acp-model";
+import { resolveProgram, type Env } from "../agent/which.ts";
 import { isIgnored, parseGitignore, type IgnoreRule } from "./gitignore.ts";
 
 /** The list holds at most this many paths. */
@@ -38,6 +41,8 @@ export interface FileListOptions {
   readonly cap?: number;
   /** Skip `git ls-files` and walk (tests). */
   readonly walkOnly?: boolean;
+  /** The environment `git` is found on (its `PATH`) and run with; default `process.env` (tests). */
+  readonly env?: Env;
 }
 
 /** Lists the files under `cwd` into `sink`, in batches, without blocking the input path. */
@@ -45,7 +50,7 @@ export async function listFiles(cwd: string, sink: FileListSink, options: FileLi
   const cap = options.cap ?? FILE_CAP;
   const signal = options.signal;
   if (!options.walkOnly) {
-    const git = await gitFiles(cwd, sink, cap, signal);
+    const git = await gitFiles(cwd, sink, cap, signal, options.env ?? process.env);
     if (git !== null) {
       if (!signal?.aborted) sink.done({ source: "git", capped: git.capped });
       return;
@@ -59,15 +64,17 @@ export async function listFiles(cwd: string, sink: FileListSink, options: FileLi
  * `git ls-files` in `cwd`; null when git is missing or `cwd` is not in a work tree (it exits with
  * an error before listing anything), so the caller walks instead.
  */
-async function gitFiles(cwd: string, sink: FileListSink, cap: number, signal: AbortSignal | undefined): Promise<{ capped: boolean } | null> {
+async function gitFiles(cwd: string, sink: FileListSink, cap: number, signal: AbortSignal | undefined, env: Env): Promise<{ capped: boolean } | null> {
+  const git = resolveProgram("git", { env });
+  if (git === null) return null;
   let proc: ReturnType<typeof Bun.spawn>;
   try {
-    proc = Bun.spawn(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
+    proc = Bun.spawn([git, "ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
       cwd,
       stdin: "ignore",
       stdout: "pipe",
       stderr: "ignore",
-      env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
+      env: { ...env, GIT_OPTIONAL_LOCKS: "0" },
     });
   } catch {
     return null;

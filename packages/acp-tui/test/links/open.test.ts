@@ -1,13 +1,14 @@
 // Opening a link, without a terminal (mvp-rendering task 6.3; src/links/open.ts and hit.ts).
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Item } from "acp-model";
 import { classifyTarget } from "../../src/conversation/markdown/links.ts";
 import type { LinkTarget } from "../../src/conversation/markdown/types.ts";
 import { itemLinks, linkInRow } from "../../src/links/hit.ts";
-import { openerCommand, planOpen, remoteSession } from "../../src/links/open.ts";
+import { ProgramNotFoundError } from "../../src/agent/which.ts";
+import { openerCommand, planOpen, remoteSession, spawnOpener } from "../../src/links/open.ts";
 
 const target = (href: string, cwd: string): LinkTarget => {
   const v = classifyTarget(href, cwd);
@@ -23,6 +24,18 @@ describe("the opener", () => {
     expect(openerCommand({}, "freebsd")).toBe("xdg-open");
     expect(openerCommand({}, "darwin")).toBe("open");
     expect(openerCommand({ ACP_TUI_OPENER: "/stub/opener" }, "linux")).toBe("/stub/opener");
+  });
+
+  // spec tui-agent-session "Programs resolved from the PATH only".
+  test("the opener is started by the path its environment's PATH gives; a name on no PATH entry throws before anything starts", async () => {
+    expect(() => spawnOpener(["acp-tui-no-such-opener", "https://example.com/"], { PATH: "." })).toThrow(ProgramNotFoundError);
+    if (process.platform === "win32") return;
+    const bin = realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-opener-")));
+    const marker = join(bin, "opened");
+    writeFileSync(join(bin, "acp-tui-test-opener"), `#!/bin/sh\necho "$1" > '${marker}'\n`);
+    chmodSync(join(bin, "acp-tui-test-opener"), 0o755);
+    expect(await spawnOpener(["acp-tui-test-opener", "https://example.com/"], { PATH: `${bin}:/usr/bin:/bin` }).exited).toBe(0);
+    expect(existsSync(marker)).toBe(true);
   });
 
   test("an SSH session is SSH_CONNECTION or SSH_TTY", () => {

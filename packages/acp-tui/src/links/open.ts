@@ -24,6 +24,7 @@
 import { realpathSync } from "node:fs";
 import { classifyTarget, inside } from "../conversation/markdown/links.ts";
 import type { LinkTarget } from "../conversation/markdown/types.ts";
+import { resolveArgv } from "../agent/which.ts";
 
 export type Env = Readonly<Record<string, string | undefined>>;
 
@@ -79,10 +80,12 @@ export interface Spawned {
   readonly exited: Promise<number>;
 }
 
-/** Starts the opener, in `env` when given (activation.ts `openerEnv`): its output is ignored, it
- *  is not waited for, and a failure to start is thrown (the caller says so in a toast). */
+/** Starts the opener, in `env` when given (activation.ts `openerEnv`), resolved from that
+ *  environment's `PATH` first (src/agent/which.ts: never from the working directory): its output is
+ *  ignored, it is not waited for, and a failure to start, a program on no `PATH` entry included, is
+ *  thrown (the caller says so in a toast). */
 export function spawnOpener(argv: readonly string[], env?: Record<string, string | undefined>): Spawned {
-  const child = Bun.spawn([...argv], { stdin: "ignore", stdout: "ignore", stderr: "ignore", ...(env ? { env } : {}) });
+  const child = Bun.spawn(resolveArgv(argv, { env: env ?? process.env }), { stdin: "ignore", stdout: "ignore", stderr: "ignore", ...(env ? { env } : {}) });
   child.unref();
   return { exited: child.exited };
 }

@@ -8,16 +8,17 @@
 import { describe, expect, mock, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import {
   AgentNameError,
+  BUILT_IN_AGENTS,
   BUILT_IN_AGENT_NAME,
   buildAgentCatalogue,
   configFilePath,
   findAgent,
   loadAgentCatalogue,
 } from "../../src/agent/catalogue.ts";
-import { DEFAULT_AGENT_COMMAND } from "../../src/agent/command.ts";
+import { builtInAgentCommand, CLAUDE_AGENT_PACKAGE, DEFAULT_AGENT_COMMAND, DEFAULT_AGENT_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
 import { launchAgent } from "../../src/agent/launch.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
 import { main, type StartAppOptions } from "../../src/cli.ts";
@@ -63,7 +64,17 @@ const FAKE_CONFIG = `{
 
 describe("The default agent command", () => {
   test("runs claude-agent-acp under Bun, never through the node on the PATH", () => {
-    expect(DEFAULT_AGENT_COMMAND).toEqual(["bunx", "--bun", "@agentclientprotocol/claude-agent-acp@0.81.2"]);
+    expect(DEFAULT_AGENT_COMMAND).toEqual([process.execPath, "x", "--bun", "@agentclientprotocol/claude-agent-acp@0.81.2"]);
+  });
+
+  test("runs the Bun that runs acp-tui, by its absolute path, not a bunx looked up on the PATH (on Windows too)", () => {
+    expect(builtInAgentCommand("C:\\Users\\u\\.bun\\bin\\bun.exe")).toEqual(["C:\\Users\\u\\.bun\\bin\\bun.exe", "x", "--bun", CLAUDE_AGENT_PACKAGE]);
+    expect(isAbsolute(DEFAULT_AGENT_COMMAND[0]!)).toBe(true);
+    expect(BUILT_IN_AGENTS[0]).toMatchObject({ name: "claude", command: process.execPath, args: ["x", "--bun", CLAUDE_AGENT_PACKAGE] });
+  });
+
+  test("the commented default's claude example writes the same package and arguments through bunx, the same on every machine", () => {
+    expect(DEFAULT_AGENT_EXAMPLE_COMMAND).toEqual(["bunx", "--bun", CLAUDE_AGENT_PACKAGE]);
   });
 });
 

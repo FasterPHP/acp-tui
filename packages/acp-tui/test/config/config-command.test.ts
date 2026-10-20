@@ -15,7 +15,7 @@ import { describeSchema, HARNESS_NAME_SUBCOMMANDS, parseConfigText } from "../..
 import { RESERVED_SUBCOMMANDS } from "../../src/cli.ts";
 import { readConfiguration } from "../../src/config/read.ts";
 import { defaultConfig, describeOf, moduleFieldList, SECTIONS, valueListOf, valueListText, type SectionName } from "../../src/config/schema.ts";
-import { DEFAULT_AGENT_COMMAND } from "../../src/agent/command.ts";
+import { DEFAULT_AGENT_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
 import type { z } from "zod";
 import { MODULE_IDS } from "../../src/layout/modules.ts";
 
@@ -144,7 +144,7 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
 
   test("Agent examples (task 12.7): the built-in claude with its real command, codex-acp, opencode acp and the others, each introduced as an example that is not active and naming its source", async () => {
     const text = commentedDefault();
-    expect(text).toContain(`// "claude": { "command": "${DEFAULT_AGENT_COMMAND[0]}", "args": [${DEFAULT_AGENT_COMMAND.slice(1).map((arg) => JSON.stringify(arg)).join(", ")}], "env": { "ANTHROPIC_MODEL": "opus" } },`);
+    expect(text).toContain(`// "claude": { "command": "${DEFAULT_AGENT_EXAMPLE_COMMAND[0]}", "args": [${DEFAULT_AGENT_EXAMPLE_COMMAND.slice(1).map((arg) => JSON.stringify(arg)).join(", ")}], "env": { "ANTHROPIC_MODEL": "opus" } },`);
     expect(text).toContain('// "codex": { "command": "codex-acp", "args": [] },');
     expect(text).toContain('// "opencode": { "command": "opencode", "args": ["acp"] },');
     for (const name of ["auggie", "pi", "gemini", "deepseek"]) expect(text).toContain(`// "${name}": { "command": `);

@@ -30,8 +30,9 @@
 // read by `main`), so it stays pure, and refuses a lone word that is neither a harness, a directory
 // nor a command on the `PATH` before anything is launched.
 import { accessSync, constants, realpathSync, statSync } from "node:fs";
-import { resolve } from "node:path";
-import { DEFAULT_AGENT_COMMAND } from "./agent/command.ts";
+import { resolve, win32 } from "node:path";
+import { CLAUDE_AGENT_PACKAGE } from "./agent/command.ts";
+import { isPathCommand, resolveProgram, type WhichFunction } from "./agent/which.ts";
 import { loadAgentCatalogue, type AgentCatalogue } from "./agent/catalogue.ts";
 import { resolveLaunch, type LaunchDescription, type ResolveContext } from "./agent/resolve.ts";
 import type { ConfigOverrides } from "./config/effective.ts";
@@ -111,8 +112,8 @@ Harnesses:
   agent_servers.
   Name it first ("acp-tui auggie -r") or with --harness. Without one,
   acp-tui launches default_agent_server from the configuration, else the
-  built-in harness "claude":
-    ${DEFAULT_AGENT_COMMAND.join(" ")}
+  built-in harness "claude", run by acp-tui's own Bun:
+    bun x --bun ${CLAUDE_AGENT_PACKAGE}
   A command after "--" is launched as given. A new session starts in the
   directory argument, else in the directory acp-tui is started from.
 
@@ -200,12 +201,13 @@ export interface ParseContext {
   readonly commandExists?: (word: string) => boolean;
 }
 
-/** Whether `word` names an executable: a path (`./agent`, `/usr/bin/x`) that is one, else a command
- *  on the `PATH`. */
-function realCommandExists(word: string, cwd: string): boolean {
-  if (word.includes("/")) {
+/** Whether `word` names an executable: a path (`./agent`, `/usr/bin/x`, and on Windows `.\agent`,
+ *  `C:\tools\agent.cmd` or `\\server\x`) that is one, else a command on the `PATH` (never one in
+ *  `cwd`; src/agent/which.ts). `which` and `platform` are for tests. */
+export function realCommandExists(word: string, cwd: string, platform: NodeJS.Platform = process.platform, which?: WhichFunction): boolean {
+  if (isPathCommand(word, platform)) {
     try {
-      const path = resolve(cwd, word);
+      const path = (platform === "win32" ? win32.resolve : resolve)(cwd, word);
       if (!statSync(path).isFile()) return false;
       accessSync(path, constants.X_OK);
       return true;
@@ -213,7 +215,7 @@ function realCommandExists(word: string, cwd: string): boolean {
       return false;
     }
   }
-  return Bun.which(word, { cwd }) !== null;
+  return resolveProgram(word, { platform, ...(which ? { which } : {}) }) !== null;
 }
 
 /**
