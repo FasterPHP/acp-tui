@@ -3,9 +3,10 @@
 // scenario's first prompt sends (8303 updates at 5000 items), and a prompt
 // after the load gets the short reply, never the history again.
 import { describe, expect, test } from "bun:test";
+import { realpathSync } from "node:fs";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { LONG_SESSION_SESSION_ID, LONG_SESSION_UPDATED_AT } from "../src/index.ts";
-import { recordingClient, rejectionOf, spawnFakeAgent } from "./helpers.ts";
+import { makeTempDir, recordingClient, rejectionOf, spawnFakeAgent } from "./helpers.ts";
 
 /** The updates the first prompt of a fresh long-session sends. */
 async function firstPromptUpdates(items: number): Promise<SessionUpdate[]> {
@@ -77,14 +78,17 @@ describe("long-session through session/load (mvp-sessions task 2.3)", () => {
 
   test("it is listed with --list, under the agent's working directory, with a fixed time", async () => {
     const { client } = recordingClient();
-    const handle = spawnFakeAgent({ scenario: "long-session", items: 40, args: ["--list", "--load"], cwd: "/tmp", client });
+    // A directory that exists on every platform (a spawn into a missing `cwd` fails), resolved as
+    // the agent's process.cwd() reports it.
+    const cwd = realpathSync(makeTempDir());
+    const handle = spawnFakeAgent({ scenario: "long-session", items: 40, args: ["--list", "--load"], cwd, client });
     try {
       await handle.conn.initialize({ protocolVersion: 1 });
-      const { sessions } = await handle.conn.listSessions({ cwd: "/tmp" });
+      const { sessions } = await handle.conn.listSessions({ cwd });
       expect(sessions).toEqual([
         {
           sessionId: LONG_SESSION_SESSION_ID,
-          cwd: "/tmp",
+          cwd,
           title: "Long session (40 items)",
           updatedAt: LONG_SESSION_UPDATED_AT,
         },
