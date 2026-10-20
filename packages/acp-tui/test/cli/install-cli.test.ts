@@ -97,9 +97,9 @@ function install(
 /** The configuration file acp-tui reads under a HOME with no XDG_CONFIG_HOME. */
 const configIn = (home: string): string => join(home, ".config/acp-tui/config.jsonc");
 
-// Skipped on Windows: these tests install and run the POSIX sh stub with real mode bits; the Windows .cmd stub is tested below with the platform injected.
-describe.skipIf(WINDOWS)("install-cli", () => {
-  test("Installed and used: through `bun run install-cli`, then from another directory with the user's own `--`", async () => {
+describe("install-cli", () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Installed and used: through `bun run install-cli`, then from another directory with the user's own `--`", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     const result = await run(["bun", "run", "install-cli", "--dir", bin], { cwd: ROOT, env: { HOME: home } });
@@ -130,7 +130,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(session.term.buffer.active.type).toBe("alternate");
   }, 60000);
 
-  test("Pull without reinstall: a commit made after the install is run by the next `acp-tui`", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Pull without reinstall: a commit made after the install is run by the next `acp-tui`", async () => {
     // A real launcher and installer in a throw-away git checkout (its directory name has a space
     // and a quote, to test the stub's quoting), with a one-line stand-in for cli.ts.
     const checkout = join(scratch(), "it's a checkout");
@@ -169,7 +170,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(second.stdout).toBe("code two: a -- b\n");
   }, 60000);
 
-  test("a stub whose checkout has moved says to rerun install-cli and exits 127; ACP_TUI_ROOT overrides the path", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("a stub whose checkout has moved says to rerun install-cli and exits 127; ACP_TUI_ROOT overrides the path", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     expect((await install(["--dir", bin], home)).code).toBe(0);
@@ -183,7 +185,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(help.stdout).toContain("Usage:");
   }, 30000);
 
-  test("Foreign file kept: nothing changes and the message names --force; --force replaces it", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Foreign file kept: nothing changes and the message names --force; --force replaces it", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     mkdirSync(bin);
@@ -201,7 +204,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(classify(readFileSync(target, "utf8"))).toBe("stub");
   }, 30000);
 
-  test("Foreign file kept: a symlink in the way is foreign too, and --force replaces the link, not its destination", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Foreign file kept: a symlink in the way is foreign too, and --force replaces the link, not its destination", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     mkdirSync(bin);
@@ -217,7 +221,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(readFileSync(destination, "utf8")).toBe("#!/bin/sh\necho elsewhere\n");
   }, 30000);
 
-  test("the phase-1a launcher is replaced without --force; installing again over its own stub is fine", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("the phase-1a launcher is replaced without --force; installing again over its own stub is fine", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     mkdirSync(bin);
@@ -235,7 +240,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(classify(readFileSync(target, "utf8"))).toBe("stub");
   }, 30000);
 
-  test("--uninstall removes only its own stub", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("--uninstall removes only its own stub", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     expect((await install(["--dir", bin], home)).code).toBe(0);
@@ -271,7 +277,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(quiet.stderr).toBe("");
   }, 30000);
 
-  test("defaults to ~/.local/bin of HOME, creating it", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("defaults to ~/.local/bin of HOME, creating it", async () => {
     const home = scratch();
     const result = await install([], home);
     expect(result.code).toBe(0);
@@ -286,7 +293,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(existsSync(join(home, ".local"))).toBe(false);
   }, 30000);
 
-  test("Configuration created on install: the commented default under ~/.config, owner-only, and the path printed", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Configuration created on install: the commented default under ~/.config, owner-only, and the path printed", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     const result = await install(["--dir", bin], home);
@@ -304,7 +312,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(checked.code).toBe(0);
   }, 30000);
 
-  test("Configuration created on install: at $XDG_CONFIG_HOME when it is absolute, under ~/.config when it is not", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Configuration created on install: at $XDG_CONFIG_HOME when it is absolute, under ~/.config when it is not", async () => {
     const home = scratch();
     const xdg = join(scratch("acp-tui-xdg-"), "nested/config");
     const absolute = await install(["--dir", join(home, "bin")], home, { env: { XDG_CONFIG_HOME: xdg } });
@@ -318,7 +327,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(readFileSync(configIn(home), "utf8")).toBe(commentedDefault());
   }, 30000);
 
-  test("Existing configuration kept: never overwritten, not with --force, and not written through a symlink", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Existing configuration kept: never overwritten, not with --force, and not written through a symlink", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     const file = configIn(home);
@@ -343,7 +353,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(existsSync(destination)).toBe(false);
   }, 30000);
 
-  test("Uninstall keeps the configuration", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Uninstall keeps the configuration", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     expect((await install(["--dir", bin], home)).code).toBe(0);
@@ -354,7 +365,8 @@ describe.skipIf(WINDOWS)("install-cli", () => {
     expect(readFileSync(configIn(home), "utf8")).toBe('{ "mouse": "wheel" }\n');
   }, 30000);
 
-  test("a configuration that cannot be created fails the install after the stub is written, saying so", async () => {
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("a configuration that cannot be created fails the install after the stub is written, saying so", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     writeFileSync(join(home, ".config"), "a file where the directory should be\n");

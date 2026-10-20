@@ -119,9 +119,9 @@ async function openPermission(s: PtySession): Promise<void> {
   await s.flush();
 }
 
-// Skipped on Windows: the exit paths compare the main screen and send SIGTERM, and the surfaces tests expect truecolour from a bare ConPTY.
-describe.skipIf(WINDOWS)("JediTerm emulation: truecolour surfaces (bug 3)", () => {
-  test("OSC 10 and 11 answered: truecolour fills, and the selected option differs from the card", async () => {
+describe("JediTerm emulation: truecolour surfaces (bug 3)", () => {
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("OSC 10 and 11 answered: truecolour fills, and the selected option differs from the card", async () => {
     const { s } = start({ colours: DARK });
     await openPermission(s);
     const raw = s.rawOutput();

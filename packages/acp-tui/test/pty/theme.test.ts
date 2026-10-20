@@ -70,9 +70,9 @@ async function quit(s: PtySession) {
 // it (256-colour only) it maps them to the nearest palette index. The default
 // foreground must survive both.
 for (const colorterm of ["truecolor", ""]) {
-  // Skipped on Windows: it reads the raw colour bytes of the PTY stream, which a bare ConPTY rewrites.
-  describe.skipIf(WINDOWS)(`Default foreground is not forced to white (COLORTERM=${colorterm || "unset"})`, () => {
-    test("rows styled with a default-foreground token use the terminal's own foreground", async () => {
+  describe(`Default foreground is not forced to white (COLORTERM=${colorterm || "unset"})`, () => {
+    // Skipped on Windows: it reads the raw colour bytes of the PTY stream, which a bare ConPTY rewrites.
+    test.skipIf(WINDOWS)("rows styled with a default-foreground token use the terminal's own foreground", async () => {
       const s = await run(colorterm);
       for (const tag of ["TEXT", "CORE", "DONE"]) {
         const cells = fgCells(s, tag);
@@ -114,7 +114,8 @@ for (const colorterm of ["truecolor", ""]) {
       await quit(s);
     }, 20000);
 
-    test("OpenTUI #1105 canary: a renderable with no fg is still painted white", async () => {
+    // Skipped on Windows: it reads the raw colour bytes of the PTY stream, which a bare ConPTY rewrites (the 256-colour variant).
+    test.skipIf(WINDOWS && !colorterm)("OpenTUI #1105 canary: a renderable with no fg is still painted white", async () => {
       // If this starts failing, OpenTUI has fixed #1105; the explicit `text`
       // token remains correct either way.
       const s = await run(colorterm);
@@ -126,8 +127,7 @@ for (const colorterm of ["truecolor", ""]) {
   });
 }
 
-// Skipped on Windows: it reads the raw colour bytes of the PTY stream, which a bare ConPTY rewrites.
-describe.skipIf(WINDOWS)("Token styling can be swapped", () => {
+describe("Token styling can be swapped", () => {
   test("mapping accent to another index recolours every accent element and nothing else", async () => {
     const base = await run("truecolor");
     const snapshot = (s: PtySession) =>

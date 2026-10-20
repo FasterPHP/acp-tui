@@ -103,11 +103,11 @@ function afterReset(s: PtySession): string {
   return raw.slice(raw.lastIndexOf(FINAL_RESET) + FINAL_RESET.length);
 }
 
-// Skipped on Windows: every test compares the main screen and the raw restore sequences of the PTY stream (ConPTY rewrites them) or sends POSIX signals.
-describe.skipIf(WINDOWS)("every exit path restores the terminal (task 4.1)", () => {
+describe("every exit path restores the terminal (task 4.1)", () => {
   // Without a prompt there is no session to resume, so nothing is printed (mvp-sessions design
   // decision 12): the cursor stays on the row below the command line.
-  test("Ctrl+D: status 0, nothing below the command line", async () => {
+  // Skipped on Windows: it compares the main screen and the raw restore sequences of the PTY stream (ConPTY clears, repaints and rewrites them), or sends POSIX signals.
+  test.skipIf(WINDOWS)("Ctrl+D: status 0, nothing below the command line", async () => {
     const { s, agentLog } = start();
     await ready(s);
     s.sendKeys("Ctrl+D");
@@ -123,7 +123,8 @@ describe.skipIf(WINDOWS)("every exit path restores the terminal (task 4.1)", () 
     ["SIGINT", 130],
     ["SIGQUIT", 131],
   ] as const) {
-    test(`${signal}: status ${code}, detached without session/cancel or session/close`, async () => {
+    // Skipped on Windows: it compares the main screen and the raw restore sequences of the PTY stream (ConPTY clears, repaints and rewrites them), or sends POSIX signals.
+    test.skipIf(WINDOWS)(`${signal}: status ${code}, detached without session/cancel or session/close`, async () => {
       const { s, agentLog } = start();
       await ready(s);
       s.kill(signal);
@@ -136,7 +137,8 @@ describe.skipIf(WINDOWS)("every exit path restores the terminal (task 4.1)", () 
     });
   }
 
-  test("start-up failure: status 1, the error below the command line, no resume line", async () => {
+  // Skipped on Windows: it compares the main screen and the raw restore sequences of the PTY stream (ConPTY clears, repaints and rewrites them), or sends POSIX signals.
+  test.skipIf(WINDOWS)("start-up failure: status 1, the error below the command line, no resume line", async () => {
     const { s } = start({ agent: ["--", "acp-tui-no-such-agent"] });
     expect(await s.wait(10000)).toBe(1);
     const rows = await expectRestored(s);
@@ -145,7 +147,8 @@ describe.skipIf(WINDOWS)("every exit path restores the terminal (task 4.1)", () 
     expectCursorBelow(s, rows.length);
   });
 
-  test("uncaught error during a turn (the crash test hook, ACP_TUI_TEST_HOOKS=crash, F12): status 1, the resume line then the error, nothing sent", async () => {
+  // Skipped on Windows: it compares the main screen and the raw restore sequences of the PTY stream (ConPTY clears, repaints and rewrites them), or sends POSIX signals.
+  test.skipIf(WINDOWS)("uncaught error during a turn (the crash test hook, ACP_TUI_TEST_HOOKS=crash, F12): status 1, the resume line then the error, nothing sent", async () => {
     // `--load`: the session can be resumed, and it had a prompt.
     const { s, agentLog, agent } = start({ env: { ACP_TUI_TEST_HOOKS: "crash" }, agentArgs: ["--load"] });
     await ready(s);

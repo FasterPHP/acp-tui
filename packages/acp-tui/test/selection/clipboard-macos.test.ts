@@ -68,8 +68,7 @@ function setup(names: readonly StubName[], extra: Record<string, string> = {}) {
   return { stubs, env: { PATH: stubs.bin, STUB_LOG: stubs.log, ...extra } };
 }
 
-// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
-describe.skipIf(WINDOWS)("the host on macOS", () => {
+describe("the host on macOS", () => {
   test("the pasteboard, whatever the display variables say; none over SSH; Linux unchanged", () => {
     expect(hostDisplay({}, DARWIN)).toBe("macos");
     expect(hostDisplay({ DISPLAY: "/private/tmp/com.apple.launchd.x/org.xquartz:0" }, DARWIN)).toBe("macos");
@@ -80,7 +79,8 @@ describe.skipIf(WINDOWS)("the host on macOS", () => {
     expect(hostDisplay({ SSH_CONNECTION: "1 2 3 4" }, "linux")).toBeNull();
   });
 
-  test("pbcopy and pbpaste only on the environment's PATH, and only on macOS", () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("pbcopy and pbpaste only on the environment's PATH, and only on macOS", () => {
     const { stubs: s } = setup(["pbcopy", "pbpaste", "wl-copy"]);
     expect(findCopyHelper("macos", { PATH: s.bin })).toEqual({ name: "pbcopy", argv: [join(s.bin, "pbcopy")], env: { LANG: UTF8, LC_CTYPE: UTF8, LC_ALL: UTF8 } });
     expect(findPasteHelper("macos", { PATH: s.bin })).toEqual({ name: "pbpaste", argv: [join(s.bin, "pbpaste"), "-Prefer", "txt"], env: { LANG: UTF8, LC_CTYPE: UTF8, LC_ALL: UTF8 } });
@@ -96,9 +96,9 @@ describe.skipIf(WINDOWS)("the host on macOS", () => {
   });
 });
 
-// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
-describe.skipIf(WINDOWS)("copy on macOS", () => {
-  test("pbcopy gets the text on stdin with an argument list, no shell, a UTF-8 locale, and the toast names it", async () => {
+describe("copy on macOS", () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("pbcopy gets the text on stdin with an argument list, no shell, a UTF-8 locale, and the toast names it", async () => {
     const { stubs: s, env } = setup(["pbcopy"], { LANG: "C" });
     const native = fakeHost();
     const renderer = fakeRenderer();
@@ -125,7 +125,8 @@ describe.skipIf(WINDOWS)("copy on macOS", () => {
     await copier.dispose();
   });
 
-  test("clipboard host uses pbcopy as well", async () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("clipboard host uses pbcopy as well", async () => {
     const { stubs: s, env } = setup(["pbcopy"]);
     const outcome = await createCopier({ renderer: fakeRenderer(), host: fakeHost().host, env, platform: DARWIN, mode: "host" }).copy("abc", "test");
     expect(outcome).toMatchObject({ path: "host", via: "pbcopy" });
@@ -142,7 +143,8 @@ describe.skipIf(WINDOWS)("copy on macOS", () => {
     expect(copyToast(3, outcome, copier.display).text).toBe("copied 3 chars to the macOS clipboard");
   });
 
-  test("pbcopy fails: the native backend; it times out: killed, then the native backend", async () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("pbcopy fails: the native backend; it times out: killed, then the native backend", async () => {
     const failing = setup(["pbcopy"], { STUB_MODE: "fail" });
     const native = fakeHost();
     expect(await createCopier({ renderer: fakeRenderer(), host: native.host, env: failing.env, platform: DARWIN }).copy("abc", "test")).toMatchObject({ path: "host", via: "native" });
@@ -187,9 +189,9 @@ describe.skipIf(WINDOWS)("copy on macOS", () => {
   }
 });
 
-// Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
-describe.skipIf(WINDOWS)("paste on macOS", () => {
-  test("pbpaste's text is pasted, read with -Prefer txt and a UTF-8 locale; the native backend is not asked; the log names pbpaste, never the text", async () => {
+describe("paste on macOS", () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("pbpaste's text is pasted, read with -Prefer txt and a UTF-8 locale; the native backend is not asked; the log names pbpaste, never the text", async () => {
     const text = "two\nlines é 漢 \u{1F600}";
     const { stubs: s, env } = setup(["pbpaste"], { STUB_PASTE: text, LANG: "C" });
     const native = fakeHost("written", { status: "read", representation: { mimeType: "text/plain", bytes: new TextEncoder().encode("native") } });
@@ -205,12 +207,14 @@ describe.skipIf(WINDOWS)("paste on macOS", () => {
     await reader.dispose();
   });
 
-  test("clipboard host reads pbpaste as well", async () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("clipboard host reads pbpaste as well", async () => {
     const { env } = setup(["pbpaste"], { STUB_PASTE: "abc" });
     expect(await createClipboardReader({ env, platform: DARWIN, host: NO_HOST, mode: "host" }).read("ctrl+v")).toEqual({ kind: "text", text: "abc" });
   });
 
-  test("an empty pbpaste (no text, or only an image) is nothing to paste, with the existing notice", async () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("an empty pbpaste (no text, or only an image) is nothing to paste, with the existing notice", async () => {
     const { env } = setup(["pbpaste"]);
     const native = fakeHost();
     const read = await createClipboardReader({ env, platform: DARWIN, host: native.host }).read("ctrl+v");
@@ -219,7 +223,8 @@ describe.skipIf(WINDOWS)("paste on macOS", () => {
     expect(native.reads).toEqual([]);
   });
 
-  test("pbpaste missing or failing: the native backend reads the pasteboard", async () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("pbpaste missing or failing: the native backend reads the pasteboard", async () => {
     const answer: ClipboardReadResult = { status: "read", representation: { mimeType: "text/plain", bytes: new TextEncoder().encode("from native") } };
     const missing = setup([]);
     const native = fakeHost("written", answer);
@@ -237,7 +242,8 @@ describe.skipIf(WINDOWS)("paste on macOS", () => {
     expect(logged[0]).toMatchObject({ status: "read", via: "native" });
   });
 
-  test("pbpaste does not answer in time: killed, and the notice says so", async () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("pbpaste does not answer in time: killed, and the notice says so", async () => {
     const { stubs: s, env } = setup(["pbpaste"], { STUB_MODE: "hang" });
     const native = fakeHost();
     expect(await createClipboardReader({ env, platform: DARWIN, host: native.host, helperTimeoutMs: 1500 }).read("ctrl+v")).toEqual({ kind: "none", reason: "the clipboard did not answer in time" });
@@ -247,7 +253,8 @@ describe.skipIf(WINDOWS)("paste on macOS", () => {
     expect(native.reads).toEqual([]);
   });
 
-  test("more than the limit: limit-exceeded, the process killed", async () => {
+  // Skipped on Windows: the clipboard program stubs are Bun scripts started through their shebang (and read through /proc), which Windows cannot run; the Windows host has no program and its logic is covered by clipboard-windows.test.ts with the platform injected.
+  test.skipIf(WINDOWS)("more than the limit: limit-exceeded, the process killed", async () => {
     const { stubs: s, env } = setup(["pbpaste"], { STUB_PASTE: "x".repeat(64) });
     const helper = findPasteHelper("macos", env)!;
     expect(await runPasteHelper(helper, env, 2000, 63)).toEqual({ status: "limit-exceeded" });

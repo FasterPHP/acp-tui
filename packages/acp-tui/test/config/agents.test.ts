@@ -89,9 +89,9 @@ describe("Zed's entry shape", () => {
   });
 });
 
-// Skipped on Windows: mode bits decide this check on POSIX; Windows checks the file owner instead (test/config/writers.test.ts).
-describe.skipIf(WINDOWS)("World-writable file (task 1.6)", () => {
-  test("a user's file of mode 0666 defining agent_servers.fake: acp-tui -a fake exits non-zero, saying harness commands are not read from a file other users can write", async () => {
+describe("World-writable file (task 1.6)", () => {
+  // Skipped on Windows: mode bits decide this check on POSIX; Windows checks the file owner instead (test/config/writers.test.ts).
+  test.skipIf(WINDOWS)("a user's file of mode 0666 defining agent_servers.fake: acp-tui -a fake exits non-zero, saying harness commands are not read from a file other users can write", async () => {
     const { home, file } = configHome(FAKE, { file: 0o666 });
     const r = await run(["-a", "fake"], home);
     expect(r.code).not.toBe(0);
@@ -100,7 +100,8 @@ describe.skipIf(WINDOWS)("World-writable file (task 1.6)", () => {
     expect(r.stderr).toContain(`the file ${file} has mode 0666`);
   });
 
-  test("a group-writable directory (0775) refuses them too", async () => {
+  // Skipped on Windows: mode bits decide this check on POSIX; Windows checks the file owner instead (test/config/writers.test.ts).
+  test.skipIf(WINDOWS)("a group-writable directory (0775) refuses them too", async () => {
     const { home } = configHome(FAKE, { dir: 0o775 });
     const r = await run(["-a", "fake"], home);
     expect(r.code).not.toBe(0);
@@ -108,7 +109,8 @@ describe.skipIf(WINDOWS)("World-writable file (task 1.6)", () => {
     expect(r.stderr).toContain("has mode 0775");
   });
 
-  test("only the built-in agents are available, the refusal is a problem, and other sections still apply", async () => {
+  // Skipped on Windows: mode bits decide this check on POSIX; Windows checks the file owner instead (test/config/writers.test.ts).
+  test.skipIf(WINDOWS)("only the built-in agents are available, the refusal is a problem, and other sections still apply", async () => {
     const { home } = configHome(FAKE, { file: 0o666 });
     const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: home } });
     expect([...catalogue.agents.keys()]).toEqual(["claude"]);
