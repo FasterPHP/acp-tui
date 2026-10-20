@@ -40,6 +40,8 @@ export interface ConfigCommandContext {
   readonly cwd?: string;
   /** Where XDG_CONFIG_HOME and HOME come from; default `process.env`. */
   readonly env?: Env;
+  /** Whose paths apply (tests); default `process.platform`. */
+  readonly platform?: NodeJS.Platform;
 }
 
 export const CONFIG_HELP = `Usage: acp-tui config --check | --print-default | --print-schema | --path
@@ -133,6 +135,6 @@ export async function runConfigCommand(args: readonly string[], io: ConfigComman
   // app. Loaded here, before the files are read; no renderer is created.
   await import("@opentui/core");
   const cwd = context.cwd ?? process.cwd();
-  const read = readConfiguration({ env: context.env ?? process.env, sessionDirectory: cwd });
+  const read = readConfiguration({ env: context.env ?? process.env, sessionDirectory: cwd, ...(context.platform ? { platform: context.platform } : {}) });
   return action === "--check" ? runCheck(io, read) : runPath(io, read, cwd);
 }

@@ -17,7 +17,7 @@ import { parseTree, printParseErrorCode, type Node, type ParseError } from "json
 import { lineStarts, Loader, position, properties, valueOf } from "../config/load.ts";
 import { suggest, type ConfigProblem } from "../config/problems.ts";
 import { THEME_NAME_PATTERN, ThemeFileSchema, tokenNameProblem, tokenValueSchema } from "../config/schema.ts";
-import type { FileRead } from "../config/sources.ts";
+import { withoutBom, type FileRead } from "../config/sources.ts";
 import { RETIRED_TOKENS, TOKEN_NAMES, type ColorValue, type TokenName } from "./tokens.ts";
 
 /** The built-in theme's name: the root of every `extends` chain, never read from a file. */
@@ -72,10 +72,13 @@ export function themeFile(themesDir: string, name: string): string {
  * null when the file cannot be used at all (missing, not JSONC, not an object, an invalid
  * `extends`), and the previous theme then stays in use.
  */
-export function parseThemeFile(text: string | null, file: string, name: string): { layer: ThemeLayer | null; problems: ConfigProblem[] } {
-  if (text === null) {
+export function parseThemeFile(source: string | null, file: string, name: string): { layer: ThemeLayer | null; problems: ConfigProblem[] } {
+  if (source === null) {
     return { layer: null, problems: [{ file, line: 1, column: 1, path: "", severity: "error", message: `does not exist, so theme "${name}" cannot be used; the previous theme stays in use` }] };
   }
+  // A theme saved with a byte order mark reads as the same file without it (tui-config "Byte order
+  // mark ignored"); readConfigFile drops it already, a test's reader may not.
+  const text = withoutBom(source);
   const errors: ParseError[] = [];
   const root = parseTree(text, errors, { allowTrailingComma: true, disallowComments: false, allowEmptyContent: true });
   const loader = new Loader(file, text, root);

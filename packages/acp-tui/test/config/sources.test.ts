@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { effectiveConfig, mergeRaw } from "../../src/config/effective.ts";
 import { defaultConfig } from "../../src/config/schema.ts";
-import { configDirectory, findProjectFile, themesDirectory, userConfigFile } from "../../src/config/sources.ts";
+import { configDirectory, findProjectFile, readConfigFile, themesDirectory, userConfigFile } from "../../src/config/sources.ts";
 import { createConfigStore } from "../../src/config/store.ts";
 
 const temp = (prefix: string) => realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix)));
@@ -173,5 +173,25 @@ describe("Precedence of settings (task 2.4)", () => {
     expect(store.config().exit.print).toBe("transcript");
     expect(store.config().mouse).toBe("wheel");
     expect(result.changed).toEqual(["mouse"]);
+  });
+});
+
+describe("Byte order mark ignored (windows-support)", () => {
+  test("readConfigFile drops a leading U+FEFF, and only a leading one", () => {
+    const dir = temp("acp-tui-bom-");
+    const file = join(dir, "config.jsonc");
+    writeFileSync(file, `\uFEFF{ "mouse": "off" }`);
+    expect(readConfigFile(file).text).toBe(`{ "mouse": "off" }`);
+    writeFileSync(file, `{ "x": "\uFEFF" }`);
+    expect(readConfigFile(file).text).toBe(`{ "x": "\uFEFF" }`);
+  });
+
+  test("File saved with a BOM: the store starts with mouse off and no problem", () => {
+    const xdg = temp("acp-tui-xdg-");
+    mkdirSync(join(xdg, "acp-tui"));
+    writeFileSync(join(xdg, "acp-tui", "config.jsonc"), Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(`{ "mouse": "off" }`)]));
+    const store = createConfigStore({ env: { XDG_CONFIG_HOME: xdg, HOME: xdg }, sessionDirectory: null });
+    expect(store.config().mouse).toBe("off");
+    expect(store.problems()).toEqual([]);
   });
 });

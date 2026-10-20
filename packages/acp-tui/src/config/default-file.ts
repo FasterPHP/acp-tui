@@ -379,55 +379,77 @@ function setting(path: string, key: string, schema: AnySchema, value: unknown, i
   return [...leafComment(schema, indent), `${indent}"${key}": ${json(value)},`];
 }
 
-/** The header: a title, then sections, each a heading and its paragraphs (task 12.7). */
-export const DEFAULT_FILE_HEADER: readonly { readonly heading: string; readonly paragraphs: readonly string[] }[] = [
-  {
-    heading: "acp-tui configuration",
-    paragraphs: [
-      "This is acp-tui's configuration file: $XDG_CONFIG_HOME/acp-tui/config.jsonc, or ~/.config/acp-tui/config.jsonc when XDG_CONFIG_HOME is not set. acp-tui config --path shows where acp-tui looks for it. It is JSONC: JSON that allows comments and trailing commas.",
-    ],
+/** Where the file is, as the header's first paragraph says it, per platform (tui-config
+ *  "Configuration locations on Windows"). */
+const LOCATION: Readonly<Record<"posix" | "win32", { readonly file: string; readonly schemaExample: string }>> = {
+  posix: {
+    file: "This is acp-tui's configuration file: $XDG_CONFIG_HOME/acp-tui/config.jsonc, or ~/.config/acp-tui/config.jsonc when XDG_CONFIG_HOME is not set.",
+    schemaExample: "file:///home/you/.config/acp-tui/config.schema.json",
   },
-  {
-    heading: "Making changes",
-    paragraphs: [
-      "Lines that are not commented out are in effect. Each holds its setting's built-in default, so this file as printed changes nothing: acp-tui behaves as it does with no file. Edit a value to change that setting.",
-      'Lines commented out with // are not in effect. Some show the value acp-tui uses while a setting is absent: uncomment one and change it to replace that value. The others are examples, each introduced by "Example, not active": uncomment one to use it.',
-      "Delete whatever you do not need: a setting that is absent keeps its default.",
-    ],
+  win32: {
+    file: "This is acp-tui's configuration file: %APPDATA%\\acp-tui\\config.jsonc, or $XDG_CONFIG_HOME\\acp-tui\\config.jsonc when XDG_CONFIG_HOME is set.",
+    schemaExample: "file:///C:/Users/you/AppData/Roaming/acp-tui/config.schema.json",
   },
-  {
-    heading: "Validating changes",
-    paragraphs: [
-      "acp-tui config --check checks this file and the project file of the current directory. It prints each problem with its line and column, and exits with status 1 if there is an error, or 0 if there are only warnings or no problems.",
-      'A running acp-tui reports problems too: "config N" in the status row, and every problem in full under "Configuration problems" in the command palette (ctrl+p, or ? in an empty prompt box). A setting with a wrong value keeps its last good value; an unknown name is only a warning, and is ignored.',
-    ],
-  },
-  {
-    heading: "Live reload",
-    paragraphs: [
-      "A running acp-tui reloads this file within a second of a save, and most changes apply at once. Two apply later: agent_servers and default_agent_server from the next session you start, and terminals.<id>.hyperlinks from the next start of acp-tui.",
-      "The command-line options --mouse, --wheel-lines, --exit-print and --clipboard win over this file for the run they are given in.",
-    ],
-  },
-  {
-    heading: "Project files",
-    paragraphs: [
-      "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent, clipboard, terminals, and the keys of the card and elicitation contexts.",
-    ],
-  },
-  {
-    heading: "Editor completion",
-    paragraphs: [
-      'For completion and checking in an editor, save the JSON Schema that acp-tui config --print-schema prints, and name it in a "$schema" key at the top of this file, such as "$schema": "file:///home/you/.config/acp-tui/config.schema.json". acp-tui ignores "$schema".',
-    ],
-  },
-];
+};
+
+export type FileHeader = readonly { readonly heading: string; readonly paragraphs: readonly string[] }[];
+
+/** The header: a title, then sections, each a heading and its paragraphs (task 12.7), naming the
+ *  platform's location. */
+export function defaultFileHeader(platform: NodeJS.Platform = process.platform): FileHeader {
+  const location = LOCATION[platform === "win32" ? "win32" : "posix"];
+  return [
+    {
+      heading: "acp-tui configuration",
+      paragraphs: [
+        `${location.file} acp-tui config --path shows where acp-tui looks for it. It is JSONC: JSON that allows comments and trailing commas.`,
+      ],
+    },
+    {
+      heading: "Making changes",
+      paragraphs: [
+        "Lines that are not commented out are in effect. Each holds its setting's built-in default, so this file as printed changes nothing: acp-tui behaves as it does with no file. Edit a value to change that setting.",
+        'Lines commented out with // are not in effect. Some show the value acp-tui uses while a setting is absent: uncomment one and change it to replace that value. The others are examples, each introduced by "Example, not active": uncomment one to use it.',
+        "Delete whatever you do not need: a setting that is absent keeps its default.",
+      ],
+    },
+    {
+      heading: "Validating changes",
+      paragraphs: [
+        "acp-tui config --check checks this file and the project file of the current directory. It prints each problem with its line and column, and exits with status 1 if there is an error, or 0 if there are only warnings or no problems.",
+        'A running acp-tui reports problems too: "config N" in the status row, and every problem in full under "Configuration problems" in the command palette (ctrl+p, or ? in an empty prompt box). A setting with a wrong value keeps its last good value; an unknown name is only a warning, and is ignored.',
+      ],
+    },
+    {
+      heading: "Live reload",
+      paragraphs: [
+        "A running acp-tui reloads this file within a second of a save, and most changes apply at once. Two apply later: agent_servers and default_agent_server from the next session you start, and terminals.<id>.hyperlinks from the next start of acp-tui.",
+        "The command-line options --mouse, --wheel-lines, --exit-print and --clipboard win over this file for the run they are given in.",
+      ],
+    },
+    {
+      heading: "Project files",
+      paragraphs: [
+        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent, clipboard, terminals, and the keys of the card and elicitation contexts.",
+      ],
+    },
+    {
+      heading: "Editor completion",
+      paragraphs: [
+        `For completion and checking in an editor, save the JSON Schema that acp-tui config --print-schema prints, and name it in a "$schema" key at the top of this file, such as "$schema": "${location.schemaExample}". acp-tui ignores "$schema".`,
+      ],
+    },
+  ];
+}
+
+/** The header on Linux and macOS. */
+export const DEFAULT_FILE_HEADER: FileHeader = defaultFileHeader("linux");
 
 /** The header as comment lines: each heading with a blank comment line after it, and one between
  *  sections. */
-function headerLines(): string[] {
+function headerLines(platform: NodeJS.Platform): string[] {
   const lines: string[] = [];
-  DEFAULT_FILE_HEADER.forEach(({ heading, paragraphs }, i) => {
+  defaultFileHeader(platform).forEach(({ heading, paragraphs }, i) => {
     if (i > 0) lines.push(blank(""));
     lines.push(...comment(heading, ""), blank(""));
     for (const paragraph of paragraphs) lines.push(...comment(paragraph, ""));
@@ -435,10 +457,10 @@ function headerLines(): string[] {
   return lines;
 }
 
-/** The commented default configuration file. */
-export function commentedDefault(): string {
+/** The commented default configuration file; its header names `platform`'s location. */
+export function commentedDefault(platform: NodeJS.Platform = process.platform): string {
   const defaults = defaultConfig() as unknown as Record<SectionName, unknown>;
-  const lines: string[] = [...headerLines(), "{"];
+  const lines: string[] = [...headerLines(platform), "{"];
   (Object.keys(SECTIONS) as SectionName[]).forEach((section, i) => {
     if (i > 0) lines.push("");
     lines.push(...setting(section, section, SECTIONS[section] as unknown as AnySchema, defaults[section], STEP));

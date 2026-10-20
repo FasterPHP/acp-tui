@@ -10,7 +10,8 @@ import { effectiveConfig, nextLastGood, type ConfigOverrides } from "./effective
 import { parseConfigText, type ConfigSourceKind, type ParsedSource } from "./load.ts";
 import type { ConfigProblem } from "./problems.ts";
 import type { Config } from "./schema.ts";
-import { findProjectFile, homeDirectory, readConfigFile, themesDirectory, userConfigFile, type Env, type FileRead } from "./sources.ts";
+import type { Platform } from "../platform/paths.ts";
+import { findProjectFile, homeDirectory, readConfigFile, themesDirectory, userConfigFile, type Env, type FileRead, type ReadOptions } from "./sources.ts";
 
 function readProblem(file: string, error: string): ConfigProblem {
   return { file, line: 1, column: 1, path: "", severity: "error", message: `could not be read (${error}) and is ignored` };
@@ -31,7 +32,9 @@ export interface ReadConfigurationOptions {
   /** Agent names that exist without the file; default the built-in. */
   readonly knownAgents?: readonly string[];
   /** Reads a file (tests); default `readConfigFile`. */
-  readonly read?: (path: string, options: { checkWriters?: boolean }) => FileRead;
+  readonly read?: (path: string, options: ReadOptions) => FileRead;
+  /** Whose paths and writer rules apply (tests); default `process.platform`. */
+  readonly platform?: Platform;
 }
 
 export interface ConfigurationRead {
@@ -51,8 +54,9 @@ export function readConfiguration(options: ReadConfigurationOptions): Configurat
   const env = options.env ?? process.env;
   const read = options.read ?? readConfigFile;
   const knownAgents = options.knownAgents ?? [BUILT_IN_AGENT_NAME];
-  const userFile = userConfigFile(env);
-  const user = loadSource(read(userFile, { checkWriters: true }), userFile, "user", knownAgents);
+  const platform = options.platform ?? process.platform;
+  const userFile = userConfigFile(env, platform);
+  const user = loadSource(read(userFile, { checkWriters: true, env, platform }), userFile, "user", knownAgents);
   const projectFile = options.sessionDirectory === null ? null : findProjectFile(options.sessionDirectory, { home: homeDirectory(env) });
   const project = projectFile === null ? null : loadSource(read(projectFile, {}), projectFile, "project", knownAgents);
   const config = effectiveConfig({
@@ -64,7 +68,7 @@ export function readConfiguration(options: ReadConfigurationOptions): Configurat
     config,
     problems: [...user.problems, ...(project?.problems ?? [])],
     notices: [...user.notices, ...(project?.notices ?? [])],
-    files: { user: userFile, project: projectFile, themes: themesDirectory(env) },
+    files: { user: userFile, project: projectFile, themes: themesDirectory(env, platform) },
     present: { user: user.status !== "absent", project: project !== null && project.status !== "absent" },
   };
 }
