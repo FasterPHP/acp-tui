@@ -248,7 +248,7 @@ Unset values keep the built-in ones (`config --print-default` lists them as comm
 | Setting | Values | Default | What it does |
 | --- | --- | --- | --- |
 | `exit.print` | `"summary"`, `"none"`, `"last-answer"`, `"transcript"` | `"summary"` | What is printed below the command line on exit: `"summary"` - the command that resumes the session, when it can be resumed; `"none"` - nothing; `"last-answer"` - that command, then the agent's last answer as plain text; `"transcript"` - that command, then the whole conversation as plain text. |
-| `clipboard` | `"auto"`, `"host"`, `"osc52"`, `"none"` | `"auto"` | Where copied text goes: `"auto"` - the system clipboard, else through the terminal by OSC 52; `"host"` - only the system clipboard, through Wayland or X11; `"osc52"` - only through the terminal by OSC 52, which also works over SSH; `"none"` - nowhere: copying is turned off. |
+| `clipboard` | `"auto"`, `"host"`, `"osc52"`, `"none"` | `"auto"` | Where copied text goes: `"auto"` - the system clipboard, else through the terminal by OSC 52; `"host"` - only the system clipboard (Wayland or X11 on Linux, the pasteboard on macOS, the Windows clipboard); `"osc52"` - only through the terminal by OSC 52, which also works over SSH; `"none"` - nowhere: copying is turned off. |
 | `selection.copy_on_release` | boolean | `true` | Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C. |
 
 The host clipboard is `wl-copy` or `xclip` on Linux (with a display) and `pbcopy` on macOS, each falling back to OpenTUI's own backend; Ctrl+V reads it (through `pbpaste` on macOS) under `auto` and `host` only.
