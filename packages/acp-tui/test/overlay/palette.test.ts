@@ -4,6 +4,7 @@
 // titles, as `commandCatalogue` reports every registered command.
 import { describe, expect, test } from "bun:test";
 import { COMMAND_TITLES, DEFAULT_KEY_MAP, KEY_ACTIONS, KEY_CONTEXTS, keyLabel, keysFor, loadKeyMap, type KeyContext } from "../../src/keys/keymap.ts";
+import type { NewlineHintState } from "../../src/keys/newline-hint.ts";
 import type { CatalogueEntry } from "../../src/keys/register.ts";
 import { SELECTION_HELP } from "../../src/selection/help.ts";
 import { ALTERNATIVES_GROUP, helpItems, HELP_GROUPS, MOUSE_GROUP } from "../../src/overlay/help.ts";
@@ -132,11 +133,11 @@ describe("Key help (task 6.8)", () => {
     const global = items.filter((i) => i.group === "Anywhere");
     expect(global.find((i) => i.title === "Move focus to the next region")?.keys).toEqual(["tab"]);
     expect(global.find((i) => i.title === "Interrupt the running turn (press twice)")?.keys).toEqual(["esc"]);
-    // Every bound key of every context is in help, except the newline's Ctrl+Enter, which help names
+    // Every bound key of every context is in help, except Ctrl+Enter (newline, find's previous), which help names
     // only in Windows Terminal without the kitty protocol (windows-support design D7; newline-hint.test.ts).
     for (const context of KEY_CONTEXTS) {
       for (const [key, action] of Object.entries(DEFAULT_KEY_MAP[context])) {
-        if (context === "prompt" && key === "ctrl+return") continue;
+        if ((context === "prompt" || context === "find") && key === "ctrl+return") continue;
         const title = (COMMAND_TITLES[context] as Record<string, string>)[action];
         expect(items.some((i) => i.title === title && (i.keys ?? []).includes(keyLabel(key)))).toBe(true);
       }
@@ -168,6 +169,24 @@ describe("Key help (task 6.8)", () => {
     const rebound = helpItems(loadKeyMap({ global: { f3: null, f5: "findNext", "ctrl+t": null } }), 59).filter((i) => i.group === ALTERNATIVES_GROUP);
     expect(rebound.map((i) => i.title)).toContain("Kept by PhpStorm: f5, the palette");
     expect(rebound.some((i) => (i.keys ?? []).includes("ctrl+t"))).toBe(false);
+  });
+
+  test("in Windows Terminal the alternatives name it for Ctrl+V, Ctrl+Shift+V and Alt+Enter; elsewhere the text is what it was", () => {
+    const kept = (hint: NewlineHintState) => helpItems(DEFAULT_KEY_MAP, 59, hint).filter((i) => i.group === ALTERNATIVES_GROUP).map((i) => [i.title, (i.keys ?? []).join(" ")]);
+    const wt = kept({ terminal: "windows-terminal", kitty: false });
+    expect(wt).toContainEqual(["Kept by Windows Terminal: its own paste for text, alt+v, the palette", "ctrl+v"]);
+    expect(wt).toContainEqual(["Kept by Windows Terminal: alt+v, the palette", "ctrl+shift+v"]);
+    expect(wt).toContainEqual(["Kept by Windows Terminal: ctrl+enter, ctrl+j", "alt+enter"]);
+    // The find bar's previous key follows the newline rule: ctrl+enter without kitty, shift+enter with it.
+    expect(wt).toContainEqual(["Lost in most terminals: ctrl+enter in the find bar", "shift+f3"]);
+    expect(kept({ terminal: "windows-terminal", kitty: true })).toContainEqual(["Lost in most terminals: shift+enter in the find bar", "shift+f3"]);
+    for (const terminal of ["default", "jetbrains", "zed"] as const) {
+      const other = kept({ terminal, kitty: false });
+      expect(other.some(([title]) => title!.includes("Windows Terminal")), terminal).toBe(false);
+      expect(other).toContainEqual(["Kept by PhpStorm: its own paste for text, alt+v, the palette", "ctrl+v"]);
+      expect(other).toContainEqual(["Kept by PhpStorm and Zed: alt+v, the palette", "ctrl+shift+v"]);
+      expect(other).toContainEqual(["Lost in most terminals: shift+enter in the find bar", "shift+f3"]);
+    }
   });
 
   test("the selection's wording (SELECTION_HELP), wrapped to the overlay's width", () => {

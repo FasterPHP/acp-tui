@@ -242,7 +242,7 @@
         {
           "key": "meta+return",
           "how": "Kept by the terminal: Alt+Enter toggles full screen in every version (nothing reaches the app)",
-          "alternatives": [{ "key": "ctrl+return", "context": "prompt", "action": "newline" }, { "key": "shift+return", "context": "find", "action": "previous" }, { "key": "linefeed", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
+          "alternatives": [{ "key": "ctrl+return", "context": "prompt", "action": "newline" }, { "key": "ctrl+return", "context": "find", "action": "previous" }, { "key": "shift+return", "context": "find", "action": "previous" }, { "key": "linefeed", "context": "find", "action": "previous" }, { "palette": "global.findPrevious" }]
         },
         {
           "key": "ctrl+v",

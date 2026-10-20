@@ -8,6 +8,7 @@
 // right as the width shrinks; the query keeps its tail (where the typing is).
 import { stripAnsiSequences } from "@opentui/core";
 import { actionLabel, type KeyMap } from "../keys/keymap.ts";
+import { findPreviousLabel, newlineHintState, type NewlineHintState } from "../keys/newline-hint.ts";
 import { displayWidth, fitSegments, type Segment } from "../layout/segments.ts";
 
 export const FIND_LABEL = "find: ";
@@ -29,11 +30,12 @@ function hint(label: string | null, text: string): Segment[] {
   return label ? [{ text: " · ", token: "muted", breakBefore: true }, { text: `${label} ${text}`, token: "muted" }] : [];
 }
 
-/** The keys' hints, from the key map in use. */
-export function barHints(keyMap: KeyMap): Segment[] {
+/** The keys' hints, from the key map in use; "previous" names `ctrl+enter` only in Windows Terminal
+ *  without kitty, as the prompt box's newline hint does (keys/newline-hint.ts). */
+export function barHints(keyMap: KeyMap, terminal: NewlineHintState = newlineHintState()): Segment[] {
   return [
     ...hint(actionLabel(keyMap, "find", "next"), "next"),
-    ...hint(actionLabel(keyMap, "find", "previous"), "previous"),
+    ...hint(findPreviousLabel(keyMap, terminal), "previous"),
     ...hint(actionLabel(keyMap, "find", "conversation"), "go to"),
     ...hint(actionLabel(keyMap, "find", "close"), "back"),
   ];

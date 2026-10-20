@@ -26,8 +26,8 @@ afterEach(async () => {
   run = undefined;
 });
 
-async function start200(colours?: OscColours): Promise<CliRun> {
-  run = startCli({ scenario: "long-session", cols: 100, rows: 30, agentArgs: ["--items", "200"], ...(colours ? { colours } : {}) });
+async function start200(colours?: OscColours, env?: Record<string, string | undefined>): Promise<CliRun> {
+  run = startCli({ scenario: "long-session", cols: 100, rows: 30, agentArgs: ["--items", "200"], ...(colours ? { colours } : {}), ...(env ? { env } : {}) });
   await sendPrompt(run.session, FIRST);
   await run.session.waitFor(/end turn/, 30000);
   await settle(run.session);
@@ -122,6 +122,37 @@ describe("find at 200 items (task 15.2)", () => {
     await closeBar(s, "Esc");
     s.sendKeys({ text: "one" }, "Ctrl+J", { text: "two" });
     await s.waitFor((p) => promptText(p).join("|") === "one|two", 5000);
+  }, 60000);
+
+  // windows-support (spec tui-keymap "Find previous in Windows Terminal"): Ctrl+Enter steps back in
+  // the find bar in both encodings Windows Terminal uses, and the bar's hint follows the kitty answer.
+  test("Windows Terminal: the bar's hint reads ctrl+enter previous until the kitty answer, and Ctrl+Enter (LF in 1.24, CSI 13;5u in 1.25) steps to the previous hit", async () => {
+    const query = "git diff --stat";
+    const n = hitCount(query);
+    expect(n).toBeGreaterThan(2);
+    const { session: s } = await start200(undefined, { TERMINAL_EMULATOR: undefined, TERM_PROGRAM: undefined, WT_SESSION: "5f2c3a1e-8d9b-4c6a-9e0f-7b1d2a3c4e5f" });
+
+    await openAndType(s, query, new RegExp(`\\b${n} hits\\b`));
+    expect(findBar(s)).toContain("ctrl+enter previous");
+    expect(findBar(s)).not.toContain("shift+enter");
+    const at = (k: number) => s.waitFor((p) => new RegExp(`\\b${((k - 1 + n) % n) + 1} of ${n}\\b`).test(findBar(p) ?? ""), 5000);
+    s.sendKeys("Enter");
+    await s.waitFor((p) => / of /.test(findBar(p) ?? ""), 5000);
+    const first = Number(/\b(\d+) of /.exec(findBar(s)!)![1]);
+    s.sendKeys("Enter");
+    await at(first + 1);
+    s.sendKeys("Ctrl+J");
+    await at(first);
+    expect(findEvents(run!, "step").at(-1)?.["direction"]).toBe(-1);
+    // 1.25 answers the kitty query: Ctrl+Enter is CSI 13;5u and the hint names shift+enter.
+    s.write("\x1b[?5u");
+    await s.waitFor((p) => (findBar(p) ?? "").includes("shift+enter previous"), 5000);
+    s.sendKeys("Enter");
+    await at(first + 1);
+    s.write("\x1b[13;5u");
+    await at(first);
+    s.write("\x1b[13;2u");
+    await at(first - 1);
   }, 60000);
 
   for (const [name, colours] of [
