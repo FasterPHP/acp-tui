@@ -120,7 +120,7 @@ describe("loadKeyMap", () => {
       "ctrl+t": "cycleThoughtLevel",
       f1: "keyHelp",
     });
-    expect(keysFor(DEFAULT_KEY_MAP, "prompt", "newline")).toEqual(["shift+return", "meta+return", "linefeed", "ctrl+j"]);
+    expect(keysFor(DEFAULT_KEY_MAP, "prompt", "newline")).toEqual(["shift+return", "meta+return", "ctrl+return", "linefeed", "ctrl+j"]);
     expect(keysFor(DEFAULT_KEY_MAP, "prompt", "submit")).toEqual(["return"]);
     expect(keysFor(DEFAULT_KEY_MAP, "prompt", "lineUp")).toEqual(["up"]);
     expect(keysFor(DEFAULT_KEY_MAP, "prompt", "lineDown")).toEqual(["down"]);

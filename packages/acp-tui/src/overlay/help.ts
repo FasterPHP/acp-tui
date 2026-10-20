@@ -7,6 +7,7 @@
 // selection stays one step away"), wrapped to the overlay's width. Shown in
 // the palette's overlay (Overlay.tsx). Pure.
 import { COMMAND_TITLES, KEY_ACTIONS, KEY_SCOPES, keyLabel, keysFor, normaliseKey, type KeyAction, type KeyContext, type KeyMap } from "../keys/keymap.ts";
+import { newlineKeyLabels } from "../keys/newline-hint.ts";
 import { SELECTION_HELP } from "../selection/help.ts";
 import { wrapText, type ListItem } from "./list.ts";
 
@@ -78,7 +79,7 @@ export function helpItems(map: KeyMap, inner: number): ListItem[] {
   for (const { context, label } of HELP_GROUPS) {
     const titles = COMMAND_TITLES[context] as Record<string, string>;
     for (const action of KEY_ACTIONS[context]) {
-      const keys = labels(map, context, action);
+      const keys = context === "prompt" && action === "newline" ? newlineKeyLabels(map) : labels(map, context, action);
       if (keys.length === 0) continue;
       items.push({ id: `help:${context}.${action}`, group: label, title: titles[action] ?? action, keys, groupNote: KEY_SCOPES[context] });
     }

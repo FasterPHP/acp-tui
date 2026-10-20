@@ -45,6 +45,7 @@ import { createConfigStore, type ConfigStore } from "../config/store.ts";
 import { applyGlyphs, resetGlyphs } from "../conversation/live-glyphs.ts";
 import { problemNotice, problemsForLog } from "../config/problems.ts";
 import { resolveKeyOverrides } from "../keys/overrides.ts";
+import { setNewlineHintState } from "../keys/newline-hint.ts";
 import { problemsRoute } from "../overlay/problems.ts";
 import type { ConfigOverrides } from "../config/effective.ts";
 import {
@@ -451,7 +452,12 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
           // Derived surfaces also need 24-bit colour; without it the theme stays flat (S1 bug 3).
           // A capability reply can turn truecolour on later, which re-derives and repaints.
           theme.setTruecolour(renderer.capabilities?.rgb ?? false);
-          renderer.on("capabilities", (caps: { rgb: boolean }) => {
+          // The newline key the splash and key help name depends on the terminal and on whether
+          // it answered the kitty keyboard query (Windows Terminal 1.25 does, 1.24 does not;
+          // keys/newline-hint.ts), and the answer can come after the first frame.
+          setNewlineHintState({ terminal: terminal.id, kitty: renderer.capabilities?.kitty_keyboard ?? false });
+          renderer.on("capabilities", (caps: { rgb: boolean; kitty_keyboard?: boolean }) => {
+            setNewlineHintState({ terminal: terminal.id, kitty: caps.kitty_keyboard ?? false });
             if (theme.setTruecolour(caps.rgb)) forceFullRepaint(renderer);
           });
           themeColours = bindTerminalColours(renderer, theme);
