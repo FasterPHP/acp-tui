@@ -36,6 +36,7 @@ import {
 } from "../../scripts/install-cli.ts";
 import { commentedDefault } from "../../src/config/default-file.ts";
 import { WINDOWS } from "../windows.ts";
+import { mergeEnvironment } from "../../src/agent/which.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const SCRIPT = join(ROOT, "packages/acp-tui/scripts/install-cli.ts");
@@ -76,7 +77,9 @@ async function run(cmd: string[], opts: { cwd?: string; env?: Record<string, str
   const { XDG_CONFIG_HOME: _inherited, ...inherited } = process.env;
   const proc = Bun.spawn(cmd, {
     cwd: opts.cwd,
-    env: { ...inherited, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null", ...opts.env },
+    // Merged as acp-tui merges a harness's environment: on Windows the test's PATH replaces the
+    // inherited `Path` instead of standing beside it (which of the two a child reads is not fixed).
+    env: mergeEnvironment(inherited, { GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null", ...opts.env }),
     stdout: "pipe",
     stderr: "pipe",
   });

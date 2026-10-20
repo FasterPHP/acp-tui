@@ -6,7 +6,7 @@ import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
-// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4). It also sends SIGUSR2, a POSIX signal.
 describe.skipIf(WINDOWS)("Theme switch signalled (task 5.3)", () => {
   test("SIGUSR2 after the terminal's answer changed: new surfaces on screen within one second, every cell repainted", async () => {
     const s = await openPermission(DARK);

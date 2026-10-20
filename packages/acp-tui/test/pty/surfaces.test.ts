@@ -13,7 +13,7 @@ import { WINDOWS } from "../windows.ts";
 
 afterEach(disposeSession);
 
-// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
 describe.skipIf(WINDOWS)("OSC 10 and 11 answered, OSC 4 unanswered", () => {
   for (const [name, colours] of [["dark", DARK], ["light", LIGHT]] as const) {
     test(`${name} background: truecolour fills for the status row, the user message and the permission card`, async () => {
@@ -57,7 +57,7 @@ describe.skipIf(WINDOWS)("OSC 10 and 11 answered, OSC 4 unanswered", () => {
   }
 });
 
-// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
 describe.skipIf(WINDOWS)("The user card's bar (mvp-configuration, 13 October 2026)", () => {
   test("a theme setting user recolours the bar without touching accent", async () => {
     const s = await openPermission({ ...DARK, terminator: "st" }, `{ "theme": { "tokens": { "user": 5 } } }`);
@@ -71,7 +71,7 @@ describe.skipIf(WINDOWS)("The user card's bar (mvp-configuration, 13 October 202
 // S1 re-check, bug 3 (follow-up): the selected option must be clearly lighter than the card on a
 // dark theme and darker on a light one. The measure is the CIE L* difference, at least 5 (the same
 // threshold as the unit tests in src/theme/surfaces.test.ts).
-// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
 describe.skipIf(WINDOWS)("Selected permission option contrast", () => {
   const MIN_DELTA_L = 5;
 
@@ -149,7 +149,7 @@ describe("Flat fallback without colour replies", () => {
   }, 30000);
 });
 
-// Skipped on Windows: it expects truecolour fills from a bare ConPTY, which names no terminal (and some tests signal SIGUSR2).
+// Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
 describe.skipIf(WINDOWS)("Live theme", () => {
   test("a colour-scheme report (CSI ? 997 ; n n) makes OpenTUI re-query and the fills follow the new colours", async () => {
     const s = await openPermission(DARK);
@@ -171,7 +171,7 @@ describe("Theme switch signalled (task 5.3)", () => {
     expect(modesSet(parseModeChanges(s.rawOutput()))).toContain(2031);
   }, 30000);
 
-  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4). It also sends SIGUSR2, a POSIX signal.
   test.skipIf(WINDOWS)("SIGUSR2 with the same colours still repaints every cell and changes nothing", async () => {
     const s = await openPermission(DARK);
     await Bun.sleep(300);
@@ -202,7 +202,7 @@ describe("Theme switch signalled (task 5.3)", () => {
     expect(noneLeft(s, DARK)).toBe(true);
   }, 30000);
 
-  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4). It also sends SIGUSR2, a POSIX signal.
   test.skipIf(WINDOWS)("an unanswered re-query keeps the surfaces already in use", async () => {
     const s = await openPermission(DARK);
     s.setColours(undefined);

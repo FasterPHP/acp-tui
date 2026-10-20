@@ -50,7 +50,7 @@ async function ready(s: PtySession): Promise<void> {
   expect(s.term.buffer.active.type).toBe("alternate");
 }
 
-// Skipped on Windows: the exit paths compare the main screen and send SIGTERM, and the surfaces tests expect truecolour from a bare ConPTY.
+// Skipped on Windows: it compares the main screen around exit and sends SIGTERM, which ConPTY clears and Windows does not deliver as a signal.
 describe.skipIf(WINDOWS)("JediTerm emulation: exit text below the command line (bug 1) and no start-up junk (bug 2)", () => {
   const paths: [string, (s: PtySession) => Promise<void>, number][] = [
     ["Ctrl+D", async (s) => s.sendKeys("Ctrl+D"), 0],
