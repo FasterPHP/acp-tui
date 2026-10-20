@@ -32,7 +32,7 @@
 import { accessSync, constants, realpathSync, statSync } from "node:fs";
 import { resolve, win32 } from "node:path";
 import { CLAUDE_AGENT_PACKAGE } from "./agent/command.ts";
-import { isPathCommand, resolveProgram, type WhichFunction } from "./agent/which.ts";
+import { hasWindowsCommandExtension, isPathCommand, resolveProgram, type WhichFunction } from "./agent/which.ts";
 import { loadAgentCatalogue, type AgentCatalogue } from "./agent/catalogue.ts";
 import { resolveLaunch, type LaunchDescription, type ResolveContext } from "./agent/resolve.ts";
 import type { ConfigOverrides } from "./config/effective.ts";
@@ -209,6 +209,8 @@ export function realCommandExists(word: string, cwd: string, platform: NodeJS.Pl
     try {
       const path = (platform === "win32" ? win32.resolve : resolve)(cwd, word);
       if (!statSync(path).isFile()) return false;
+      // Windows has no execute bit (X_OK passes for any file), so the extension decides there.
+      if (platform === "win32") return hasWindowsCommandExtension(path);
       accessSync(path, constants.X_OK);
       return true;
     } catch {

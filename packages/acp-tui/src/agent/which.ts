@@ -38,6 +38,17 @@ export function isPathCommand(command: string, platform: NodeJS.Platform = proce
   return command.includes("\\") || /^[A-Za-z]:/.test(command);
 }
 
+/** Whether Windows would run the file at `path`: its extension is one of `PATHEXT`'s (default
+ *  `.COM;.EXE;.BAT;.CMD`), compared case-insensitively. Windows has no execute bit, so this is what
+ *  tells `notes.txt` from `agent.cmd`. */
+export function hasWindowsCommandExtension(path: string, env: Env = process.env): boolean {
+  const dot = path.lastIndexOf(".");
+  if (dot <= Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/"))) return false;
+  const extension = path.slice(dot).toUpperCase();
+  const list = envValue(env, "PATHEXT", "win32") || ".COM;.EXE;.BAT;.CMD";
+  return list.split(";").some((entry) => entry.trim().toUpperCase() === extension);
+}
+
 /** The value of the variable `name` in `env`: on Windows matched case-insensitively (Windows keeps
  *  `Path`), the last matching key winning, as a later key would in the child's environment. */
 export function envValue(env: Env, name: string, platform: NodeJS.Platform = process.platform): string | undefined {

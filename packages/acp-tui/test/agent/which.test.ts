@@ -7,7 +7,7 @@ import { chmodSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { realCommandExists } from "../../src/cli.ts";
-import { envValue, isPathCommand, mergeEnvironment, ProgramNotFoundError, resolveArgv, resolveProgram, type WhichFunction } from "../../src/agent/which.ts";
+import { envValue, hasWindowsCommandExtension, isPathCommand, mergeEnvironment, ProgramNotFoundError, resolveArgv, resolveProgram, type WhichFunction } from "../../src/agent/which.ts";
 
 function temp(): string {
   return realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-which-")));
@@ -148,6 +148,15 @@ describe("the lone-word rule (cli.ts)", () => {
     // On Linux a backslash is part of a name.
     expect(realCommandExists("a\\b", "/work", "linux", which)).toBe(false);
     expect(calls.map((c) => c.name)).toEqual(["auggie", "nosuch", "a\\b"]);
+  });
+
+  test("on Windows a path is a command only with an extension from PATHEXT (there is no execute bit)", () => {
+    expect(hasWindowsCommandExtension("C:\\tools\\agent.cmd", {})).toBe(true);
+    expect(hasWindowsCommandExtension("C:\\tools\\AGENT.Exe", {})).toBe(true);
+    expect(hasWindowsCommandExtension(".\\notes.txt", {})).toBe(false);
+    expect(hasWindowsCommandExtension("C:\\tools.d\\agent", {})).toBe(false);
+    expect(hasWindowsCommandExtension("C:\\tools\\agent.ps1", { PathExt: ".COM;.EXE;.PS1" })).toBe(true);
+    expect(hasWindowsCommandExtension("C:\\tools\\agent.cmd", { PATHEXT: ".EXE" })).toBe(false);
   });
 
   test.skipIf(process.platform === "win32")("for real: an executable path is a command, and a program only in the cwd is not", () => {
