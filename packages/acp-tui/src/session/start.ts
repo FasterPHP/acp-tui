@@ -42,6 +42,8 @@
 import { existsSync, statSync } from "node:fs";
 import { sanitise, type SessionOpenMode } from "acp-model";
 import type { SessionInfo } from "@agentclientprotocol/sdk";
+import { LoginRequiredError } from "../agent/login.ts";
+import { uncheckedAuggieNotice } from "../agent/harness-version.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
@@ -447,6 +449,9 @@ export async function startLaunch(options: StartLaunchOptions): Promise<StartedS
   }
 }
 
+/** The `agentInfo` objects whose version notice has been considered (one per harness process). */
+const versionNoticed = new WeakSet<object>();
+
 /**
  * Starts a session on an initialised agent (`connectLaunch` or `prepareLaunch`, or a controller
  * `reuse` gave): the session `options.target` names (found by `prepareLaunch`, or a row of the
@@ -471,9 +476,23 @@ export async function startOn(controller: ConnectedController, options: StartLau
     return null;
   }
 
+  // Once per harness process: the `agentInfo` object is the process's, shared by every controller on it.
+  const info = controller.agentInfo;
+  if (info && !versionNoticed.has(info)) {
+    versionNoticed.add(info);
+    const unchecked = uncheckedAuggieNotice(info);
+    if (unchecked !== null) notify(unchecked);
+  }
+
   const target: SessionTarget | null = options.target ?? null;
   if (target === null) {
-    await controller.newSession(launch.directory);
+    try {
+      await controller.newSession(launch.directory);
+    } catch (error) {
+      // The login message is the whole text; shown as any session failure (below the command line, or in the list's footer).
+      if (error instanceof LoginRequiredError) throw new SessionOpenFailure(error.message);
+      throw error;
+    }
     options.attach?.(controller, "new");
     return { controller, recorder, mode: "new" };
   }

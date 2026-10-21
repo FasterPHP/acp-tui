@@ -29,6 +29,7 @@ import {
 import { harnessActivity, type HarnessActivity } from "../agent/harness-activity.ts";
 import { killProcessTree } from "../agent/kill-tree.ts";
 import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
+import { isAuthRequired, LoginRequiredError, loginMessage } from "../agent/login.ts";
 import { createDebugLogger, type DebugLogger } from "../log.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 
@@ -357,6 +358,8 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
   const support = sessionSupport(init);
   const agentInfo = init.agentInfo ?? null;
+  // The built-in `auggie` is the one launched with its install hint (a configured entry has none).
+  const loginOptions = { harness: options.harness, builtInAuggie: options.harness === "auggie" && options.installHint !== undefined };
 
   /** Makes `core` the controller the agent's messages go to; the previous one's session retires. */
   function activate(core: Core): void {
@@ -390,7 +393,16 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
 
       async newSession(cwd: string): Promise<void> {
         claim();
-        const response = await createNewSession(conn, agent, options.command, cwd, { logger });
+        let response;
+        try {
+          response = await createNewSession(conn, agent, options.command, cwd, { logger });
+        } catch (error) {
+          if (isAuthRequired(error)) {
+            logger.log({ event: "auth_required", phase: "new" });
+            throw new LoginRequiredError(loginMessage(error, loginOptions));
+          }
+          throw error;
+        }
         dispatch({ type: "session_created", response, cwd, agentInfo, at: now() });
       },
 
@@ -458,6 +470,12 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
               // Closing the connection on detach rejects the pending prompt ("ACP connection
               // closed"); that is the user's exit, not a prompt error.
               logger.log({ event: "prompt_closed_by_detach", sessionId });
+              return;
+            }
+            if (isAuthRequired(error)) {
+              logger.log({ event: "auth_required", phase: "prompt" });
+              logger.log({ event: "prompt_error", sessionId });
+              dispatch({ type: "prompt_error", message: loginMessage(error, loginOptions), at: now() });
               return;
             }
             logger.log({ event: "prompt_error", sessionId });
