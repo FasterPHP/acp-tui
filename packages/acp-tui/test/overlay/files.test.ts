@@ -10,7 +10,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSy
 import { tmpdir } from "node:os";
 import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { displayPath, fileUri, fuzzyScore, listFiles, rankFiles } from "../../src/overlay/files.ts";
+import { comparePaths, displayPath, fileUri, fuzzyScore, listFiles, PathList, rankFiles } from "../../src/overlay/files.ts";
 
 function tree(files: Record<string, string>): string {
   const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-files-"));
@@ -159,7 +159,7 @@ describe("fuzzy ranking", () => {
     expect(fuzzyScore("", "anything")).toBe(0);
   });
 
-  test("segment starts and runs rank first; ties go to the shorter path", () => {
+  test("segment starts and runs rank first", () => {
     const ranked = rankFiles("conn", paths, lower).map((i) => paths[i]);
     expect(ranked[0]).toBe("src/Db/Connection.php");
     expect(ranked[1]).toBe("tests/Db/ConnectionTest.php");
@@ -171,9 +171,75 @@ describe("fuzzy ranking", () => {
     expect(rankFiles("Conn", paths, lower).map((i) => paths[i])).toEqual(["src/Db/Connection.php", "tests/Db/ConnectionTest.php"]);
   });
 
+  test("equal scores go in alphabetical order, not by length", () => {
+    const tied = ["z/ab.txt", "b/xab-long-name.txt", "B/ab.txt", "a/ab.txt"];
+    const scores = tied.map((p) => fuzzyScore("ab", p, p.toLowerCase()));
+    expect(new Set(scores.slice(0, 1).concat(scores.slice(2))).size).toBe(1); // the three `ab.txt` paths tie
+    const ranked = rankFiles("ab", tied, tied.map((p) => p.toLowerCase())).map((i) => tied[i]);
+    expect(ranked.slice(0, 3)).toEqual(["a/ab.txt", "B/ab.txt", "z/ab.txt"]);
+  });
+
   test("an empty query keeps the listed order; `among` narrows the search", () => {
     expect(rankFiles("", paths, lower)).toEqual([0, 1, 2, 3, 4, 5]);
     expect(rankFiles("php", paths, lower, [1, 4])).toEqual([1]);
+  });
+});
+
+describe("alphabetical order", () => {
+  const sorted = (paths: string[]) => [...paths].sort((a, b) => comparePaths(a, b));
+
+  test("case-insensitive: AGENTS.md and CHANGELOG.md fall among the lower-case names", () => {
+    expect(sorted(["bun.lock", "CHANGELOG.md", "package.json", "AGENTS.md", "README.md", "bunfig.toml"])).toEqual([
+      "AGENTS.md",
+      "bun.lock",
+      "bunfig.toml",
+      "CHANGELOG.md",
+      "package.json",
+      "README.md",
+    ]);
+  });
+
+  test("the exact path breaks a tie, so the order is total", () => {
+    expect(sorted(["a/b", "A/b", "A/B", "a/B"])).toEqual(["A/B", "A/b", "a/B", "a/b"]);
+    expect(comparePaths("a/B", "a/B")).toBe(0);
+  });
+
+  test("a directory's files stay together: `/` sorts before every other character", () => {
+    expect(sorted(["docs-old/y.md", "docs/x.md", "docs.md", "docs/a/z.md", "docs0/q.md", "Docs/b.md"])).toEqual([
+      "docs/a/z.md",
+      "Docs/b.md",
+      "docs/x.md",
+      "docs-old/y.md",
+      "docs.md",
+      "docs0/q.md",
+    ]);
+  });
+
+  test("a PathList merges batches, tracked and untracked, into one alphabetical list", () => {
+    const list = new PathList();
+    list.add(["AGENTS.md", "CHANGELOG.md", "bun.lock", "docs/x.md"]); // tracked: Git's byte order
+    const first = list.paths;
+    list.add(["Zed.txt", "docs-old/y.md", "aardvark.md", "docs/Intro.md"]); // untracked, unsorted
+    expect(list.paths).toEqual(["aardvark.md", "AGENTS.md", "bun.lock", "CHANGELOG.md", "docs/Intro.md", "docs/x.md", "docs-old/y.md", "Zed.txt"]);
+    expect(list.lower).toEqual(list.paths.map((p) => p.toLowerCase()));
+    expect(first).toEqual(["AGENTS.md", "bun.lock", "CHANGELOG.md", "docs/x.md"]); // earlier arrays are not changed
+    list.add(["zzz", "zzzz"]); // after the end
+    expect(list.paths.slice(-2)).toEqual(["zzz", "zzzz"]);
+    list.clear();
+    expect(list.paths).toEqual([]);
+  });
+
+  test("an empty query over a PathList lists everything alphabetically", () => {
+    const list = new PathList();
+    list.add(["b.txt", "B/c.txt", "a.txt", "B.txt"]);
+    expect(rankFiles("", list.paths, list.lower).map((i) => list.paths[i])).toEqual(["a.txt", "B/c.txt", "B.txt", "b.txt"]);
+  });
+
+  test("the walk lists each directory alphabetically, case-insensitively", async () => {
+    const dir = tree({ "b.txt": "", "A.txt": "", "c/z.txt": "", "C2.txt": "", "a-dir/x": "" });
+    const out: string[] = [];
+    await listFiles(dir, { add: (b) => out.push(...b), done: () => {} }, { walkOnly: true });
+    expect(out).toEqual(["A.txt", "b.txt", "C2.txt", "a-dir/x", "c/z.txt"]);
   });
 });
 

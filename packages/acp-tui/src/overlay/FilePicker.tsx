@@ -28,7 +28,7 @@ import type { ContextHandlers } from "../keys/register.ts";
 import type { DebugLogger } from "../log.ts";
 import type { Segment } from "../layout/segments.ts";
 import { spanStyle } from "../theme/index.ts";
-import { displayPath, FILE_CAP, listFiles, rankFiles } from "./files.ts";
+import { displayPath, FILE_CAP, listFiles, PathList, rankFiles } from "./files.ts";
 import { moveSelection, overlayLayout, type ListItem, type OverlaySegment } from "./list.ts";
 import { listPointer } from "./pointer.ts";
 
@@ -64,8 +64,11 @@ export function createFilePicker(choose: (path: string, anchor: number) => void,
   const [version, setVersion] = createSignal(0);
   const [listing, setListing] = createSignal(false);
   const [capped, setCapped] = createSignal(false);
-  let paths: string[] = [];
-  let lower: string[] = [];
+  // Alphabetical (case-insensitive, a directory's files together), tracked and untracked
+  // merged, whatever order the sources list them in. The matches are indices into `snap`, the
+  // list as it was when last ranked: a later merge moves paths, but never changes `snap`.
+  const list = new PathList();
+  let snap: { version: number; paths: readonly string[]; lower: readonly string[] } = { version: -1, paths: [], lower: [] };
   let abort: AbortController | null = null;
   let rankTimer: ReturnType<typeof setTimeout> | null = null;
   let offset = 0;
@@ -91,8 +94,9 @@ export function createFilePicker(choose: (path: string, anchor: number) => void,
     const q = query();
     const v = version();
     if (anchor() < 0) return [];
+    if (snap.version !== v) snap = { version: v, paths: list.paths, lower: list.lower };
     const among = last && last.version === v && q.startsWith(last.query) && last.query !== "" ? last.matches : undefined;
-    const result = rankFiles(q, paths, lower, among);
+    const result = rankFiles(q, snap.paths, snap.lower, among);
     last = { query: q, version: v, matches: result };
     return result;
   });
@@ -106,16 +110,16 @@ export function createFilePicker(choose: (path: string, anchor: number) => void,
       setSelected(0);
       setListing(false);
     });
-    paths = [];
-    lower = [];
+    list.clear();
+    snap = { version: -1, paths: [], lower: [] };
     last = null;
   };
   onCleanup(stop);
 
   const open = (at: number, cwd: string) => {
     stop();
-    paths = [];
-    lower = [];
+    list.clear();
+    snap = { version: -1, paths: [], lower: [] };
     last = null;
     offset = 0;
     const controller = new AbortController();
@@ -137,14 +141,11 @@ export function createFilePicker(choose: (path: string, anchor: number) => void,
       {
         add: (batchOf) => {
           if (controller.signal.aborted) return;
-          for (const p of batchOf) {
-            paths.push(p);
-            lower.push(p.toLowerCase());
-          }
+          list.add(batchOf);
           // The first batch is shown at once; later ones at most every RANK_MS.
           if (first) {
             first = false;
-            logger?.log({ event: "file_picker", action: "first", ms: ms(), count: paths.length });
+            logger?.log({ event: "file_picker", action: "first", ms: ms(), count: list.paths.length });
             setVersion((v) => v + 1);
           } else bump();
         },
@@ -152,7 +153,7 @@ export function createFilePicker(choose: (path: string, anchor: number) => void,
           if (controller.signal.aborted) return;
           if (rankTimer) clearTimeout(rankTimer);
           rankTimer = null;
-          logger?.log({ event: "file_picker", action: "listed", source: result.source, count: paths.length, capped: result.capped, ms: ms() });
+          logger?.log({ event: "file_picker", action: "listed", source: result.source, count: list.paths.length, capped: result.capped, ms: ms() });
           batch(() => {
             setCapped(result.capped);
             setListing(false);
@@ -185,7 +186,7 @@ export function createFilePicker(choose: (path: string, anchor: number) => void,
         close();
         return false;
       }
-      const path = paths[index]!;
+      const path = snap.paths[index]!;
       const at = anchor();
       close(true);
       choose(path, at);
@@ -213,7 +214,7 @@ export function createFilePicker(choose: (path: string, anchor: number) => void,
       offset = Math.max(0, Math.min(offset, Math.max(0, all.length - rows)));
       if (sel < offset) offset = sel;
       if (sel >= offset + rows) offset = sel - rows + 1;
-      const items: ListItem[] = all.slice(offset, offset + rows).map((i) => ({ id: paths[i]!, group: null, title: displayPath(paths[i]!) }));
+      const items: ListItem[] = all.slice(offset, offset + rows).map((i) => ({ id: snap.paths[i]!, group: null, title: displayPath(snap.paths[i]!) }));
       const enter = actionLabel(keyMap, "overlay", "choose");
       const esc = actionLabel(keyMap, "overlay", "close");
       const hints: Segment[] = [
