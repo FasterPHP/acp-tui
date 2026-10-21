@@ -221,23 +221,23 @@ describe("Marcus's Mac review, 18 October 2026 (tasks 14.2 and 14.3)", () => {
     const s = (session = w.start(["-r"], { cwd: repo }));
     await s.waitFor(() => listBody(s).some((r) => r.startsWith("Fake session")) && listBody(s).some((r) => r.startsWith("Claude session")), 10000);
     const body = listBody(s).map((r) => r.trim());
-    expect(body.filter((r) => r.startsWith("New session with"))).toEqual(["New session with fake", "New session with auggie", "New session with claude"]);
+    expect(body.filter((r) => r.startsWith("New session with"))).toEqual(["New session with fake", "New session with auggie", "New session with claude", "New session with opencode"]);
   }, 40000);
 });
 
 describe("the status row while the list is open (task 12.7)", () => {
-  test("`connecting` until the harness has answered initialize, `connected` after it, with the list still open and no session started", async () => {
+  test("`starting` until the harness has answered initialize, `connected` after it, with the list still open and no session started", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     indexSessions(w, repo, 2);
     w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--start-delay", "1200", "--list-delay", "2500"] });
     const s = (session = w.start(["-a", "fake", "--resume"], { cwd: repo }));
-    await s.waitFor(() => listOpen(s) && /connecting/.test(statusRow(s)), 10000);
+    await s.waitFor(() => listOpen(s) && /starting/.test(statusRow(s)), 10000);
     expect(footerLine(s)).toMatch(/starting fake…/);
     // initialize answered: the footer reads the sessions, the status row says connected.
     await s.waitFor(() => /reading fake's sessions…/.test(footerLine(s)), 10000);
     await s.waitFor(() => /connected/.test(statusRow(s)), 3000);
-    expect(statusRow(s)).not.toMatch(/connecting/);
+    expect(statusRow(s)).not.toMatch(/starting/);
     expect(listOpen(s)).toBe(true);
     expect(methods(w)).not.toContain("session/new");
   }, 40000);

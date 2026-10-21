@@ -30,19 +30,23 @@
 //   the session is still being opened; nothing is sent then. An `ad hoc`
 //   session that is not the agent in use's, and a session of an agent no
 //   longer configured, are refused with a message before anything runs.
+import { existsSync, realpathSync, statSync } from "node:fs";
 import type { ListSessionsResponse } from "@agentclientprotocol/sdk";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
+import { absoluteEntry } from "../config/directories.ts";
+import { homeDirectory } from "../config/sources.ts";
+import { shortenHome } from "../layout/segments.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue, type AgentEntry } from "../agent/catalogue.ts";
 import { resolveProgram } from "../agent/which.ts";
 import { commandDisplayName } from "../agent/harness-name.ts";
-import { AD_HOC_AGENT, adHocSessionMessage, hintOf, launchArgv, unconfiguredAgentMessage, type LaunchDescription } from "../agent/resolve.ts";
+import { AD_HOC_AGENT, adHocSessionMessage, deriveDirectories, hintOf, launchArgv, readConfigDirectories, unconfiguredAgentMessage, withDirectories, type LaunchDescription } from "../agent/resolve.ts";
 import type { DebugLogger } from "../log.ts";
 import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
-import type { ConnectedController } from "./controller.ts";
+import type { ConnectedController, LaunchedHarness } from "./controller.ts";
 import type { SessionRecorder } from "./recorder.ts";
 import { oneLine, type SessionIndex, type SessionRecord } from "./session-index.ts";
-import { agentLabel, connectLaunch, prepareLaunch, RESUME_HINT, SessionOpenFailure, startOn, type PreparedLaunch, type SessionTarget } from "./start.ts";
+import { agentLabel, connectLaunch, prepareLaunch, RESUME_HINT, SessionOpenFailure, ignoresDirectoriesNotice, startOn, type PreparedLaunch, type SessionTarget } from "./start.ts";
 import type { SessionStore } from "./store.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 
@@ -63,7 +67,26 @@ export const SWITCH_REFUSED_PERMISSION = "a permission request is open: answer i
 export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it before you switch sessions";
 
 /** What names the agent of a launch: the fields `launchFor` copies. */
-type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint">;
+type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs">;
+
+/** What `addDirectory` did: the directory is in the session (`how` names the route), or a message
+ *  for a notice (`cancelled`: the user declined the restart, so there is nothing to say). */
+export type AddDirectoryResult =
+  | { readonly ok: true; readonly directory: string; readonly how: "resume" | "load" | "restart" }
+  | { readonly ok: false; readonly message: string; readonly cancelled?: true };
+
+/** Shown by `/add-dir` while a turn runs, a permission request is open or the session is opening. */
+export const ADD_DIRECTORY_REFUSED_RUNNING = "a directory can be added once the turn has ended";
+export const ADD_DIRECTORY_REFUSED_PERMISSION = "a directory can be added once the permission request is answered";
+export const ADD_DIRECTORY_REFUSED_OPENING = "a directory can be added once the session has opened";
+
+const realPath = (path: string): string => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
+};
 
 export interface SessionSwitcherOptions {
   /** The launch the command line asked for. */
@@ -87,6 +110,9 @@ export interface SessionSwitcherOptions {
   /** Whether a built-in harness's program is on the PATH, looked up once when the list opens
    *  (spec tui-sessions "Agent selector"); default `resolveProgram` over `process.env`. */
   readonly isInstalled?: (entry: AgentEntry) => boolean;
+  /** The configuration's additional directories now (a change applies to the next session
+   *  started); default reads the configuration files for the session directory. */
+  readonly configDirectories?: (directory: string) => readonly string[];
   readonly now?: () => number;
 }
 
@@ -132,6 +158,17 @@ export interface SessionSwitcher {
    * (acp-tui's own fault), the new session then left in use.
    */
   choose(entry: SessionListEntry): Promise<string | null>;
+  /**
+   * `/add-dir <path>` (spec tui-palette "Adding a directory during a session"): adds an existing
+   * directory (relative to the session directory) to the session in use by reopening it with the
+   * new complete list. A harness that advertises `session/resume` gets it on the same connection
+   * (no replay; an error falls back to `session/load`), else `session/load` on it; a harness with an
+   * argument template is restarted with the new arguments once `confirm` (given the text of the
+   * restart entry) resolves true, the session then loaded on the new process. Refuses, sending
+   * nothing, while a turn runs, a permission request is open or the session is opening, for a path
+   * that is not a directory or is listed already, and for a harness that can take no directories.
+   */
+  addDirectory(path: string, confirm: (restart: string) => Promise<boolean>): Promise<AddDirectoryResult>;
   /** Detaches every agent this run has started and not yet closed (exit). */
   detach(): Promise<void>;
 }
@@ -142,7 +179,7 @@ function harnessOf(launch: Pick<LaunchDescription, "agentName" | "command">): st
 }
 
 /** The command and environment a launch runs, to tell whether two launches share an agent. */
-function commandKey(launch: Pick<LaunchDescription, "command" | "args" | "env">): string {
+function commandKey(launch: Pick<LaunchDescription, "command" | "args" | "env" | "additionalDirectoryArgs" | "additionalDirectories">): string {
   return JSON.stringify([launchArgv(launch), Object.entries(launch.env).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))]);
 }
 
@@ -181,7 +218,27 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
   let connection: Promise<void> | null = null;
   let connecting = false;
 
+  // Harnesses started and not yet through `initialize` have no controller to detach, so exit ends
+  // them; while `prepare` runs (finding the session for `--resume <id>` and `--continue`, before the
+  // full screen) every harness it launched is ended, since none is in `started` yet.
+  const launching = new Map<LaunchedHarness, { settled: boolean }>();
+  let preparing = false;
+  let detaching = false;
+  const onLaunched = (launched: LaunchedHarness): void => {
+    if (detaching) {
+      launched.kill();
+      return;
+    }
+    const state = { settled: false };
+    launching.set(launched, state);
+    void launched.settled.then(() => {
+      state.settled = true;
+      if (!preparing) launching.delete(launched);
+    });
+  };
+
   const common = {
+    onLaunched,
     ...(logger ? { logger } : {}),
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
@@ -204,12 +261,19 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     return state?.controller.getSession().cwd ?? state?.launch.directory ?? launch.directory;
   }
 
-  /** The launch for a session of `base`'s agent in `dir`. */
+  /** The index's record of a session, for the directories added to it. */
+  const recordedDirectories = (agent: string, sessionId: string): readonly string[] =>
+    index.listAll().find((r) => r.agent === agent && r.sessionId === sessionId)?.addedDirectories ?? [];
+
+  /** The launch for a session of `base`'s agent in `dir`; `recorded` are the directories the index
+   *  records for the session (the configuration's are read now, this run's `--add-dir` always apply). */
   function launchFor(
     base: AgentBase,
     dir: string,
     session: LaunchDescription["session"],
+    recorded: readonly string[] = [],
   ): LaunchDescription {
+    const config = (options.configDirectories ?? ((d: string) => readConfigDirectories(d).directories))(dir);
     return {
       agentName: base.agentName,
       agentSource: base.agentSource,
@@ -224,6 +288,9 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       indexed: null,
       indexMatches: 0,
       problems: [],
+      configDirectories: config,
+      addDirs: launch.addDirs ?? [],
+      ...deriveDirectories({ config, recorded, addDirs: launch.addDirs ?? [], directory: dir }),
     };
   }
 
@@ -232,7 +299,13 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
     async prepare() {
       if (launch.session.kind !== "resume" && launch.session.kind !== "continue") return;
-      prepared = await prepareLaunch({ launch, index, catalogue: readCatalogue, ...common });
+      preparing = true;
+      try {
+        prepared = await prepareLaunch({ launch, index, catalogue: readCatalogue, ...common });
+      } finally {
+        preparing = false;
+        for (const [launched, state] of launching) if (state.settled) launching.delete(launched);
+      }
       started.add(prepared.controller);
     },
 
@@ -288,7 +361,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     async startNew() {
       await (connection ?? Promise.resolve());
       if (!state) throw new Error(`${harnessOf(launch)} has not started`);
-      const target: LaunchDescription = { ...state.launch, directory: directory(), session: { kind: "new" } };
+      const target: LaunchDescription = withDirectories({ ...state.launch, session: { kind: "new" } }, { directory: directory() });
       // The agent has no session yet unless one was started on it since.
       const controller = state.recorder === null ? state.controller : state.controller.reuse();
       await startOn(controller, {
@@ -329,7 +402,22 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
     refusal,
 
-    async choose(entry) {
+    choose: (entry) => open(entry),
+
+    addDirectory,
+
+    async detach() {
+      detaching = true;
+      // A harness that has not answered `initialize` has no session to detach from: ended at once.
+      for (const [launched, state] of launching) if (!state.settled || preparing) launched.kill();
+      await Promise.all([...started].map((c) => c.detach()));
+    },
+  };
+
+  /** Opens a row of the list; `recordedOverride` replaces the index's record of the session's
+   *  directories (`/add-dir`: the list with the new directory, before the index has it). */
+  async function open(entry: SessionListEntry, recordedOverride?: readonly string[]): Promise<string | null> {
+    {
       const refused = refusal();
       if (refused) return refused;
       if (switching) return "another session is being opened";
@@ -350,8 +438,9 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
           return `cannot start a new session: ${message(error)}`;
         }
       }
-      const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }) : launchFor(base, directory(), { kind: "new" });
-      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title } : null;
+      const recorded = entry.kind === "session" ? (recordedOverride ?? recordedDirectories(entry.agent, entry.sessionId)) : [];
+      const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }, recorded) : launchFor(base, directory(), { kind: "new" });
+      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title, ...(recorded.length > 0 ? { addedDirectories: recorded } : {}) } : null;
       // The same command (and environment) on a live connection: the agent process is kept.
       const shared = commandKey(target) === commandKey(previous.launch) && previous.controller.getSession().connection !== "disconnected";
 
@@ -418,10 +507,83 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       } finally {
         switching = false;
       }
-    },
+    }
+  }
 
-    async detach() {
-      await Promise.all([...started].map((c) => c.detach()));
-    },
-  };
+  async function addDirectory(input: string, confirm: (restart: string) => Promise<boolean>): Promise<AddDirectoryResult> {
+    const refuse = (message: string): AddDirectoryResult => ({ ok: false, message });
+    const using = state;
+    const session = using?.controller.getSession();
+    if (!using || !session?.id) return refuse(`${harnessOf(using?.launch ?? launch)} is still starting`);
+    if (switching) return refuse("another session is being opened");
+    if (session.turn?.openPermissionToolCallId) return refuse(ADD_DIRECTORY_REFUSED_PERMISSION);
+    if (session.state !== "idle") return refuse(ADD_DIRECTORY_REFUSED_RUNNING);
+    if (session.opening !== null) return refuse(ADD_DIRECTORY_REFUSED_OPENING);
+    const typed = input.trim();
+    if (typed === "") return refuse("usage: /add-dir <path>");
+
+    const home = homeDirectory();
+    const sessionDirectory = directory();
+    const written = absoluteEntry(typed, sessionDirectory, home);
+    const shown = shortenHome(written, home);
+    let isDirectory = false;
+    try {
+      isDirectory = existsSync(written) && statSync(written).isDirectory();
+    } catch {
+      // not readable: not a directory we can add
+    }
+    if (!isDirectory) return refuse(`${shown} is not a directory`);
+    const added = realPath(written);
+    const listed = [sessionDirectory, ...(using.launch.additionalDirectories ?? [])].map(realPath);
+    if (listed.includes(added)) return refuse(`${shown} is already in the session`);
+
+    const launched = using.launch;
+    const byTemplate = launched.additionalDirectoryArgs !== undefined;
+    const byAcp = !byTemplate && using.controller.support.additionalDirectories;
+    if (!byTemplate && !byAcp) return refuse(ignoresDirectoriesNotice(launched));
+    if (!using.controller.support.load && !using.controller.support.resume) return refuse(`${harnessOf(launched)} cannot reopen sessions, so a directory cannot be added to this one`);
+
+    // The directories recorded for the session, with the new one; the configuration's and this
+    // run's `--add-dir` are derived again from their own sources.
+    const recorded = [...(launched.addedDirectories ?? []), added];
+    const entry: SessionListEntry = {
+      kind: "session",
+      sessionId: session.id,
+      agent: launched.agentName,
+      command: launched.agentName === AD_HOC_AGENT ? launchArgv(launched) : null,
+      directory: sessionDirectory,
+      title: session.title ?? null,
+      updatedAt: null,
+      current: true,
+    };
+
+    if (byTemplate) {
+      if (!(await confirm(`Restart ${harnessOf(launched)} with ${shown} and reopen this session`))) return { ok: false, message: "cancelled", cancelled: true };
+      // The overlay waited: the session may have started a turn meanwhile.
+      const again = refusal();
+      if (again) return refuse(again);
+      const failure = await open(entry, recorded);
+      return failure === null ? { ok: true, directory: added, how: "restart" } : refuse(failure);
+    }
+
+    if (using.controller.support.resume) {
+      const next = withDirectories(launched, { directory: sessionDirectory, recorded });
+      switching = true;
+      try {
+        await using.controller.resumeWithDirectories({ additionalDirectories: next.additionalDirectories ?? [], send: true });
+        state = { ...using, launch: next };
+        using.recorder?.setAddedDirectories(next.addedDirectories ?? []);
+        return { ok: true, directory: added, how: "resume" };
+      } catch (error) {
+        logger?.log({ event: "add_directory_resume_failed" });
+        if (cancelled()) return refuse("cancelled");
+        // Falls back to loading the session, as opening it from the list does.
+        if (!using.controller.support.load) return refuse(`cannot add ${shown}: ${message(error)}`);
+      } finally {
+        switching = false;
+      }
+    }
+    const failure = await open(entry, recorded);
+    return failure === null ? { ok: true, directory: added, how: "load" } : refuse(failure);
+  }
 }

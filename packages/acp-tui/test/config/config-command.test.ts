@@ -79,7 +79,8 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     const text = commentedDefault();
     const comments = commentText(text);
     for (const section of Object.keys(SECTIONS) as SectionName[]) {
-      expect(text).toMatch(new RegExp(`^  "${section}": `, "m"));
+      // agent_startup_timeout_seconds is shown commented out, so that claude keeps its longer default.
+      expect(text).toMatch(new RegExp(`^  ${section === "agent_startup_timeout_seconds" ? "// " : ""}"${section}": `, "m"));
       const list = valueListOf(SECTIONS[section]);
       if (list) expect(comments).toContain(`${list.heading}:`);
       else expect(comments).toContain(describeOf(SECTIONS[section])!.replace(/\s+/g, " "));
@@ -159,6 +160,18 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
       const about = lines.slice(start, at).join(" ");
       expect(about).toMatch(/Sources?: /);
     }
+  });
+
+  test("Built-in harnesses shown: auggie, claude and opencode are each marked as built in and run as they do without an entry", async () => {
+    const lines = commentedDefault().split("\n");
+    for (const name of ["auggie", "claude", "opencode"]) {
+      const at = lines.findIndex((l) => l.trim().startsWith(`// "${name}": {`));
+      let start = at - 1;
+      while (!lines[start]!.includes(EXAMPLE)) start--;
+      expect(lines.slice(start, at).join(" ")).toMatch(/the built-in/);
+    }
+    expect(commentedDefault()).toContain("claude-agent-acp@0.94.0");
+    expect(commentedDefault()).toContain("npm install -g @opencode/cli");
   });
 
   test("uncommenting every example gives a clean configuration with every example agent", async () => {

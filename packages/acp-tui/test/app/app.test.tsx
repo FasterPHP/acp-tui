@@ -60,10 +60,10 @@ async function mount(prompt: AppActions["prompt"], theme: ResolvedTheme = resolv
 }
 
 describe("App in the test renderer", () => {
-  test("status row shows connecting, then the cwd, idle and connected once the session is attached", async () => {
+  test("status row shows starting, then the cwd, idle and connected once the session is attached", async () => {
     const app = await mount(() => null);
     // The status row is above the bottom margin (mvp-chrome-and-keys task 4.1).
-    expect((await app.frame()).at(-2)).toMatch(/idle .*connecting$/);
+    expect((await app.frame()).at(-2)).toMatch(/idle .*starting$/);
     app.created();
     app.attach();
     const rows = await app.frame();

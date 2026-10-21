@@ -10,8 +10,13 @@ export const AUTH_REQUIRED_CODE = -32000;
 /** The widest the harness's own text is shown (columns). */
 const MESSAGE_COLUMNS = 300;
 
-/** What the built-in `auggie` needs the user to do, added when its message does not say so. */
-export const AUGGIE_LOGIN_STEP = "run auggie login in a terminal, then start acp-tui again";
+/** What a built-in harness with a login command needs the user to do, added when its message does not say so. */
+export function loginStep(command: string): string {
+  return `run ${command} in a terminal, then start acp-tui again`;
+}
+
+/** What the built-in `auggie` needs the user to do. */
+export const AUGGIE_LOGIN_STEP = loginStep("auggie login");
 
 /** Whether `error` is the harness answering "authentication required". */
 export function isAuthRequired(error: unknown): boolean {
@@ -29,19 +34,20 @@ export class LoginRequiredError extends Error {
 export interface LoginMessageOptions {
   /** The harness's name in the catalogue, or `ad hoc`. */
   readonly harness: string | undefined;
-  /** True for the built-in `auggie`, which gets the login step added. */
-  readonly builtInAuggie: boolean;
+  /** The built-in harness's login command (`auggie login`, `opencode auth login`), which gets the
+   *  login step added; undefined for a configured or ad hoc harness. */
+  readonly loginHint?: string | undefined;
 }
 
 /** `harness 'auggie' needs you to log in: <message>`: the harness's message sanitised, on one line
- *  and at most 300 columns; for the built-in `auggie` with the login step when the message lacks
- *  `auggie login`. */
+ *  and at most 300 columns; for a built-in with a login command, with the login step when the message lacks
+ *  that command. */
 export function loginMessage(error: unknown, options: LoginMessageOptions): string {
   const raw = error instanceof Error ? error.message : String(error);
   let text = sanitise(raw, "approval").replace(/\s+/g, " ").trim();
   if (displayWidth(text) > MESSAGE_COLUMNS) text = truncateEnd(text, MESSAGE_COLUMNS);
   const who = options.harness === undefined || options.harness === "ad hoc" ? "the ad hoc harness" : `harness '${sanitise(options.harness, "approval").replace(/\s+/g, " ").trim()}'`;
   let message = `${who} needs you to log in${text === "" ? "" : `: ${text}`}`;
-  if (options.builtInAuggie && !text.includes("auggie login")) message += `; ${AUGGIE_LOGIN_STEP}`;
+  if (options.loginHint !== undefined && !text.includes(options.loginHint)) message += `; ${loginStep(options.loginHint)}`;
   return message;
 }

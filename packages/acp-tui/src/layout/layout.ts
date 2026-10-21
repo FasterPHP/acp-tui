@@ -121,7 +121,7 @@ export const DEFAULT_LAYOUT: Layout = {
     "prompt",
     { spacer: 1 },
     "find",
-    { left: ["cwd", "turn-state", "hints"], right: ["config", "mouse", "density", "position", "connection", "usage", "cost"] },
+    { left: ["cwd", "dirs", "turn-state", "hints"], right: ["config", "mouse", "density", "position", "connection", "usage", "cost"] },
   ],
 };
 

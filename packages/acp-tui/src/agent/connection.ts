@@ -40,6 +40,9 @@ import { sanitise } from "acp-model";
 import type { DebugLogger } from "../log.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 import { harnessDescription, type LaunchedAgent } from "./launch.ts";
+import { StartupWatch } from "./startup-watch.ts";
+
+export { AgentNotAcpError, AgentStartupTimeoutError } from "./startup-watch.ts";
 
 export const CLIENT_INFO = { name: "acp-tui", version: "0.0.0" } as const;
 
@@ -82,8 +85,10 @@ export const STARTUP_STDERR_LINES = 20;
 /** How long a failed start-up request waits to see whether the agent has exited. */
 const EXIT_GRACE_MS = 1000;
 
-async function startupError(agent: LaunchedAgent, command: readonly string[]): Promise<never> {
+async function startupError(agent: LaunchedAgent, command: readonly string[], watch?: StartupWatch): Promise<never> {
   const code = await agent.exited;
+  // A harness acp-tui ended itself (a silent one, one that is not ACP) is reported as that.
+  if (watch?.failed) throw await watch.failed;
   // The exit can be observed before the last stderr chunk has been read.
   await Promise.race([agent.stderrClosed ?? Promise.resolve(), Bun.sleep(200)]);
   throw new AgentStartupError(command, agent.stderr.tail(STARTUP_STDERR_LINES), code, agent.harness);
@@ -92,14 +97,21 @@ async function startupError(agent: LaunchedAgent, command: readonly string[]): P
 /** Races `promise` against the agent's exit, so start-up hangs on a dead process fail fast
  *  with a useful error instead of waiting forever on a request that will never be answered.
  *  The SDK usually rejects the pending request ("ACP connection closed") as soon as the agent's
- *  stdout ends, before the exit is seen; that is reported as a start-up failure too. */
-function raceWithExit<T>(agent: LaunchedAgent, command: readonly string[], promise: Promise<T>): Promise<T> {
+ *  stdout ends, before the exit is seen; that is reported as a start-up failure too.
+ *  With a `request` name (a start-up request) it is also raced against the silence timer and the
+ *  stdout watch (startup-watch.ts), which end a harness that stays alive. */
+function raceWithExit<T>(conn: AgentConnection, agent: LaunchedAgent, command: readonly string[], promise: Promise<T>, request?: string): Promise<T> {
+  const watch = conn.watch;
+  const guard = request !== undefined ? watch?.guard(request) : undefined;
   const guarded = promise.catch(async (error: unknown) => {
+    if (watch?.failed) throw await watch.failed;
     const exited = await Promise.race([agent.exited.then(() => true), Bun.sleep(EXIT_GRACE_MS).then(() => false)]);
-    if (exited) return startupError(agent, command);
+    if (exited) return startupError(agent, command, watch);
     throw error;
   });
-  return Promise.race([guarded, startupError(agent, command)]);
+  const racers: Promise<T>[] = [guarded, startupError(agent, command, watch)];
+  if (guard) racers.push(guard.failure);
+  return Promise.race(racers).finally(() => guard?.end());
 }
 
 /** What a permission handler is told besides the request: the request's JSON-RPC id, and the
@@ -121,17 +133,30 @@ export interface AcpClient extends Omit<Client, "requestPermission"> {
  */
 export class AgentConnection {
   private readonly connection: ClientConnection;
+  /** The start-up watch (silence timer and stdout watch); none for a connection made without one. */
+  readonly watch: StartupWatch | undefined;
 
-  constructor(toClient: (conn: AgentConnection) => AcpClient, stream: ReturnType<typeof ndJsonStream>) {
+  constructor(toClient: (conn: AgentConnection) => AcpClient, stream: ReturnType<typeof ndJsonStream>, watch?: StartupWatch) {
+    this.watch = watch;
     const implementation = toClient(this);
+    // The silence timer is paused while a card waits for the user (a request the harness is
+    // itself waiting on is not silence).
+    const whileOpen = async <R,>(work: () => Promise<R> | R): Promise<R> => {
+      watch?.hold();
+      try {
+        return await work();
+      } finally {
+        watch?.release();
+      }
+    };
     const app = clientApp()
       .onRequest("session/request_permission", (ctx) =>
-        implementation.requestPermission(ctx.params, { requestId: (ctx.requestId as string | number | undefined) ?? null, signal: ctx.signal }),
+        whileOpen(() => implementation.requestPermission(ctx.params, { requestId: (ctx.requestId as string | number | undefined) ?? null, signal: ctx.signal })),
       )
       .onNotification("session/update", (ctx) => implementation.sessionUpdate(ctx.params));
     if (implementation.createElicitation) {
       const create = implementation.createElicitation.bind(implementation);
-      app.onRequest("elicitation/create", (ctx) => create(ctx.params));
+      app.onRequest("elicitation/create", (ctx) => whileOpen(() => create(ctx.params)));
     }
     if (implementation.completeElicitation) {
       const complete = implementation.completeElicitation.bind(implementation);
@@ -188,11 +213,23 @@ export class AgentConnection {
   }
 }
 
+/** What `createConnection` needs to watch a harness that is starting. */
+export interface StartupOptions {
+  readonly command: readonly string[];
+  /** Seconds of silence allowed while a start-up request is unanswered. */
+  readonly timeoutSeconds: number;
+  readonly logger?: DebugLogger | undefined;
+}
+
 /** `paced` says when the agent's messages are read in slices (`pacedStream`); default never.
- *  `pace` gives those slices their turns outside frames (renderer/frame-pace.ts). */
-export function createConnection(agent: LaunchedAgent, toClient: (agent: AgentConnection) => AcpClient, paced?: () => boolean, pace?: Pace): AgentConnection {
-  const stream = ndJsonStream(agent.stdin, agent.stdout);
-  return new AgentConnection(toClient, paced ? { writable: stream.writable, readable: pacedStream(stream.readable, paced, READ_SLICE_MS, pace) } : stream);
+ *  `pace` gives those slices their turns outside frames (renderer/frame-pace.ts). `startup` turns on
+ *  the start-up watch: the stdout watch before the SDK reads, and the silence timer that the
+ *  start-up requests below are raced against (startup-watch.ts). */
+export function createConnection(agent: LaunchedAgent, toClient: (agent: AgentConnection) => AcpClient, paced?: () => boolean, pace?: Pace, startup?: StartupOptions): AgentConnection {
+  const watch = startup ? new StartupWatch({ agent, command: startup.command, timeoutMs: startup.timeoutSeconds * 1000, logger: startup.logger }) : undefined;
+  const stream = ndJsonStream(agent.stdin, watch ? watch.watchStdout(agent.stdout) : agent.stdout);
+  const readable = watch ? watch.tap(stream.readable) : stream.readable;
+  return new AgentConnection(toClient, paced ? { writable: stream.writable, readable: pacedStream(readable, paced, READ_SLICE_MS, pace) } : { writable: stream.writable, readable }, watch);
 }
 
 /** How long the agent's messages are handled before the event loop gets a turn (`pacedStream`). */
@@ -260,7 +297,7 @@ export async function initializeAgent(
     clientInfo: CLIENT_INFO,
   };
   options.logger?.log({ event: "initialize_request", protocolVersion: REQUESTED_PROTOCOL_VERSION, ...(options.elicitation ? { elicitation: true } : {}) });
-  const response = await raceWithExit(agent, command, conn.initialize(request));
+  const response = await raceWithExit(conn, agent, command, conn.initialize(request), "initialize");
   options.logger?.log({ event: "initialize_response", protocolVersion: response.protocolVersion });
   if (response.protocolVersion !== REQUESTED_PROTOCOL_VERSION) {
     throw new ProtocolVersionMismatchError(REQUESTED_PROTOCOL_VERSION, response.protocolVersion);
@@ -270,6 +307,15 @@ export async function initializeAgent(
 
 export interface NewSessionOptions {
   readonly logger?: DebugLogger;
+  /** The session's complete list of additional directories, sent as `additionalDirectories` only
+   *  when non-empty (the caller sends it only to a harness that advertises the capability). */
+  readonly additionalDirectories?: readonly string[];
+}
+
+/** The `additionalDirectories` field of a request, present only for a non-empty list. */
+function directoriesField(options: NewSessionOptions): { additionalDirectories?: string[] } {
+  const list = options.additionalDirectories ?? [];
+  return list.length > 0 ? { additionalDirectories: [...list] } : {};
 }
 
 /** Sends `session/new` with the given `cwd` and an empty `mcpServers` list (design 5.2). */
@@ -280,9 +326,9 @@ export async function createNewSession(
   cwd: string,
   options: NewSessionOptions = {},
 ): Promise<NewSessionResponse> {
-  const request: NewSessionRequest = { cwd, mcpServers: [] };
+  const request: NewSessionRequest = { cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_new_request", cwd });
-  const response = await raceWithExit(agent, command, conn.newSession(request));
+  const response = await raceWithExit(conn, agent, command, conn.newSession(request), "session/new");
   options.logger?.log({ event: "session_new_response", sessionId: response.sessionId });
   return response;
 }
@@ -293,6 +339,8 @@ export interface SessionSupport {
   readonly load: boolean;
   readonly resume: boolean;
   readonly list: boolean;
+  /** `sessionCapabilities.additionalDirectories`: the session requests take a list of directories. */
+  readonly additionalDirectories: boolean;
 }
 
 export function sessionSupport(response: Pick<InitializeResponse, "agentCapabilities">): SessionSupport {
@@ -301,6 +349,7 @@ export function sessionSupport(response: Pick<InitializeResponse, "agentCapabili
     load: caps?.loadSession === true,
     resume: caps?.sessionCapabilities?.resume != null,
     list: caps?.sessionCapabilities?.list != null,
+    additionalDirectories: caps?.sessionCapabilities?.additionalDirectories != null,
   };
 }
 
@@ -315,9 +364,9 @@ export async function loadSession(
   cwd: string,
   options: NewSessionOptions = {},
 ): Promise<LoadSessionResponse> {
-  const request: LoadSessionRequest = { sessionId, cwd, mcpServers: [] };
+  const request: LoadSessionRequest = { sessionId, cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_load_request", sessionId, cwd });
-  const response = await raceWithExit(agent, command, conn.loadSession(request));
+  const response = await raceWithExit(conn, agent, command, conn.loadSession(request), "session/load");
   options.logger?.log({ event: "session_load_response", sessionId });
   return response;
 }
@@ -332,9 +381,9 @@ export async function resumeSession(
   cwd: string,
   options: NewSessionOptions = {},
 ): Promise<ResumeSessionResponse> {
-  const request: ResumeSessionRequest = { sessionId, cwd, mcpServers: [] };
+  const request: ResumeSessionRequest = { sessionId, cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_resume_request", sessionId, cwd });
-  const response = await raceWithExit(agent, command, conn.resumeSession(request));
+  const response = await raceWithExit(conn, agent, command, conn.resumeSession(request), "session/resume");
   options.logger?.log({ event: "session_resume_response", sessionId });
   return response;
 }
@@ -345,11 +394,11 @@ export async function listSessions(
   agent: LaunchedAgent,
   command: readonly string[],
   params: { readonly cwd?: string; readonly cursor?: string },
-  options: NewSessionOptions & { readonly signal?: AbortSignal } = {},
+  options: NewSessionOptions & { readonly signal?: AbortSignal; readonly startup?: boolean } = {},
 ): Promise<ListSessionsResponse> {
   const request: ListSessionsRequest = { ...(params.cwd !== undefined ? { cwd: params.cwd } : {}), ...(params.cursor !== undefined ? { cursor: params.cursor } : {}) };
   options.logger?.log({ event: "session_list_request", cwd: params.cwd ?? null, cursor: params.cursor !== undefined });
-  const response = await raceWithExit(agent, command, conn.listSessions(request, options.signal));
+  const response = await raceWithExit(conn, agent, command, conn.listSessions(request, options.signal), options.startup ? "session/list" : undefined);
   options.logger?.log({ event: "session_list_response", count: response.sessions.length, more: response.nextCursor != null });
   return response;
 }

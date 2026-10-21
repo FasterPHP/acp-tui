@@ -11,6 +11,7 @@ import type { WheelStep } from "../renderer/wheel.ts";
 import type { ResolvedTheme } from "../theme/index.ts";
 import type { PromptResult, ResourceLinkBlock } from "../session/controller.ts";
 import type { SplashLaunch } from "./splash.ts";
+import type { AddDirectoryResult } from "../session/switch.ts";
 import type { SessionStore } from "../session/store.ts";
 
 export interface AppActions {
@@ -37,6 +38,9 @@ export interface AppActions {
   /** Sends `session/set_model` (the older model state); resolves once the session's current
    *  model is `modelId`. Rejects with the agent's error. */
   setModel?(modelId: string): Promise<void>;
+  /** `/add-dir <path>` (session/switch.ts `addDirectory`): resolves with what was done or why not.
+   *  `confirm` is asked, with the text of the restart entry, only for a harness that must restart. */
+  addDirectory?(path: string, confirm: (restart: string) => Promise<boolean>): Promise<AddDirectoryResult>;
 }
 
 export interface AppContextValue {

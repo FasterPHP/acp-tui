@@ -47,6 +47,10 @@ export interface SessionRecord {
   /** The session's directory, absolute. */
   readonly directory: string;
   readonly title: string | null;
+  /** The directories added for this session (`--add-dir`, or during the session), absolute; absent
+   *  for a session that has none, and for entries written before the field existed. The
+   *  configuration's directories are not recorded. */
+  readonly addedDirectories?: readonly string[];
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -61,6 +65,8 @@ export interface RecordInput extends SessionKey {
   readonly command?: readonly string[];
   readonly directory: string;
   readonly title?: string | null;
+  /** The directories added for the session, written with it. */
+  readonly addedDirectories?: readonly string[];
   /** Creation and last-activity time, as epoch milliseconds; default now. */
   readonly at?: number;
 }
@@ -155,12 +161,16 @@ function readRecord(value: unknown): SessionRecord | null {
   if (r["title"] !== null && !isString(r["title"])) return null;
   const command = r["command"];
   if (command !== undefined && !(Array.isArray(command) && command.every(isString))) return null;
+  // Optional, and ignored when it is not a list of strings (the file is not trusted).
+  const added = r["addedDirectories"];
+  const addedDirectories = Array.isArray(added) && added.every(isString) ? (added as string[]).map(oneLine).filter((d) => d !== "") : [];
   return {
     sessionId: oneLine(r["sessionId"]),
     agent: oneLine(r["agent"]),
     ...(command !== undefined ? { command: command as string[] } : {}),
     directory: oneLine(r["directory"]),
     title: r["title"] === null ? null : oneLine(r["title"]) || null,
+    ...(addedDirectories.length > 0 ? { addedDirectories } : {}),
     createdAt: r["createdAt"],
     updatedAt: r["updatedAt"],
   };
@@ -359,6 +369,7 @@ export function openSessionIndex(options: SessionIndexOptions = {}): SessionInde
         ...(input.command ? { command: [...input.command] } : {}),
         directory: oneLine(input.directory),
         title,
+        ...(input.addedDirectories && input.addedDirectories.length > 0 ? { addedDirectories: input.addedDirectories.map(oneLine).filter((d) => d !== "") } : {}),
         createdAt: at,
         updatedAt: at,
       };

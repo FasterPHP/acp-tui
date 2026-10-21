@@ -3,6 +3,7 @@
 // the acp-model Session plus agent and UI state, so the session store adapter
 // can recompute it on every change and tests can build one directly.
 import { sanitise, type ConnectionState, type Session, type SessionOpenMode, type TurnState } from "acp-model";
+import { legacyModelOption, modelDisplayName, type ModelListSettings } from "./provider-groups.ts";
 import type { MousePolicy } from "../renderer/options.ts";
 import type { HintRule } from "./modules.ts";
 
@@ -42,12 +43,15 @@ export interface SessionView {
   /** Current mode name from the `mode` config option, else legacy session modes. */
   mode: string | null;
   cwd: string | null;
+  /** The session's additional directories (absolute), as the `dirs` module shows them; absent in
+   *  fixtures built by hand. */
+  additionalDirectories?: readonly string[];
   /** Home directory, so the `cwd` module can shorten paths to `~`. */
   home: string | null;
   /** The platform whose path rules the `cwd` module applies (tests inject `win32`); absent = this one. */
   platform?: NodeJS.Platform;
-  /** `connecting` until `initialize` and `session/new` have completed. */
-  connection: ConnectionState | "connecting";
+  /** `starting` until `initialize` has been answered, then `opening` until the session has started. */
+  connection: ConnectionState | "starting" | "opening";
   turnState: TurnState;
   /** How the session is being opened (`load` or `resume`), or null once it is open
    *  (mvp-sessions task 6.2); absent in fixtures built by hand. */
@@ -112,12 +116,16 @@ export interface ViewInput {
   /** True once the harness has answered `initialize`: the connection reads `connected` though no
    *  session has started yet (the session list is open). */
   harnessReady?: boolean;
+  /** True once the harness has answered `initialize` (the start is then `opening`, else `starting`). */
+  initialized?: boolean;
   /** Overrides the session's own `agent` (from `initialize`); mostly for fixtures. */
   agent?: AgentIdentity | null;
   home?: string | null;
   now?: number;
   mouse?: MousePolicy;
   scroll?: ScrollPosition;
+  /** The `models` settings (default: grouping on, separator " / "). */
+  models?: ModelListSettings;
   density?: string;
   densitySetting?: string;
   ui?: Partial<SessionView["ui"]>;
@@ -139,7 +147,7 @@ function clean(text: string | null | undefined): string | null {
   return out === "" ? null : out;
 }
 
-function selectedName(session: Session, category: string): string | null | undefined {
+function selectedName(session: Session, category: string, models?: ModelListSettings): string | null | undefined {
   const option = session.configOptions.find((o) => o.category === category);
   if (!option) return undefined;
   if (option.type !== "select") return null;
@@ -148,7 +156,7 @@ function selectedName(session: Session, category: string): string | null | undef
       const found = entry.options.find((o) => o.value === option.currentValue);
       if (found) return found.name;
     } else if (entry.value === option.currentValue) {
-      return entry.name;
+      return category === "model" ? modelDisplayName(option, entry.value, entry.name, models) : entry.name;
     }
   }
   return option.currentValue;
@@ -156,10 +164,13 @@ function selectedName(session: Session, category: string): string | null | undef
 
 /** The current model of the older model state (`models`): its name, else its ID. Used only while
  *  the session has no `model` config option, which wins outright (session-models D2). */
-function legacyModelName(session: Session): string | undefined {
+function legacyModelName(session: Session, settings?: ModelListSettings): string | undefined {
   const models = session.models;
   if (!models) return undefined;
-  return models.availableModels.find((m) => m.modelId === models.currentModelId)?.name ?? models.currentModelId;
+  const found = models.availableModels.find((m) => m.modelId === models.currentModelId);
+  if (!found) return models.currentModelId;
+  const option = legacyModelOption(models);
+  return modelDisplayName(option, found.modelId, found.name, settings);
 }
 
 /**
@@ -168,7 +179,7 @@ function legacyModelName(session: Session): string | undefined {
  * the legacy model (named `Model`) when there is no `model` option. An option without a name or
  * value is left out.
  */
-export function configPills(session: Session): ConfigPill[] {
+export function configPills(session: Session, models?: ModelListSettings): ConfigPill[] {
   const out: ConfigPill[] = [];
   for (const category of PILL_CATEGORIES) {
     const option = session.configOptions.find((o) => o.category === category);
@@ -176,14 +187,14 @@ export function configPills(session: Session): ConfigPill[] {
     let value: string | null = null;
     if (option) {
       name = clean(option.name);
-      value = clean(selectedName(session, category));
+      value = clean(selectedName(session, category, models));
     } else if (category === "mode" && session.modes) {
       const current = session.modes.availableModes.find((m) => m.id === session.modes!.currentModeId);
       name = "Mode";
       value = clean(current?.name ?? session.modes.currentModeId);
     } else if (category === "model" && session.models) {
       name = "Model";
-      value = clean(legacyModelName(session));
+      value = clean(legacyModelName(session, models));
     }
     if (name !== null && value !== null) out.push({ category, name, value });
   }
@@ -201,11 +212,12 @@ export function deriveSessionView(session: Session, input: ViewInput = {}): Sess
   return {
     agent: clean(agent?.title) ?? clean(agent?.name),
     agentVersion: clean(agent?.version),
-    model: clean(selectedName(session, "model") ?? legacyModelName(session)),
+    model: clean(selectedName(session, "model", input.models) ?? legacyModelName(session, input.models)),
     mode: clean(mode),
     cwd: clean(session.cwd),
+    additionalDirectories: session.additionalDirectories,
     home: input.home ?? null,
-    connection: input.connecting && input.harnessReady !== true ? "connecting" : session.connection,
+    connection: input.connecting && input.harnessReady !== true ? (input.initialized === true ? "opening" : "starting") : session.connection,
     turnState: session.state,
     opening: session.opening,
     loaded: session.order.length,
@@ -217,7 +229,7 @@ export function deriveSessionView(session: Session, input: ViewInput = {}): Sess
     scroll: input.scroll ?? FOLLOWING,
     density: input.density,
     densitySetting: input.densitySetting,
-    pills: configPills(session),
+    pills: configPills(session, input.models),
     ui: { ...DEFAULT_UI, permissionOpen: session.state === "requires_action", ...input.ui },
   };
 }

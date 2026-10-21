@@ -101,16 +101,16 @@ describe("Session list (task 7.1)", () => {
       expect(s.screenText().findIndex((r) => r.startsWith("╰─ ↑↓ select"))).toBe(size.rows - 3);
       expect(rows[0]).toMatch(/^╭─ Sessions in .* esc ─╮$/);
       expect(body[0]).toContain("type to filter by title, harness or directory");
-      const expected = ["New session with fake", "New session with auggie", "New session with claude", "New session with other", "Session of another agent", ...titles];
+      const expected = ["New session with fake", "New session with auggie", "New session with claude", "New session with opencode", "New session with other", "Session of another agent", ...titles];
       for (const title of expected) expect(body.some((r) => r.startsWith(title))).toBe(true);
       // The agent selector heads the list, the current agent first; then newest first.
-      expect(body.slice(1, 5)).toEqual(["New session with fake", "New session with auggie", "New session with claude", "New session with other"].map((t) => expect.stringMatching(new RegExp(`^${t}`))));
+      expect(body.slice(1, 6)).toEqual(["New session with fake", "New session with auggie", "New session with claude", "New session with opencode", "New session with other"].map((t) => expect.stringMatching(new RegExp(`^${t}`))));
       // The details in aligned columns over the whole list (IDE check 10.2, F2): the title column
       // takes what the agent and time columns leave (the time at least 14 wide, day-two-feedback
       // task 12.5), the directory column (a long temporary path here) is dropped from every row at once.
       const titleWidth = size.cols - 4 - (2 + 5) - (2 + 14);
       const row = (title: string, agent: string, time: string) => `${title.padEnd(titleWidth)}  ${agent.padEnd(5)}  ${time}`;
-      expect(body.slice(5, 12)).toEqual([
+      expect(body.slice(6, 13)).toEqual([
         row("Render the template", "fake", "7 minutes ago"),
         row("Session of another agent", "other", "30 minutes ago"),
         row("Fix the router", "fake", "3 hours ago"),
@@ -576,8 +576,8 @@ describe("Honest errors in the list (task 7.5)", () => {
     expect(footer).not.toMatch(/install/i);
     expect(listOpen(s)).toBe(true);
     expect(methods(w, "fake").includes("session/new")).toBe(false);
-    // Back to `connecting` while there is no session.
-    expect(statusRow(s)).toContain("connecting");
+    // Back to `opening` (the harness is up) while there is no session.
+    expect(statusRow(s)).toContain("opening");
     s.sendKeys("Esc");
     await s.waitFor(() => w.received("fake").some((e) => e.method === "session/new"), 5000);
     await s.waitFor(READY, 5000);

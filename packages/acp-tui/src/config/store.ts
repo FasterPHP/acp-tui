@@ -101,12 +101,12 @@ export function createConfigStore(options: ConfigStoreOptions): ConfigStore {
   let watcher: ConfigWatcher | null = null;
 
   const readAll = (previous: Config | undefined) => {
-    const user = load(read(userFile, { checkWriters: true, env }), userFile, "user", knownAgents);
+    const user = load(read(userFile, { checkWriters: true, env }), userFile, "user", knownAgents, undefined, home);
     const projectFile = options.sessionDirectory === null ? null : findProjectFile(options.sessionDirectory, { home });
     // A different project file (or none) starts from nothing; its old sections are not kept.
     if (projectFile !== lastProjectFile) lastProject = {};
     lastProjectFile = projectFile;
-    const project = projectFile === null ? null : load(read(projectFile, {}), projectFile, "project", knownAgents);
+    const project = projectFile === null ? null : load(read(projectFile, {}), projectFile, "project", knownAgents, undefined, home);
     lastUser = nextLastGood(lastUser, user);
     lastProject = project ? nextLastGood(lastProject, project) : {};
     const config = effectiveConfig({ user: lastUser, project: lastProject, overrides, ...(previous ? { previous } : {}) });

@@ -17,6 +17,7 @@ export const MODULE_IDS = [
   "model",
   "mode",
   "cwd",
+  "dirs",
   "connection",
   "turn-state",
   "usage",
@@ -201,6 +202,22 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
       const path = view.cwd === null ? null : truncateMiddle(shortenHome(view.cwd, view.home, view.platform), s.maxWidth ?? 40);
       const base = view.cwd === null ? null : baseName(view.cwd, view.platform);
       return fromTemplate(s, { cwd: path, path, basename: base === null ? null : truncateMiddle(base, s.maxWidth ?? 40) });
+    },
+  },
+  dirs: {
+    // The session's additional directories: `+2 dirs` (`+1 dir`), hidden when there are none; the
+    // first to go in a narrow status row (priority below `hints`). `list` holds the paths with `~`
+    // for home, comma-separated, for a custom format.
+    fields: ["count", "noun", "list"],
+    defaults: defaults("+{count} {noun}", 20, "muted"),
+    render: (view, s) => {
+      const dirs = view.additionalDirectories ?? [];
+      if (dirs.length === 0) return null;
+      return fromTemplate(s, {
+        count: String(dirs.length),
+        noun: dirs.length === 1 ? "dir" : "dirs",
+        list: dirs.map((d) => shortenHome(d, view.home, view.platform)).join(", "),
+      });
     },
   },
   connection: {

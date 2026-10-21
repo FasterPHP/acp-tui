@@ -1,6 +1,6 @@
 // A scratch world for the session list's PTY tests (mvp-sessions task group
 // 7): its own XDG_CONFIG_HOME (a `config.jsonc` with fake-agent entries in
-// `agent_servers`, and `auggie` and `claude` overridden by fake-agent commands, so
+// `agent_servers`, and `auggie`, `claude` and `opencode` overridden by fake-agent commands, so
 // neither real harness is launched and the list's rows never depend on the machine) and XDG_STATE_HOME (the session
 // index), fake-agent session fixtures in directories that exist, and one
 // fake-agent log per agent name, recording every method each received
@@ -32,7 +32,7 @@ export interface ListWorld {
   /** fake-agent's command logging to the log of `name`, with these arguments. */
   fake(name: string, args: readonly string[]): string[];
   /** Writes `config.jsonc`: one `agent_servers` entry per name, each fake-agent with its
-   *  arguments (absolute paths), and `auggie` and `claude` too unless given, so nothing launches the real
+   *  arguments (absolute paths), and `auggie`, `claude` and `opencode` too unless given, so nothing launches the real
    *  agent. */
   configure(agents: Readonly<Record<string, readonly string[]>>, extra?: Record<string, unknown>): void;
   /** The methods (and parameters) the agent `name` received, in order (every process of it). */
@@ -70,7 +70,7 @@ export function listWorld(): ListWorld {
     },
     fake,
     configure(agents, extra = {}) {
-      const all: Record<string, readonly string[]> = { auggie: ["--scenario", "basic"], claude: ["--scenario", "basic"], ...agents };
+      const all: Record<string, readonly string[]> = { auggie: ["--scenario", "basic"], claude: ["--scenario", "basic"], opencode: ["--scenario", "basic"], ...agents };
       const servers = Object.fromEntries(
         Object.entries(all).map(([name, args]) => {
           const [command, ...rest] = fake(name, args);

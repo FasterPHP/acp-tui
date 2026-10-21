@@ -206,6 +206,11 @@ describe("agent selector rows (design decision 6)", () => {
     expect(newSessionEntries(["claude"], { name: "ad hoc", command: ["x"] }).map((r) => r.agent)).toEqual(["claude"]);
   });
 
+  test("OpenCode installed, auggie not: rows for claude and opencode and none for auggie", () => {
+    const rows = newSessionEntries(["claude", "opencode"], { name: "claude", command: null });
+    expect(rows.map((r) => sessionListItem(r, { now: 0, home: null }).title)).toEqual(["New session with claude", "New session with opencode"]);
+  });
+
   test("a session without a title is listed under its ID; the home directory reads `~`", () => {
     const [row] = mergeSessions([{ sessionId: "s-untitled", cwd: "/home/user/work" }], [], FAKE, null);
     const item = sessionListItem(row!, { now: 0, home: "/home/user" });

@@ -18,6 +18,7 @@ import {
   loadAgentCatalogue,
 } from "../../src/agent/catalogue.ts";
 import { builtInAgentCommand, CLAUDE_AGENT_PACKAGE, DEFAULT_AGENT_COMMAND, DEFAULT_AGENT_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
+import { commentedDefault } from "../../src/config/default-file.ts";
 import { launchAgent } from "../../src/agent/launch.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
 import { main, type StartAppOptions } from "../../src/cli.ts";
@@ -64,7 +65,7 @@ const FAKE_CONFIG = `{
 
 describe("The default agent command", () => {
   test("runs claude-agent-acp under Bun, never through the node on the PATH", () => {
-    expect(DEFAULT_AGENT_COMMAND).toEqual([process.execPath, "x", "--bun", "@agentclientprotocol/claude-agent-acp@0.81.2"]);
+    expect(DEFAULT_AGENT_COMMAND).toEqual([process.execPath, "x", "--bun", "@agentclientprotocol/claude-agent-acp@0.94.0"]);
   });
 
   test("runs the Bun that runs acp-tui, by its absolute path, not a bunx looked up on the PATH (on Windows too)", () => {
@@ -94,7 +95,7 @@ describe("the configuration file's path", () => {
 describe("Named agents (tui-sessions)", () => {
   test("without a configuration file: the built-in entries only, no problem", () => {
     const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: configHome(null) } });
-    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude"]);
+    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude", "opencode"]);
     expect(launchArgv(findAgent(catalogue, "claude"))).toEqual(DEFAULT_AGENT_COMMAND);
     expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["auggie", "--acp"]);
     expect(catalogue.defaultAgent).toBe("auggie");
@@ -132,7 +133,7 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.code).not.toBe(0);
     expect(r.started).toBe(false);
     expect(r.stderr).toBe(
-      `acp-tui: 'nosuch' is not a known harness (known: 'auggie', 'claude', 'fake'; harnesses are defined in agent_servers in ${join(home, "acp-tui", "config.jsonc")})\n`,
+      `acp-tui: 'nosuch' is not a known harness (known: 'auggie', 'claude', 'opencode', 'fake'; harnesses are defined in agent_servers in ${join(home, "acp-tui", "config.jsonc")})\n`,
     );
   });
 
@@ -168,8 +169,8 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.launch?.problems[0]).toContain(`config.jsonc:1:20: default_agent names "ghost", which is not a known harness; "auggie" is used`);
   });
 
-  test("an ad hoc harness command never reads the configuration", async () => {
-    // A syntax error would be a problem if the file were read.
+  test("an ad hoc harness command takes no harness or problem from the configuration", async () => {
+    // A syntax error would be a problem if the file's problems were shown for it.
     const r = await run(["--", "my-agent"], configHome("{ not json"));
     expect(r.launch?.problems).toEqual([]);
     expect(r.launch?.agentName).toBe("ad hoc");
@@ -216,7 +217,7 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
       }),
       "/c.jsonc",
     );
-    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude", "ok"]);
+    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude", "opencode", "ok"]);
     // Since mvp-configuration (task 1.5) each reason is written from the schema, with its place.
     expect(Object.fromEntries(catalogue.invalid)).toEqual({
       empty: 'has an invalid command: it takes a non-empty string, not "" (line 1, column 59)',
@@ -237,6 +238,23 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
     const catalogue = buildAgentCatalogue(`{ "agent_servers": { "claude": { "command": [] } } }`, "/c.jsonc");
     expect(launchArgv(findAgent(catalogue, "claude"))).toEqual(DEFAULT_AGENT_COMMAND);
     expect(catalogue.problems).toEqual(["/c.jsonc:1:45: agent_servers.claude.command takes a non-empty string, not an array"]);
+  });
+
+  test("the built-in table's records: command, arguments, hints, start-up timeout and directory template", () => {
+    const entries = Object.fromEntries(BUILT_IN_AGENTS.map((a) => [a.name, a]));
+    expect(entries["auggie"]).toMatchObject({ command: "auggie", args: ["--acp"], loginHint: "auggie login", startupTimeoutSeconds: 30, additionalDirectoryArgs: ["--add-workspace", "{dir}"] });
+    expect(entries["opencode"]).toMatchObject({ command: "opencode", args: ["acp"], installHint: "npm install -g @opencode/cli, or see opencode.ai/docs", loginHint: "opencode auth login", startupTimeoutSeconds: 30 });
+    expect(entries["opencode"]?.additionalDirectoryArgs).toBeUndefined();
+    expect(entries["claude"]).toMatchObject({ startupTimeoutSeconds: 120 });
+    expect(entries["claude"]?.installHint).toBeUndefined();
+    expect(entries["claude"]?.loginHint).toBeUndefined();
+  });
+
+  test("an opencode entry replaces the built-in and carries no hints", () => {
+    const catalogue = buildAgentCatalogue(`{ "agent_servers": { "opencode": { "command": "opencode", "args": ["acp"], "env": { "OPENCODE_CONFIG": "/oc.json" } } } }`, "/c.jsonc");
+    expect(findAgent(catalogue, "opencode")).toMatchObject({ source: "config", env: { OPENCODE_CONFIG: "/oc.json" } });
+    expect(findAgent(catalogue, "opencode").installHint).toBeUndefined();
+    expect(findAgent(catalogue, "opencode").loginHint).toBeUndefined();
   });
 
   test("an auggie entry replaces the built-in and carries no install hint", () => {
@@ -264,9 +282,57 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
   test("a syntax error, a non-object file or a non-object agent_servers: a problem, the built-in entry only", () => {
     for (const text of ["{ \"agent_servers\": ", "[1, 2]", `{ "agent_servers": ["fake"] }`]) {
       const catalogue = buildAgentCatalogue(text, "/c.jsonc");
-      expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude"]);
+      expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude", "opencode"]);
       expect(catalogue.problems).toHaveLength(1);
     }
     expect(buildAgentCatalogue("{ oops", "/c.jsonc").problems[0]).toBe("/c.jsonc:1:3: is not valid JSONC here: an unexpected character; the file is ignored until it parses");
+  });
+});
+
+describe("Start-up timeout setting (harness-feedback tui-config)", () => {
+  const timeout = (text: string | null, name: string): number | undefined => buildAgentCatalogue(text, "/c/config.jsonc").agents.get(name)?.startupTimeoutSeconds;
+
+  test("built-in defaults: 120 for claude, 30 for the others; an ad hoc command has none until the setting names one", () => {
+    expect(timeout(null, "claude")).toBe(120);
+    expect(timeout(null, "auggie")).toBe(30);
+    expect(timeout(null, "opencode")).toBe(30);
+    expect(buildAgentCatalogue(null, "/c/config.jsonc").startupTimeoutSetting).toBeNull();
+  });
+
+  test("Per-harness value: the entry wins for its harness, the setting is every other harness's", () => {
+    const text = `{ "agent_startup_timeout_seconds": 10, "agent_servers": { "slow": { "command": "x", "startup_timeout_seconds": 90 }, "plain": { "command": "y" } } }`;
+    const catalogue = buildAgentCatalogue(text, "/c/config.jsonc");
+    expect(catalogue.problems).toEqual([]);
+    expect(catalogue.agents.get("slow")?.startupTimeoutSeconds).toBe(90);
+    expect(catalogue.agents.get("plain")?.startupTimeoutSeconds).toBe(10);
+    expect(catalogue.agents.get("auggie")?.startupTimeoutSeconds).toBe(10);
+    expect(catalogue.agents.get("claude")?.startupTimeoutSeconds).toBe(10);
+    expect(catalogue.startupTimeoutSetting).toBe(10);
+  });
+
+  test("a configured entry of a built-in name keeps that built-in's default, and without the setting a plain entry has 30", () => {
+    const text = `{ "agent_servers": { "claude": { "command": "x" }, "plain": { "command": "y" }, "auggie": { "command": "z", "startup_timeout_seconds": 600 } } }`;
+    expect(timeout(text, "claude")).toBe(120);
+    expect(timeout(text, "plain")).toBe(30);
+    expect(timeout(text, "auggie")).toBe(600);
+  });
+
+  test("Out of range: 2 is a problem at the value saying a whole number from 5 to 600, and the last good value (the built-in default) stays", () => {
+    for (const bad of ["2", "601", "7.5", `"30"`]) {
+      const catalogue = buildAgentCatalogue(`{ "agent_startup_timeout_seconds": ${bad} }`, "/c/config.jsonc");
+      expect(catalogue.problems.join("\n")).toContain("agent_startup_timeout_seconds");
+      expect(catalogue.agents.get("claude")?.startupTimeoutSeconds).toBe(120);
+    }
+    const message = buildAgentCatalogue(`{ "agent_startup_timeout_seconds": 2 }`, "/c/config.jsonc").problems[0]!;
+    expect(message).toMatch(/whole number from 5 to 600/);
+    const entry = buildAgentCatalogue(`{ "agent_servers": { "x": { "command": "x", "startup_timeout_seconds": 3 } } }`, "/c/config.jsonc");
+    expect(entry.invalid.get("x")).toContain("startup_timeout_seconds");
+    expect(entry.agents.has("x")).toBe(false);
+  });
+
+  test("the commented default shows the setting only commented out, so it loads as the defaults (claude keeps 120)", () => {
+    const text = commentedDefault();
+    expect(text).toMatch(/^\s*\/\/ "agent_startup_timeout_seconds": 30,$/m);
+    expect(timeout(text, "claude")).toBe(120);
   });
 });

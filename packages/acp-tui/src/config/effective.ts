@@ -16,6 +16,7 @@
 // keeps its object, so a reader that selects a section (`config().theme`) sees
 // no change unless it changed.
 import type { ClipboardMode, ExitPrint, MousePolicy } from "../renderer/options.ts";
+import { unionDirectories } from "./directories.ts";
 import type { ParsedSource } from "./load.ts";
 import { defaultConfig, SECTION_NAMES, SECTIONS, type Config, type SectionName } from "./schema.ts";
 
@@ -77,6 +78,10 @@ export function sameValue(a: unknown, b: unknown): boolean {
   return false;
 }
 
+function unionOf(user: unknown, project: unknown): unknown {
+  return user === undefined && project === undefined ? undefined : unionDirectories(user, project);
+}
+
 export interface EffectiveInput {
   readonly user: Sections;
   readonly project: Sections;
@@ -90,7 +95,8 @@ export function effectiveConfig(input: EffectiveInput): Config {
   const defaults = defaultConfig();
   const out = { ...defaults } as Record<SectionName, unknown>;
   for (const section of SECTION_NAMES) {
-    const raw = mergeRaw(input.user[section], input.project[section]);
+    // The one setting merged as a union rather than replaced: the user's directories, then the project's.
+    const raw = section === "additional_directories" ? unionOf(input.user[section], input.project[section]) : mergeRaw(input.user[section], input.project[section]);
     if (raw === undefined) continue;
     const schema = SECTIONS[section];
     const merged = schema.safeParse(raw);

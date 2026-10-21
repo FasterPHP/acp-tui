@@ -198,6 +198,9 @@ export type TextItemKind = "user_message" | "agent_message" | "thought";
 export interface Session {
   readonly id: SessionId | null;
   readonly cwd: string | null;
+  /** The additional directories the client sent when it started or opened the session (an ordered
+   *  list of absolute paths, empty when none), or last replaced; never taken from the agent's answers. */
+  readonly additionalDirectories: readonly string[];
   /** From `initialize`; null when the agent sent no `agentInfo`. */
   readonly agent: AgentInfo | null;
   readonly connection: ConnectionState;
@@ -250,6 +253,7 @@ export function createSession(): Session {
   return {
     id: null,
     cwd: null,
+    additionalDirectories: [],
     agent: null,
     connection: "connected",
     state: "idle",
@@ -287,6 +291,8 @@ export type ModelEvent =
       readonly type: "session_created";
       readonly response: NewSessionResponse;
       readonly cwd: string;
+      /** The additional directories sent with the request; default none. */
+      readonly additionalDirectories?: readonly string[];
       /** `agentInfo` from the `initialize` response, if any. */
       readonly agentInfo?: Implementation | null;
       readonly at: number;
@@ -298,6 +304,8 @@ export type ModelEvent =
       readonly mode: SessionOpenMode;
       readonly sessionId: SessionId;
       readonly cwd: string;
+      /** The additional directories sent with the request; default none. */
+      readonly additionalDirectories?: readonly string[];
       /** `agentInfo` from the `initialize` response, if any. */
       readonly agentInfo?: Implementation | null;
       readonly at: number;
@@ -310,6 +318,9 @@ export type ModelEvent =
       readonly response: LoadSessionResponse | ResumeSessionResponse;
       readonly at: number;
     }
+  /** The client changed the directories of the session in use (`session/resume` with a new list):
+   *  replaces `additionalDirectories`, adds no item and no marker. */
+  | { readonly type: "additional_directories_replaced"; readonly additionalDirectories: readonly string[]; readonly at: number }
   | { readonly type: "session_update"; readonly update: SessionUpdate; readonly at: number }
   /** A notice from the client itself, not the agent (mvp-sessions: the session directory marker,
    *  sent after a load or resume): appended at the end as a final `notice` marker with origin

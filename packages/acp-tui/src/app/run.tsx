@@ -38,6 +38,7 @@ import { sanitise } from "acp-model";
 import { createSignal } from "solid-js";
 import type { CliRenderer, HostClipboardService } from "@opentui/core";
 import { captureConsole } from "../agent/console-capture.ts";
+import { AgentStartupError } from "../agent/connection.ts";
 import type { StartAppOptions } from "../cli.ts";
 import { showFinding } from "./finding-line.ts";
 import { resolveLayout, type Layout } from "../layout/layout.ts";
@@ -81,6 +82,7 @@ import { attentionFromConfig, type AttentionSettings } from "../renderer/attenti
 import type { KeyMap } from "../keys/keymap.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
 import { sessionExitState } from "../session/exit-state.ts";
+import { readConfigDirectories } from "../agent/resolve.ts";
 import { openSessionIndex } from "../session/session-index.ts";
 import { SessionOpenFailure } from "../session/start.ts";
 import { createSessionStore, type SessionStore } from "../session/store.ts";
@@ -188,7 +190,13 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
   const theme = createLiveTheme(themeConfig.source, { forceFlat: themeConfig.flat() });
   themeConfig.attach(theme);
   // The effective mouse policy starts as the chosen one (the `mouse` module; F2 flips it).
-  const store = createSessionStore({ mouse: screen.mouse });
+  const store = createSessionStore({
+    mouse: screen.mouse,
+    models: () => {
+      const models = config.config().models;
+      return { groupByProvider: models.group_by_provider, separator: models.provider_separator };
+    },
+  });
   const capture = captureConsole(options.logger);
   // mvp-sessions: whether opening the session from the command line failed (then the exit text
   // names no session).
@@ -289,11 +297,18 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     index: openSessionIndex({ onWarning: notice }),
     store,
     notify: notice,
+    // The launch directory's project file is already in the store (a failed edit keeps its last
+    // good value); another directory's sessions read their own files.
+    configDirectories: (directory) => (directory === launch.directory ? config.config().additional_directories : readConfigDirectories(directory).directories),
     cancelled: () => lifecycleRef?.shuttingDown ?? false,
     elicitation: cards.elicitation,
     pace,
     // On Windows a harness run through npm's `.cmd` shim retitles the tab (windows-support D5).
-    onHarnessInitialized: () => terminalSignals.reassertTitle(),
+    onHarnessInitialized: () => {
+      terminalSignals.reassertTitle();
+      // The splash and the `connection` module move from `starting` to `opening session`.
+      store.setHarnessInitialized();
+    },
     // ... and so does a harness that starts a worker or runs a command later (Claude Code names
     // the tab `claude` as its process starts): the title is set again at those moments too.
     onHarnessActivity: (activity) => terminalSignals.harnessActivity(activity),
@@ -368,6 +383,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
       if (!using) throw new Error(stillStarting());
       await using.setModel(modelId);
     },
+    addDirectory: (path, confirm) => switcher.addDirectory(path, confirm),
   };
   const context: AppContextValue = { store, actions, theme, logger: options.logger, wheel, clipboard, config, scrollbar, launch: () => splashLaunch(switcher.current()?.launch ?? launch) };
 
@@ -548,13 +564,41 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     // Before the renderer (design decision 13): what `--resume <id>` or `--continue` cannot find
     // or open is said below the command line, and nothing is drawn.
     const finding = launch.session.kind === "resume" || launch.session.kind === "continue" ? showFinding(process.stdout) : () => {};
+    // On the normal screen the terminal is in its cooked mode, so Ctrl+C is SIGINT: it ends the
+    // harness that is being looked in, removes the line and exits with status 130, saying nothing
+    // more (spec tui-agent-session "Exit while the harness starts").
+    let interrupted = false;
+    const onInterrupt = (): void => {
+      if (interrupted) return;
+      interrupted = true;
+      void switcher.detach();
+    };
+    const interruptedExit = (): void => {
+      void switcher.detach().finally(() => {
+        options.logger.log({ event: "exit", reason: "signal", before: "renderer" });
+        capture.restore();
+        store.dispose();
+        resolve(130);
+      });
+    };
+    process.on("SIGINT", onInterrupt);
     switcher.prepare().then(
       () => {
+        process.off("SIGINT", onInterrupt);
         finding();
-        run();
+        if (interrupted) interruptedExit();
+        else run();
       },
-      (error: unknown) => {
+      async (error: unknown) => {
+        // The interrupt reaches the harness too (the same terminal group): the harness's exit may be
+        // noticed before the signal is, so look once more before reporting it as a failure.
+        if (!interrupted && error instanceof AgentStartupError) await Bun.sleep(100);
+        process.off("SIGINT", onInterrupt);
         finding();
+        if (interrupted) {
+          interruptedExit();
+          return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         options.logger.log({ event: "exit", reason: "error", before: "renderer" });
         capture.restore();

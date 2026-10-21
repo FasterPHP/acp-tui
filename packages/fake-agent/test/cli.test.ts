@@ -108,3 +108,45 @@ describe("fake-agent CLI --auth-required and --agent-info", () => {
     expect(() => parseArgs(["--agent-info"], {})).toThrow("--agent-info requires a value");
   });
 });
+
+describe("fake-agent CLI options for harness-feedback", () => {
+  test("all are off by default", () => {
+    const options = parseArgs([], {});
+    expect(options.additionalDirectories).toBe(false);
+    expect(options.addWorkspace).toEqual([]);
+    expect(options.noInitialize).toBe(false);
+    expect(options.printTerminal).toBeUndefined();
+    expect(options.sessionDelayMs).toBe(0);
+    expect(options.sessionHeartbeatMs).toBeUndefined();
+    expect(options.sessionPermission).toBe(false);
+  });
+
+  test("--additional-directories, --no-initialize and --session-permission are flags", () => {
+    const options = parseArgs(["--additional-directories", "--no-initialize", "--session-permission"], {});
+    expect(options.additionalDirectories).toBe(true);
+    expect(options.noInitialize).toBe(true);
+    expect(options.sessionPermission).toBe(true);
+  });
+
+  test("--add-workspace is repeatable and keeps the order", () => {
+    expect(parseArgs(["--add-workspace", "/a", "--add-workspace", "/b"], {}).addWorkspace).toEqual(["/a", "/b"]);
+    expect(() => parseArgs(["--add-workspace"], {})).toThrow("--add-workspace requires a value");
+  });
+
+  test("--print-terminal has an escape and a lines form", () => {
+    expect(parseArgs(["--print-terminal"], {}).printTerminal).toBe("escape");
+    expect(parseArgs(["--print-terminal=lines"], {}).printTerminal).toBe("lines");
+  });
+
+  test("--session-delay and --session-heartbeat take positive integers", () => {
+    const options = parseArgs(["--session-delay", "3000", "--session-heartbeat", "500"], {});
+    expect(options.sessionDelayMs).toBe(3000);
+    expect(options.sessionHeartbeatMs).toBe(500);
+    for (const flag of ["--session-delay", "--session-heartbeat"]) {
+      for (const bad of ["0", "-3", "1.5", "soon"]) {
+        expect(() => parseArgs([flag, bad], {})).toThrow(`${flag} must be a positive integer`);
+      }
+      expect(() => parseArgs([flag], {})).toThrow(`${flag} requires a value`);
+    }
+  });
+});

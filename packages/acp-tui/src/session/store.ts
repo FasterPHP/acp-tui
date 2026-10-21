@@ -14,6 +14,7 @@
 import { batch, createEffect, onCleanup as onCleanupRoot, createMemo, createRoot, createSignal, type Accessor } from "solid-js";
 import { createStore, produce, type SetStoreFunction } from "solid-js/store";
 import { createSession, type Item, type Session } from "acp-model";
+import type { ModelListSettings } from "../layout/provider-groups.ts";
 import { deriveSessionView, FOLLOWING, type ArmedState, type Focus, type ScrollPosition, type SessionView } from "../layout/view.ts";
 import { userHome } from "../platform/paths.ts";
 import type { MousePolicy } from "../renderer/options.ts";
@@ -33,6 +34,8 @@ export interface SessionSource {
 export interface SessionState {
   readonly id: Session["id"];
   readonly cwd: Session["cwd"];
+  /** The directories added to the session (the `dirs` module, the palette's `Add a directory…`). */
+  readonly additionalDirectories: Session["additionalDirectories"];
   readonly agent: Session["agent"];
   readonly connection: Session["connection"];
   readonly state: Session["state"];
@@ -88,6 +91,14 @@ export interface UiState {
    *  and no session exists yet): the status row says `connected` from then on, while the splash
    *  keeps `connecting…` until the session has started (day-two-feedback task 12.7). */
   readonly harnessReady: boolean;
+  /** True once the harness has answered `initialize` in this start (also with a session still to be
+   *  opened): the splash and the `connection` module say `opening session` from then on, and
+   *  `starting` before. */
+  readonly initialized: boolean;
+  /** When the start began and, once known, when `initialize` was answered (ms, the store's clock),
+   *  for the seconds the splash shows after the fifth. */
+  readonly startedAt: number;
+  readonly initializedAt: number | null;
   readonly notices: readonly Notice[];
   /** Which overlay holds the `overlay` focus (`sessions`, the session list; `palette`, the
    *  palette or a picker), or null; an overlay closes itself when another one takes it. */
@@ -142,6 +153,8 @@ export interface SessionStore {
   setPromptEmpty(empty: boolean): void;
   /** The harness has answered `initialize` (see `ui.harnessReady`). */
   setHarnessReady(ready: boolean): void;
+  /** The harness has answered `initialize`: the start moves from `starting` to `opening session`. */
+  setHarnessInitialized(): void;
   setMouse(policy: MousePolicy): void;
   setScroll(position: ScrollPosition): void;
   setDensity(density: string): void;
@@ -161,6 +174,9 @@ export interface SessionStoreOptions {
   mouse?: MousePolicy;
   /** Clock for `turn-state`'s elapsed time; default `Date.now`. */
   now?: () => number;
+  /** The `models` settings (read where the view is derived, so a change redraws the pills);
+   *  default the built-in ones. */
+  models?: () => ModelListSettings;
 }
 
 /** How often the clock ticks while a turn runs. */
@@ -185,6 +201,7 @@ function metadataOf(session: Session) {
   return {
     id: session.id,
     cwd: session.cwd,
+    additionalDirectories: session.additionalDirectories,
     agent: session.agent,
     connection: session.connection,
     state: session.state,
@@ -204,6 +221,7 @@ function metadataOf(session: Session) {
 function sameViewInputs(a: Session, b: Session): boolean {
   return (
     a.cwd === b.cwd &&
+    a.additionalDirectories === b.additionalDirectories &&
     a.agent === b.agent &&
     a.connection === b.connection &&
     a.state === b.state &&
@@ -271,6 +289,9 @@ export function createSessionStore(options: SessionStoreOptions = {}): SessionSt
     densitySetting: "focus",
     connecting: true,
     harnessReady: false,
+    initialized: false,
+    startedAt: clock(),
+    initializedAt: null,
     notices: [],
     overlay: null,
     epoch: 0,
@@ -296,9 +317,11 @@ export function createSessionStore(options: SessionStoreOptions = {}): SessionSt
         home,
         connecting: ui.connecting,
         harnessReady: ui.harnessReady,
+        initialized: ui.initialized,
         now: now(),
         mouse: ui.mouse,
         scroll: { following: ui.scroll.following, percent: ui.scroll.percent, below: ui.scroll.below, newBelow: ui.scroll.newBelow },
+        models: options.models?.(),
         density: ui.density,
         densitySetting: ui.densitySetting,
         ui: {
@@ -379,6 +402,11 @@ export function createSessionStore(options: SessionStoreOptions = {}): SessionSt
     setArmed: (armed) => setUi("armed", armed),
     setPromptEmpty: (empty) => setUi("promptEmpty", empty),
     setHarnessReady: (ready) => setUi("harnessReady", ready),
+    setHarnessInitialized: () => {
+      if (ui.initialized) return;
+      setUi("initialized", true);
+      setUi("initializedAt", clock());
+    },
     setMouse: (policy) => setUi("mouse", policy),
     setScroll(position) {
       if (!sameScroll(ui.scroll, position)) setUi("scroll", position);

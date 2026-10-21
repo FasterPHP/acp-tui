@@ -3,7 +3,7 @@
 // in it, its rows from `splashLayout` (src/app/splash.ts). It is chrome, not an
 // item: copy, find and export never see it, and it goes when the first item
 // arrives. Its identity rows are two from the first frame (the launch's harness and directory, and
-// `connecting…` beside the shared spinner until the session has started), so nothing moves when the
+// `starting…` then `opening session…` beside the shared spinner until the session has started), so nothing moves when the
 // session starts; the spinner redraws its own cell only.
 import { createEffect, createMemo, createSignal, For, onCleanup, Show, type JSX } from "solid-js";
 import type { BoxRenderable } from "@opentui/core";
@@ -13,7 +13,7 @@ import { createSpinner } from "../conversation/items.tsx";
 import { useKeys } from "../keys/context.ts";
 import type { SessionView } from "../layout/view.ts";
 import { SESSION_LIST_OVERLAY } from "../session/store.ts";
-import { splashLayout, rowWidth, type SplashLaunch } from "./splash.ts";
+import { phaseCell, splashLayout, rowWidth, type SplashLaunch } from "./splash.ts";
 import { useApp } from "./context.ts";
 
 /** acp-tui's version, shown beside the wordmark. */
@@ -40,6 +40,7 @@ export function Splash(props: { view: SessionView }): JSX.Element {
         cwd: props.view.cwd,
         launch: launched(),
         connecting: connecting(),
+        phase: store.ui.initialized ? "opening" : "starting",
         spinner: LIVE_GLYPHS.spinner,
         home: props.view.home,
         keyMap,
@@ -50,12 +51,20 @@ export function Splash(props: { view: SessionView }): JSX.Element {
       size().height,
     ),
   );
-  // The spinner's clock runs only while the splash shows `connecting…`; the layout holds the
+  // The spinner's clock runs only while the splash shows the start; the layout holds the
   // first frame and only the marked cell reads the clock, so the rest of the splash is not redrawn.
   const spinner = createSpinner();
   createEffect(() => {
     if (store.session.order.length === 0 && connecting()) onCleanup(spinner.hold());
   });
+  // The phase cell's text: what the start waits for, and from the fifth second the seconds waited
+  // (read at the spinner's rate, so it is redrawn as the spinner is, in its own cells only).
+  const phaseText = (): string => {
+    spinner.frame();
+    const phase = store.ui.initialized ? "opening" : "starting";
+    const since = phase === "opening" ? (store.ui.initializedAt ?? store.ui.startedAt) : store.ui.startedAt;
+    return phaseCell(phase, Math.max(0, (Date.now() - since) / 1000));
+  };
   const spinnerGlyph = () => LIVE_GLYPHS.spinner[spinner.frame() % LIVE_GLYPHS.spinner.length] ?? " ";
   return (
     // Not behind the session list, whose panel leaves the rows above it uncovered (the wordmark
@@ -79,7 +88,7 @@ export function Splash(props: { view: SessionView }): JSX.Element {
           {(row) => (
             <text height={1} flexShrink={0} wrapMode="none" {...theme.text("text")}>
               <span style={theme.text("text")}>{" ".repeat(Math.max(0, Math.floor((size().width - rowWidth(row)) / 2)))}</span>
-              <For each={row}>{(s) => <span style={theme.text(s.token)}>{s.spinner ? spinnerGlyph() : s.text}</span>}</For>
+              <For each={row}>{(s) => <span style={theme.text(s.token)}>{s.spinner ? spinnerGlyph() : s.phase ? ` ${phaseText()}` : s.text}</span>}</For>
             </text>
           )}
         </For>

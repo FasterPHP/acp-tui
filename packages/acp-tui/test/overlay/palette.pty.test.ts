@@ -226,8 +226,8 @@ describe("agent commands in the slash menu (tasks 6.4 and 12.1)", () => {
     await run.s.waitFor(() => run.agent().filter((e) => e.method === "session/update/sent").length >= 2, 5000);
     await run.s.waitFor(READY, 5000);
     run.s.sendKeys({ text: "/" });
-    // The one agent command and acp-tui's eight.
-    await run.s.waitFor(/Slash commands 9 /, 3000);
+    // The one agent command and acp-tui's nine.
+    await run.s.waitFor(/Slash commands 10 /, 3000);
     expect(listRows(run.s, "Slash commands")[0]).toMatch(/^\/review {2}Review a pull request$/);
     expect(listRows(run.s, "Slash commands").filter((r) => r.startsWith("/compact"))).toEqual([]);
     run.s.sendKeys({ text: "/compact" });

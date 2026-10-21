@@ -27,7 +27,7 @@ describe("the session list opens before the harness has started (tasks 3.1 to 3.
       await s.flush();
       const screen = s.screenText().join("\n");
       // The app's first frame: its status row or its list, whichever is drawn first.
-      if (firstFrame === 0 && (/connecting/.test(screen) || listOpen(s))) firstFrame = Date.now();
+      if (firstFrame === 0 && (/starting/.test(screen) || listOpen(s))) firstFrame = Date.now();
       if (listOpen(s) && ["Session 00", "Session 01", "Session 02"].every((t) => listBody(s).some((r) => r.startsWith(t)))) listed = Date.now();
     }
     expect(listed).toBeGreaterThan(0);

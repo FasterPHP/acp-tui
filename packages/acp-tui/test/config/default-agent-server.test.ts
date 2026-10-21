@@ -79,4 +79,12 @@ describe("default_agent_server", () => {
       expect(parsed.problems[0]!.message).toContain("is not allowed in a project file");
     }
   });
+
+  test("Timeout in a project file: agent_startup_timeout_seconds is not allowed, the rest applies", () => {
+    const parsed = parse(`{ "agent_startup_timeout_seconds": 5, "glyphs": "ascii" }`, "project");
+    expect(parsed.sections).not.toHaveProperty("agent_startup_timeout_seconds");
+    expect(parsed.sections["glyphs"]).toBeDefined();
+    expect(parsed.problems.map((p) => p.path)).toEqual(["agent_startup_timeout_seconds"]);
+    expect(parsed.problems[0]!.message).toContain("is not allowed in a project file");
+  });
 });

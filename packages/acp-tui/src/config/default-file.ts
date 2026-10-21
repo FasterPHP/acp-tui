@@ -22,7 +22,8 @@ import type { z } from "zod";
 import { BLOCK_NAMES, DEFAULT_LAYOUT } from "../layout/layout.ts";
 import { MODULE_IDS, MODULES } from "../layout/modules.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS } from "../keys/keymap.ts";
-import { AUGGIE_INSTALL_HINT, BUILT_IN_HARNESSES, DEFAULT_AGENT_EXAMPLE_COMMAND } from "../agent/command.ts";
+import { BUILT_IN_HARNESSES, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
+import { AGENT_EXAMPLES, type AgentExample } from "../agent/examples.ts";
 import { TERMINAL_TABLE, type TerminalCapabilities } from "../renderer/capabilities.ts";
 import { describeSchema } from "./load.ts";
 import {
@@ -173,85 +174,13 @@ export const EXAMPLE = "Example, not active:";
 /** What a commented-out default is, for settings whose absence is their meaning. */
 const ABSENT = "The default layout's value, shown commented out, applies while this is not set:";
 
-/** One commented agent example: what it is and where its command is documented, and its entry. */
-export interface AgentExample {
-  readonly name: string;
-  readonly about: string;
-  readonly entry: { readonly command: string; readonly args: readonly string[]; readonly env?: Readonly<Record<string, string>> };
-}
-
-/**
- * The agent examples (task 12.7). Each command was checked against the agent's own documentation
- * or the ACP agents list (agentclientprotocol.com/overview/agents) on 13 October 2026, and its
- * comment names the source. DeepSeek has no ACP agent of its own, so it is reached through
- * OpenCode. `claude` repeats the built-in entry (`DEFAULT_AGENT_EXAMPLE_COMMAND`): the same
- * package and arguments acp-tui runs without the entry, through `bunx` from the PATH rather than
- * the Bun running acp-tui, whose path differs from machine to machine.
- */
-export const AGENT_EXAMPLES: readonly AgentExample[] = [
-  {
-    name: "auggie",
-    about: `the built-in auggie as acp-tui runs it without an entry (the default harness), installed with ${AUGGIE_INSTALL_HINT}. Add "--reasoning-effort", "high" to args to choose how hard it thinks (none, low, medium, high, xhigh, max or dynamic). Source: docs.augmentcode.com/cli/acp.`,
-    entry: { command: "auggie", args: ["--acp"] },
-  },
-  {
-    name: "claude",
-    about:
-      "the built-in claude as acp-tui runs it without an entry (which uses the Bun running acp-tui in place of bunx), plus Claude Code's ANTHROPIC_MODEL to choose the model. Change args to run another version of claude-agent-acp. Sources: npm @agentclientprotocol/claude-agent-acp, and code.claude.com/docs/en/settings for ANTHROPIC_MODEL.",
-    entry: { command: DEFAULT_AGENT_EXAMPLE_COMMAND[0]!, args: DEFAULT_AGENT_EXAMPLE_COMMAND.slice(1), env: { ANTHROPIC_MODEL: "opus" } },
-  },
-  {
-    name: "codex",
-    about: "OpenAI Codex through codex-acp, installed with npm install -g @agentclientprotocol/codex-acp. Source: github.com/agentclientprotocol/codex-acp.",
-    entry: { command: "codex-acp", args: [] },
-  },
-  {
-    name: "opencode",
-    about: "OpenCode. Source: opencode.ai/docs/acp.",
-    entry: { command: "opencode", args: ["acp"] },
-  },
-  {
-    name: "deepseek",
-    about:
-      'DeepSeek has no ACP agent of its own, so reach it through a harness such as OpenCode. Connect DeepSeek in OpenCode with /connect, then give this entry an OpenCode config file that sets "model" to a DeepSeek model, which /models lists. Sources: opencode.ai/docs/providers and opencode.ai/docs/config for OPENCODE_CONFIG.',
-    entry: { command: "opencode", args: ["acp"], env: { OPENCODE_CONFIG: "/home/you/.config/opencode/deepseek.json" } },
-  },
-  {
-    name: "pi",
-    about: "the pi coding agent through pi-acp, installed with npm install -g pi-acp; pi itself must be on the PATH. Source: github.com/svkozak/pi-acp.",
-    entry: { command: "pi-acp", args: [] },
-  },
-  {
-    name: "gemini",
-    about: "Google's Gemini CLI. Source: geminicli.com/docs/cli/acp-mode.",
-    entry: { command: "gemini", args: ["--acp"] },
-  },
-  {
-    name: "qwen",
-    about: "Qwen Code. Source: qwenlm.github.io/qwen-code-docs, Zed integration.",
-    entry: { command: "qwen", args: ["--acp"] },
-  },
-  {
-    name: "copilot",
-    about: "GitHub Copilot CLI. Source: github.blog changelog, ACP support in Copilot CLI, 28 January 2026.",
-    entry: { command: "copilot", args: ["--acp"] },
-  },
-  {
-    name: "cursor",
-    about: "Cursor's CLI, whose command is named agent. Source: cursor.com/docs/cli/acp.",
-    entry: { command: "agent", args: ["acp"] },
-  },
-  {
-    name: "goose",
-    about: "Goose. Source: goose-docs.ai/docs/guides/acp-clients.",
-    entry: { command: "goose", args: ["acp"] },
-  },
-];
+export { AGENT_EXAMPLES };
 
 /** An agent example's entry as one JSONC line. */
 function agentLine({ name, entry }: AgentExample): string {
   const env = entry.env ? `, "env": ${json(entry.env)}` : "";
-  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${JSON.stringify(entry.args).replace(/","/g, '", "')}${env} },`;
+  const directories = entry.additionalDirectoryArgs ? `, "additional_directory_args": ${JSON.stringify(entry.additionalDirectoryArgs).replace(/","/g, '", "')}` : "";
+  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${JSON.stringify(entry.args).replace(/","/g, '", "')}${env}${directories} },`;
 }
 
 type Special = (key: string, schema: AnySchema, indent: string) => string[];
@@ -263,7 +192,7 @@ const SPECIALS: Readonly<Record<string, Special>> = {
     return [
       ...comment(describeOf(schema) ?? "", indent),
       ...comment("Each entry takes:", indent),
-      ...(["command", "args", "env"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
+      ...(["command", "args", "env", "additional_directory_args"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
       ...comment('The harness runs in the session directory, so give paths in "command" and "args" as absolute paths.', indent),
       ...comment(
         `With no entry, the built-in ${BUILT_IN_HARNESSES.map((h) => `"${h.name}"`).join(" and ")} are the only harnesses. Every entry below is an example, not active: install the harness, then remove the // in front of its line to add it.`,
@@ -312,6 +241,12 @@ const SPECIALS: Readonly<Record<string, Special>> = {
     ...comment(`${EXAMPLE} a triangle as the first-level bullet.`, indent + STEP),
     ...commentedOut(['"list.bullet.1": "▸",'], indent + STEP),
     `${indent}},`,
+  ],
+
+  // Commented out: a value written here would also apply to `claude`, whose own default is longer.
+  agent_startup_timeout_seconds: (key, schema, indent) => [
+    ...comment(`${describeOf(schema) ?? ""} While this is not set, each harness uses its own default, and 30 seconds otherwise (shown commented out, so that claude keeps its longer one):`, indent),
+    ...commentedOut([`"${key}": ${json(DEFAULT_STARTUP_TIMEOUT_SECONDS)},`], indent),
   ],
 
   "layout.margins": (key, schema, indent) => [...comment(`${describeOf(schema) ?? ""} ${ABSENT}`, indent), ...commentedOut([`"${key}": ${json(DEFAULT_LAYOUT.margins)},`], indent)],
@@ -431,7 +366,7 @@ export function defaultFileHeader(platform: NodeJS.Platform = process.platform):
     {
       heading: "Project files",
       paragraphs: [
-        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent, clipboard, terminals, and the keys of the card and elicitation contexts.",
+        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent_server, agent_startup_timeout_seconds, clipboard, terminals, and the keys of the card and elicitation contexts. Its additional_directories are limited to directories inside the parent of the project's own directory, and never the home directory or a directory below a name starting with a dot.",
       ],
     },
     {

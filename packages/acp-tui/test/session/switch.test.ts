@@ -260,6 +260,7 @@ describe("built-in harness rows and the install hint (colleague-preview)", () =>
     const agents = new Map<string, AgentEntry>([
       ["auggie", builtIn("auggie", "no-such-auggie-program-xyz", "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login")],
       ["claude", builtIn("claude", "claude-stand-in")],
+      ["opencode", builtIn("opencode", "no-such-opencode-program-xyz", "npm install -g @opencode/cli, or see opencode.ai/docs")],
       ["fake", fake],
       ...extra.map((e) => [e.name, e] as [string, AgentEntry]),
     ]);
@@ -287,7 +288,11 @@ describe("built-in harness rows and the install hint (colleague-preview)", () =>
   });
 
   test("Built-in that is installed: its row is offered, after the others in catalogue order", () => {
-    expect(world(() => true).agents()).toEqual(["auggie", "claude", "fake"]);
+    expect(world(() => true).agents()).toEqual(["auggie", "claude", "opencode", "fake"]);
+  });
+
+  test("OpenCode installed: auggie not found, claude and opencode found: rows for the two and none for auggie", () => {
+    expect(world((e) => e.name !== "auggie").agents()).toEqual(["claude", "opencode", "fake"]);
   });
 
   test("no built-in found: only the configured entries are offered", () => {
@@ -306,6 +311,14 @@ describe("built-in harness rows and the install hint (colleague-preview)", () =>
     const problem = await s.choose({ kind: "new", agent: "auggie", current: false });
     expect(problem).toMatch(/^cannot start harness 'auggie'/);
     expect(problem).toContain("auggie is not installed: install it with npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login");
+  }, 20000);
+
+  test("a new session with OpenCode that is not installed ends the list's message with its install hint", async () => {
+    const s = world(() => true);
+    await s.start();
+    const problem = await s.choose({ kind: "new", agent: "opencode", current: false });
+    expect(problem).toMatch(/^cannot start harness 'opencode'/);
+    expect(problem).toContain("opencode is not installed: install it with npm install -g @opencode/cli, or see opencode.ai/docs");
   }, 20000);
 
   test("a session that cannot be opened never mentions installing", async () => {

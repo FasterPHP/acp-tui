@@ -1,6 +1,6 @@
 // The agent catalogue (mvp-sessions task 3.2, design decision 8, spec
 // tui-sessions "Named agents" and "Agents are defined only in the user's
-// configuration"): the built-in entries (BUILT_IN_HARNESSES: `auggie`, `claude`) and the
+// configuration"): the built-in entries (BUILT_IN_HARNESSES: `auggie`, `claude`, `opencode`) and the
 // `agent_servers` entries of the user's configuration file,
 // `$XDG_CONFIG_HOME/acp-tui/config.jsonc` (`~/.config` when XDG_CONFIG_HOME is
 // unset or not absolute, `%APPDATA%` on Windows), in Zed's shape: `command` a
@@ -29,7 +29,8 @@ import { parseConfigText, type ParsedSource } from "../config/load.ts";
 import { formatProblem } from "../config/problems.ts";
 import { AgentServerSchema } from "../config/schema.ts";
 import { readConfigFile, userConfigFile } from "../config/sources.ts";
-import { BUILT_IN_HARNESS_NAMES, BUILT_IN_HARNESSES, DEFAULT_HARNESS } from "./command.ts";
+import { exampleHarnesses, exampleRefusal } from "./examples.ts";
+import { BUILT_IN_HARNESS_NAMES, BUILT_IN_HARNESSES, DEFAULT_HARNESS, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "./command.ts";
 
 export { DEFAULT_HARNESS };
 
@@ -42,6 +43,13 @@ export interface AgentEntry {
   readonly source: "built-in" | "config";
   /** For a built-in whose program the user installs: how (an error for a missing program ends with it). */
   readonly installHint?: string;
+  /** For a built-in with a login command (`auggie login`): what an authentication-required error adds. */
+  readonly loginHint?: string;
+  /** Seconds of silence a starting harness is allowed: the entry's `startup_timeout_seconds`, else the
+   *  user's `agent_startup_timeout_seconds` when the file sets it, else the built-in's own default, else 30. */
+  readonly startupTimeoutSeconds?: number;
+  /** For a built-in that takes directories as arguments: the template with `{dir}` (used when additional directories are delivered). */
+  readonly additionalDirectoryArgs?: readonly string[];
 }
 
 export interface AgentCatalogue {
@@ -58,6 +66,8 @@ export interface AgentCatalogue {
   /** Every problem found in the file, as messages for the user (empty when the file is fine or
    *  absent). */
   readonly problems: readonly string[];
+  /** The user's `agent_startup_timeout_seconds` when the file sets it, else null (ad hoc commands use it, else 30). */
+  readonly startupTimeoutSetting?: number | null;
   /** Why the file's agents were refused (another user could have written it), else null. */
   readonly refused?: string | null;
   /** The file's first error when it kept `agent_servers` from being read (a syntax error, a
@@ -71,7 +81,10 @@ export const BUILT_IN_AGENTS: readonly AgentEntry[] = BUILT_IN_HARNESSES.map((h)
   args: h.command.slice(1),
   env: {},
   source: "built-in" as const,
+  startupTimeoutSeconds: h.startupTimeoutSeconds,
   ...(h.installHint !== undefined ? { installHint: h.installHint } : {}),
+  ...(h.loginHint !== undefined ? { loginHint: h.loginHint } : {}),
+  ...(h.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: h.additionalDirectoryArgs } : {}),
 }));
 
 const BUILT_IN_NAMES = BUILT_IN_HARNESS_NAMES;
@@ -101,10 +114,17 @@ function quote(text: string): string {
 export function catalogueFromSource(source: ParsedSource, options: { refused?: string | null } = {}): AgentCatalogue {
   const path = source.file;
   const agents = new Map<string, AgentEntry>(BUILT_IN_AGENTS.map((a) => [a.name, a]));
+  // The user's setting, when the file sets it; without it each harness keeps its own default.
+  const setting = typeof source.sections.agent_startup_timeout_seconds === "number" ? source.sections.agent_startup_timeout_seconds : null;
+  if (setting !== null) {
+    for (const [name, agent] of agents) agents.set(name, { ...agent, startupTimeoutSeconds: setting });
+  }
   const servers = (source.sections.agent_servers ?? {}) as Record<string, unknown>;
   for (const [name, raw] of Object.entries(servers)) {
     const entry = AgentServerSchema.parse(raw);
-    agents.set(name, { name, command: entry.command, args: entry.args, env: { ...entry.env }, source: "config" });
+    // An entry of a built-in name replaces the built-in one but keeps its default timeout.
+    const timeout = entry.startup_timeout_seconds ?? setting ?? BUILT_IN_AGENTS.find((a) => a.name === name)?.startupTimeoutSeconds ?? DEFAULT_STARTUP_TIMEOUT_SECONDS;
+    agents.set(name, { name, command: entry.command, args: entry.args, env: { ...entry.env }, source: "config", startupTimeoutSeconds: timeout, ...(entry.additional_directory_args !== undefined ? { additionalDirectoryArgs: entry.additional_directory_args } : {}) });
   }
   const invalid = new Map(Object.entries(source.invalidAgents));
   const chosen = source.sections.default_agent_server;
@@ -116,6 +136,7 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
     agents,
     invalid,
     defaultAgent,
+    startupTimeoutSetting: setting,
     problems: source.problems.map(formatProblem),
     refused: options.refused ?? null,
     fileProblem: blocking ? formatProblem(blocking) : null,
@@ -152,6 +173,9 @@ export function findAgent(catalogue: AgentCatalogue, name: string): AgentEntry {
   if (problem !== undefined) {
     throw new AgentNameError(`harness ${quote(name)} in ${catalogue.path} ${problem}, so it cannot be launched`);
   }
+  // The name of a commented example that is neither built in nor configured: not run as a command.
+  const example = exampleHarnesses([...catalogue.agents.keys(), ...catalogue.invalid.keys()]).find((e) => e.name === name);
+  if (example) throw new AgentNameError(exampleRefusal(example, catalogue.path));
   const known = [...catalogue.agents.keys()].map(quote).join(", ");
   let message = `${quote(name)} is not a known harness (known: ${known}; harnesses are defined in agent_servers in ${catalogue.path})`;
   if (catalogue.refused) message += `; harness commands are not read from a file other users can write (${catalogue.refused})`;

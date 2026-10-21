@@ -18,6 +18,15 @@ function main(): void {
   const options = parseArgs(process.argv.slice(2));
   const scenario = resolveScenario(options.scenario);
   const logger = new ScenarioLogger(options.logPath);
+  // Terminal output comes before anything else, as a harness that is a terminal interface would write it.
+  if (options.printTerminal === "escape") {
+    process.stdout.write("\u001b[?1049hfake-agent terminal interface\n");
+  } else if (options.printTerminal === "lines") {
+    process.stdout.write("fake-agent banner line one\nfake-agent banner line two\nfake-agent banner line three\n");
+  }
+  if (options.addWorkspace.length > 0) {
+    logger.record("argv/add-workspace", { directories: options.addWorkspace });
+  }
   const store = SessionStore.open(
     options.sessionsPath,
     options.persist,
@@ -53,6 +62,11 @@ function main(): void {
         longGap: options.longGap,
         tools: options.tools,
         startDelayMs: options.startDelayMs,
+        noInitialize: options.noInitialize,
+        additionalDirectories: options.additionalDirectories,
+        sessionDelayMs: options.sessionDelayMs,
+        ...(options.sessionHeartbeatMs === undefined ? {} : { sessionHeartbeatMs: options.sessionHeartbeatMs }),
+        sessionPermission: options.sessionPermission,
         ...(options.authRequired === undefined ? {} : { authRequired: options.authRequired }),
         ...(options.agentInfo === undefined ? {} : { agentInfo: options.agentInfo }),
         sessions: {

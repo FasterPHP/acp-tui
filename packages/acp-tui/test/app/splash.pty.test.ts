@@ -171,12 +171,12 @@ function connecting(delayMs: number) {
 }
 
 describe("splash while the harness starts (day-two-feedback task group 2)", () => {
-  test("Connecting: `Harness: fake` and `connecting…` on one row and the directory on the next; two screens 300 ms apart differ only in the spinner's cell", async () => {
+  test("Connecting: `Harness: fake` and `starting…` on one row and the directory on the next; two screens 300 ms apart differ only in the spinner's cell", async () => {
     const { s, repo } = connecting(2500);
-    await s.waitFor((p) => p.screenText().join("\n").includes("connecting…"), 10000);
+    await s.waitFor((p) => p.screenText().join("\n").includes("starting…"), 10000);
     const rows = () => s.screenText();
-    const at = rows().findIndex((r) => r.includes("connecting…"));
-    expect(rows()[at]!.trim()).toMatch(/^Harness: fake · \S connecting…$/);
+    const at = rows().findIndex((r) => r.includes("starting…"));
+    expect(rows()[at]!.trim()).toMatch(/^Harness: fake · \S starting…$/);
     // The directory as the splash shows it, with `~` for home (the temporary directory is in the profile on Windows).
     expect(rows()[at + 1]!.trim()).toBe(shortenHome(repo, userHome()));
     // Sample for a second: the spinner turns and nothing else on the screen changes.
@@ -187,7 +187,7 @@ describe("splash while the harness starts (day-two-feedback task group 2)", () =
       await s.flush();
       seen.push(rows());
     }
-    const cell = rows()[at]!.indexOf("connecting…") - 2;
+    const cell = rows()[at]!.indexOf("starting…") - 2;
     const without = (screen: string[]) => screen.map((r, y) => (y === at ? r.slice(0, cell) + r.slice(cell + 1) : r));
     const distinct = new Set(seen.map((screen) => screen[at]!.slice(cell, cell + 1)));
     expect(distinct.size).toBeGreaterThan(1);
@@ -198,12 +198,12 @@ describe("splash while the harness starts (day-two-feedback task group 2)", () =
 
   test("Nothing moves when the session starts: every splash row is on the same screen row before and after", async () => {
     const { s } = connecting(1500);
-    await s.waitFor((p) => p.screenText().join("\n").includes("connecting…"), 10000);
+    await s.waitFor((p) => p.screenText().join("\n").includes("starting…"), 10000);
     const before = s.screenText();
     await s.waitFor((p) => p.screenText().join("\n").includes("fake-agent"), 10000);
     await s.waitFor(READY, 5000);
     const after = s.screenText();
-    const at = before.findIndex((r) => r.includes("connecting…"));
+    const at = before.findIndex((r) => r.includes("starting…"));
     // The first identity row now reads the agent's reported name, on the same screen row.
     expect(after[at]!.trim()).toBe("Harness: fake-agent");
     // The directory row below it, and every other row of the conversation region (the status row
@@ -213,4 +213,17 @@ describe("splash while the harness starts (day-two-feedback task group 2)", () =
       expect([y, after[y]]).toEqual([y, before[y]]);
     }
   }, 30000);
+
+  test("Opening the session: once initialize is answered the first identity row reads `opening session…` on the row `starting…` was on", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    w.configure({ fake: ["--scenario", "basic", "--start-delay", "1000", "--session-delay", "3000"] });
+    const s = (session = w.start(["-a", "fake"], { cwd: repo, cols: 100, rows: 30 }));
+    await s.waitFor((p) => p.screenText().join("\n").includes("starting…"), 10000);
+    const at = s.screenText().findIndex((r) => r.includes("starting…"));
+    await s.waitFor((p) => p.screenText().join("\n").includes("opening session…"), 10000);
+    expect(s.screenText()[at]!.trim()).toMatch(/^Harness: fake · \S opening session…$/);
+    await s.waitFor(READY, 15000);
+    expect(s.screenText()[at]!.trim()).toBe("Harness: fake-agent");
+  }, 40000);
 });

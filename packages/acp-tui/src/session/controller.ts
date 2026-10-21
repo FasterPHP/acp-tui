@@ -26,6 +26,7 @@ import {
   type AcpClient,
   type SessionSupport,
 } from "../agent/connection.ts";
+import { DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
 import { harnessActivity, type HarnessActivity } from "../agent/harness-activity.ts";
 import { killProcessTree } from "../agent/kill-tree.ts";
 import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
@@ -51,13 +52,26 @@ export class CannotReopenError extends Error {
   }
 }
 
+/** The additional directories a session is started or opened with. The model records the list
+ *  (`additionalDirectories`) as the client delivered it; the request carries it as the ACP field
+ *  only when `send` is true (the harness advertises the capability and has no argument template),
+ *  and an empty list is never sent. */
+export interface SessionDirectories {
+  readonly additionalDirectories?: readonly string[];
+  readonly send?: boolean;
+}
+
+const sentField = (directories: SessionDirectories): { additionalDirectories?: readonly string[] } =>
+  directories.send === true && (directories.additionalDirectories?.length ?? 0) > 0 ? { additionalDirectories: directories.additionalDirectories! } : {};
+
 export interface SessionController {
   /** What the agent offers for earlier sessions (from `initialize`). */
   readonly support: SessionSupport;
   /** `agentInfo` from the `initialize` response, if any. */
   readonly agentInfo: Implementation | null;
-  /** Sends `session/new` with `cwd` (once per controller, instead of `openSession`). */
-  newSession(cwd: string): Promise<void>;
+  /** Sends `session/new` with `cwd` (once per controller, instead of `openSession`), and
+   *  `options.additionalDirectories` when given and non-empty (the caller checks `support`). */
+  newSession(cwd: string, options?: SessionDirectories): Promise<void>;
   /**
    * Reopens session `sessionId` in `cwd`: `session/load` when the agent advertises
    * `loadSession`, else `session/resume` when it advertises `sessionCapabilities.resume`, else
@@ -67,12 +81,20 @@ export interface SessionController {
    * `session_opened` have reached the listeners. Rejects with the agent's error (a
    * `RequestError` with its `code`) or a start-up error.
    */
-  openSession(sessionId: string, cwd: string): Promise<SessionOpenMode>;
+  openSession(sessionId: string, cwd: string, options?: SessionDirectories): Promise<SessionOpenMode>;
+  /**
+   * Sends `session/resume` for the session in use with a new complete list of additional
+   * directories (`/add-dir` on a harness that advertises resume): the agent replays nothing, so the
+   * conversation stays as drawn, and once it accepts, the session records the new list
+   * (`additional_directories_replaced`, no marker). Rejects with the agent's error, the list
+   * unchanged; nothing is sent without a session.
+   */
+  resumeWithDirectories(directories: SessionDirectories): Promise<void>;
   /** Appends acp-tui's own notice to the conversation as a marker item (`client_notice`; the
    *  session directory marker, mvp-sessions task 12.3). Nothing is sent to the agent. */
   notice(text: string): void;
   /** One page of `session/list` (`cwd` filters by directory); only when `support.list`. */
-  listSessions(params: { readonly cwd?: string; readonly cursor?: string }, signal?: AbortSignal): Promise<ListSessionsResponse>;
+  listSessions(params: { readonly cwd?: string; readonly cursor?: string }, signal?: AbortSignal, options?: { readonly startup?: boolean }): Promise<ListSessionsResponse>;
   /** Current, immutable session snapshot. */
   getSession(): Session;
   /** Registers a listener called after every state change; returns an unsubscribe function.
@@ -154,11 +176,18 @@ export interface StartSessionOptions {
   readonly harness?: string;
   /** For a built-in harness whose program the user installs: how, appended to the error when the program is not found. */
   readonly installHint?: string;
+  /** The built-in harness's login command, for the authentication-required message. */
+  readonly loginHint?: string;
   /** The agent process's working directory, and the `cwd` of `startSession`'s new session. */
   readonly cwd: string;
   readonly logger?: DebugLogger;
   /** Clock override for tests; defaults to `Date.now`. */
   now?(): number;
+  /** Seconds a starting harness may stay silent before it is stopped (start-up timeout, agent/startup-watch.ts); default 30. */
+  readonly startupTimeoutSeconds?: number;
+  /** Called as soon as the harness process has been started, before `initialize`: the caller can
+   *  end it while it starts (Ctrl+D), which the controller does not exist for yet. */
+  onLaunched?(launched: LaunchedHarness): void;
   /** Called once `initialize` has been answered, when the harness is surely running (the Windows
    *  title is set again then: renderer/terminal-signals.ts `reassertTitle`). */
   onInitialized?(): void;
@@ -173,6 +202,14 @@ export interface StartSessionOptions {
   /** Paces the replay's drain and the agent read loop around the renderer's frames during a load
    *  (renderer/frame-pace.ts); without one, timer turns. */
   pace?: Pace;
+}
+
+/** A harness process that has been started and may still be starting. */
+export interface LaunchedHarness {
+  /** Ends the process at once (its whole tree on Windows), with no grace period. */
+  kill(): void;
+  /** Resolves when `initialize` has been answered or the start has failed. */
+  readonly settled: Promise<void>;
 }
 
 /** How long `detach()` waits for the process tree to be ended after the grace period (ms). */
@@ -286,7 +323,11 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
   // While a load replays, the agent's messages are read in slices too (connection.ts `pacedStream`),
   // with their turns from the pace when there is one (history-replay-pacing design D1).
-  const conn = createConnection(agent, () => routed, () => active.handler.replaying(), options.pace);
+  const conn = createConnection(agent, () => routed, () => active.handler.replaying(), options.pace, {
+    command: options.command,
+    timeoutSeconds: options.startupTimeoutSeconds ?? DEFAULT_STARTUP_TIMEOUT_SECONDS,
+    logger,
+  });
 
   function handleDisconnect(exitCode: number | null): void {
     if (disconnected) return;
@@ -345,11 +386,22 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
 
   let init: Awaited<ReturnType<typeof initializeAgent>>;
+  let markSettled!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    markSettled = resolve;
+  });
+  try {
+    options.onLaunched?.({ kill, settled });
+  } catch {
+    // a hook never fails the start-up
+  }
   try {
     init = await initializeAgent(conn, agent, options.command, { logger, elicitation: options.elicitation !== undefined });
   } catch (error) {
     kill();
     throw error;
+  } finally {
+    markSettled();
   }
   try {
     options.onInitialized?.();
@@ -358,8 +410,8 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
   const support = sessionSupport(init);
   const agentInfo = init.agentInfo ?? null;
-  // The built-in `auggie` is the one launched with its install hint (a configured entry has none).
-  const loginOptions = { harness: options.harness, builtInAuggie: options.harness === "auggie" && options.installHint !== undefined };
+  // A built-in harness with a login command is launched with its `loginHint` (a configured entry has none).
+  const loginOptions = { harness: options.harness, loginHint: options.loginHint };
 
   /** Makes `core` the controller the agent's messages go to; the previous one's session retires. */
   function activate(core: Core): void {
@@ -391,11 +443,11 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
 
       activate: () => activate(core),
 
-      async newSession(cwd: string): Promise<void> {
+      async newSession(cwd: string, directories: SessionDirectories = {}): Promise<void> {
         claim();
         let response;
         try {
-          response = await createNewSession(conn, agent, options.command, cwd, { logger });
+          response = await createNewSession(conn, agent, options.command, cwd, { logger, ...sentField(directories) });
         } catch (error) {
           if (isAuthRequired(error)) {
             logger.log({ event: "auth_required", phase: "new" });
@@ -403,26 +455,27 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
           }
           throw error;
         }
-        dispatch({ type: "session_created", response, cwd, agentInfo, at: now() });
+        dispatch({ type: "session_created", response, cwd, additionalDirectories: directories.additionalDirectories ?? [], agentInfo, at: now() });
       },
 
-      async openSession(sessionId: string, cwd: string): Promise<SessionOpenMode> {
+      async openSession(sessionId: string, cwd: string, directories: SessionDirectories = {}): Promise<SessionOpenMode> {
         const mode: SessionOpenMode | null = support.load ? "load" : support.resume ? "resume" : null;
         if (mode === null) throw new CannotReopenError(sessionId);
         claim();
         // A session switched away from earlier in this run may be opened again.
         if (core === active) retired.delete(sessionId);
         // Before the request, so the replayed updates find the session identified.
-        dispatch({ type: "session_opening", mode, sessionId, cwd, agentInfo, at: now() });
+        dispatch({ type: "session_opening", mode, sessionId, cwd, additionalDirectories: directories.additionalDirectories ?? [], agentInfo, at: now() });
+        const sent = sentField(directories);
         if (mode === "resume") {
-          const response = await resumeSession(conn, agent, options.command, sessionId, cwd, { logger });
+          const response = await resumeSession(conn, agent, options.command, sessionId, cwd, { logger, ...sent });
           dispatch({ type: "session_opened", response, at: now() });
           return mode;
         }
         handler.beginReplay();
         let response;
         try {
-          response = await loadSession(conn, agent, options.command, sessionId, cwd, { logger });
+          response = await loadSession(conn, agent, options.command, sessionId, cwd, { logger, ...sent });
         } catch (error) {
           handler.abortReplay();
           throw error;
@@ -432,12 +485,19 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
         return mode;
       },
 
+      async resumeWithDirectories(directories: SessionDirectories): Promise<void> {
+        const { id, cwd } = core.session;
+        if (!id || !cwd) throw new Error("no session");
+        await resumeSession(conn, agent, options.command, id, cwd, { logger, ...sentField(directories) });
+        dispatch({ type: "additional_directories_replaced", additionalDirectories: directories.additionalDirectories ?? [], at: now() });
+      },
+
       notice(text: string): void {
         dispatch({ type: "client_notice", text, at: now() });
       },
 
-      listSessions(params, signal): Promise<ListSessionsResponse> {
-        return listSessions(conn, agent, options.command, params, { logger, ...(signal ? { signal } : {}) });
+      listSessions(params, signal, listOptions): Promise<ListSessionsResponse> {
+        return listSessions(conn, agent, options.command, params, { logger, ...(signal ? { signal } : {}), ...(listOptions?.startup ? { startup: true } : {}) });
       },
 
       getSession(): Session {

@@ -376,3 +376,37 @@ describe("client notice markers", () => {
     expect(textOf).not.toContain(ESC);
   });
 });
+
+// Spec model-session "Additional directories are recorded".
+describe("Additional directories", () => {
+  const created = (additionalDirectories?: readonly string[]): ModelEvent => ({
+    type: "session_created",
+    response: { sessionId: "s-1" },
+    cwd: "/work/app",
+    ...(additionalDirectories ? { additionalDirectories } : {}),
+    at: 1,
+  });
+
+  test("Started with directories", () => {
+    const session = reduce(createSession(), created(["/work/lib", "/work/docs"]));
+    expect(session.additionalDirectories).toEqual(["/work/lib", "/work/docs"]);
+  });
+
+  test("Reopened with a longer list", () => {
+    const before = apply(createSession(), created(["/work/lib"]), agent("hello"));
+    const after = reduce(before, { type: "additional_directories_replaced", additionalDirectories: ["/work/lib", "/work/docs", "/work/api"], at: 9 });
+    expect(after.additionalDirectories).toEqual(["/work/lib", "/work/docs", "/work/api"]);
+    expect(after.order).toEqual(before.order);
+    expect(after.items).toBe(before.items);
+  });
+
+  test("None", () => {
+    expect(reduce(createSession(), created()).additionalDirectories).toEqual([]);
+    expect(createSession().additionalDirectories).toEqual([]);
+  });
+
+  test("Opening records the list sent with the request", () => {
+    const session = reduce(createSession(), { ...opening("load"), additionalDirectories: ["/work/lib"] } as ModelEvent);
+    expect(session.additionalDirectories).toEqual(["/work/lib"]);
+  });
+});

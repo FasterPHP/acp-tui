@@ -102,7 +102,8 @@ export type ModuleGlobalAction =
   | "cycleMode"
   | "cycleThoughtLevel"
   | "keyHelp"
-  | "configProblems";
+  | "configProblems"
+  | "addDirectory";
 
 export type GlobalHandlers = Record<Exclude<KeyAction<"global">, ModuleGlobalAction>, () => boolean>;
 

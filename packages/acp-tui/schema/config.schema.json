@@ -44,6 +44,19 @@
             "description": "Ignored; Zed's entry type, so entries copied from Zed's settings load unchanged.",
             "type": "string",
             "const": "custom"
+          },
+          "startup_timeout_seconds": {
+            "description": "Seconds this harness may stay silent while it starts (a whole number from 5 to 600) before acp-tui stops it; wins over agent_startup_timeout_seconds for this harness.",
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 600
+          },
+          "additional_directory_args": {
+            "description": "For a harness that takes extra directories as arguments, not through ACP: the arguments added after args for each directory, {dir} standing for its absolute path (Auggie: [\"--add-workspace\", \"{dir}\"]). At least one argument must hold {dir}.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -57,6 +70,22 @@
       "description": "The harness launched without a harness name or command: \"auggie\" or \"claude\" (both built in) or the name of an agent_servers entry. The older name default_agent is still accepted.",
       "type": "string",
       "minLength": 1
+    },
+    "agent_startup_timeout_seconds": {
+      "default": 30,
+      "description": "Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. A built-in harness has its own default when this is not set (120 for claude, 30 for the others), and an agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file.",
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 600
+    },
+    "additional_directories": {
+      "default": [],
+      "description": "Directories added to every session, beside the session directory, for harnesses that can take them (ACP additionalDirectories, or the harness's own arguments: additional_directory_args). `~` stands for your home directory and a relative path is taken from the directory of the file that names it (use absolute or ~ paths in your own file). A directory that does not exist is a warning and left out. The one setting merged as a union: your file's directories, then the project file's, without repeats and without the session directory. A project file may add only directories inside the parent of its own directory, never the home directory or one of its ancestors, and none below a component starting with a dot. A change applies to the next session started. An agent such as Auggie indexes every directory added to it.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "mouse": {
       "default": "full",
@@ -431,6 +460,23 @@
           "type": "number",
           "minimum": 0,
           "maximum": 5
+        }
+      }
+    },
+    "models": {
+      "description": "Model lists by provider.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "group_by_provider": {
+          "default": true,
+          "description": "Draw a model list whose values and names are all \"provider/model\" over two or more providers grouped by provider in the picker, and its names as \"provider / model\" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent.",
+          "type": "boolean"
+        },
+        "provider_separator": {
+          "default": " / ",
+          "description": "The text between the provider and the model in a grouped model's name, one to five printable characters.",
+          "type": "string"
         }
       }
     },
@@ -1017,6 +1063,7 @@
                         "model",
                         "mode",
                         "cwd",
+                        "dirs",
                         "connection",
                         "turn-state",
                         "usage",
@@ -1040,6 +1087,7 @@
                         "model",
                         "mode",
                         "cwd",
+                        "dirs",
                         "connection",
                         "turn-state",
                         "usage",
@@ -1063,6 +1111,7 @@
                         "model",
                         "mode",
                         "cwd",
+                        "dirs",
                         "connection",
                         "turn-state",
                         "usage",
@@ -1110,6 +1159,7 @@
                   "model",
                   "mode",
                   "cwd",
+                  "dirs",
                   "connection",
                   "turn-state",
                   "usage",
@@ -1194,6 +1244,27 @@
             },
             "cwd": {
               "description": "The session directory: {cwd} and {path} with ~ for home, {basename} its last component. Fields: {cwd}, {path}, {basename}. Default format \"{cwd}\", priority 30.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "dirs": {
+              "description": "The session's additional directories: +2 dirs ({count}, {noun}, and {list} with ~ for home); hidden when there are none. Fields: {count}, {noun}, {list}. Default format \"+{count} {noun}\", priority 20.",
               "type": "object",
               "properties": {
                 "format": {
@@ -1475,7 +1546,8 @@
                   "cycleMode",
                   "cycleThoughtLevel",
                   "keyHelp",
-                  "configProblems"
+                  "configProblems",
+                  "addDirectory"
                 ]
               },
               {
@@ -1483,7 +1555,7 @@
               }
             ]
           },
-          "description": "Keys of the global context, each mapped to one of its actions or to null to remove the binding. Its actions: escape, interrupt, detach, toggleFocus, toggleTool, repaint, toggleMouse, pageUp, pageDown, palette, pickModel, pickMode, pickThoughtLevel, find, findNext, findPrevious, sessions, cycleMode, cycleThoughtLevel, keyHelp, configProblems."
+          "description": "Keys of the global context, each mapped to one of its actions or to null to remove the binding. Its actions: escape, interrupt, detach, toggleFocus, toggleTool, repaint, toggleMouse, pageUp, pageDown, palette, pickModel, pickMode, pickThoughtLevel, find, findNext, findPrevious, sessions, cycleMode, cycleThoughtLevel, keyHelp, configProblems, addDirectory."
         },
         "prompt": {
           "type": "object",

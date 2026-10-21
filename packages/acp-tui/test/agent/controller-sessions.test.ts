@@ -50,7 +50,7 @@ describe("Load or resume by the agent's capabilities (tui-sessions)", () => {
   test("Load replays the history: session/load is sent, three turns are shown as history and a prompt can be sent", async () => {
     const log = join(temp(), "agent.log");
     const controller = await connect("basic", ["--load", "--sessions", SESSIONS_FIXTURE_PATH], log);
-    expect(controller.support).toEqual({ load: true, resume: false, list: false });
+    expect(controller.support).toEqual({ load: true, resume: false, list: false, additionalDirectories: false });
 
     expect(await controller.openSession("sess-alpha", "/work/alpha")).toBe("load");
     const session = controller.getSession();
@@ -76,7 +76,7 @@ describe("Load or resume by the agent's capabilities (tui-sessions)", () => {
   test("Resume only: session/resume is sent, the first item is the marker, and the next prompt continues the session", async () => {
     const log = join(temp(), "agent.log");
     const controller = await connect("copy-fixtures", ["--resume", "--sessions", SESSIONS_FIXTURE_PATH], log);
-    expect(controller.support).toEqual({ load: false, resume: true, list: false });
+    expect(controller.support).toEqual({ load: false, resume: true, list: false, additionalDirectories: false });
 
     expect(await controller.openSession("sess-alpha", "/work/alpha")).toBe("resume");
     const first = items(controller.getSession())[0];

@@ -38,7 +38,24 @@ export interface FakeAgentCliOptions {
   readonly authRequired: AuthRequiredMode | undefined;
   /** `--agent-info <name>@<version>`: the `agentInfo` `initialize` reports. */
   readonly agentInfo: { readonly name: string; readonly version: string } | undefined;
+  /** `--additional-directories`: advertise `sessionCapabilities.additionalDirectories`. */
+  readonly additionalDirectories: boolean;
+  /** `--add-workspace <dir>` (repeatable): accepted and logged as `argv/add-workspace`, as Auggie's flag would be. */
+  readonly addWorkspace: readonly string[];
+  /** `--no-initialize`: never answer `initialize` (the process stays alive and keeps reading). */
+  readonly noInitialize: boolean;
+  /** `--print-terminal[=lines]`: write terminal output to stdout before anything else: an `ESC [ ? 1049 h` and a line
+   *  (`escape`, the bare flag) or three plain non-JSON lines (`lines`). */
+  readonly printTerminal: PrintTerminalMode | undefined;
+  /** `--session-delay <ms>`: wait this long before answering `session/new`, `session/load` and `session/resume`. Absolute, never scaled. */
+  readonly sessionDelayMs: number;
+  /** `--session-heartbeat <ms>`: while `--session-delay` waits, send an agent message chunk for the session every `ms`. */
+  readonly sessionHeartbeatMs: number | undefined;
+  /** `--session-permission`: send a permission request first, before `session/new`, `session/load` and `session/resume` answer; the delay starts once it is answered. */
+  readonly sessionPermission: boolean;
 }
+
+export type PrintTerminalMode = "escape" | "lines";
 
 export type AuthRequiredMode = "full" | "bare" | "prompt";
 
@@ -120,6 +137,13 @@ export function parseArgs(
   let listDelayMs = 0;
   let authRequired: AuthRequiredMode | undefined;
   let agentInfo: { name: string; version: string } | undefined;
+  let additionalDirectories = false;
+  const addWorkspace: string[] = [];
+  let noInitialize = false;
+  let printTerminal: PrintTerminalMode | undefined;
+  let sessionDelayMs = 0;
+  let sessionHeartbeatMs: number | undefined;
+  let sessionPermission = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
@@ -182,6 +206,33 @@ export function parseArgs(
       case "--auth-required=prompt":
         authRequired = "prompt";
         break;
+      case "--additional-directories":
+        additionalDirectories = true;
+        break;
+      case "--add-workspace":
+        addWorkspace.push(requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--no-initialize":
+        noInitialize = true;
+        break;
+      case "--print-terminal":
+        printTerminal = "escape";
+        break;
+      case "--print-terminal=lines":
+        printTerminal = "lines";
+        break;
+      case "--session-delay":
+        sessionDelayMs = parseDelayMs(arg, requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--session-heartbeat":
+        sessionHeartbeatMs = parseDelayMs(arg, requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--session-permission":
+        sessionPermission = true;
+        break;
       case "--agent-info":
         agentInfo = parseAgentInfo(requireValue(arg, argv, i));
         i += 1;
@@ -232,5 +283,12 @@ export function parseArgs(
     listDelayMs,
     authRequired,
     agentInfo,
+    additionalDirectories,
+    addWorkspace,
+    noInitialize,
+    printTerminal,
+    sessionDelayMs,
+    sessionHeartbeatMs,
+    sessionPermission,
   };
 }

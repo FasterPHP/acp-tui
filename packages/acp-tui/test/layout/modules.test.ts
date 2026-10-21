@@ -292,3 +292,35 @@ describe("text", () => {
     expect(run("text", FULL_VIEW)).toBeNull();
   });
 });
+
+// harness-feedback task group 6 (spec tui-layout "Additional directories module").
+describe("dirs", () => {
+  const withDirs = (additionalDirectories: readonly string[]) => view({ additionalDirectories });
+
+  test("Two directories: +2 dirs; one directory: +1 dir; both in the muted token", () => {
+    expect(run("dirs", withDirs(["/work/lib", "/work/docs"]))).toEqual([{ text: "+2 dirs", token: "muted" }]);
+    expect(text("dirs", withDirs(["/work/lib"]))).toBe("+1 dir");
+  });
+
+  test("None: hidden, with or without the field", () => {
+    expect(run("dirs", withDirs([]))).toBeNull();
+    expect(run("dirs", EMPTY_VIEW)).toBeNull();
+  });
+
+  test("count and list fields serve a custom format; the list has ~ for home, comma-separated", () => {
+    const v = view({ home: "/home/user", additionalDirectories: ["/home/user/shared", "/work/lib"] });
+    expect(text("dirs", v, { format: "{count}: {list}" })).toBe("2: ~/shared, /work/lib");
+  });
+
+  test("The session's own record reaches the view", () => {
+    const session = { ...createSession(), additionalDirectories: ["/work/lib"] };
+    expect(deriveSessionView(session).additionalDirectories).toEqual(["/work/lib"]);
+  });
+
+  test("The default status row places it after cwd, with a lower priority than cwd", () => {
+    const status = resolveLayout(DEFAULT_LAYOUT).regions.find((r): r is ResolvedBar => r.kind === "bar")!;
+    const ids = status.left.map((m) => m.id);
+    expect(ids.indexOf("dirs")).toBe(ids.indexOf("cwd") + 1);
+    expect(MODULES.dirs.defaults.priority).toBeLessThan(MODULES.cwd.defaults.priority);
+  });
+});
