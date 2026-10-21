@@ -9,6 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentCatalogue, AgentEntry } from "../../src/agent/catalogue.ts";
 import type { LaunchDescription } from "../../src/agent/resolve.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
 import { openSessionIndex } from "../../src/session/session-index.ts";
 import { ADD_DIRECTORY_REFUSED_PERMISSION, ADD_DIRECTORY_REFUSED_RUNNING, createSessionSwitcher, type SessionSwitcher } from "../../src/session/switch.ts";
 import { fakeAgentCommand } from "../agent/fake-agent-command.ts";
@@ -198,7 +200,7 @@ describe("the template route", () => {
       return false;
     });
     expect(declined).toMatchObject({ ok: false, cancelled: true });
-    expect(asked).toEqual([`Restart fake with ${w.lib} and reopen this session`]);
+    expect(asked).toEqual([`Restart fake with ${shortenHome(w.lib, userHome())} and reopen this session`]);
     expect(w.switcher.current()).toBe(before);
     expect(w.received().filter((e) => e.method === "initialize")).toHaveLength(1);
 

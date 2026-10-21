@@ -8,6 +8,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
 import type { PtySession } from "../pty/harness.ts";
 import { READY, statusRow } from "../pty/regions.ts";
 import { listBody, listRows, listWorld, type ListWorld } from "./list-world.ts";
@@ -39,6 +41,8 @@ function withEntryDirectories(w: ListWorld, name: string, directories: readonly 
 const sent = (w: ListWorld, agent: string, method: string) => w.received(agent).filter((e) => e.method === method).map((e) => e.params?.["additionalDirectories"]);
 const workspaces = (w: ListWorld, agent: string) => w.received(agent).filter((e) => e.method === "argv/add-workspace").map((e) => e.params?.["directories"]);
 const screen = (s: PtySession) => s.screenText().join("\n");
+/** `path` as acp-tui shows it: the home directory as `~` (on Windows the temporary directory is in the profile). */
+const shown = (path: string) => shortenHome(path, userHome());
 
 describe("Additional directories sent to the harness", () => {
   test("ACP: the harness advertises the capability, so session/new carries the list beside the cwd, and the status row shows +2 dirs after the session directory", async () => {
@@ -140,7 +144,7 @@ describe("Additional directories in a project file", () => {
     w.configure({ fake: ["--scenario", "basic", "--additional-directories"] });
     const s = (session = w.start(["fake"], { cwd: app, cols: 220 }));
     await s.waitFor((p) => screen(p).includes(".acp-tui.jsonc adds an additional directory"), 20000);
-    expect(screen(s)).toContain(lib);
+    expect(screen(s)).toContain(shown(lib));
     await s.waitFor(READY, 5000);
     expect(sent(w, "fake", "session/new")).toEqual([[lib]]);
   }, 40000);
@@ -200,7 +204,7 @@ describe("Additional directories kept with the session", () => {
     rmSync(lib, { recursive: true });
     const s = (session = w.start(["fake", "--resume", "s-1"], { cwd: w.base, cols: 200 }));
     await s.waitFor((p) => screen(p).includes("is no longer there"), 20000);
-    expect(screen(s)).toContain(lib);
+    expect(screen(s)).toContain(shown(lib));
     await s.waitFor(READY, 10000);
     expect(sent(w, "fake", "session/load")).toEqual([undefined]);
   }, 40000);

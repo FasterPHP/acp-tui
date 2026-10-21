@@ -6,6 +6,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
 import type { PtySession } from "../pty/harness.ts";
 import { promptText, READY, RUNNING, statusRow } from "../pty/regions.ts";
 import { listWorld, type ListWorld } from "./list-world.ts";
@@ -18,6 +20,8 @@ afterEach(async () => {
 });
 
 const screen = (s: PtySession) => s.screenText().join("\n");
+/** `path` as acp-tui shows it: the home directory as `~` (on Windows the temporary directory is in the profile). */
+const shown = (path: string) => shortenHome(path, userHome());
 const methods = (w: ListWorld, agent: string, method: string) => w.received(agent).filter((e) => e.method === method);
 
 /** Adds `additional_directory_args` to the configured entry `name`, as an Auggie entry would carry it. */
@@ -124,7 +128,7 @@ describe("Adding a directory during a session", () => {
     expect(w.events("agent_launched")).toHaveLength(1);
     await typeCommand(s, "/add-dir ../lib");
     await s.waitFor((p) => screen(p).includes("Restart auggie with") && screen(p).includes("and reopen this session") && screen(p).includes("Cancel"), 10000);
-    expect(screen(s)).toContain(lib);
+    expect(screen(s)).toContain(shown(lib));
     // Nothing is launched until the choice is made.
     expect(w.events("agent_launched")).toHaveLength(1);
     s.sendKeys("Enter");

@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { FINDING_LINE } from "../../src/app/finding-line.ts";
 import type { PtySession } from "../pty/harness.ts";
+import { rowsAfterPrefill, WINDOWS } from "../windows.ts";
 import { listBody, listRows, listWorld, mainText, type ListWorld } from "./list-world.ts";
 
 let session: PtySession | null = null;
@@ -48,8 +49,10 @@ describe("Start-up timeout", () => {
     const text = mainText(s);
     expect(text).toContain("acp-tui: harness 'fake' (command '");
     expect(text).toContain("did not answer initialize within 5 s and was stopped");
-    // Restored: the message is on the normal screen, below the command line.
-    expect(s.screenText().slice(0, 2).join("\n")).toContain("$ acp-tui");
+    // Restored: the message is on the normal screen, below the command line (which ConPTY clears
+    // when the child starts, so on Windows the message is at the top).
+    if (!WINDOWS) expect(s.screenText()[0]).toBe("$ acp-tui");
+    expect(rowsAfterPrefill(s.screenText())[0]).toStartWith("acp-tui: harness 'fake' (command '");
     expect(w.events("startup_timeout")).toMatchObject([{ request: "initialize", seconds: 5 }]);
     await allGone(launchedPids(w));
   }, 40000);
