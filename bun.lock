@@ -18,7 +18,7 @@
     },
     "packages/acp-tui": {
       "name": "acp-tui",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "bin": {
         "acp-tui": "./bin/acp-tui",
       },
