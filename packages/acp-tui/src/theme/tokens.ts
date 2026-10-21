@@ -85,7 +85,7 @@ export const TOKENS = {
   "surface.user": { role: "bg", use: "user message card" },
   "surface.card": { role: "bg", use: "expanded tool, thought and plan cards" },
   "surface.code": { role: "bg", use: "code blocks: a neutral fill, never the permission card's hue" },
-  "surface.overlay": { role: "bg", use: "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background, mvp-chrome-and-keys task 12.7); derived at surface.card's step" },
+  "surface.overlay": { role: "bg", use: "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background); derived at surface.card's step" },
   "surface.cursor": { role: "bg", use: "the conversation cursor's gutter bar (its colour), and the highlighted row of an overlay list (a fill)" },
   "surface.cursor.faint": { role: "bg", use: "the faint fill across the item under the conversation cursor, beside its bar" },
   "surface.selection": { role: "bg", use: "the conversation's text selection (distinct from the cursor's fill)" },
