@@ -2,7 +2,7 @@
 // calls a few hundred milliseconds apart, then a long silence, for the activity bar's linger
 // ("Fast tool calls do not flicker", "Linger ends") and the busy indicator beside it.
 //
-//   six tool calls (read, search, read, execute, read, edit), each in progress for 40 ms and
+//   six tool calls (`--tools <n>` for another number, cycling the same kinds and titles) (read, search, read, execute, read, edit), each in progress for 40 ms and
 //   then completed, their starts 250 ms apart, a silence of 3 s, a one-line answer, end_turn.
 //
 // Every time is multiplied by --delay-scale (so none at 0: the order alone) and a wait is cut
@@ -29,6 +29,14 @@ export const FAST_TOOLS_CALLS: readonly { readonly toolCallId: string; readonly 
   { toolCallId: "ft-6", kind: "edit", title: "Edit src/Pool.php" },
 ];
 
+/** The first `count` calls: the six kinds and titles cycled, IDs `ft-1` to `ft-<count>`. */
+export function fastToolsCalls(count: number): { readonly toolCallId: string; readonly kind: ToolKind; readonly title: string }[] {
+  return Array.from({ length: count }, (_, index) => {
+    const { kind, title } = FAST_TOOLS_CALLS[index % FAST_TOOLS_CALLS.length]!;
+    return { toolCallId: `ft-${index + 1}`, kind, title };
+  });
+}
+
 export const FAST_TOOLS_ANSWER = "Pool now releases its connections.\n";
 
 export const fastToolsScenario: Scenario = {
@@ -37,7 +45,8 @@ export const fastToolsScenario: Scenario = {
   async prompt(ctx: ScenarioContext): Promise<PromptResponse> {
     const cancelled: PromptResponse = { stopReason: "cancelled" };
 
-    for (const [index, { toolCallId, kind, title }] of FAST_TOOLS_CALLS.entries()) {
+    const calls = fastToolsCalls(ctx.tools);
+    for (const [index, { toolCallId, kind, title }] of calls.entries()) {
       if (ctx.cancelled.aborted) return cancelled;
       ctx.log("fast-tools/sent", { toolCallId, status: "in_progress" });
       await ctx.send({ sessionUpdate: "tool_call", toolCallId, title, kind, status: "in_progress" });
@@ -51,7 +60,7 @@ export const fastToolsScenario: Scenario = {
         content: [{ type: "content", content: { type: "text", text: `${title}: done\n` } }],
       });
       // The next call starts a period after this one did; after the last, the silence.
-      await ctx.sleep(index === FAST_TOOLS_CALLS.length - 1 ? FAST_TOOLS_SILENCE_MS : FAST_TOOLS_PERIOD_MS - FAST_TOOLS_LIVE_MS);
+      await ctx.sleep(index === calls.length - 1 ? FAST_TOOLS_SILENCE_MS : FAST_TOOLS_PERIOD_MS - FAST_TOOLS_LIVE_MS);
     }
 
     if (ctx.cancelled.aborted) return cancelled;

@@ -68,3 +68,17 @@ describe("fake-agent CLI --start-delay and --list-delay", () => {
     }
   });
 });
+
+describe("fake-agent CLI --tools", () => {
+  test("defaults to 6 and takes a positive integer", () => {
+    expect(parseArgs([], {}).tools).toBe(6);
+    expect(parseArgs(["--scenario", "fast-tools", "--tools", "20"], {}).tools).toBe(20);
+  });
+
+  test("a bad value or a missing one is an error", () => {
+    for (const bad of ["0", "-1", "1.5", "abc"]) {
+      expect(() => parseArgs(["--tools", bad], {})).toThrow("--tools must be a positive integer");
+    }
+    expect(() => parseArgs(["--tools"], {})).toThrow("--tools requires a value");
+  });
+});
