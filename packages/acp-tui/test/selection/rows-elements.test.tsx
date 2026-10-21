@@ -335,11 +335,11 @@ describe("row maps: a header repeated by its expanded card is decoration (interf
     const header = d.row("execute");
     // The card repeats the whole title below the header.
     expect(d.rows.slice(header + 1).some((l) => l.includes("--optimize-autoloader"))).toBe(true);
-    // Left of the header's text: the start of the title; on it or right of it: its end (a title is
-    // a tool call's whole first line, so `summaryEnd` is its length).
-    const left = d.hit(1, header);
-    expect(left).toMatchObject({ from: 0, to: 0 });
-    for (const x of [2, 20, 62]) expect(d.hit(x, header)).toMatchObject({ from: COMMAND.length, to: COMMAND.length });
+    // Left of the header's text and on it: the start of the title, so a drag down from the header
+    // takes the whole title; right of it: its end (a title is a tool call's whole first line, so
+    // `summaryEnd` is its length).
+    for (const x of [1, 2, 20]) expect(d.hit(x, header)).toMatchObject({ from: 0, to: 0 });
+    expect(d.hit(200, header)).toMatchObject({ from: COMMAND.length, to: COMMAND.length });
     // No cell of the header resolves to a character: every hit is a position between characters.
     for (let x = 0; x < 63; x++) {
       const h = d.hit(x, header);
@@ -373,7 +373,7 @@ describe("row maps: a header repeated by its expanded card is decoration (interf
       expect(h.to).toBe(h.from);
     }
     expect(d.hit(1, header).from).toBe(0);
-    expect(d.hit(2, header).from).toBe("Thinking about the pool first".length);
+    expect(d.hit(2, header).from).toBe(0);
     expect(d.hit(62, header).from).toBe("Thinking about the pool first".length);
     // The body below still maps.
     const body = d.find("Thinking about the pool first", header + 1);

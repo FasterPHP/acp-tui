@@ -640,7 +640,8 @@ function mergeRows(spans: RowSpan[]): RowSpan[] {
 /**
  * The position at cell (`x`, `y`) of an item (both relative to its box). Beside the text, or on
  * a row without text (a blank line inside the item), the nearest line start or end; on
- * decoration inside a row, the next character's start.
+ * decoration inside a row, the next character's start; on a row that maps nothing (a header its
+ * card repeats), the row's start.
  */
 export function hitRows(rows: ItemRows, x: number, y: number, textLength: number): CellHit {
   const spans = rows.spans;
@@ -666,6 +667,9 @@ export function hitRows(rows: ItemRows, x: number, y: number, textLength: number
   if (k < 0) return { from: s.start, to: s.start };
   if (k >= s.from.length) return { from: s.end, to: s.end };
   if (s.from[k]! >= 0) return { from: s.from[k]!, to: s.to[k]! };
+  // A row that maps nothing (a header its card repeats, a plan's header): a press on it is the
+  // start of the text, so a drag down from it takes the whole text.
+  if (s.from.every((f) => f < 0)) return { from: s.start, to: s.start };
   for (let j = k + 1; j < s.from.length; j++) if (s.from[j]! >= 0) return { from: s.from[j]!, to: s.from[j]! };
   return { from: s.end, to: s.end };
 }
