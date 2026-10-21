@@ -17,7 +17,7 @@ import {
   findDefaultAgent,
   loadAgentCatalogue,
 } from "../../src/agent/catalogue.ts";
-import { AUGGIE_INSTALL_HINT, CLAUDE_AGENT_PACKAGE, CLAUDE_EXAMPLE_COMMAND, OPENCODE_INSTALL_HINT } from "../../src/agent/command.ts";
+import { auggieInstallHint, auggieLoginCommand, CLAUDE_AGENT_PACKAGE, CLAUDE_EXAMPLE_COMMAND, opencodeInstallHint } from "../../src/agent/command.ts";
 import { commentedDefault } from "../../src/config/default-file.ts";
 import { launchAgent } from "../../src/agent/launch.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
@@ -89,7 +89,7 @@ describe("Named agents (tui-sessions)", () => {
     const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: configHome(null) } });
     expect([...catalogue.agents.keys()]).toEqual(["auggie"]);
     expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["auggie", "--acp"]);
-    expect(findAgent(catalogue, "auggie")).toMatchObject({ additionalDirectoryArgs: ["--add-workspace", "{dir}"], startupTimeoutSeconds: 30, installHint: AUGGIE_INSTALL_HINT, loginHint: "auggie login" });
+    expect(findAgent(catalogue, "auggie")).toMatchObject({ additionalDirectoryArgs: ["--add-workspace", "{dir}"], startupTimeoutSeconds: 30, installHint: auggieInstallHint(), loginHint: auggieLoginCommand() });
     expect(catalogue.defaultAgent).toBe("auggie");
     expect(catalogue.problems).toEqual([]);
     expect(() => findAgent(catalogue, "claude")).toThrow(/harness 'claude' is not configured; uncomment its entry in /);
@@ -295,8 +295,8 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
       }),
       "/c.jsonc",
     );
-    expect(catalogue.agents.get("auggie")).toMatchObject({ installHint: AUGGIE_INSTALL_HINT, loginHint: "auggie login", additionalDirectoryArgs: ["--add-workspace", "{dir}"] });
-    expect(catalogue.agents.get("oc")).toMatchObject({ installHint: OPENCODE_INSTALL_HINT, loginHint: "opencode auth login" });
+    expect(catalogue.agents.get("auggie")).toMatchObject({ installHint: auggieInstallHint(), loginHint: auggieLoginCommand(), additionalDirectoryArgs: ["--add-workspace", "{dir}"] });
+    expect(catalogue.agents.get("oc")).toMatchObject({ installHint: opencodeInstallHint(), loginHint: "opencode auth login" });
     expect(catalogue.agents.get("oc")?.additionalDirectoryArgs).toBeUndefined();
     expect(catalogue.agents.get("my-auggie")?.installHint).toBeUndefined();
     expect(catalogue.agents.get("my-auggie")?.loginHint).toBeUndefined();

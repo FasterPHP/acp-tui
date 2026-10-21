@@ -5,7 +5,7 @@
 // and login hints cannot be settings, so they stay here, keyed by the program the entry (or an ad
 // hoc command) runs, whatever the entry is called: the command's base name, or for the Claude
 // adapter run through `bunx` or `npx`, the package among the arguments.
-import { AUGGIE_INSTALL_HINT, BUN_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "./command.ts";
+import { auggieInstallHint, auggieLoginCommand, BUN_INSTALL_HINT, opencodeInstallHint } from "./command.ts";
 
 /** What acp-tui can tell the user about a program it knows. */
 export interface ProgramHints {
@@ -19,13 +19,19 @@ export interface ProgramHints {
 /** The Claude adapter's package, recognised among a command's arguments with or without a version. */
 export const CLAUDE_ADAPTER_PACKAGE_NAME = "@agentclientprotocol/claude-agent-acp";
 
-/** The programs acp-tui knows, by name. The Claude adapter has no login hint: Claude Code logs in
- *  inside its own interface (`/login`), and the adapter's message says so. */
-export const PROGRAM_HINTS: Readonly<Record<string, ProgramHints>> = {
-  auggie: { installHint: AUGGIE_INSTALL_HINT, loginHint: "auggie login" },
-  opencode: { installHint: OPENCODE_INSTALL_HINT, loginHint: "opencode auth login" },
-  "claude-agent-acp": { installHint: BUN_INSTALL_HINT },
-};
+/** The programs acp-tui knows, by name, with the commands as the user types them on `platform`
+ *  (on Windows `npm.cmd` and `auggie.cmd`, src/agent/command.ts). The Claude adapter has no login
+ *  hint: Claude Code logs in inside its own interface (`/login`), and the adapter's message says so. */
+export function programHints(platform: NodeJS.Platform = process.platform): Readonly<Record<string, ProgramHints>> {
+  return {
+    auggie: { installHint: auggieInstallHint(platform), loginHint: auggieLoginCommand(platform) },
+    opencode: { installHint: opencodeInstallHint(platform), loginHint: "opencode auth login" },
+    "claude-agent-acp": { installHint: BUN_INSTALL_HINT },
+  };
+}
+
+/** The hints table on this machine. */
+export const PROGRAM_HINTS: Readonly<Record<string, ProgramHints>> = programHints();
 
 /** Windows program extensions left out of a base name. */
 const WINDOWS_EXTENSIONS = /\.(cmd|bat|exe|ps1)$/i;
@@ -53,5 +59,5 @@ export function programOf(command: string, args: readonly string[], platform: No
 
 /** The hints for a command, empty when acp-tui does not know its program. */
 export function hintsFor(command: string, args: readonly string[], platform: NodeJS.Platform = process.platform): ProgramHints {
-  return PROGRAM_HINTS[programOf(command, args, platform)] ?? {};
+  return programHints(platform)[programOf(command, args, platform)] ?? {};
 }

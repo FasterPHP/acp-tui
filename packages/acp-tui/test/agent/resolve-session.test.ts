@@ -10,6 +10,7 @@ import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
+import { auggieInstallHint, auggieLoginCommand } from "../../src/agent/command.ts";
 import { adHocSessionMessage, resolveLaunch, SessionAgentError, shellWord, type ResolveContext } from "../../src/agent/resolve.ts";
 import { openSessionIndex, type SessionIndex } from "../../src/session/session-index.ts";
 
@@ -138,7 +139,7 @@ describe("Hints for an ad hoc command (configured-harnesses, by program)", () =>
   test("-- auggie --acp gets auggie's install and login hints; an unknown program gets none", () => {
     const { context } = setup();
     const auggie = resolveLaunch({ ...none, agentCommand: ["auggie", "--acp"], session: { kind: "new" } }, context);
-    expect(auggie).toMatchObject({ agentName: "ad hoc", installHint: expect.stringContaining("npm install -g @augmentcode/auggie@0.36.0"), loginHint: "auggie login" });
+    expect(auggie).toMatchObject({ agentName: "ad hoc", installHint: auggieInstallHint(), loginHint: auggieLoginCommand() });
     const other = resolveLaunch({ ...none, agentCommand: ["my-auggie", "--acp"], session: { kind: "new" } }, context);
     expect(other.installHint).toBeUndefined();
     expect(other.loginHint).toBeUndefined();

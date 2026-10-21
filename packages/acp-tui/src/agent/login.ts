@@ -3,6 +3,7 @@
 // advertise `terminal-auth`, so the harness's own text is the one written for a terminal user.
 import { sanitise } from "acp-model";
 import { displayWidth, truncateEnd } from "../layout/segments.ts";
+import { auggieLoginCommand } from "./command.ts";
 
 /** ACP's "authentication required" error code. */
 export const AUTH_REQUIRED_CODE = -32000;
@@ -15,8 +16,8 @@ export function loginStep(command: string): string {
   return `run ${command} in a terminal, then start acp-tui again`;
 }
 
-/** What Auggie needs the user to do. */
-export const AUGGIE_LOGIN_STEP = loginStep("auggie login");
+/** What Auggie needs the user to do (`auggie.cmd login` on Windows). */
+export const AUGGIE_LOGIN_STEP = loginStep(auggieLoginCommand());
 
 /** Whether `error` is the harness answering "authentication required". */
 export function isAuthRequired(error: unknown): boolean {

@@ -2,7 +2,8 @@
 // notice for an unchecked Auggie ("Harness version not yet checked"), as pure rules.
 import { describe, expect, test } from "bun:test";
 import { RequestError } from "@agentclientprotocol/sdk";
-import { AUGGIE_LOGIN_STEP, isAuthRequired, loginMessage } from "../../src/agent/login.ts";
+import { auggieLoginCommand } from "../../src/agent/command.ts";
+import { AUGGIE_LOGIN_STEP, isAuthRequired, loginMessage, loginStep } from "../../src/agent/login.ts";
 import { majorAtLeastOne, uncheckedAuggieNotice } from "../../src/agent/harness-version.ts";
 
 const AUGGIE_TEXT = "Authentication required: Auggie does not currently support authenticating over ACP. Please run `auggie login` from your terminal then try again.";
@@ -22,8 +23,17 @@ describe("login message", () => {
 
   test("Login hint added: the built-in auggie with the bare message gets the login step", () => {
     const message = loginMessage(new RequestError(-32000, "Authentication required"), { harness: "auggie", loginHint: "auggie login" });
-    expect(message).toBe(`harness 'auggie' needs you to log in: Authentication required; ${AUGGIE_LOGIN_STEP}`);
+    expect(message).toBe(`harness 'auggie' needs you to log in: Authentication required; ${loginStep("auggie login")}`);
     expect(message).toEndWith("run auggie login in a terminal, then start acp-tui again");
+  });
+
+  test("Auggie's login step names auggie.cmd on Windows, where PowerShell's default policy refuses npm's auggie.ps1", () => {
+    expect(auggieLoginCommand("win32")).toBe("auggie.cmd login");
+    expect(auggieLoginCommand("linux")).toBe("auggie login");
+    expect(auggieLoginCommand("darwin")).toBe("auggie login");
+    expect(AUGGIE_LOGIN_STEP).toBe(loginStep(auggieLoginCommand()));
+    const message = loginMessage(new RequestError(-32000, AUGGIE_TEXT), { harness: "auggie", loginHint: auggieLoginCommand("win32") });
+    expect(message).toEndWith("; run auggie.cmd login in a terminal, then start acp-tui again");
   });
 
   test("a configured harness never gets the step", () => {

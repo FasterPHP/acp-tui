@@ -3,7 +3,7 @@
 // Claude adapter's package among the arguments, whatever the entry is called.
 import { describe, expect, test } from "bun:test";
 import { AUGGIE_INSTALL_HINT, BUN_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "../../src/agent/command.ts";
-import { CLAUDE_ADAPTER_PACKAGE_NAME, commandBaseName, hintsFor, PROGRAM_HINTS, programOf } from "../../src/agent/hints.ts";
+import { CLAUDE_ADAPTER_PACKAGE_NAME, commandBaseName, hintsFor, PROGRAM_HINTS, programHints, programOf } from "../../src/agent/hints.ts";
 
 describe("commandBaseName", () => {
   test("a bare name is itself; a path gives its last component, on Linux and macOS", () => {
@@ -49,7 +49,20 @@ describe("hintsFor", () => {
   test("auggie and opencode by command, each with an install and a login hint", () => {
     expect(hintsFor("auggie", ["--acp"], "linux")).toEqual({ installHint: AUGGIE_INSTALL_HINT, loginHint: "auggie login" });
     expect(hintsFor("/x/opencode", ["acp"], "linux")).toEqual({ installHint: OPENCODE_INSTALL_HINT, loginHint: "opencode auth login" });
-    expect(hintsFor("C:\\npm\\auggie.cmd", ["--acp"], "win32")).toEqual(PROGRAM_HINTS["auggie"]!);
+  });
+
+  test("on Windows the npm programs are named by their .cmd shims, which PowerShell's default execution policy runs; Linux and macOS are unchanged", () => {
+    expect(hintsFor("C:\\npm\\auggie.cmd", ["--acp"], "win32")).toEqual({
+      installHint: "npm.cmd install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie.cmd login",
+      loginHint: "auggie.cmd login",
+    });
+    expect(hintsFor("opencode", ["acp"], "win32")).toEqual({ installHint: "npm.cmd install -g @opencode/cli, or see opencode.ai/docs", loginHint: "opencode auth login" });
+    expect(hintsFor("auggie", ["--acp"], "darwin")).toEqual({
+      installHint: "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login",
+      loginHint: "auggie login",
+    });
+    expect(hintsFor("opencode", ["acp"], "darwin").installHint).toBe("npm install -g @opencode/cli, or see opencode.ai/docs");
+    expect(PROGRAM_HINTS).toEqual(programHints(process.platform));
   });
 
   test("the Claude adapter has an install hint (Bun) and no login hint", () => {

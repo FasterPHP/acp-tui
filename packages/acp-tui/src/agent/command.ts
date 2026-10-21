@@ -21,11 +21,35 @@ export const CLAUDE_EXAMPLE_COMMAND: readonly string[] = ["bunx", "--bun", CLAUD
 /** The `claude` example's start-up timeout: its `bunx` may download the adapter first. */
 export const CLAUDE_STARTUP_TIMEOUT_SECONDS = 120;
 
-/** Auggie 0.36.0 is what the colleagues testing acp-tui run (plan decision 2: pinned in the hint). */
-export const AUGGIE_INSTALL_HINT = "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login";
+/** An npm-installed program as a command the user types: on Windows its `.cmd` shim (`npm.cmd`,
+ *  `auggie.cmd`), since PowerShell prefers the `.ps1` shim beside it, which the default execution
+ *  policy refuses to run ("running scripts is disabled on this system"). */
+function npmProgram(name: string, platform: NodeJS.Platform): string {
+  return platform === "win32" ? `${name}.cmd` : name;
+}
 
-/** OpenCode's 2.x line is published as `@opencode/cli`; the older `opencode-ai` package stops at 1.19.3. */
-export const OPENCODE_INSTALL_HINT = "npm install -g @opencode/cli, or see opencode.ai/docs";
+/** The command that logs in to Auggie: `auggie login`, or `auggie.cmd login` on Windows. */
+export function auggieLoginCommand(platform: NodeJS.Platform = process.platform): string {
+  return `${npmProgram("auggie", platform)} login`;
+}
+
+/** How to install Auggie: 0.36.0 is what the colleagues testing acp-tui run (plan decision 2:
+ *  pinned in the hint); `npm.cmd` and `auggie.cmd` on Windows. */
+export function auggieInstallHint(platform: NodeJS.Platform = process.platform): string {
+  return `${npmProgram("npm", platform)} install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run ${auggieLoginCommand(platform)}`;
+}
+
+/** How to install OpenCode: its 2.x line is published as `@opencode/cli`; the older `opencode-ai`
+ *  package stops at 1.19.3. `npm.cmd` on Windows. */
+export function opencodeInstallHint(platform: NodeJS.Platform = process.platform): string {
+  return `${npmProgram("npm", platform)} install -g @opencode/cli, or see opencode.ai/docs`;
+}
+
+/** Auggie's install hint as Linux and macOS give it, for the default file's description of the entry. */
+export const AUGGIE_INSTALL_HINT = auggieInstallHint("linux");
+
+/** OpenCode's install hint as Linux and macOS give it, for the default file's description of the entry. */
+export const OPENCODE_INSTALL_HINT = opencodeInstallHint("linux");
 
 /** The Claude adapter runs through `bunx`, which comes with Bun. */
 export const BUN_INSTALL_HINT = "Bun from bun.sh, which provides bunx";
