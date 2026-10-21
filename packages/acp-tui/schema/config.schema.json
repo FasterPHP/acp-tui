@@ -52,10 +52,18 @@
             "maximum": 600
           },
           "additional_directory_args": {
-            "description": "For a harness that takes extra directories as arguments, not through ACP: the arguments added after args for each directory, {dir} standing for its absolute path (Auggie: [\"--add-workspace\", \"{dir}\"]). At least one argument must hold {dir}.",
+            "description": "The template acp-tui uses to pass each additional directory to a harness that does not take them through ACP: the arguments added after args for each directory, {dir} standing for its absolute path (Auggie: [\"--add-workspace\", \"{dir}\"]). At least one argument must hold {dir}.",
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "additional_directories": {
+            "description": "Directories added to every session of this harness, beside the session directory: through ACP's additionalDirectories when the harness advertises it, else through additional_directory_args. `~` stands for your home directory and a relative path is taken from the directory of your configuration file. A directory that does not exist is a warning and left out. A change applies to the next session started. An agent such as Auggie indexes every directory added to it.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
             }
           }
         },
@@ -80,7 +88,7 @@
     },
     "additional_directories": {
       "default": [],
-      "description": "Directories added to every session, beside the session directory, for harnesses that can take them (ACP additionalDirectories, or the harness's own arguments: additional_directory_args). `~` stands for your home directory and a relative path is taken from the directory of the file that names it (use absolute or ~ paths in your own file). A directory that does not exist is a warning and left out. The one setting merged as a union: your file's directories, then the project file's, without repeats and without the session directory. A project file may add only directories inside the parent of its own directory, never the home directory or one of its ancestors, and none below a component starting with a dot. A change applies to the next session started. An agent such as Auggie indexes every directory added to it.",
+      "description": "Read only from a project's .acp-tui.jsonc: directories added to every session started in that project, whichever harness runs it, beside the session directory: through ACP's additionalDirectories, or the harness's additional_directory_args. In your own file this key is reported and ignored: give directories to the harnesses that should get them, in agent_servers.<name>.additional_directories. A relative path is taken from the project file's directory. A directory that does not exist is a warning and left out. A project file may add only directories inside the parent of its own directory, never the home directory or one of its ancestors, and none below a component starting with a dot. They follow the harness entry's own directories, without repeats and without the session directory. A change applies to the next session started. An agent such as Auggie indexes every directory added to it.",
       "type": "array",
       "items": {
         "type": "string",

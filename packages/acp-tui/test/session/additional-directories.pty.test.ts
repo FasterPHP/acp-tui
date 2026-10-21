@@ -1,7 +1,7 @@
 // harness-feedback task group 6, under a PTY against fake-agent (specs tui-sessions "Additional
 // directories on the command line", "... sent to the harness", "... for harnesses without the
 // capability" and "... kept with the session", tui-layout "Additional directories module",
-// tui-config "Additional directories in a project file"). Every run has its own configuration,
+// tui-config "Additional directories in a project file" and, since configured-harnesses D8, "Additional directories per harness"). Every run has its own configuration,
 // session index and directories; fake-agent stands in for `auggie` (with the built-in template, which
 // a configured entry of that name has to repeat), for `fake` with and without the capability, and
 // logs every request and its `--add-workspace` arguments.
@@ -24,6 +24,14 @@ function withTemplate(w: ListWorld, name: string): void {
   const file = join(w.env["XDG_CONFIG_HOME"]!, "acp-tui", "config.jsonc");
   const config = JSON.parse(readFileSync(file, "utf8")) as { agent_servers: Record<string, Record<string, unknown>> };
   config.agent_servers[name]!["additional_directory_args"] = ["--add-workspace", "{dir}"];
+  writeFileSync(file, JSON.stringify(config));
+}
+
+/** Sets the configured entry `name`'s own `additional_directories` (configured-harnesses D8). */
+function withEntryDirectories(w: ListWorld, name: string, directories: readonly string[]): void {
+  const file = join(w.env["XDG_CONFIG_HOME"]!, "acp-tui", "config.jsonc");
+  const config = JSON.parse(readFileSync(file, "utf8")) as { agent_servers: Record<string, Record<string, unknown>> };
+  config.agent_servers[name]!["additional_directories"] = [...directories];
   writeFileSync(file, JSON.stringify(config));
 }
 
@@ -84,15 +92,42 @@ describe("Additional directories sent to the harness", () => {
     expect(statusRow(s)).not.toContain("+1 dir");
   }, 40000);
 
-  test("The configuration's directories apply to every session: ~ paths from the user's file reach session/new", async () => {
+  test("The harness entry's directories apply to every session of that harness: they reach session/new, a missing one left out", async () => {
     const w = listWorld();
     const app = w.dir("app");
     const shared = w.dir("shared");
-    w.configure({ fake: ["--scenario", "basic", "--additional-directories"] }, { additional_directories: [shared, join(w.base, "nosuch")] });
+    w.configure({ fake: ["--scenario", "basic", "--additional-directories"] });
+    withEntryDirectories(w, "fake", [shared, join(w.base, "nosuch")]);
     const s = (session = w.start(["fake"], { cwd: app, cols: 200 }));
     await s.waitFor(READY, 20000);
     expect(sent(w, "fake", "session/new")).toEqual([[shared]]);
     expect(statusRow(s)).toContain("+1 dir");
+  }, 40000);
+
+  test("Another harness's directories: a harness that cannot take directories starts with no notice and none sent", async () => {
+    const w = listWorld();
+    const app = w.dir("app");
+    const shared = w.dir("shared");
+    w.configure({ fake: ["--scenario", "basic"], auggie: ["--scenario", "basic"] });
+    withTemplate(w, "auggie");
+    withEntryDirectories(w, "auggie", [shared]);
+    const s = (session = w.start(["fake"], { cwd: app, cols: 200 }));
+    await s.waitFor(READY, 20000);
+    expect(sent(w, "fake", "session/new")).toEqual([undefined]);
+    expect(workspaces(w, "fake")).toEqual([]);
+    expect(screen(s)).not.toContain("ignores additional directories");
+    expect(statusRow(s)).not.toContain("dir");
+  }, 40000);
+
+  test("A top-level additional_directories in the user's file is a configuration problem and is not sent", async () => {
+    const w = listWorld();
+    const app = w.dir("app");
+    const shared = w.dir("shared");
+    w.configure({ fake: ["--scenario", "basic", "--additional-directories"] }, { additional_directories: [shared] });
+    const s = (session = w.start(["fake"], { cwd: app, cols: 200 }));
+    await s.waitFor(READY, 20000);
+    expect(sent(w, "fake", "session/new")).toEqual([undefined]);
+    expect(statusRow(s)).toContain("config 1");
   }, 40000);
 });
 
@@ -130,7 +165,8 @@ describe("Additional directories kept with the session", () => {
     const app = w.dir("app");
     const lib = w.dir("lib");
     const shared = w.dir("shared");
-    w.configure({ fake: ["--scenario", "basic", "--additional-directories"] }, { additional_directories: [shared] });
+    w.configure({ fake: ["--scenario", "basic", "--additional-directories"] });
+    withEntryDirectories(w, "fake", [shared]);
     const s = (session = w.start(["fake", "--add-dir", lib], { cwd: app, cols: 120 }));
     await s.waitFor(READY, 20000);
     s.sendKeys({ text: "hello" });
@@ -145,7 +181,8 @@ describe("Additional directories kept with the session", () => {
     const lib = w.dir("lib");
     const shared = w.dir("shared");
     const fixture = w.sessions("store", [{ sessionId: "s-1", cwd: app, title: "Earlier" }]);
-    w.configure({ fake: ["--scenario", "copy-fixtures", "--additional-directories", "--load", "--sessions", fixture] }, { additional_directories: [shared] });
+    w.configure({ fake: ["--scenario", "copy-fixtures", "--additional-directories", "--load", "--sessions", fixture] });
+    withEntryDirectories(w, "fake", [shared]);
     w.record({ agent: "fake", sessionId: "s-1", directory: app, title: "Earlier", addedDirectories: [lib] });
     const s = (session = w.start(["fake", "--resume", "s-1"], { cwd: w.base, cols: 120 }));
     await s.waitFor(READY, 20000);

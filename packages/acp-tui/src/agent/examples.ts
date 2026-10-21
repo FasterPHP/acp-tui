@@ -12,6 +12,8 @@ export interface AgentExampleEntry {
   readonly env?: Readonly<Record<string, string>>;
   /** For a harness that takes extra directories as arguments (`additional_directory_args`). */
   readonly additionalDirectoryArgs?: readonly string[];
+  /** Directories for every session of the harness (`additional_directories`). */
+  readonly additionalDirectories?: readonly string[];
   /** Seconds a start-up may stay silent (`startup_timeout_seconds`). */
   readonly startupTimeoutSeconds?: number;
 }
@@ -41,12 +43,12 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
     name: "auggie",
     active: true,
-    about: `The default harness, Auggie, installed with ${AUGGIE_INSTALL_HINT}. Its additional_directory_args pass each additional directory (--add-dir, additional_directories) as --add-workspace. Source: docs.augmentcode.com/cli/acp.`,
+    about: `The default harness, Auggie, installed with ${AUGGIE_INSTALL_HINT}. additional_directory_args is the template acp-tui uses to pass each additional directory to a harness that does not take them through ACP, here as --add-workspace: the entry's additional_directories, a project's, --add-dir and /add-dir. Source: docs.augmentcode.com/cli/acp.`,
     entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
     suggestion: {
       about:
-        "the same with two start-up options; to use it, put // in front of the auggie line above and remove it from this one. --reasoning-effort chooses how hard it thinks (none, low, medium, high, xhigh, max or dynamic). --add-workspace gives its context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours, since a directory that does not exist stops Auggie from starting. Auggie indexes that folder in the background, so start-up is not delayed.",
-      entry: { command: "auggie", args: ["--acp", "--reasoning-effort", "high", "--add-workspace", "/path/to/projects"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
+        "the same with a start-up option and a directory; to use it, put // in front of the auggie line above and remove it from this one. --reasoning-effort chooses how hard it thinks (none, low, medium, high, xhigh, max or dynamic). additional_directories gives Auggie's context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours (a directory that does not exist is a warning and left out). Auggie indexes that folder in the background, so start-up is not delayed. Writing --add-workspace <dir> in args also works, but bypasses acp-tui: that directory is not shown in the dirs module of the status row (+N dirs) and is not deduplicated with the others.",
+      entry: { command: "auggie", args: ["--acp", "--reasoning-effort", "high"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS, additionalDirectories: ["/path/to/projects"] },
     },
   },
   {
@@ -111,6 +113,7 @@ export function exampleServerEntry(entry: AgentExampleEntry): Record<string, unk
     args: [...entry.args],
     ...(entry.env !== undefined ? { env: { ...entry.env } } : {}),
     ...(entry.additionalDirectoryArgs !== undefined ? { additional_directory_args: [...entry.additionalDirectoryArgs] } : {}),
+    ...(entry.additionalDirectories !== undefined ? { additional_directories: [...entry.additionalDirectories] } : {}),
     ...(entry.startupTimeoutSeconds !== undefined ? { startup_timeout_seconds: entry.startupTimeoutSeconds } : {}),
   };
 }
@@ -139,7 +142,7 @@ export interface ExampleHarness {
 
 /** Whether an entry is only a command and its arguments, so `acp-tui -- <command line>` does the same. */
 function plainEntry(entry: AgentExampleEntry): boolean {
-  return entry.env === undefined && entry.additionalDirectoryArgs === undefined && entry.startupTimeoutSeconds === undefined;
+  return entry.env === undefined && entry.additionalDirectoryArgs === undefined && entry.additionalDirectories === undefined && entry.startupTimeoutSeconds === undefined;
 }
 
 /** The examples whose names are not configured (`taken`), with their command lines. */

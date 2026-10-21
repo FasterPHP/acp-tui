@@ -47,6 +47,9 @@ export interface AgentEntry {
   readonly startupTimeoutSeconds?: number;
   /** For an entry that takes directories as arguments: the template with `{dir}` (used when additional directories are delivered). */
   readonly additionalDirectoryArgs?: readonly string[];
+  /** The entry's own `additional_directories`, absolute real paths (the loader resolved them):
+   *  added to every session of this harness, before a project file's (configured-harnesses D8). */
+  readonly harnessDirectories?: readonly string[];
 }
 
 export interface AgentCatalogue {
@@ -109,6 +112,7 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
       startupTimeoutSeconds: timeout,
       ...hintsFor(entry.command, entry.args),
       ...(entry.additional_directory_args !== undefined ? { additionalDirectoryArgs: entry.additional_directory_args } : {}),
+      ...(entry.additional_directories !== undefined && entry.additional_directories.length > 0 ? { harnessDirectories: entry.additional_directories } : {}),
     });
   }
   const invalid = new Map(Object.entries(source.invalidAgents));

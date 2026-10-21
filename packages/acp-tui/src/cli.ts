@@ -600,7 +600,8 @@ export async function main(
     problems: launch.problems.length,
   });
   // A project file that adds directories says so once, at start-up.
-  const adopted = (launch.projectDirectories ?? []).filter((d) => (launch.additionalDirectories ?? []).includes(d));
+  // The project's directories this session takes that the harness entry does not already give it.
+  const adopted = (launch.projectDirectories ?? []).filter((d) => (launch.additionalDirectories ?? []).includes(d) && !(launch.harnessDirectories ?? []).includes(d));
   const notices = [...options.notices, ...(adopted.length > 0 && launch.projectFile ? [projectDirectoriesNotice(launch.projectFile, adopted)] : [])];
   return startApp({ launch, logger, screen, overrides: options.overrides, ...(notices.length > 0 ? { notices } : {}) });
 }
