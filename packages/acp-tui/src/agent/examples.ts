@@ -27,8 +27,12 @@ export interface AgentExample {
 export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
     name: "auggie",
-    about: `the built-in auggie as acp-tui runs it without an entry (the default harness), installed with ${AUGGIE_INSTALL_HINT}. Add "--reasoning-effort", "high" to args to choose how hard it thinks (none, low, medium, high, xhigh, max or dynamic). Its additional_directory_args pass each additional directory (--add-dir, additional_directories) as --add-workspace. Source: docs.augmentcode.com/cli/acp.`,
-    entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: BUILT_IN_HARNESSES.find((h) => h.name === "auggie")!.additionalDirectoryArgs! },
+    about: `the built-in auggie (the default harness), installed with ${AUGGIE_INSTALL_HINT}, plus two start-up options. --reasoning-effort chooses how hard it thinks (none, low, medium, high, xhigh, max or dynamic). --add-workspace gives its context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours, or remove the two arguments. Auggie indexes that folder in the background, so start-up is not delayed. Its additional_directory_args pass each additional directory (--add-dir, additional_directories) as --add-workspace too. Source: docs.augmentcode.com/cli/acp.`,
+    entry: {
+      command: "auggie",
+      args: ["--acp", "--reasoning-effort", "high", "--add-workspace", "/path/to/projects"],
+      additionalDirectoryArgs: BUILT_IN_HARNESSES.find((h) => h.name === "auggie")!.additionalDirectoryArgs!,
+    },
   },
   {
     name: "claude",
