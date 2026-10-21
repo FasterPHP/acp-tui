@@ -10,7 +10,10 @@ import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
+import { withTilde } from "../../src/agent/examples.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
 import { CliArgumentError, main, parseArgs, type CliContext, type ParseContext, type StartAppOptions } from "../../src/cli.ts";
 
 const FAKE_COMMAND = ["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"];
@@ -329,10 +332,16 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
     expect(r.stderr).not.toContain("already runs");
   });
 
+  test("The configuration file's home is the platform's: on Windows the profile, whatever the case", () => {
+    expect(withTilde("C:\\Users\\u\\AppData\\Roaming\\acp-tui\\config.jsonc", "c:\\users\\U", "win32")).toBe("~\\AppData\\Roaming\\acp-tui\\config.jsonc");
+    expect(withTilde("/home/u/.config/acp-tui/config.jsonc", "/home/u", "linux")).toBe("~/.config/acp-tui/config.jsonc");
+    expect(withTilde("/home/uv/config.jsonc", "/home/u", "linux")).toBe("/home/uv/config.jsonc");
+  });
+
   test("parseArgs on its own: examples in the context are refused with the configuration file named, home as ~", () => {
     const examples = [{ name: "gemini", commandLine: "gemini --acp" }];
-    expect(() => parse(["gemini"], work(), { examples, configPath: `${process.env["HOME"]}/.config/acp-tui/config.jsonc` })).toThrow(
-      new CliArgumentError("harness 'gemini' is not configured; uncomment its entry in ~/.config/acp-tui/config.jsonc, or run acp-tui -- gemini --acp"),
+    expect(() => parse(["gemini"], work(), { examples, configPath: join(userHome(), ".config", "acp-tui", "config.jsonc") })).toThrow(
+      new CliArgumentError(`harness 'gemini' is not configured; uncomment its entry in ${join("~", ".config", "acp-tui", "config.jsonc")}, or run acp-tui -- gemini --acp`),
     );
   });
 });

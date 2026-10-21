@@ -8,11 +8,14 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
+import { resolveDirectories } from "../../src/config/directories.ts";
 import { effectiveConfig } from "../../src/config/effective.ts";
 import { parseConfigText } from "../../src/config/load.ts";
 import { formatProblemWithSeverity } from "../../src/config/problems.ts";
 import { PROJECT_FILE_NAME } from "../../src/config/sources.ts";
 
+// Paths go into the JSONC text through JSON.stringify, since a Windows path's backslashes are
+// escapes in a JSON string.
 const roots: string[] = [];
 afterAll(() => {
   for (const root of roots) rmSync(root, { recursive: true, force: true });
@@ -39,7 +42,7 @@ const entryDirs = (parsed: ReturnType<typeof user>) => ((parsed.sections.agent_s
 describe("Additional directories per harness", () => {
   test("Entries are resolved against the file: ~ is the home directory, a relative path starts at the file's directory", () => {
     const t = tree();
-    const parsed = user(entry(`["~/shared", "rel", "${t.work}/lib", "~/shared"]`, `, "additional_directory_args": ["--w", "{dir}"]`), t);
+    const parsed = user(entry(JSON.stringify(["~/shared", "rel", join(t.work, "lib"), "~/shared"]), `, "additional_directory_args": ["--w", "{dir}"]`), t);
     expect(parsed.problems).toEqual([]);
     expect(parsed.notices).toEqual([]);
     expect(entryDirs(parsed)).toEqual([join(t.home, "shared"), join(t.cfg, "rel"), join(t.work, "lib")]);
@@ -72,7 +75,7 @@ describe("Additional directories per harness", () => {
 
   test("The catalogue entry carries the resolved directories, and an entry without them carries none", () => {
     const t = tree();
-    const text = `{ "agent_servers": { "a": { "command": "a", "additional_directories": ["${t.work}/lib"] }, "b": { "command": "b" } } }`;
+    const text = `{ "agent_servers": { "a": { "command": "a", "additional_directories": ${JSON.stringify([join(t.work, "lib")])} }, "b": { "command": "b" } } }`;
     // Through the user's file, resolved by the loader (the catalogue is built from a parsed source).
     const catalogue = buildAgentCatalogue(text, join(t.cfg, "config.jsonc"));
     expect(catalogue.agents.get("a")?.harnessDirectories).toEqual([join(t.work, "lib")]);
@@ -158,7 +161,7 @@ describe("Additional directories in a project file", () => {
 
   test("Home refused: ~ is the home directory, and ../.. is an ancestor of it", () => {
     const t = tree();
-    const p = project(`{ "additional_directories": ["~", "${t.base}"] }`, join(t.home, "app"), t);
+    const p = project(`{ "additional_directories": ${JSON.stringify(["~", t.base])} }`, join(t.home, "app"), t);
     expect(p.sections.additional_directories).toEqual([]);
     expect(p.problems.map((x) => x.path)).toEqual(["additional_directories.0", "additional_directories.1"]);
     expect(p.problems.every((x) => x.message.includes("is not allowed in a project file"))).toBe(true);
@@ -166,7 +169,7 @@ describe("Additional directories in a project file", () => {
 
   test("Outside the parent of the project is refused, even where it exists", () => {
     const t = tree();
-    const p = project(`{ "additional_directories": ["${join(t.home, "shared")}", "../lib"] }`, join(t.work, "app"), t);
+    const p = project(`{ "additional_directories": ${JSON.stringify([join(t.home, "shared"), "../lib"])} }`, join(t.work, "app"), t);
     expect(p.sections.additional_directories).toEqual([join(t.work, "lib")]);
     expect(p.problems).toHaveLength(1);
     expect(p.problems[0]!.path).toBe("additional_directories.0");
@@ -177,6 +180,15 @@ describe("Additional directories in a project file", () => {
     const p = project(`{ "additional_directories": [".."] }`, join(t.work, "app"), t);
     expect(p.sections.additional_directories).toEqual([]);
     expect(p.problems).toHaveLength(1);
+  });
+
+  test("On Windows the parent is refused whatever its case, as the file system compares paths", () => {
+    const t = tree();
+    const file = join(t.work, "app", PROJECT_FILE_NAME);
+    const resolution = resolveDirectories([t.work.toUpperCase()], { file, kind: "project", home: t.home, platform: "win32" });
+    expect(resolution.directories).toEqual([]);
+    expect(resolution.problems).toMatchObject([{ index: 0, severity: "error" }]);
+    expect(resolution.problems[0]!.message).toContain("is not inside");
   });
 
   test("A symlink beside the project that leads out of the limits is refused", () => {

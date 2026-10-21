@@ -3,6 +3,8 @@
 // command line, the loader and the catalogue can name them without loading the layout and rendering
 // modules. One example is in effect in the default configuration, `auggie` (`DEFAULT_AGENT_SERVERS`,
 // also what acp-tui reads when the user has no file); the others are commented out.
+import { shortenHome } from "../layout/segments.ts";
+import { userHome, type Platform } from "../platform/paths.ts";
 import { AUGGIE_INSTALL_HINT, CLAUDE_EXAMPLE_COMMAND, CLAUDE_STARTUP_TIMEOUT_SECONDS, DEFAULT_HARNESS, OPENCODE_INSTALL_HINT } from "./command.ts";
 
 /** An example's `agent_servers` entry, as the default file writes it (the setting names in camel case). */
@@ -154,9 +156,11 @@ export function exampleHarnesses(taken: readonly string[]): ExampleHarness[] {
   }));
 }
 
-/** `~` for the home directory at the start of a path, as messages show the configuration file. */
-export function withTilde(path: string, home: string | undefined = process.env["HOME"]): string {
-  return home !== undefined && home !== "" && (path === home || path.startsWith(`${home}/`)) ? `~${path.slice(home.length)}` : path;
+/** `~` for the home directory at the start of a path, as messages show the configuration file. The
+ *  home is the platform's (on Windows the profile, never `HOME`), matched as the platform's file
+ *  system compares paths. */
+export function withTilde(path: string, home: string | null = userHome(), platform: Platform = process.platform): string {
+  return shortenHome(path, home, platform);
 }
 
 /** Where the user finds an entry to copy, named after "add its entry to <file>". */

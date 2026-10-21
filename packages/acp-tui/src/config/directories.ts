@@ -66,7 +66,8 @@ export function absoluteEntry(entry: string, base: string, home: string): string
  *  the project root and `home` the home directory, both real paths. */
 function projectRefusal(path: string, parent: string, home: string, platform: Platform): string | null {
   if (pathWithin(home, path, platform)) return "is the home directory or one of its ancestors";
-  if (!pathWithin(path, parent, platform) || path === parent) return `is not inside ${parent}, the parent of the project's directory`;
+  // The parent itself (compared as the platform does: on Windows, whatever the case) is refused too.
+  if (!pathWithin(path, parent, platform) || pathWithin(parent, path, platform)) return `is not inside ${parent}, the parent of the project's directory`;
   const hidden = relative(parent, path).split(sep).find((part) => part.startsWith("."));
   if (hidden !== undefined) return `has a component starting with ".": ${hidden}`;
   return null;
