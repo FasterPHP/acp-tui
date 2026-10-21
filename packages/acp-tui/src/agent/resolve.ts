@@ -73,14 +73,18 @@ export interface LaunchDescription {
   /** For a harness that takes extra directories as arguments: the template, `{dir}` standing for
    *  each directory; then `launchArgv` appends it per directory and ACP's field is not sent. */
   readonly additionalDirectoryArgs?: readonly string[];
-  /** The additional directories of this launch, in order and without repeats: the configuration's,
-   *  then the ones recorded with the session being reopened, then this run's `--add-dir`; never the
-   *  session directory. Absent: none. */
+  /** The harness entry's own `additional_directories` (configured-harnesses D8), absolute; they
+   *  follow the harness, so a launch of another harness takes that entry's. Absent: none. */
+  readonly harnessDirectories?: readonly string[];
+  /** The additional directories of this launch, in order and without repeats: the harness entry's,
+   *  then the project file's, then the ones recorded with the session being reopened, then this
+   *  run's `--add-dir`; never the session directory. Absent: none. */
   readonly additionalDirectories?: readonly string[];
   /** The directories kept with the session in the index: the recorded ones that still exist, then
    *  this run's `--add-dir` (not the configuration's). Absent: none. */
   readonly addedDirectories?: readonly string[];
-  /** The configuration's directories (user's file, then the project file's), as last read. */
+  /** The configuration's directories for every harness: the project file's `additional_directories`
+   *  (the user's own file gives directories per harness only), as last read. */
   readonly configDirectories?: readonly string[];
   /** The directories only the project file adds, and the file, for the notice naming them. */
   readonly projectDirectories?: readonly string[];
@@ -91,9 +95,14 @@ export interface LaunchDescription {
   readonly directoryNotices?: readonly string[];
 }
 
-/** The install and login hints, timeout and directory template of a catalogue entry, as spreadable properties. */
-export function hintOf(entry: Pick<AgentEntry, "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs">): { installHint?: string; loginHint?: string; startupTimeoutSeconds?: number; additionalDirectoryArgs?: readonly string[] } {
+/** The install and login hints, timeout, directory template and own directories of a catalogue
+ *  entry (or a launch's harness), as spreadable properties. */
+export function hintOf(
+  entry: Pick<AgentEntry, "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs" | "harnessDirectories">,
+): { installHint?: string; loginHint?: string; startupTimeoutSeconds?: number; additionalDirectoryArgs?: readonly string[]; harnessDirectories?: readonly string[] } {
+  const own = entry.harnessDirectories;
   return {
+    ...(own !== undefined && own.length > 0 ? { harnessDirectories: own } : {}),
     ...(entry.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: entry.additionalDirectoryArgs } : {}),
     ...(entry.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: entry.startupTimeoutSeconds } : {}),
     ...(entry.installHint !== undefined ? { installHint: entry.installHint } : {}),
@@ -118,7 +127,7 @@ function isDirectory(path: string): boolean {
   }
 }
 
-/** The directories of a launch (design: configuration, then recorded, then `--add-dir`): the
+/** The directories of a launch (design: the harness entry's, the project file's, then recorded, then `--add-dir`): the
  *  effective list, the ones to record with the session, and a notice for each recorded directory
  *  that has gone. */
 export interface DerivedDirectories {
@@ -128,6 +137,9 @@ export interface DerivedDirectories {
 }
 
 export function deriveDirectories(input: {
+  /** The harness entry's own directories (first). */
+  readonly harness?: readonly string[];
+  /** The project file's directories. */
   readonly config: readonly string[];
   readonly recorded: readonly string[];
   readonly addDirs: readonly string[];
@@ -144,7 +156,7 @@ export function deriveDirectories(input: {
   }
   const added = withoutSessionDirectory([...recorded, ...input.addDirs], input.directory);
   return {
-    additionalDirectories: withoutSessionDirectory([...input.config, ...recorded, ...input.addDirs], input.directory),
+    additionalDirectories: withoutSessionDirectory([...(input.harness ?? []), ...input.config, ...recorded, ...input.addDirs], input.directory),
     addedDirectories: added,
     directoryNotices: notices,
   };
@@ -154,6 +166,7 @@ export function deriveDirectories(input: {
  *  (a session chosen from the list, a `--continue` that found a recorded session). */
 export function withDirectories(launch: LaunchDescription, input: { readonly directory?: string; readonly recorded?: readonly string[]; readonly config?: readonly string[] }): LaunchDescription {
   const derived = deriveDirectories({
+    harness: launch.harnessDirectories ?? [],
     config: input.config ?? launch.configDirectories ?? [],
     recorded: input.recorded ?? [],
     addDirs: launch.addDirs ?? [],
@@ -225,7 +238,7 @@ export function resolveLaunch(options: Pick<CliOptions, "agentName" | "agentComm
     projectDirectories: configured.projectDirectories,
     projectFile: configured.projectFile,
     addDirs,
-    ...deriveDirectories({ config: configured.directories, recorded: launch.indexed?.addedDirectories ?? [], addDirs, directory: launch.directory }),
+    ...deriveDirectories({ harness: launch.harnessDirectories ?? [], config: configured.directories, recorded: launch.indexed?.addedDirectories ?? [], addDirs, directory: launch.directory }),
   };
 }
 

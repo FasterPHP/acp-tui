@@ -88,7 +88,9 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     const text = commentedDefault();
     const comments = commentText(text);
     for (const section of Object.keys(SECTIONS) as SectionName[]) {
-      expect(text).toMatch(new RegExp(`^  "${section}": `, "m"));
+      // additional_directories is read only from a project file, so this file describes it without setting it.
+      if (section === "additional_directories") expect(text).not.toMatch(/^ {2}"additional_directories": /m);
+      else expect(text).toMatch(new RegExp(`^  "${section}": `, "m"));
       const list = valueListOf(SECTIONS[section]);
       if (list) expect(comments).toContain(`${list.heading}:`);
       else expect(comments).toContain(describeOf(SECTIONS[section])!.replace(/\s+/g, " "));
@@ -185,7 +187,8 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     }
     const text = lines.join("\n");
     const parsed = parseConfigText(text, "/x/config.jsonc", { knownAgents: ["auggie", "claude"] });
-    expect(parsed.problems).toEqual([]);
+    // The one problem: the auggie suggestion's placeholder directory, which is left out with a warning.
+    expect(parsed.problems.map((p) => [p.path, p.severity, p.message])).toEqual([["agent_servers.auggie.additional_directories.0", "warning", "is not a directory and is left out"]]);
     expect(Object.keys(parsed.sections.agent_servers as object)).toEqual(AGENT_EXAMPLES.map((e) => e.name));
     expect((parsed.sections.keys as { global: unknown }).global).toEqual({ "ctrl+d": null, "ctrl+q": "detach" });
     expect((parsed.sections.theme as { tokens: unknown }).tokens).toEqual({ accent: 4, warning: { color: 3, bold: true } });
@@ -546,10 +549,13 @@ describe("config --diff-default (interface-feedback 5.3)", () => {
 });
 
 describe("Harnesses come only from agent_servers (configured-harnesses, tui-config)", async () => {
-  test("Default configuration: the printed file holds the active auggie line, the commented alternative with /path/to/projects and the commented claude line with 120", () => {
+  test("Default configuration: the printed file holds the active auggie line, the commented alternative with additional_directories /path/to/projects and the commented claude line with 120", () => {
     const text = commentedDefault();
     expect(text).toMatch(/^ {4}"auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\] \},$/m);
-    expect(text).toMatch(/^ {4}\/\/ "auggie": \{ .*"--reasoning-effort", "high", "--add-workspace", "\/path\/to\/projects".* \},$/m);
+    expect(text).toMatch(/^ {4}\/\/ "auggie": \{ "command": "auggie", "args": \["--acp", "--reasoning-effort", "high"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\], "additional_directories": \["\/path\/to\/projects"\] \},$/m);
+    // The comments say what the template is for and why --add-workspace in args bypasses acp-tui.
+    expect(text).toContain("additional_directory_args is the template acp-tui");
+    expect(text.replace(/\n\s*\/\/ /g, " ")).toContain("Writing --add-workspace <dir> in args also works, but bypasses acp-tui");
     expect(text).toMatch(/^ {4}\/\/ "claude": \{ "command": "bunx", .*"startup_timeout_seconds": 120 \},$/m);
     expect(text).toMatch(/^ {2}"default_agent_server": "auggie",$/m);
     // Every other example is commented out.

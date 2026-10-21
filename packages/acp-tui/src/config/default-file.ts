@@ -182,8 +182,9 @@ function agentLine(name: string, entry: AgentExample["entry"]): string {
   const env = entry.env ? `, "env": ${json(entry.env)}` : "";
   const list = (values: readonly string[]) => JSON.stringify(values).replace(/","/g, '", "');
   const directories = entry.additionalDirectoryArgs ? `, "additional_directory_args": ${list(entry.additionalDirectoryArgs)}` : "";
+  const own = entry.additionalDirectories ? `, "additional_directories": ${list(entry.additionalDirectories)}` : "";
   const timeout = entry.startupTimeoutSeconds !== undefined ? `, "startup_timeout_seconds": ${entry.startupTimeoutSeconds}` : "";
-  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${list(entry.args)}${env}${directories}${timeout} },`;
+  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${list(entry.args)}${env}${directories}${own}${timeout} },`;
 }
 
 /** An example's lines: in effect (`auggie`, with its commented alternative) or commented out. */
@@ -206,7 +207,7 @@ const SPECIALS: Readonly<Record<string, Special>> = {
     return [
       ...comment(describeOf(schema) ?? "", indent),
       ...comment("Each entry takes:", indent),
-      ...(["command", "args", "env", "additional_directory_args"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
+      ...(["command", "args", "env", "additional_directory_args", "additional_directories"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
       ...comment('The harness runs in the session directory, so give paths in "command" and "args" as absolute paths.', indent),
       ...comment(
         "Each harness needs an entry here: acp-tui launches nothing else by name. The default configuration has one, auggie, in effect; every entry after it is an example, not active: install the harness, then remove the // in front of its line to add it.",
@@ -217,6 +218,9 @@ const SPECIALS: Readonly<Record<string, Special>> = {
       `${indent}},`,
     ];
   },
+
+  // Read only from a project file (configured-harnesses D8), so this file names it without setting it.
+  additional_directories: (_key, schema, indent) => comment(describeOf(schema) ?? "", indent),
 
   terminals: (key, schema, indent) => {
     const inner = indent + STEP;
@@ -374,7 +378,7 @@ export function defaultFileHeader(platform: NodeJS.Platform = process.platform):
     {
       heading: "Project files",
       paragraphs: [
-        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent_server, agent_startup_timeout_seconds, clipboard, terminals, and the keys of the card and elicitation contexts. Its additional_directories are limited to directories inside the parent of the project's own directory, and never the home directory or a directory below a name starting with a dot.",
+        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent_server, agent_startup_timeout_seconds, clipboard, terminals, and the keys of the card and elicitation contexts. Its additional_directories, read only from a project file (in this file, directories go in each agent_servers entry), are limited to directories inside the parent of the project's own directory, and never the home directory or a directory below a name starting with a dot.",
       ],
     },
     {

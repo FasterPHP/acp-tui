@@ -96,6 +96,7 @@ export function effectiveConfig(input: EffectiveInput): Config {
   const out = { ...defaults } as Record<SectionName, unknown>;
   for (const section of SECTION_NAMES) {
     // The one setting merged as a union rather than replaced: the user's directories, then the project's.
+    // Since configured-harnesses D8 the loader never keeps the user's, so this is the project's list.
     const raw = section === "additional_directories" ? unionOf(input.user[section], input.project[section]) : mergeRaw(input.user[section], input.project[section]);
     if (raw === undefined) continue;
     const schema = SECTIONS[section];

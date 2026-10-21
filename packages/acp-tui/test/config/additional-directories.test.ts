@@ -1,7 +1,7 @@
-// harness-feedback task group 6 (spec tui-config "Additional directories setting", "Additional
-// directories in a project file" and "Harness arguments for additional directories"): each file's
-// entries are resolved when it is loaded, the two files' lists are merged as a union, and a project
-// file is limited to the project's siblings. Every test builds its own tree of temporary
+// harness-feedback task group 6 and configured-harnesses D8 (spec tui-config "Additional directories
+// per harness", "Additional directories in a project file" and "Harness arguments for additional
+// directories"): each file's entries are resolved when it is loaded, the user's own per harness and
+// a project file's for every harness, and a project file is limited to the project's siblings. Every test builds its own tree of temporary
 // directories and gives the loader its own home directory, so no real directory is read.
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
@@ -30,50 +30,93 @@ function tree() {
 const user = (text: string, t: ReturnType<typeof tree>) => parseConfigText(text, join(t.cfg, "config.jsonc"), { kind: "user", home: t.home });
 const project = (text: string, root: string, t: ReturnType<typeof tree>) => parseConfigText(text, join(root, PROJECT_FILE_NAME), { kind: "project", home: t.home });
 
-describe("Additional directories setting", () => {
-  test("Entries are resolved against their file: ~ is the home directory, a relative path starts at the file's directory", () => {
+// Marcus, 21 October 2026 (configured-harnesses D8): the user's own directories are given per
+// harness, in `agent_servers.<name>.additional_directories`; the top-level key is read only from a
+// project file, and in the user's file it is reported and ignored.
+const entry = (dirs: string, extra = "") => `{ "agent_servers": { "a": { "command": "a"${extra}, "additional_directories": ${dirs} } } }`;
+const entryDirs = (parsed: ReturnType<typeof user>) => ((parsed.sections.agent_servers as Record<string, { additional_directories?: string[] }>)["a"]!).additional_directories;
+
+describe("Additional directories per harness", () => {
+  test("Entries are resolved against the file: ~ is the home directory, a relative path starts at the file's directory", () => {
     const t = tree();
-    const parsed = user(`{ "additional_directories": ["~/shared", "rel", "${t.work}/lib", "~/shared"] }`, t);
+    const parsed = user(entry(`["~/shared", "rel", "${t.work}/lib", "~/shared"]`, `, "additional_directory_args": ["--w", "{dir}"]`), t);
     expect(parsed.problems).toEqual([]);
-    expect(parsed.sections.additional_directories).toEqual([join(t.home, "shared"), join(t.cfg, "rel"), join(t.work, "lib")]);
+    expect(parsed.notices).toEqual([]);
+    expect(entryDirs(parsed)).toEqual([join(t.home, "shared"), join(t.cfg, "rel"), join(t.work, "lib")]);
   });
 
   test("A symlink is resolved to its real path", () => {
     const t = tree();
     symlinkSync(join(t.work, "lib"), join(t.cfg, "link"));
-    expect(user(`{ "additional_directories": ["link"] }`, t).sections.additional_directories).toEqual([join(t.work, "lib")]);
+    expect(entryDirs(user(entry(`["link"]`), t))).toEqual([join(t.work, "lib")]);
   });
 
-  test("Missing entry: a warning at that entry (line and column) that it is not a directory, and the entry is left out", () => {
+  test("Missing entry: a warning at that entry (line and column) that it is not a directory, and the entry is left out; the harness still launches", () => {
     const t = tree();
-    const text = `{\n  "additional_directories": ["~/shared", "~/nosuch"]\n}`;
+    const text = `{\n  "agent_servers": { "a": { "command": "a", "additional_directory_args": ["--w", "{dir}"], "additional_directories": ["~/shared", "~/nosuch"] } }\n}`;
     const parsed = user(text, t);
-    expect(parsed.sections.additional_directories).toEqual([join(t.home, "shared")]);
+    expect(entryDirs(parsed)).toEqual([join(t.home, "shared")]);
     expect(parsed.problems).toHaveLength(1);
     const problem = parsed.problems[0]!;
-    expect(problem).toMatchObject({ line: 2, column: 42, path: "additional_directories.1", severity: "warning" });
-    expect(formatProblemWithSeverity(problem)).toContain("config.jsonc:2:42: warning: additional_directories.1 is not a directory and is left out");
+    expect(problem).toMatchObject({ line: 2, path: "agent_servers.a.additional_directories.1", severity: "warning" });
+    expect(formatProblemWithSeverity(problem)).toContain("warning: agent_servers.a.additional_directories.1 is not a directory and is left out");
+    expect(buildAgentCatalogue(text, join(t.cfg, "config.jsonc")).agents.has("a")).toBe(true);
   });
 
-  test("A file is not a directory", () => {
+  test("A value that is not a list of strings makes the entry invalid", () => {
     const t = tree();
-    expect(user(`{ "additional_directories": ["${join(t.cfg, "config.jsonc")}"] }`, t).problems).toHaveLength(1);
+    const parsed = user(entry(`"~/shared"`), t);
+    expect(parsed.problems[0]).toMatchObject({ path: "agent_servers.a.additional_directories", severity: "error" });
+    expect(parsed.invalidAgents["a"]).toContain("additional_directories");
   });
 
-  test("A value that is not a list of strings rejects the section", () => {
+  test("The catalogue entry carries the resolved directories, and an entry without them carries none", () => {
     const t = tree();
-    const parsed = user(`{ "additional_directories": "~/shared" }`, t);
-    expect(parsed.rejected).toEqual(["additional_directories"]);
-    expect(parsed.problems[0]!.message).toContain("an array of strings");
+    const text = `{ "agent_servers": { "a": { "command": "a", "additional_directories": ["${t.work}/lib"] }, "b": { "command": "b" } } }`;
+    // Through the user's file, resolved by the loader (the catalogue is built from a parsed source).
+    const catalogue = buildAgentCatalogue(text, join(t.cfg, "config.jsonc"));
+    expect(catalogue.agents.get("a")?.harnessDirectories).toEqual([join(t.work, "lib")]);
+    expect(catalogue.agents.get("b")?.harnessDirectories).toBeUndefined();
   });
 
-  test("Union of both files: the user's directories, then the project's, without repeats", () => {
+  test("No template: config --check gets a notice that the directories reach the harness only through ACP; no problem", () => {
     const t = tree();
-    const u = user(`{ "additional_directories": ["~/shared", "${t.work}/docs"] }`, t);
+    const parsed = user(entry(`["~/shared"]`), t);
+    expect(parsed.problems).toEqual([]);
+    expect(parsed.notices).toHaveLength(1);
+    expect(parsed.notices[0]).toMatchObject({ path: "agent_servers.a.additional_directories", severity: "notice" });
+    expect(parsed.notices[0]!.message).toContain("are sent to a only if it takes them through ACP");
+    // An empty list says nothing.
+    expect(user(entry(`[]`), t).notices).toEqual([]);
+  });
+});
+
+describe("Additional directories in the user's own file", () => {
+  test("The top-level key is reported with where to move it, and ignored; the rest of the file applies", () => {
+    const t = tree();
+    const text = `{\n  "additional_directories": ["~/shared"],\n  "density": "compact"\n}`;
+    const parsed = user(text, t);
+    expect(parsed.sections.additional_directories).toBeUndefined();
+    expect(parsed.rejected).toEqual([]);
+    expect(parsed.sections.density).toBe("compact");
+    expect(parsed.problems).toHaveLength(1);
+    expect(parsed.problems[0]).toMatchObject({ line: 2, column: 3, path: "additional_directories", severity: "warning" });
+    expect(parsed.problems[0]!.message).toContain("agent_servers.<name>.additional_directories");
+    expect(effectiveConfig({ user: parsed.sections, project: {} }).additional_directories).toEqual([]);
+  });
+
+  test("Even an invalid value is only reported as misplaced, never an error", () => {
+    const t = tree();
+    const parsed = user(`{ "additional_directories": 42 }`, t);
+    expect(parsed.problems.map((p) => p.severity)).toEqual(["warning"]);
+  });
+
+  test("The project file's directories are the effective list", () => {
+    const t = tree();
+    const u = user(`{ "additional_directories": ["~/shared"] }`, t);
     const p = project(`{ "additional_directories": ["../lib", "../docs"] }`, join(t.work, "app"), t);
     expect(p.problems).toEqual([]);
-    const config = effectiveConfig({ user: u.sections, project: p.sections });
-    expect(config.additional_directories).toEqual([join(t.home, "shared"), join(t.work, "docs"), join(t.work, "lib")]);
+    expect(effectiveConfig({ user: u.sections, project: p.sections }).additional_directories).toEqual([join(t.work, "lib"), join(t.work, "docs")]);
   });
 
   test("A file that sets none contributes nothing, and the default is an empty list", () => {

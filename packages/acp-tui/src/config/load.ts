@@ -633,7 +633,7 @@ export function parseConfigText(source: string | null, file: string, options: Pa
         if (oddName) loader.problem(nameNode, [written, name], "warning", oddName);
         const before = loader.problems.length;
         if (loader.validate(AgentServerSchema as unknown as AnySchema, entryNode, [written, name])) {
-          entries[name] = valueOf(entryNode);
+          entries[name] = withEntryDirectories(loader, entryNode!, [written, name], name, valueOf(entryNode) as Record<string, unknown>, { file, kind, home: options.home ?? homeDirectory(), platform });
           validAgents.add(name);
           if (platform === "win32") {
             const args = findNodeAtLocation(entryNode!, ["args"]);
@@ -668,6 +668,12 @@ export function parseConfigText(source: string | null, file: string, options: Pa
     }
 
     if (section === "additional_directories") {
+      // Marcus, 21 October 2026 (configured-harnesses D8): directories for every harness come only
+      // from a project file; the user's own go to the harnesses that should get them.
+      if (kind === "user") {
+        loader.problem(keyNode, [written], "warning", "is no longer read from your own file and is ignored: move these directories into the agent_servers entries that should get them, as agent_servers.<name>.additional_directories");
+        continue;
+      }
       if (!loader.validate(schema, node, [written], value)) {
         rejected.push(section);
         continue;
@@ -683,6 +689,32 @@ export function parseConfigText(source: string | null, file: string, options: Pa
   }
 
   return { file, kind, status: "ok", sections, rejected, invalidAgents, notices: loader.notices, problems: loader.problems };
+}
+
+/**
+ * An `agent_servers` entry's `additional_directories` (configured-harnesses D8), resolved as the
+ * top-level setting's are (`~`, a relative path from the file's directory, a missing directory a
+ * warning and left out), so the catalogue holds absolute real paths. An entry with directories and
+ * no `additional_directory_args` gets a notice for `config --check`: whether the harness takes them
+ * through ACP is known only once it runs.
+ */
+function withEntryDirectories(
+  loader: Loader,
+  entryNode: Node,
+  path: readonly (string | number)[],
+  name: string,
+  entry: Record<string, unknown>,
+  options: { file: string; kind: ConfigSourceKind; home: string; platform: NodeJS.Platform },
+): Record<string, unknown> {
+  const listed = entry["additional_directories"];
+  if (!Array.isArray(listed)) return entry;
+  const node = findNodeAtLocation(entryNode, ["additional_directories"]);
+  const resolution = resolveDirectories(listed as string[], options);
+  for (const p of resolution.problems) loader.problem(node?.children?.[p.index] ?? node, [...path, "additional_directories", p.index], p.severity, p.message);
+  if (listed.length > 0 && entry["additional_directory_args"] === undefined) {
+    loader.notice(node, [...path, "additional_directories"], `are sent to ${name} only if it takes them through ACP, since its entry has no additional_directory_args; if it takes neither, acp-tui says so once when it starts`);
+  }
+  return { ...entry, additional_directories: resolution.directories };
 }
 
 export { formatProblem };

@@ -425,19 +425,25 @@ async function prepareContinue(options: StartLaunchOptions): Promise<PreparedLau
     // Another agent's session (from the index), or one needing other arguments: that agent is
     // launched, and the one launched to list is closed as on exit (it has no session).
     const entry = findAgent(catalogue(), best.agent);
-    const { additionalDirectoryArgs: _previousTemplate, ...launched } = reopening;
-    const other: LaunchDescription = {
-      ...launched,
-      agentName: entry.name,
-      agentSource: "index",
-      command: entry.command,
-      args: entry.args,
-      env: entry.env,
-      ...(entry.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: entry.startupTimeoutSeconds } : {}),
-      ...(entry.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: entry.additionalDirectoryArgs } : {}),
-      directory: target.directory,
-      directorySource: "index",
-    };
+    // That harness's own template and directories replace the launched one's, and the session's
+    // directories are derived again with them.
+    const { additionalDirectoryArgs: _previousTemplate, harnessDirectories: _previousDirectories, ...launched } = launch;
+    const other: LaunchDescription = withDirectories(
+      {
+        ...launched,
+        agentName: entry.name,
+        agentSource: "index",
+        command: entry.command,
+        args: entry.args,
+        env: entry.env,
+        ...(entry.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: entry.startupTimeoutSeconds } : {}),
+        ...(entry.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: entry.additionalDirectoryArgs } : {}),
+        ...(entry.harnessDirectories !== undefined ? { harnessDirectories: entry.harnessDirectories } : {}),
+        directory: target.directory,
+        directorySource: "index",
+      },
+      { directory: target.directory, recorded: target.addedDirectories ?? [] },
+    );
     if (controller !== null) {
       await controller.detach();
       controller = null;

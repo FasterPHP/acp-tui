@@ -67,7 +67,7 @@ export const SWITCH_REFUSED_PERMISSION = "a permission request is open: answer i
 export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it before you switch sessions";
 
 /** What names the agent of a launch: the fields `launchFor` copies. */
-type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs">;
+type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs" | "harnessDirectories">;
 
 /** What `addDirectory` did: the directory is in the session (`how` names the route), or a message
  *  for a notice (`cancelled`: the user declined the restart, so there is nothing to say). */
@@ -287,7 +287,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       problems: [],
       configDirectories: config,
       addDirs: launch.addDirs ?? [],
-      ...deriveDirectories({ config, recorded, addDirs: launch.addDirs ?? [], directory: dir }),
+      ...deriveDirectories({ harness: base.harnessDirectories ?? [], config, recorded, addDirs: launch.addDirs ?? [], directory: dir }),
     };
   }
 

@@ -7,6 +7,7 @@
 - A `default_agent_server` (or `default_agent`) naming a harness without an entry is reported by `acp-tui config --check`, and plain `acp-tui` then stops with `default harness '<name>' is not configured` and where to copy the entry from. Nothing changes your file.
 - A word that names no configured harness and no directory is an error; acp-tui never looks it up on your `PATH`. A command runs only after `--` (`acp-tui -- opencode acp`).
 - The session list offers exactly your configured harnesses.
+- Additional directories in your own file belong to a harness: `agent_servers.<name>.additional_directories` adds them to every session of that harness only, through ACP or the entry's `additional_directory_args`. A top-level `additional_directories` in your own file is now reported by `acp-tui config --check` with a message to move it into the entries that should get it, and ignored; a project's `.acp-tui.jsonc` keeps it, for whichever harness runs. So starting a harness that cannot take directories no longer shows a notice every time. The default's commented `auggie` alternative uses `additional_directories` instead of `--add-workspace` in `args`.
 
 ## 0.1.0 (preview for testers)
 
