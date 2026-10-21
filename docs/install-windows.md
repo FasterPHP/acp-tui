@@ -63,11 +63,13 @@ Everything after `--` is the harness command. Press Ctrl+D to leave.
 ### Auggie
 
 ```powershell
-npm install -g @augmentcode/auggie
-auggie login
+npm.cmd install -g @augmentcode/auggie@0.36.0
+auggie.cmd login
 ```
 
-npm 11 prints a warning that the install script of `node-pty` was not run. It did not stop Auggie from running over ACP. Log in with `auggie login` in an ordinary terminal first: Auggie cannot log in over ACP, and without a login acp-tui starts, then exits with "Authentication required: ... Please run 'auggie login'".
+Type `npm.cmd` and `auggie.cmd`, not `npm` and `auggie`: npm installs a PowerShell script beside each `.cmd` file, PowerShell prefers the script, and Windows' default execution policy refuses to run scripts ("running scripts is disabled on this system"). The `.cmd` files are not affected, and neither is acp-tui, which starts `auggie.cmd` itself. If you are allowed to change the policy for your own account, `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` lets the plain names work too.
+
+npm 11 prints a warning that the install script of `node-pty` was not run. It did not stop Auggie from running over ACP. Log in with `auggie.cmd login` in an ordinary terminal first: Auggie cannot log in over ACP, and without a login acp-tui starts, then exits with "Authentication required: ... Please run 'auggie login'".
 
 acp-tui needs no configuration for it: the default configuration has an `auggie` entry, and acp-tui reads that default when you have no configuration file. So
 
