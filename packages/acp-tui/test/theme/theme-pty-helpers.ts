@@ -34,7 +34,7 @@ export function configHome() {
 
 export function start(home: string, colours: OscColours, scenario = "basic", delayScale = "0"): PtySession {
   const cwd = temp("acp-tui-theme-session-");
-  const s = startPty(["bun", CLI, "--", "bun", FAKE_AGENT, "--scenario", scenario, "--delay-scale", delayScale], {
+  const s = startPty(["bun", CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", scenario, "--delay-scale", delayScale], {
     cols: 80,
     rows: 40,
     cwd,

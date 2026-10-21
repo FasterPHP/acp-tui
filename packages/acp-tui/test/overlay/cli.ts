@@ -52,7 +52,7 @@ export function startChrome(opts: ChromeOptions): ChromeRun {
   const agentLog = join(dir, "fake-agent.log");
   const appLog = join(dir, "acp-tui.log");
   const args = opts.args ?? [];
-  const cmd = ["bun", CLI, ...args, "--", "bun", FAKE_AGENT, "--scenario", opts.scenario, "--delay-scale", String(opts.delayScale ?? 0), "--log", agentLog];
+  const cmd = ["bun", CLI, "--", ...args, "--", "bun", FAKE_AGENT, "--scenario", opts.scenario, "--delay-scale", String(opts.delayScale ?? 0), "--log", agentLog];
   const s = startPty(cmd, {
     cols: opts.cols ?? SIZE.cols,
     rows: opts.rows ?? SIZE.rows,

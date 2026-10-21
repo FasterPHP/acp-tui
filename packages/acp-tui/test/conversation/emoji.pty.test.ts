@@ -32,7 +32,7 @@ const TERMINALS = {
 
 async function start(terminal: keyof typeof TERMINALS, cols = 80): Promise<PtySession> {
   const cwd = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-emoji-"));
-  session = startPty(["bun", CLI, "--", "bun", AGENT], {
+  session = startPty(["bun", CLI, "--", "--", "bun", AGENT], {
     cols,
     rows: 40,
     cwd,

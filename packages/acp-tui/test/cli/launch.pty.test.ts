@@ -39,7 +39,7 @@ describe("Agent launch (tui-agent-session)", () => {
   test("Built-in default: no configuration file and no arguments resolve to auggie --acp", async () => {
     const cwd = temp("acp-tui-launch-");
     const out = join(cwd, "launch.json");
-    session = startPty(["bun", STUB], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
+    session = startPty(["bun", STUB, "--"], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
     expect(await session.wait(15000)).toBe(0);
     expect(existsSync(out)).toBe(true);
     const launch = JSON.parse(readFileSync(out, "utf8")) as LaunchDescription;
@@ -59,7 +59,7 @@ describe("Agent launch (tui-agent-session)", () => {
   test("Built-in by position: acp-tui claude resolves to the pinned claude-agent-acp command", async () => {
     const cwd = temp("acp-tui-launch-");
     const out = join(cwd, "launch.json");
-    session = startPty(["bun", STUB, "claude"], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
+    session = startPty(["bun", STUB, "--", "claude"], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
     expect(await session.wait(15000)).toBe(0);
     const launch = JSON.parse(readFileSync(out, "utf8")) as LaunchDescription;
     expect([launch.command, ...launch.args]).toEqual([...DEFAULT_AGENT_COMMAND]);
@@ -72,7 +72,7 @@ describe("New session in the current directory (tui-agent-session)", () => {
     const work = temp("acp-tui-launch-work-");
     mkdirSync(join(work, "repo-c"));
     const log = join(work, "fake-agent.log");
-    session = startPty(["bun", CLI, "./repo-c", "--", "bun", FAKE_AGENT, "--scenario", "basic", "--log", log], {
+    session = startPty(["bun", CLI, "--", "./repo-c", "--", "bun", FAKE_AGENT, "--scenario", "basic", "--log", log], {
       cols: 120,
       rows: 24,
       cwd: work,
@@ -94,7 +94,7 @@ describe("New session in the current directory (tui-agent-session)", () => {
     const work = temp("acp-tui-launch-work-");
     mkdirSync(join(work, "repo-c"));
     const log = join(work, "fake-agent.log");
-    session = startPty(["bun", CLI, "--resume", "./repo-c", "--", "bun", FAKE_AGENT, "--scenario", "basic", "--log", log], {
+    session = startPty(["bun", CLI, "--", "--resume", "./repo-c", "--", "bun", FAKE_AGENT, "--scenario", "basic", "--log", log], {
       cols: 100,
       rows: 24,
       cwd: work,

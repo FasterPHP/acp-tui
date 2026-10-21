@@ -79,7 +79,7 @@ export type Terminal = keyof typeof TERMINALS;
 export async function runScenario(name: string, terminal: Terminal = "unknown", rows = 40): Promise<string> {
   const cwd = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-sgr-"));
   const scale = DELAY_SCALE[name] ?? 0;
-  const args = [CLI, "--", "bun", FAKE_AGENT, "--scenario", name, "--delay-scale", String(scale)];
+  const args = [CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", name, "--delay-scale", String(scale)];
   const s = startPty(["bun", ...args], {
     cols: 100,
     rows,

@@ -63,7 +63,7 @@ function world(): World {
   const spaced = make("with space");
   // The wrapper: `acp-tui` as the printed command names it.
   const wrapper = join(base, "bin", "acp-tui");
-  writeFileSync(wrapper, `#!/bin/sh\nexec bun ${JSON.stringify(CLI)} "$@"\n`);
+  writeFileSync(wrapper, `#!/bin/sh\nexec bun ${JSON.stringify(CLI)} -- "$@"\n`);
   chmodSync(wrapper, 0o755);
   const agentLog = join(spaced, "fake-agent.log");
   const store = join(spaced, "sessions.json");
@@ -159,7 +159,7 @@ describe.skipIf(WINDOWS)("Resume line runs (tui-screen, task 8.2)", () => {
     const [command, ...args] = w.fake();
     writeFileSync(join(w.env.XDG_CONFIG_HOME!, "acp-tui", "config.jsonc"), JSON.stringify({ agent_servers: { fake: { command, args } } }));
 
-    const first = launch(["bun", CLI, "-a", "fake"], w.repoB, w.env);
+    const first = launch(["bun", CLI, "--", "-a", "fake"], w.repoB, w.env);
     // The resume line alone: no summary line (mvp-sessions design decision 12).
     const [resume, ...rest] = await promptAndDetach(first);
     expect(rest).toEqual([]);
@@ -176,7 +176,7 @@ describe.skipIf(WINDOWS)("Resume line runs (tui-screen, task 8.2)", () => {
     const w = world();
     const command = w.fake();
 
-    const first = launch(["bun", CLI, "--", ...command], w.repoB, w.env);
+    const first = launch(["bun", CLI, "--", "--", ...command], w.repoB, w.env);
     const [resume, ...rest] = await promptAndDetach(first);
     expect(rest).toEqual([]);
     // The store and log live in a directory with a space in its name: those words are quoted.

@@ -54,7 +54,7 @@ interface StartOptions {
 
 function start(options: StartOptions = {}): PtySession {
   const agent = options.agent ?? ["bun", TITLE_AGENT];
-  session = startPty(["bun", options.entry ?? CLI, ...(options.args ?? []), "--", ...agent], {
+  session = startPty(["bun", options.entry ?? CLI, "--", ...(options.args ?? []), "--", ...agent], {
     cols: 80,
     rows: options.rows ?? 24,
     cwd: options.cwd ?? tempDir(),
@@ -125,7 +125,7 @@ describe("Terminal title (task 7.1; day-one-feedback task 9)", () => {
     const name = basename(cwd);
     const first = start({ cwd });
     await first.waitFor((p) => titles(p.rawOutput()).includes(name), 15000);
-    const second = startPty(["bun", CLI, "--", "bun", TITLE_AGENT], { cols: 80, rows: 24, cwd, env: { ...PLAIN } });
+    const second = startPty(["bun", CLI, "--", "--", "bun", TITLE_AGENT], { cols: 80, rows: 24, cwd, env: { ...PLAIN } });
     const third: { current?: PtySession } = {};
     try {
       await second.waitFor((p) => titles(p.rawOutput()).includes(`${name} 2`), 15000);
@@ -133,7 +133,7 @@ describe("Terminal title (task 7.1; day-one-feedback task 9)", () => {
       // The first is killed (SIGKILL: its slot is left behind and reclaimed), a third starts.
       first.kill("SIGKILL");
       await first.wait(10000);
-      third.current = startPty(["bun", CLI, "--", "bun", TITLE_AGENT], { cols: 80, rows: 24, cwd, env: { ...PLAIN } });
+      third.current = startPty(["bun", CLI, "--", "--", "bun", TITLE_AGENT], { cols: 80, rows: 24, cwd, env: { ...PLAIN } });
       await third.current.waitFor((p) => titles(p.rawOutput()).length > 0, 15000);
       expect(titles(third.current.rawOutput())).toEqual([name]);
       // The second keeps its number.

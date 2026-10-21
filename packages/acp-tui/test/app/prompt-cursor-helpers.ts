@@ -14,7 +14,7 @@ export const F12 = "\x1b[24~";
 
 export function start(opts: { config?: ConfigHome; env?: Record<string, string>; terminal?: "xterm" | "jediterm" } = {}): PtySession {
   const home = opts.config ?? configHome({ density: "compact" });
-  const s = startPty(["bun", CLI, "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"], {
+  const s = startPty(["bun", CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"], {
     cols: 80,
     rows: 24,
     env: { ...home.env, WAYLAND_DISPLAY: undefined, DISPLAY: undefined, ...opts.env },

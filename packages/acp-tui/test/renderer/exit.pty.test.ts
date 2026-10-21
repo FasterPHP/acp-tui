@@ -46,7 +46,7 @@ function start(opts: { scenario?: string; args?: string[]; agent?: string[]; age
   const dir = realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-exit-")));
   const agentLog = join(dir, "agent.log");
   const agent = opts.agent ?? ["bun", FAKE_AGENT, "--scenario", opts.scenario ?? "basic", "--delay-scale", "0", "--log", agentLog, ...(opts.agentArgs ?? [])];
-  const s = startPty(["bun", CLI, ...(opts.args ?? []), "--", ...agent], { cols: 100, rows: 24, cwd: dir, prefill: PREFILL, ...(opts.env ? { env: opts.env } : {}) });
+  const s = startPty(["bun", CLI, "--", ...(opts.args ?? []), "--", ...agent], { cols: 100, rows: 24, cwd: dir, prefill: PREFILL, ...(opts.env ? { env: opts.env } : {}) });
   session = s;
   return { s, dir, agentLog, agent };
 }

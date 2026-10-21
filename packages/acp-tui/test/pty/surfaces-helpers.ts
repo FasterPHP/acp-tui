@@ -23,7 +23,7 @@ export async function openPermission(colours?: OscColours, config?: string): Pro
     writeFileSync(join(cwd, "xdg", "acp-tui", "config.jsonc"), config);
     env["XDG_CONFIG_HOME"] = join(cwd, "xdg");
   }
-  const args = [CLI, "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"];
+  const args = [CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"];
   const s = startPty(["bun", ...args], { cols: 80, rows: 60, cwd, colours, env });
   session = s;
   await s.waitFor(READY, 10000);

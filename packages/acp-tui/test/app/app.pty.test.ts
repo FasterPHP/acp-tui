@@ -42,7 +42,7 @@ let cwd = "";
  *  bunfig.toml. */
 function startCli(agent: string[]): PtySession {
   cwd = tempDir();
-  session = startPty(["bun", CLI, "--", ...agent], { cols: 80, rows: 24, cwd, prefill: PREFILL, env: compactEnv() });
+  session = startPty(["bun", CLI, "--", "--", ...agent], { cols: 80, rows: 24, cwd, prefill: PREFILL, env: compactEnv() });
   return session;
 }
 

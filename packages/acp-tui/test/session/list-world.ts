@@ -102,7 +102,7 @@ export function listWorld(): ListWorld {
       for (const input of inputs) index.record(input);
     },
     start(args, options = {}) {
-      return startPty(["bun", CLI, ...args], {
+      return startPty(["bun", CLI, "--", ...args], {
         cols: options.cols ?? 100,
         rows: options.rows ?? 30,
         cwd: options.cwd ?? base,

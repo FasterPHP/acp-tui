@@ -33,7 +33,7 @@ async function start(terminal: "xterm" | "jediterm"): Promise<PtySession> {
   const config = tempDir("command-results-config");
   mkdirSync(join(config, "acp-tui"));
   writeFileSync(join(config, "acp-tui", "config.jsonc"), `{ "density": "verbose" }`);
-  session = startPty(["bun", CLI, "--", "bun", FAKE_AGENT, "--scenario", "command-results", "--delay-scale", "0"], {
+  session = startPty(["bun", CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", "command-results", "--delay-scale", "0"], {
     cols: 90,
     rows: 40,
     cwd,

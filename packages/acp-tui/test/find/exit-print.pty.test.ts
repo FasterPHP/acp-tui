@@ -46,7 +46,7 @@ function agentCommand(resumable: boolean, scenario = "copy-fixtures"): string[] 
 function start(args: string[], opts: { cols: number; terminal?: "jediterm"; resumable?: boolean; scenario?: string; env?: Record<string, string | undefined> }): { s: PtySession; dir: string } {
   const dir = realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-handback-")));
   const agent = agentCommand(opts.resumable ?? true, opts.scenario);
-  const s = startPty(["bun", CLI, ...args, "--", ...agent], { cols: opts.cols, rows: 30, cwd: dir, prefill: PREFILL, ...(opts.terminal ? { terminal: opts.terminal } : {}), ...(opts.env ? { env: opts.env } : {}) });
+  const s = startPty(["bun", CLI, "--", ...args, "--", ...agent], { cols: opts.cols, rows: 30, cwd: dir, prefill: PREFILL, ...(opts.terminal ? { terminal: opts.terminal } : {}), ...(opts.env ? { env: opts.env } : {}) });
   session = s;
   return { s, dir };
 }

@@ -95,7 +95,7 @@ describe("screen keys (phase-1a task 8.4)", () => {
     // The theme's colours were asked for again (OSC 10 and 11).
     expect(s.oscQueries.slice(queries)).toEqual(expect.arrayContaining([10, 11]));
 
-    const command = ["bun", CLI, "--", "bun", FAKE_AGENT, "--scenario", "long-session", "--items", "30", "--delay-scale", "0"];
+    const command = ["bun", CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", "long-session", "--items", "30", "--delay-scale", "0"];
     const fresh = await freshRender(command, 80, 24, { cwd: dirname(r.logPath), env: compactEnv(), drive, ready: (p) => cursorRow(p) >= 0 });
     expect(diff(fresh, s)).toEqual([]);
   }, 60000);

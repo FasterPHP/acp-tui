@@ -87,7 +87,7 @@ function world(): World {
 }
 
 function start(w: World, args: readonly string[], cwd: string, size = { cols: 100, rows: 30 }, env: Record<string, string> = {}): PtySession {
-  session = startPty(["bun", CLI, ...args], { ...size, cwd, env: { ...w.env, ...env }, prefill: PREFILL });
+  session = startPty(["bun", CLI, "--", ...args], { ...size, cwd, env: { ...w.env, ...env }, prefill: PREFILL });
   return session;
 }
 

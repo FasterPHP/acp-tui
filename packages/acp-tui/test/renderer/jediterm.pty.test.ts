@@ -38,7 +38,7 @@ afterEach(async () => {
 function start(opts: PtyStartOptions = {}): { s: PtySession; dir: string } {
   const dir = realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-jediterm-")));
   const agent = ["bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"];
-  const s = startPty(["bun", CLI, "--", ...agent], { cols: 100, rows: 30, cwd: dir, terminal: "jediterm", prefill: PREFILL, ...opts });
+  const s = startPty(["bun", CLI, "--", "--", ...agent], { cols: 100, rows: 30, cwd: dir, terminal: "jediterm", prefill: PREFILL, ...opts });
   session = s;
   return { s, dir };
 }
