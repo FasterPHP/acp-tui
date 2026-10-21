@@ -34,6 +34,8 @@ export interface SessionSource {
 export interface SessionState {
   readonly id: Session["id"];
   readonly cwd: Session["cwd"];
+  /** The directories added to the session (the `dirs` module, the palette's `Add a directory…`). */
+  readonly additionalDirectories: Session["additionalDirectories"];
   readonly agent: Session["agent"];
   readonly connection: Session["connection"];
   readonly state: Session["state"];
@@ -199,6 +201,7 @@ function metadataOf(session: Session) {
   return {
     id: session.id,
     cwd: session.cwd,
+    additionalDirectories: session.additionalDirectories,
     agent: session.agent,
     connection: session.connection,
     state: session.state,
@@ -218,6 +221,7 @@ function metadataOf(session: Session) {
 function sameViewInputs(a: Session, b: Session): boolean {
   return (
     a.cwd === b.cwd &&
+    a.additionalDirectories === b.additionalDirectories &&
     a.agent === b.agent &&
     a.connection === b.connection &&
     a.state === b.state &&

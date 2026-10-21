@@ -63,7 +63,8 @@ import { DEFAULT_MODEL_LIST_SETTINGS, type ModelListSettings } from "../layout/p
 import { cardModel } from "../app/permission.ts";
 import { typedText } from "../card/elicitation.tsx";
 import { clean } from "../card/elicitation-form.ts";
-import type { Segment } from "../layout/segments.ts";
+import { homeDirectory } from "../config/sources.ts";
+import { shortenHome, type Segment } from "../layout/segments.ts";
 import { OVERLAY_BOTTOM } from "../layout/layout.ts";
 import type { Focus } from "../layout/view.ts";
 import { useKeys } from "../keys/context.ts";
@@ -89,6 +90,7 @@ import {
   pickerItems,
   pickerOptions,
   slashItems,
+  typedAddDirectory,
   typedSlashCommand,
   type PaletteFacts,
   type PaletteItem,
@@ -136,7 +138,8 @@ type Mode =
   | { readonly kind: "agent"; readonly typed: string | null }
   | { readonly kind: "picker"; readonly configId: string }
   | { readonly kind: "help" }
-  | { readonly kind: "problems" };
+  | { readonly kind: "problems" }
+  | { readonly kind: "restart"; readonly text: string };
 
 export interface Palette {
   /** Rendered over the screen (the palette, pickers and key help). */
@@ -197,6 +200,7 @@ export function PaletteOverlay(): JSX.Element {
         configOptions: options(),
         mouse: store.ui.mouse,
         permissionOptions: permissionOptions(),
+        directories: store.session.additionalDirectories?.length ?? 0,
         routes: paletteRoutes(keyMap, { interrupt: controller.interrupt, mouse: store.ui.mouse }),
         // Whether a turn runs is read live, the rest as the palette opened (task 13.12).
         facts: { ...opened(), idle: store.session.state === "idle" } satisfies PaletteFacts,
@@ -286,9 +290,38 @@ export function PaletteOverlay(): JSX.Element {
     detail: problemDetail,
   };
 
+  // `/add-dir` for a harness that must restart: two entries in the overlay's place, answered
+  // through `decideRestart` (Esc and any other way of closing the list answer no).
+  let decideRestart: ((yes: boolean) => void) | null = null;
+  const answerRestart = (yes: boolean): void => {
+    const decide = decideRestart;
+    decideRestart = null;
+    decide?.(yes);
+  };
+  const restartSource: ListSource = {
+    title: () => "Add a directory",
+    items: () => {
+      const m = mode();
+      return [
+        { id: "restart", group: null, title: m?.kind === "restart" ? m.text : "", search: "" },
+        { id: "cancel", group: null, title: "Cancel", search: "" },
+      ];
+    },
+    filter: () => false,
+    placeholder: "",
+    grouped: false,
+    marks: false,
+    enter: "choose",
+    choose: (item) => {
+      answerRestart(item.id === "restart");
+      close();
+    },
+  };
+
   const source = createMemo((): ListSource | null => {
     const m = mode();
     if (!m) return null;
+    if (m.kind === "restart") return restartSource;
     if (m.kind === "palette") return paletteSource;
     if (m.kind === "agent") return agentSource;
     if (m.kind === "picker") return pickerSource(m.configId);
@@ -352,6 +385,15 @@ export function PaletteOverlay(): JSX.Element {
       () => store.ui.overlay,
       (overlay) => {
         if (overlay !== PALETTE_OVERLAY && mode() !== null) setMode(null);
+      },
+      { defer: true },
+    ),
+  );
+  createEffect(
+    on(
+      () => mode()?.kind === "restart",
+      (restarting) => {
+        if (!restarting) answerRestart(false);
       },
       { defer: true },
     ),
@@ -434,10 +476,49 @@ export function PaletteOverlay(): JSX.Element {
     else composer?.insertCommand?.(`${text} `, inputHint);
   };
 
+  /** Asks whether to restart the harness for `/add-dir`: the overlay's two entries; resolves false
+   *  when the list is closed any other way. */
+  const confirmRestart = (text: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      answerRestart(false);
+      decideRestart = resolve;
+      open({ kind: "restart", text });
+    });
+
+  /** `/add-dir <path>`: adds the directory through the session switcher and says what happened. */
+  const runAddDirectory = (path: string): void => {
+    const add = actions.addDirectory;
+    if (!add) {
+      controller.notify("cannot add a directory here", "muted");
+      return;
+    }
+    void add(path, confirmRestart).then(
+      (result) => {
+        if (result.ok) controller.notify(`added ${shortenHome(result.directory, homeDirectory())} to the session`, "muted");
+        else if (result.cancelled !== true) controller.notify(clean(result.message), "warning");
+      },
+      (error: unknown) => controller.notify(`could not add the directory: ${clean(error instanceof Error ? error.message : String(error))}`, "warning"),
+    );
+  };
+
+  /** The palette's `Add a directory…` and `/add-dir` alone: `/add-dir ` in the prompt box, for the path. */
+  const insertAddDirectory = (): boolean => {
+    close("prompt");
+    store.setFocus("prompt");
+    controller.composer()?.insertCommand?.("/add-dir ", null);
+    return true;
+  };
+
   /** A sent prompt that is exactly one of acp-tui's slash commands, with the agent advertising no
    *  command of that name: runs the command as choosing it from the menu does (the prompt box has
    *  cleared its draft); false for anything else, which is sent as text. */
   const runTypedSlash = (text: string): boolean => {
+    const catalogueNow = commandCatalogue(keymap, keyMap);
+    const directory = typedAddDirectory(text, catalogueNow, slashState());
+    if (directory !== null) {
+      runAddDirectory(directory);
+      return true;
+    }
     const command = typedSlashCommand(text, commandCatalogue(keymap, keyMap), slashState());
     if (!command) return false;
     // A conversation command is registered for the conversation's focus.
@@ -483,6 +564,7 @@ export function PaletteOverlay(): JSX.Element {
     pickThoughtLevel: () => openPicker(PICKER_CATEGORIES["pickThoughtLevel"]!),
     keyHelp: () => toggle("help"),
     configProblems: () => toggle("problems"),
+    addDirectory: insertAddDirectory,
     cycleMode: () => cycle("mode"),
     cycleThoughtLevel: () => cycle("thought_level"),
   });

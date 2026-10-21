@@ -1531,7 +1531,8 @@
                   "cycleMode",
                   "cycleThoughtLevel",
                   "keyHelp",
-                  "configProblems"
+                  "configProblems",
+                  "addDirectory"
                 ]
               },
               {
@@ -1539,7 +1540,7 @@
               }
             ]
           },
-          "description": "Keys of the global context, each mapped to one of its actions or to null to remove the binding. Its actions: escape, interrupt, detach, toggleFocus, toggleTool, repaint, toggleMouse, pageUp, pageDown, palette, pickModel, pickMode, pickThoughtLevel, find, findNext, findPrevious, sessions, cycleMode, cycleThoughtLevel, keyHelp, configProblems."
+          "description": "Keys of the global context, each mapped to one of its actions or to null to remove the binding. Its actions: escape, interrupt, detach, toggleFocus, toggleTool, repaint, toggleMouse, pageUp, pageDown, palette, pickModel, pickMode, pickThoughtLevel, find, findNext, findPrevious, sessions, cycleMode, cycleThoughtLevel, keyHelp, configProblems, addDirectory."
         },
         "prompt": {
           "type": "object",

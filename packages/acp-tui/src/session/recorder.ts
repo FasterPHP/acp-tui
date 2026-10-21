@@ -57,6 +57,9 @@ export interface SessionRecorder {
    * opening; without either, the first replayed user message gives it.
    */
   opened(session: Session, known?: { readonly title?: string | null }): void;
+  /** The directories added to the session changed (`/add-dir`): written with its entry at once
+   *  when it is recorded, else with it once it is. */
+  setAddedDirectories(directories: readonly string[]): void;
   /** The title the index holds for the session (the agent's, else the prompt's), or null. */
   readonly title: string | null;
   /** True once the session is in the index. */
@@ -71,6 +74,7 @@ export interface SessionRecorderOptions {
 
 export function createSessionRecorder(index: SessionIndex, identity: SessionIdentity, options: SessionRecorderOptions = {}): SessionRecorder {
   const now = options.now ?? Date.now;
+  let addedDirectories = identity.addedDirectories;
   let previous: Session | null = null;
   let key: SessionKey | null = null;
   let prompted = false;
@@ -87,7 +91,7 @@ export function createSessionRecorder(index: SessionIndex, identity: SessionIden
       ...(identity.command ? { command: identity.command } : {}),
       directory: session.cwd ?? "",
       title: recordTitle,
-      ...(identity.addedDirectories && identity.addedDirectories.length > 0 ? { addedDirectories: identity.addedDirectories } : {}),
+      ...(addedDirectories && addedDirectories.length > 0 ? { addedDirectories } : {}),
       at: now(),
     });
   }
@@ -142,6 +146,11 @@ export function createSessionRecorder(index: SessionIndex, identity: SessionIden
           if (key !== null) index.updateTitle(key, title);
         }
       }
+    },
+
+    setAddedDirectories(directories) {
+      addedDirectories = directories;
+      if (key !== null && previous !== null) record(previous, title);
     },
 
     opened(session, known = {}) {

@@ -185,4 +185,17 @@ describe("Directories added for the session (harness-feedback)", () => {
     drive(recorder).prompt("hi");
     expect(idx.find("s-2").record).not.toHaveProperty("addedDirectories");
   });
+
+  test("setAddedDirectories (/add-dir): kept for the first record of an unrecorded session, and written again for a recorded one", () => {
+    const idx = index(() => T0);
+    const recorder = createSessionRecorder(idx, { agent: "fake" }, { now: () => T0 });
+    const s = drive(recorder);
+    s.newSession("s-3", "/work/app");
+    recorder.setAddedDirectories(["/work/lib"]);
+    expect(idx.listAll()).toEqual([]);
+    s.prompt("hello");
+    expect(idx.find("s-3").record?.addedDirectories).toEqual(["/work/lib"]);
+    recorder.setAddedDirectories(["/work/lib", "/work/docs"]);
+    expect(idx.find("s-3").record).toMatchObject({ addedDirectories: ["/work/lib", "/work/docs"], title: "hello" });
+  });
 });

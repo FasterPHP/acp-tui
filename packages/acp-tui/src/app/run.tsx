@@ -382,6 +382,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
       if (!using) throw new Error(stillStarting());
       await using.setModel(modelId);
     },
+    addDirectory: (path, confirm) => switcher.addDirectory(path, confirm),
   };
   const context: AppContextValue = { store, actions, theme, logger: options.logger, wheel, clipboard, config, scrollbar, launch: () => splashLaunch(switcher.current()?.launch ?? launch) };
 

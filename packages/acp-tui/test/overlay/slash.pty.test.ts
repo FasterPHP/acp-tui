@@ -64,8 +64,8 @@ describe("`/` opens the slash menu (task 12.1; day-one-feedback task 10)", () =>
       "acp-tui",
       expect.stringMatching(/^\/model {2}Choose the model/),
     ]);
-    expect(list.filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0])).toEqual(["/review", "/compact", "/model", "/mode", "/effort", "/sessions", "/find", "/export", "/help", "/exit"]);
-    expect(rows[0]).toMatch(/Slash commands 10 /);
+    expect(list.filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0])).toEqual(["/review", "/compact", "/model", "/mode", "/effort", "/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
+    expect(rows[0]).toMatch(/Slash commands 11 /);
     expect(paletteOpen(run.s)).toBe(false);
     // The border names what Esc does.
     expect(rows.at(-1)).toContain("esc types /");
@@ -95,13 +95,13 @@ describe("`/` opens the slash menu (task 12.1; day-one-feedback task 10)", () =>
     await run.s.waitFor(() => agentOpen(run.s), 3000);
     await run.s.flush();
     const rows = agentList(run.s);
-    expect(rows[0]).toMatch(/Slash commands 5 /);
+    expect(rows[0]).toMatch(/Slash commands 6 /);
     // The note is a line of its own under the filter, not an entry; `basic` has no config
     // options, so /model, /mode and /effort are left out.
     expect(inner(rows[2]!)).toBe("the harness offers no commands; ? opens acp-tui's commands");
     const list = listRows(rows).slice(1);
     expect(list[0]).toBe("acp-tui");
-    expect(list.slice(1).map((r) => r.split(/\s/)[0])).toEqual(["/sessions", "/find", "/export", "/help", "/exit"]);
+    expect(list.slice(1).map((r) => r.split(/\s/)[0])).toEqual(["/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
     expect(rows.join("\n")).not.toContain("no matches");
     expect(rows.join("\n")).not.toContain("/review");
     // Enter on the first entry runs it: /sessions opens the session list, and no prompt is sent.

@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { COMMAND_TITLES, DEFAULT_KEY_MAP, KEY_ACTIONS, KEY_CONTEXTS, keyLabel, keysFor } from "../../src/keys/keymap.ts";
 import type { CatalogueEntry } from "../../src/keys/register.ts";
-import { ACP_TUI_GROUP, SLASH_COMMANDS, slashItems, typedSlashCommand } from "../../src/overlay/palette.ts";
+import { ACP_TUI_GROUP, paletteItems, SLASH_COMMANDS, slashItems, typedAddDirectory, typedSlashCommand } from "../../src/overlay/palette.ts";
 
 function fullCatalogue(): CatalogueEntry[] {
   return KEY_CONTEXTS.flatMap((context) =>
@@ -23,8 +23,8 @@ const state = (over: Partial<Parameters<typeof slashItems>[1]> = {}) => ({ confi
 const names = (items: ReturnType<typeof slashItems>) => items.map((i) => i.title);
 
 describe("the slash table", () => {
-  test("lists /model, /mode, /effort, /sessions, /find, /export, /help and /exit, each running a catalogue action", () => {
-    expect(SLASH_COMMANDS.map((c) => c.name)).toEqual(["model", "mode", "effort", "sessions", "find", "export", "help", "exit"]);
+  test("lists /model, /mode, /effort, /sessions, /find, /export, /add-dir, /help and /exit, each running a catalogue action", () => {
+    expect(SLASH_COMMANDS.map((c) => c.name)).toEqual(["model", "mode", "effort", "sessions", "find", "export", "add-dir", "help", "exit"]);
     const catalogue = new Set(fullCatalogue().map((e) => e.name));
     for (const command of SLASH_COMMANDS) expect(catalogue.has(command.command)).toBe(true);
   });
@@ -33,7 +33,7 @@ describe("the slash table", () => {
 describe("acp-tui commands in the slash menu (task 10.1)", () => {
   test("Auggie without built-ins: a model and a mode but no effort option leaves out /effort", () => {
     const items = slashItems(fullCatalogue(), state({ configOptions: [select("model"), select("mode")], agentCommands: ["review"] }));
-    expect(names(items)).toEqual(["/model", "/mode", "/sessions", "/find", "/export", "/help", "/exit"]);
+    expect(names(items)).toEqual(["/model", "/mode", "/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
     for (const item of items) {
       expect(item.group).toBe(ACP_TUI_GROUP);
       expect(item.action.kind).toBe("command");
@@ -44,11 +44,11 @@ describe("acp-tui commands in the slash menu (task 10.1)", () => {
   });
 
   test("an entry is listed only while its action is available: no option, no picker; an unregistered command is left out", () => {
-    expect(names(slashItems(fullCatalogue(), state()))).toEqual(["/sessions", "/find", "/export", "/help", "/exit"]);
+    expect(names(slashItems(fullCatalogue(), state()))).toEqual(["/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
     const noSessions = fullCatalogue().filter((e) => e.name !== "global.sessions");
     expect(names(slashItems(noSessions, state()))).not.toContain("/sessions");
     const all = slashItems(fullCatalogue(), state({ configOptions: [select("model"), select("mode"), select("effort", "thought_level")] }));
-    expect(names(all)).toEqual(["/model", "/mode", "/effort", "/sessions", "/find", "/export", "/help", "/exit"]);
+    expect(names(all)).toEqual(["/model", "/mode", "/effort", "/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
   });
 
   test("The agent's name wins: an advertised command of the same name leaves acp-tui's out", () => {
@@ -88,5 +88,35 @@ describe("typed acp-tui commands (task 10.3)", () => {
 
   test("an unavailable command is sent as text: /effort without a thinking level option", () => {
     expect(typedSlashCommand("/effort", fullCatalogue(), options)).toBeNull();
+  });
+});
+
+describe("/add-dir (harness-feedback task 7.1; spec tui-palette \"Directory typed\")", () => {
+  const options = { configOptions: [], agentCommands: [] as string[] };
+
+  test("/add-dir with a path runs the command with that path; quotes round it are dropped; alone it is the plain command", () => {
+    expect(typedAddDirectory("/add-dir ../lib", fullCatalogue(), options)).toBe("../lib");
+    expect(typedAddDirectory("  /add-dir   ~/my docs  \n", fullCatalogue(), options)).toBe("~/my docs");
+    expect(typedAddDirectory('/add-dir "../my lib"', fullCatalogue(), options)).toBe("../my lib");
+    expect(typedAddDirectory("/add-dir", fullCatalogue(), options)).toBeNull();
+    expect(typedAddDirectory("/add-dir ", fullCatalogue(), options)).toBeNull();
+    expect(typedSlashCommand("/add-dir", fullCatalogue(), options)?.command).toBe("global.addDirectory");
+    // The path is one line, and the name is exact.
+    for (const text of ["/add-dir ../a\nmore", "/add-dirs ../a", "please /add-dir ../a", "/ADD-DIR ../a", "/add-dir\t"]) expect(typedAddDirectory(text, fullCatalogue(), options)).toBeNull();
+    expect(typedSlashCommand("/add-dir ../lib", fullCatalogue(), options)).toBeNull();
+  });
+
+  test("The agent's name wins: an advertised add-dir command is sent as text", () => {
+    expect(typedAddDirectory("/add-dir ../lib", fullCatalogue(), { ...options, agentCommands: ["add-dir"] })).toBeNull();
+    expect(names(slashItems(fullCatalogue(), { ...options, agentCommands: ["add-dir"] }))).not.toContain("/add-dir");
+  });
+
+  test("The palette lists `Add a directory…` with the directory count as its value, and none when there are no directories", () => {
+    const entry = (directories?: number) => paletteItems(fullCatalogue(), { configOptions: [], mouse: "full", permissionOptions: [], ...(directories === undefined ? {} : { directories }) }).find((i) => i.id === "global.addDirectory");
+    expect(entry()?.title).toBe("Add a directory…");
+    expect(entry()?.value ?? null).toBeNull();
+    expect(entry(0)?.value ?? null).toBeNull();
+    expect(entry(2)?.value).toBe("2");
+    expect(entry(2)?.keys).toEqual([]);
   });
 });

@@ -242,6 +242,7 @@ const D16_CATALOGUE: readonly { context: (typeof KEY_CONTEXTS)[number]; action: 
   { context: "global", action: "keyHelp", keys: ["f1"] },
   { context: "global", action: "sessions", keys: [] },
   { context: "global", action: "configProblems", keys: [] },
+  { context: "global", action: "addDirectory", keys: [] },
   { context: "global", action: "find", keys: ["ctrl+f"] },
   { context: "global", action: "findNext", keys: ["f3"] },
   { context: "global", action: "findPrevious", keys: ["shift+f3"] },

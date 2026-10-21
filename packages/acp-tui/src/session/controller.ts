@@ -82,6 +82,14 @@ export interface SessionController {
    * `RequestError` with its `code`) or a start-up error.
    */
   openSession(sessionId: string, cwd: string, options?: SessionDirectories): Promise<SessionOpenMode>;
+  /**
+   * Sends `session/resume` for the session in use with a new complete list of additional
+   * directories (`/add-dir` on a harness that advertises resume): the agent replays nothing, so the
+   * conversation stays as drawn, and once it accepts, the session records the new list
+   * (`additional_directories_replaced`, no marker). Rejects with the agent's error, the list
+   * unchanged; nothing is sent without a session.
+   */
+  resumeWithDirectories(directories: SessionDirectories): Promise<void>;
   /** Appends acp-tui's own notice to the conversation as a marker item (`client_notice`; the
    *  session directory marker, mvp-sessions task 12.3). Nothing is sent to the agent. */
   notice(text: string): void;
@@ -475,6 +483,13 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
         // Behind every queued update, so the replay keeps its order.
         await handler.endReplay({ type: "session_opened", response, at: now() });
         return mode;
+      },
+
+      async resumeWithDirectories(directories: SessionDirectories): Promise<void> {
+        const { id, cwd } = core.session;
+        if (!id || !cwd) throw new Error("no session");
+        await resumeSession(conn, agent, options.command, id, cwd, { logger, ...sentField(directories) });
+        dispatch({ type: "additional_directories_replaced", additionalDirectories: directories.additionalDirectories ?? [], at: now() });
       },
 
       notice(text: string): void {

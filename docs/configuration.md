@@ -280,6 +280,14 @@ Auggie indexes every directory added to it, which sends their files to Augment's
 
 **Kept with the session.** The directories you add with `--add-dir` are recorded in acp-tui's session index with the session. `acp-tui --resume <id>`, `--continue` and the session list send the configuration's directories, then the recorded ones, then this run's `--add-dir`, so a reopened session keeps the directory its conversation relies on. A recorded directory that has since been removed is left out and a notice names it. The configuration's directories are not recorded: removing one from the file removes it from every session.
 
+**During a session.** `/add-dir <path>` in the prompt box (or `Add a directory…` in the command palette, which puts `/add-dir ` there for you to finish) adds an existing directory to the session in use; a relative path is taken from the session directory and `~` is your home directory. The palette entry shows how many directories the session has. acp-tui reopens the session with the new complete list, as ACP asks, and records the directory with the session as `--add-dir` does:
+
+- A harness that advertises `session/resume` gets it on the same connection: nothing is replayed and the conversation stays as drawn. If the harness refuses the resume, acp-tui loads the session instead, and the replay rebuilds the conversation. A harness that offers only `session/load` is loaded the same way.
+- A harness that takes its directories as arguments (`additional_directory_args`, Auggie's `--add-workspace`) has to be restarted: a two-entry list asks `Restart auggie with ../lib and reopen this session` or `Cancel`. Confirmed, acp-tui detaches the old process, starts one with the new arguments and loads the session on it; Esc cancels.
+- A harness that takes neither shows the notice that it ignores additional directories, and nothing is sent.
+
+It is refused, with a notice and nothing sent, while a turn runs or a permission request is open (add it once the turn has ended or the request is answered), for a path that is not a directory, and for a directory the session has already (including its own). The command has no default key; bind one with the `addDirectory` action in the `global` context.
+
 **In a project file.** A repository you have just cloned can name directories too, so a project file's `additional_directories` are limited: each entry must lie inside the parent of the project's own directory (the project itself and its siblings, such as `../shared-lib`; not the parent itself), must not be your home directory or one of its ancestors, and must have no path component starting with `.` below that parent (so not `../.ssh`). The limits apply to the path as written and to its real path, so a symlink cannot lead out of them. Any other entry is reported as not allowed in a project file and ignored, and the rest of the file applies. The first session started with directories from a project file shows a notice naming them and the file.
 
 ```jsonc project warns
@@ -483,9 +491,9 @@ Before 14 October 2026 the title read `acp-tui | <session title>`, or `acp-tui |
 
 ### The slash menu
 
-`/` in an empty prompt box opens the slash menu. It lists the agent's own commands first (what the agent advertises with `available_commands_update`), then a group `acp-tui` with acp-tui's commands under slash names: `/model`, `/mode`, `/effort`, `/sessions`, `/find`, `/export`, `/help` and `/exit` (detach). Each is listed only while it can run (no `/effort` unless the agent offers a thinking level) and is left out when the agent advertises a command of the same name, which keeps the name. Choosing one runs it, as it does from the command palette; the key that does the same is shown beside it.
+`/` in an empty prompt box opens the slash menu. It lists the agent's own commands first (what the agent advertises with `available_commands_update`), then a group `acp-tui` with acp-tui's commands under slash names: `/model`, `/mode`, `/effort`, `/sessions`, `/find`, `/export`, `/add-dir`, `/help` and `/exit` (detach). Each is listed only while it can run (no `/effort` unless the agent offers a thinking level) and is left out when the agent advertises a command of the same name, which keeps the name. Choosing one runs it, as it does from the command palette; the key that does the same is shown beside it.
 
-Typing one of these names as a whole prompt and sending it runs the command instead of sending the text, unless the agent advertises that name; with anything else on the line (`/model sonnet`) the text is sent to the agent as usual.
+Typing one of these names as a whole prompt and sending it runs the command instead of sending the text, unless the agent advertises that name; with anything else on the line (`/model sonnet`) the text is sent to the agent as usual. The one exception is `/add-dir`, which takes a path (see [Additional directories](#additional-directories)).
 
 acp-tui can only offer what the agent advertises. Auggie 0.36.0 advertises just its custom commands (from `.augment/commands` and its skills) over ACP, and keeps its built-ins, `/mcp` among them, in its own terminal interface, where a `/mcp` typed here would reach it as ordinary text. Run `auggie` itself for those.
 

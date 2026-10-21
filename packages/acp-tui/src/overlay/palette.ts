@@ -65,6 +65,7 @@ export const PALETTE_COMMANDS: { readonly [C in KeyContext]?: readonly string[] 
     "pageDown",
     "keyHelp",
     "configProblems",
+    "addDirectory",
     "detach",
   ],
   conversation: [
@@ -174,6 +175,8 @@ export interface PaletteState {
   readonly mouse: string;
   /** The open permission request's option labels, in order (empty when none is open). */
   readonly permissionOptions: readonly string[];
+  /** How many additional directories the session has (the `addDirectory` command's value). */
+  readonly directories?: number;
   /** Routes for entries no key is bound to, by catalogue name (`paletteRoutes`). */
   readonly routes?: Readonly<Record<string, string>>;
   /** What decides which entries can run now (`unavailable`); absent: every entry can. */
@@ -322,6 +325,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   { name: "sessions", command: "global.sessions", context: "global" },
   { name: "find", command: "global.find", context: "global" },
   { name: "export", command: "conversation.export", context: "conversation" },
+  { name: "add-dir", command: "global.addDirectory", context: "global" },
   { name: "help", command: "global.keyHelp", context: "global" },
   { name: "exit", command: "global.detach", context: "global" },
 ];
@@ -378,6 +382,19 @@ export function typedSlashCommand(text: string, catalogue: readonly CatalogueEnt
   return availableSlash(catalogue, state).find(({ command }) => typed === `/${command.name}`)?.command ?? null;
 }
 
+/** The path of a sent prompt that is `/add-dir` followed by a path (one line; a pair of quotes round
+ *  it is dropped), while the command can run and the agent advertises no command of that name
+ *  (spec tui-palette "Typed acp-tui commands"); null for anything else, including `/add-dir`
+ *  alone, which is the plain command. */
+export function typedAddDirectory(text: string, catalogue: readonly CatalogueEntry[], state: SlashState): string | null {
+  const match = /^\s*\/add-dir[ \t]+(\S[^\r\n]*?)\s*$/.exec(text);
+  if (!match) return null;
+  if (!availableSlash(catalogue, state).some(({ command }) => command.name === "add-dir")) return null;
+  const path = match[1]!;
+  const quoted = /^(["'])(.*)\1$/.exec(path);
+  return (quoted ? quoted[2]! : path) || null;
+}
+
 /**
  * The palette's items: the catalogue's listed commands, grouped by context; the config pickers
  * only for options the agent reports, with the current value; the agent's other config options
@@ -425,7 +442,7 @@ export function paletteItems(catalogue: readonly CatalogueEntry[], state: Palett
         id: entry.name,
         group: label,
         title: entry.title,
-        value: context === "global" && action === "toggleMouse" ? state.mouse : null,
+        value: context === "global" && action === "toggleMouse" ? state.mouse : context === "global" && action === "addDirectory" && (state.directories ?? 0) > 0 ? String(state.directories) : null,
         keys: entry.keys,
         groupNote: KEY_SCOPES[context],
         route: routeOf(entry),

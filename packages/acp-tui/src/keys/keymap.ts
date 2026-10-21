@@ -45,6 +45,8 @@ export const KEY_ACTIONS = {
   // (Ctrl+T) step the mode and the effort (task 3.6), `keyHelp` (F1) opens key help (task 6.8),
   // and `configProblems` (no key) lists the configuration's problems (mvp-configuration task 8.4:
   // the palette's `Configuration problems`, handled by src/overlay/Overlay.tsx).
+  // harness-feedback (task 7.1): `addDirectory` (no key) puts `/add-dir ` in the prompt box for the
+  // path (the palette's `Add a directory…` and `/add-dir`, handled by src/overlay/Overlay.tsx).
   global: [
     "escape",
     "interrupt",
@@ -67,6 +69,7 @@ export const KEY_ACTIONS = {
     "cycleThoughtLevel",
     "keyHelp",
     "configProblems",
+    "addDirectory",
   ],
   // Marcus, 11 October 2026 (mvp-chrome-and-keys task 12.1, design D8): `palette` (`?` at the start
   // of an empty prompt box) opens the command palette, as Ctrl+P does, and `agentCommands` (`/` in an
@@ -233,6 +236,7 @@ export const COMMAND_TITLES: { readonly [C in KeyContext]: Readonly<Record<KeyAc
     cycleThoughtLevel: "Next thinking level",
     keyHelp: "Key help",
     configProblems: "Configuration problems",
+    addDirectory: "Add a directory…",
   },
   prompt: {
     submit: "Send the prompt",
