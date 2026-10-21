@@ -835,7 +835,7 @@
                   "$ref": "#/$defs/surfaceTokenValue"
                 },
                 "surface.overlay": {
-                  "description": "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background, mvp-chrome-and-keys task 12.7); derived at surface.card's step",
+                  "description": "overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background); derived at surface.card's step",
                   "$ref": "#/$defs/surfaceTokenValue"
                 },
                 "surface.cursor": {

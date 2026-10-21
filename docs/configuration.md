@@ -926,7 +926,7 @@ The catalogue of `src/theme/tokens.ts` (spec `tui-theme` "Theme tokens, never li
 | `surface.user` | surface | user message card |
 | `surface.card` | surface | expanded tool, thought and plan cards |
 | `surface.code` | surface | code blocks: a neutral fill, never the permission card's hue |
-| `surface.overlay` | surface | overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background, mvp-chrome-and-keys task 12.7); derived at surface.card's step |
+| `surface.overlay` | surface | overlays: the session list, the link chooser and the @ file picker (the palette, pickers and key help are on the default background); derived at surface.card's step |
 | `surface.cursor` | surface | the conversation cursor's gutter bar (its colour), and the highlighted row of an overlay list (a fill) |
 | `surface.cursor.faint` | surface | the faint fill across the item under the conversation cursor, beside its bar |
 | `surface.selection` | surface | the conversation's text selection (distinct from the cursor's fill) |
