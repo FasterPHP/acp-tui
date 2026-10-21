@@ -1,6 +1,6 @@
 // The agent catalogue (mvp-sessions task 3.2, design decision 8, spec
 // tui-sessions "Named agents" and "Agents are defined only in the user's
-// configuration"): the built-in entries (BUILT_IN_HARNESSES: `auggie`, `claude`) and the
+// configuration"): the built-in entries (BUILT_IN_HARNESSES: `auggie`, `claude`, `opencode`) and the
 // `agent_servers` entries of the user's configuration file,
 // `$XDG_CONFIG_HOME/acp-tui/config.jsonc` (`~/.config` when XDG_CONFIG_HOME is
 // unset or not absolute, `%APPDATA%` on Windows), in Zed's shape: `command` a
@@ -29,6 +29,7 @@ import { parseConfigText, type ParsedSource } from "../config/load.ts";
 import { formatProblem } from "../config/problems.ts";
 import { AgentServerSchema } from "../config/schema.ts";
 import { readConfigFile, userConfigFile } from "../config/sources.ts";
+import { exampleHarnesses, exampleRefusal } from "./examples.ts";
 import { BUILT_IN_HARNESS_NAMES, BUILT_IN_HARNESSES, DEFAULT_HARNESS } from "./command.ts";
 
 export { DEFAULT_HARNESS };
@@ -42,6 +43,12 @@ export interface AgentEntry {
   readonly source: "built-in" | "config";
   /** For a built-in whose program the user installs: how (an error for a missing program ends with it). */
   readonly installHint?: string;
+  /** For a built-in with a login command (`auggie login`): what an authentication-required error adds. */
+  readonly loginHint?: string;
+  /** For a built-in: its start-up timeout in seconds (data until the timer uses it). */
+  readonly startupTimeoutSeconds?: number;
+  /** For a built-in that takes directories as arguments: the template with `{dir}` (data until used). */
+  readonly additionalDirectoryArgs?: readonly string[];
 }
 
 export interface AgentCatalogue {
@@ -71,7 +78,10 @@ export const BUILT_IN_AGENTS: readonly AgentEntry[] = BUILT_IN_HARNESSES.map((h)
   args: h.command.slice(1),
   env: {},
   source: "built-in" as const,
+  startupTimeoutSeconds: h.startupTimeoutSeconds,
   ...(h.installHint !== undefined ? { installHint: h.installHint } : {}),
+  ...(h.loginHint !== undefined ? { loginHint: h.loginHint } : {}),
+  ...(h.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: h.additionalDirectoryArgs } : {}),
 }));
 
 const BUILT_IN_NAMES = BUILT_IN_HARNESS_NAMES;
@@ -152,6 +162,9 @@ export function findAgent(catalogue: AgentCatalogue, name: string): AgentEntry {
   if (problem !== undefined) {
     throw new AgentNameError(`harness ${quote(name)} in ${catalogue.path} ${problem}, so it cannot be launched`);
   }
+  // The name of a commented example that is neither built in nor configured: not run as a command.
+  const example = exampleHarnesses([...catalogue.agents.keys(), ...catalogue.invalid.keys()]).find((e) => e.name === name);
+  if (example) throw new AgentNameError(exampleRefusal(example, catalogue.path));
   const known = [...catalogue.agents.keys()].map(quote).join(", ");
   let message = `${quote(name)} is not a known harness (known: ${known}; harnesses are defined in agent_servers in ${catalogue.path})`;
   if (catalogue.refused) message += `; harness commands are not read from a file other users can write (${catalogue.refused})`;

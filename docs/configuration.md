@@ -183,13 +183,15 @@ Each `agent_servers` entry takes `command` (the program: a name is looked up on 
 }
 ```
 
-Two harnesses are built in. `auggie` runs `auggie --acp` from your `PATH`, so install it first (`npm install -g @augmentcode/auggie@0.36.0`, which needs Node 20 or later, then run `auggie login` once); it is the default for now, so plain `acp-tui` starts Auggie. `claude` runs `@agentclientprotocol/claude-agent-acp@0.81.2` with the Bun that runs acp-tui (`bun x --bun ...`) and uses your Claude Code login; `acp-tui claude` starts it. The session list offers a built-in harness under "New session with" only when its program is found on the `PATH`. If `auggie` is not installed, starting it says so and gives the install command; if you are not logged in, acp-tui says the harness needs you to log in (run `auggie login` in a terminal, then start acp-tui again). Auggie 1.x has not been checked with acp-tui, and a notice says so when it is the one running. An entry named `auggie` or `claude` replaces the built-in one, for example to pin another version or to add environment variables (Claude Code reads `ANTHROPIC_MODEL` to choose the model). The commented default carries one example per harness below, each with the source its command was checked against on 13 October 2026; install the harness before you uncomment it. To start Claude by default, set `"default_agent_server": "claude"`.
+Three harnesses are built in. `auggie` runs `auggie --acp` from your `PATH`, so install it first (`npm install -g @augmentcode/auggie@0.36.0`, which needs Node 20 or later, then run `auggie login` once); it is the default for now, so plain `acp-tui` starts Auggie. `opencode` runs `opencode acp` from your `PATH`: install OpenCode with `npm install -g @opencode/cli` (or follow opencode.ai/docs) and log in once with `opencode auth login`; `acp-tui opencode` starts it, instead of OpenCode's own terminal interface. `claude` runs `@agentclientprotocol/claude-agent-acp@0.94.0` with the Bun that runs acp-tui (`bun x --bun ...`) and uses your Claude Code login; `acp-tui claude` starts it. The session list offers a built-in harness under "New session with" only when its program is found on the `PATH`. If `auggie` or `opencode` is not installed, starting it says so and gives the install command; if you are not logged in, acp-tui says the harness needs you to log in (run `auggie login` or `opencode auth login` in a terminal, then start acp-tui again). Auggie 1.x has not been checked with acp-tui, and a notice says so when it is the one running. An entry named `auggie`, `claude` or `opencode` replaces the built-in one, for example to pin another version or to add environment variables (Claude Code reads `ANTHROPIC_MODEL` to choose the model). The commented default carries one example per harness below, each with the source its command was checked against on 13 October 2026; install the harness before you uncomment it. To start Claude by default, set `"default_agent_server": "claude"`.
+
+The other names in the table are examples, not harnesses: `acp-tui gemini` (or `--harness gemini`) does not run `gemini` as a command, since that would start the program's own terminal interface. It stops and says the harness is not configured, naming your configuration file and, for an example without an environment, the command that does run it (`acp-tui -- gemini --acp`). To use one, uncomment its entry in `agent_servers` (or copy its line from the table), then name it. A directory of that name still wins (`acp-tui goose` in a directory holding `goose/` starts there), and `acp-tui gemini --acp`, with arguments, is still an ad hoc command.
 
 | Name in the example | Harness | Command | Source |
 | --- | --- | --- | --- |
-| `claude` | Claude Code through claude-agent-acp (a built-in entry) | `bunx @agentclientprotocol/claude-agent-acp@0.81.2` | npm `@agentclientprotocol/claude-agent-acp`; `ANTHROPIC_MODEL`: code.claude.com/docs/en/settings |
+| `claude` | Claude Code through claude-agent-acp (a built-in entry) | `bunx @agentclientprotocol/claude-agent-acp@0.94.0` | npm `@agentclientprotocol/claude-agent-acp`; `ANTHROPIC_MODEL`: code.claude.com/docs/en/settings |
 | `codex` | OpenAI Codex through codex-acp (`npm install -g @agentclientprotocol/codex-acp`) | `codex-acp` | github.com/agentclientprotocol/codex-acp |
-| `opencode` | OpenCode | `opencode acp` | opencode.ai/docs/acp |
+| `opencode` | OpenCode (a built-in entry; `npm install -g @opencode/cli`, then `opencode auth login`) | `opencode acp` | opencode.ai/docs/acp |
 | `deepseek` | DeepSeek, through OpenCode | `opencode acp`, with `OPENCODE_CONFIG` naming an OpenCode config that sets `"model"` to a DeepSeek model | opencode.ai/docs/providers, opencode.ai/docs/config |
 | `auggie` | Augment Code's Auggie (the built-in default; `npm install -g @augmentcode/auggie@0.36.0`, then `auggie login`) | `auggie --acp` | docs.augmentcode.com/cli/acp |
 | `pi` | The pi coding agent through pi-acp (`npm install -g pi-acp`, with `pi` on the `PATH`) | `pi-acp` | github.com/svkozak/pi-acp |
@@ -206,13 +208,25 @@ A model or provider without an ACP agent of its own, such as DeepSeek, is reache
 ```jsonc config
 {
   "agent_servers": {
-    "claude": { "command": "bunx", "args": ["@agentclientprotocol/claude-agent-acp@0.81.2"], "env": { "ANTHROPIC_MODEL": "opus" } },
+    "claude": { "command": "bunx", "args": ["@agentclientprotocol/claude-agent-acp@0.94.0"], "env": { "ANTHROPIC_MODEL": "opus" } },
     "auggie": { "command": "auggie", "args": ["--acp", "--reasoning-effort", "high"] },
     "pi": { "command": "pi-acp", "args": [] },
     "deepseek": { "command": "opencode", "args": ["acp"], "env": { "OPENCODE_CONFIG": "/home/you/.config/opencode/deepseek.json" } },
   },
 }
 ```
+
+To run your own Claude Code instead of the one the adapter ships with, point the adapter at it with `CLAUDE_CODE_EXECUTABLE`. The adapter then starts that Claude Code, so the model names and descriptions in the model picker follow it (they are the harness's own; acp-tui does not rewrite them). This suits you if you keep Claude Code current yourself:
+
+```jsonc config
+{
+  "agent_servers": {
+    "claude": { "command": "bunx", "args": ["--bun", "@agentclientprotocol/claude-agent-acp@0.94.0"], "env": { "CLAUDE_CODE_EXECUTABLE": "/home/you/.local/bin/claude" } },
+  },
+}
+```
+
+Replace the path with the output of `command -v claude`.
 
 ### Screen and terminals
 

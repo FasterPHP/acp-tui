@@ -154,6 +154,8 @@ export interface StartSessionOptions {
   readonly harness?: string;
   /** For a built-in harness whose program the user installs: how, appended to the error when the program is not found. */
   readonly installHint?: string;
+  /** The built-in harness's login command, for the authentication-required message. */
+  readonly loginHint?: string;
   /** The agent process's working directory, and the `cwd` of `startSession`'s new session. */
   readonly cwd: string;
   readonly logger?: DebugLogger;
@@ -358,8 +360,8 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
   const support = sessionSupport(init);
   const agentInfo = init.agentInfo ?? null;
-  // The built-in `auggie` is the one launched with its install hint (a configured entry has none).
-  const loginOptions = { harness: options.harness, builtInAuggie: options.harness === "auggie" && options.installHint !== undefined };
+  // A built-in harness with a login command is launched with its `loginHint` (a configured entry has none).
+  const loginOptions = { harness: options.harness, loginHint: options.loginHint };
 
   /** Makes `core` the controller the agent's messages go to; the previous one's session retires. */
   function activate(core: Core): void {

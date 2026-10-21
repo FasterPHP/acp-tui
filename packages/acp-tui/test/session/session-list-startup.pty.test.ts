@@ -221,7 +221,7 @@ describe("Marcus's Mac review, 18 October 2026 (tasks 14.2 and 14.3)", () => {
     const s = (session = w.start(["-r"], { cwd: repo }));
     await s.waitFor(() => listBody(s).some((r) => r.startsWith("Fake session")) && listBody(s).some((r) => r.startsWith("Claude session")), 10000);
     const body = listBody(s).map((r) => r.trim());
-    expect(body.filter((r) => r.startsWith("New session with"))).toEqual(["New session with fake", "New session with auggie", "New session with claude"]);
+    expect(body.filter((r) => r.startsWith("New session with"))).toEqual(["New session with fake", "New session with auggie", "New session with claude", "New session with opencode"]);
   }, 40000);
 });
 

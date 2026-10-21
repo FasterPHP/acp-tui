@@ -19,12 +19,13 @@ afterEach(async () => {
 const AUGGIE_TEXT = "Authentication required: Auggie does not currently support authenticating over ACP. Please run `auggie login` from your terminal then try again.";
 const NOTICE_1_2 = "auggie 1.2.0 has not been checked with acp-tui; testers use 0.36.0";
 
-/** A PATH holding bun and an `auggie` shim that runs fake-agent with `args`: the built-in `auggie`, found. */
-function shimAuggie(w: ListWorld, args: readonly string[]): void {
+/** A PATH holding bun and a shim named `name` (`auggie`, `opencode`) that runs fake-agent with `args`:
+ *  that built-in, found. */
+function shimBuiltIn(w: ListWorld, name: string, args: readonly string[]): void {
   const bin = join(w.base, "bin");
   mkdirSync(bin);
   symlinkSync(process.execPath, join(bin, "bun"));
-  const shim = join(bin, "auggie");
+  const shim = join(bin, name);
   writeFileSync(shim, `#!/bin/sh\nexec '${process.execPath}' '${FAKE_AGENT}' --delay-scale 0 ${args.join(" ")}\n`);
   chmodSync(shim, 0o755);
   w.env["PATH"] = bin;
@@ -45,11 +46,21 @@ describe.skipIf(process.platform === "win32")("Harness needs a login", () => {
   test("Login hint added: the built-in auggie answering a bare Authentication required gets the login step", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
-    shimAuggie(w, ["--scenario", "basic", "--auth-required=bare"]);
+    shimBuiltIn(w, "auggie", ["--scenario", "basic", "--auth-required=bare"]);
     const s = (session = w.start([], { cwd: repo, cols: 220, rows: 30 }));
     expect(await s.wait(20000)).toBe(1);
     const text = s.screenText().join(" ").replace(/\s+/g, " ");
     expect(text).toContain("harness 'auggie' needs you to log in: Authentication required; run auggie login in a terminal, then start acp-tui again");
+  }, 40000);
+
+  test("OpenCode login hint: the built-in opencode answering a bare Authentication required gets opencode auth login", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    shimBuiltIn(w, "opencode", ["--scenario", "basic", "--auth-required=bare"]);
+    const s = (session = w.start(["opencode"], { cwd: repo, cols: 220, rows: 30 }));
+    expect(await s.wait(20000)).toBe(1);
+    const text = s.screenText().join(" ").replace(/\s+/g, " ");
+    expect(text).toContain("harness 'opencode' needs you to log in: Authentication required; run opencode auth login in a terminal, then start acp-tui again");
   }, 40000);
 
   test("a configured harness gets the harness's text and no added step", async () => {

@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
+import { BUILT_IN_HARNESSES } from "../../src/agent/command.ts";
 import { AgentLaunchError, launchAgent } from "../../src/agent/launch.ts";
 import { AgentStartupError } from "../../src/agent/connection.ts";
 import { startSession } from "../../src/session/controller.ts";
@@ -33,6 +34,20 @@ describe("agent/launch (task 5.2)", () => {
       expect(failure.notFound).toBe(true);
       expect(failure.message).toContain("harness 'auggie' (command 'acp-tui-no-such-auggie --acp')");
       expect(failure.message).toEndWith(`; auggie is not installed: install it with ${hint}`);
+    }
+  });
+
+  test("OpenCode: a PATH without opencode ends the message with its install hint and opencode.ai/docs", () => {
+    const builtIn = BUILT_IN_HARNESSES.find((h) => h.name === "opencode")!;
+    try {
+      launchAgent(builtIn.command, { harness: "opencode", installHint: builtIn.installHint!, env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent" } });
+      throw new Error("expected launchAgent to throw");
+    } catch (error) {
+      const failure = error as AgentLaunchError;
+      expect(failure).toBeInstanceOf(AgentLaunchError);
+      expect(failure.notFound).toBe(true);
+      expect(failure.message).toContain("harness 'opencode' (command 'opencode acp')");
+      expect(failure.message).toEndWith("; opencode is not installed: install it with npm install -g @opencode/cli, or see opencode.ai/docs");
     }
   });
 

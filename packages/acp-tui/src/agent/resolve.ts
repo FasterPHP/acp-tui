@@ -46,6 +46,8 @@ export interface LaunchDescription {
   /** For a built-in harness whose program the user installs: how, for the launch error (a configured
    *  entry of the same name gets none, since its command is the user's). */
   readonly installHint?: string;
+  /** For a built-in harness with a login command: what an authentication-required error adds. */
+  readonly loginHint?: string;
   /** The session directory: the directory argument, else (for `--resume <id>`) the index's, else
    *  the launch directory; absolute and symlink-resolved. */
   readonly directory: string;
@@ -63,9 +65,12 @@ export interface LaunchDescription {
   readonly problems: readonly string[];
 }
 
-/** The install hint of a built-in catalogue entry, as a spreadable property. */
-export function hintOf(entry: Pick<AgentEntry, "installHint">): { installHint?: string } {
-  return entry.installHint !== undefined ? { installHint: entry.installHint } : {};
+/** The install and login hints of a built-in catalogue entry, as spreadable properties. */
+export function hintOf(entry: Pick<AgentEntry, "installHint" | "loginHint">): { installHint?: string; loginHint?: string } {
+  return {
+    ...(entry.installHint !== undefined ? { installHint: entry.installHint } : {}),
+    ...(entry.loginHint !== undefined ? { loginHint: entry.loginHint } : {}),
+  };
 }
 
 /** The agent process's argument vector: the command, then its arguments. */

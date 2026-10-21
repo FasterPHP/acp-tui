@@ -64,6 +64,19 @@ describe.skipIf(process.platform === "win32")("Programs resolved from the PATH o
     expect(w.events("launch_error")).toMatchObject([{ kind: "not_found" }]);
   }, 40000);
 
+  test("OpenCode missing: acp-tui exits 1 naming the harness, its command, an install command and opencode.ai/docs, and never enters the alternate screen", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    bunOnlyPath(w);
+    const s = (session = w.start(["opencode"], { cwd: repo, cols: 200, rows: 30 }));
+    expect(await s.wait(20000)).toBe(1);
+    const text = s.screenText().join("");
+    expect(text).toContain("acp-tui: could not start harness 'opencode' (command 'opencode acp')");
+    expect(text).toContain("opencode is not installed: install it with npm install -g @opencode/cli, or see opencode.ai/docs");
+    expect(w.events("agent_launched")).toEqual([]);
+    expect(w.events("launch_error")).toMatchObject([{ kind: "not_found" }]);
+  }, 40000);
+
   test("Configured entry missing: an auggie entry whose command does not exist gets the plain message", async () => {
     const w = listWorld();
     const repo = w.dir("repo");

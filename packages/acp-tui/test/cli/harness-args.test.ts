@@ -14,7 +14,7 @@ import { launchArgv } from "../../src/agent/resolve.ts";
 import { CliArgumentError, main, parseArgs, type CliContext, type ParseContext, type StartAppOptions } from "../../src/cli.ts";
 
 const FAKE_COMMAND = ["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"];
-const NAMES = ["auggie", "claude", "fake", "other"];
+const NAMES = ["auggie", "claude", "opencode", "fake", "other"];
 const CATALOGUE = JSON.stringify({ agent_servers: { fake: { command: "bun", args: FAKE_COMMAND.slice(1) }, other: { command: "bun", args: ["other.ts"] }, config: { command: "bun", args: ["config.ts"] } } });
 
 /** A temporary `/work` with `repo-b` and `fake` directories and a file `notes.txt`. */
@@ -29,11 +29,11 @@ function work(): string {
 const parse = (argv: string[], cwd: string, extra: Partial<ParseContext> = {}) => parseArgs(argv, { cwd, harnesses: NAMES, ...extra });
 
 /** `main` from `cwd` with the catalogue above; what it wrote and whether the app started. */
-async function run(argv: string[], cwd: string) {
+async function run(argv: string[], cwd: string, extra: Partial<CliContext> = {}) {
   const stderr: string[] = [];
   const stdout: string[] = [];
   const startApp = mock(async (_options: StartAppOptions) => 0);
-  const context: CliContext = { cwd, catalogue: () => buildAgentCatalogue(CATALOGUE, "/cfg/acp-tui/config.jsonc") };
+  const context: CliContext = { cwd, catalogue: () => buildAgentCatalogue(CATALOGUE, "/cfg/acp-tui/config.jsonc"), ...extra };
   const io = {
     stdout: { isTTY: true, write: (t: string) => stdout.push(t) },
     stderr: { write: (t: string) => stderr.push(t) },
@@ -198,11 +198,11 @@ describe("the lone word (tui-sessions 'Directory argument and agent command are 
   test("Unknown word: augie names no harness, no directory and no command, so it is refused with the harnesses and the `--` rule", async () => {
     const dir = work();
     expect(() => parse(["augie"], dir)).toThrow(
-      new CliArgumentError("'augie' is not a harness (auggie, claude, fake, other), a directory or a command; an ad hoc command goes after --"),
+      new CliArgumentError("'augie' is not a harness (auggie, claude, opencode, fake, other), a directory or a command; an ad hoc command goes after --"),
     );
     const r = await run(["augie"], dir);
     expect(r.code).toBe(1);
-    expect(r.stderr).toBe("acp-tui: 'augie' is not a harness (auggie, claude, fake, other, config), a directory or a command; an ad hoc command goes after --\n");
+    expect(r.stderr).toBe("acp-tui: 'augie' is not a harness (auggie, claude, opencode, fake, other, config), a directory or a command; an ad hoc command goes after --\n");
     // Nothing launched, so the alternate screen was never entered.
     expect(r.started).toBe(false);
     expect(r.stdout).toBe("");
@@ -224,5 +224,84 @@ describe("the lone word (tui-sessions 'Directory argument and agent command are 
     expect(parse(["--help", "augie"], dir).help).toBe(true);
     // A harness after a harness is a lone word too.
     expect(() => parse(["fake", "augie"], dir)).toThrow("is not a harness");
+  });
+});
+
+describe("example harnesses are not run as commands (tui-sessions)", () => {
+  const ANY_COMMAND = { commandExists: () => true };
+  const GEMINI = "acp-tui: harness 'gemini' is not configured; uncomment its entry in /cfg/acp-tui/config.jsonc, or run acp-tui -- gemini --acp\n";
+
+  test("Gemini not configured: with gemini on the PATH, the lone word is refused with the entry to uncomment and the -- command, and nothing starts", async () => {
+    const r = await run(["gemini"], work(), ANY_COMMAND);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toBe(GEMINI);
+    expect(r.started).toBe(false);
+    expect(r.stdout).toBe("");
+  });
+
+  test("--harness, -a and --agent give the same refusal", async () => {
+    for (const argv of [["--harness", "gemini"], ["-a", "gemini"], ["--agent", "gemini"]]) {
+      const r = await run(argv, work(), ANY_COMMAND);
+      expect([argv, r.code, r.stderr, r.started]).toEqual([argv, 1, GEMINI, false]);
+    }
+  });
+
+  test("Example with an environment: deepseek is refused without a -- alternative", async () => {
+    const r = await run(["--harness", "deepseek"], work(), ANY_COMMAND);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toBe("acp-tui: harness 'deepseek' is not configured; uncomment its entry in /cfg/acp-tui/config.jsonc\n");
+    expect(r.started).toBe(false);
+  });
+
+  test("Arguments given: gemini --acp with no -- is an ad hoc command, as before", async () => {
+    const r = await run(["gemini", "--acp"], work(), ANY_COMMAND);
+    expect(r.code).toBe(0);
+    expect(launchArgv(r.launch!)).toEqual(["gemini", "--acp"]);
+    expect(r.launch?.agentName).toBe("ad hoc");
+  });
+
+  test("Directory of an example's name: a directory named goose wins, and the default harness starts there", async () => {
+    const dir = work();
+    mkdirSync(join(dir, "goose"));
+    const r = await run(["goose"], dir, ANY_COMMAND);
+    expect(r.code).toBe(0);
+    expect(r.launch?.directory).toBe(join(dir, "goose"));
+    expect(r.launch?.agentName).toBe("auggie");
+  });
+
+  test("a configured harness named like an example is a harness, not refused", async () => {
+    const catalogue = () => buildAgentCatalogue(JSON.stringify({ agent_servers: { gemini: { command: "bun", args: ["g.ts"] } } }), "/cfg/acp-tui/config.jsonc");
+    const r = await run(["gemini"], work(), { ...ANY_COMMAND, catalogue });
+    expect(r.code).toBe(0);
+    expect(r.launch?.agentName).toBe("gemini");
+  });
+
+  test("a built-in's name is a harness: opencode is not an example, and the parsed harness is opencode", async () => {
+    const r = await run(["opencode"], work(), ANY_COMMAND);
+    expect(r.code).toBe(0);
+    expect(r.launch?.agentName).toBe("opencode");
+    expect(launchArgv(r.launch!)).toEqual(["opencode", "acp"]);
+    expect(parse(["opencode"], work()).agentName).toBe("opencode");
+  });
+
+  test("Stray argument after a built-in: opencode acp is refused and says the harness already runs opencode acp", async () => {
+    const r = await run(["opencode", "acp"], work());
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("'acp' is not a harness");
+    expect(r.stderr).toContain("an ad hoc command goes after --; harness 'opencode' already runs 'opencode acp'\n");
+    expect(r.started).toBe(false);
+  });
+
+  test("a stray word that is not one of the harness's arguments gets no such explanation", async () => {
+    const r = await run(["opencode", "nosuchword"], work());
+    expect(r.code).toBe(1);
+    expect(r.stderr).not.toContain("already runs");
+  });
+
+  test("parseArgs on its own: examples in the context are refused with the configuration file named, home as ~", () => {
+    const examples = [{ name: "gemini", commandLine: "gemini --acp" }];
+    expect(() => parse(["gemini"], work(), { examples, configPath: `${process.env["HOME"]}/.config/acp-tui/config.jsonc`, commandExists: () => true })).toThrow(
+      new CliArgumentError("harness 'gemini' is not configured; uncomment its entry in ~/.config/acp-tui/config.jsonc, or run acp-tui -- gemini --acp"),
+    );
   });
 });

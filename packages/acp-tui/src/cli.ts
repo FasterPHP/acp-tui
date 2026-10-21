@@ -34,6 +34,7 @@ import { resolve, win32 } from "node:path";
 import { CLAUDE_AGENT_PACKAGE } from "./agent/command.ts";
 import { hasWindowsCommandExtension, isPathCommand, resolveProgram, type WhichFunction } from "./agent/which.ts";
 import { loadAgentCatalogue, type AgentCatalogue } from "./agent/catalogue.ts";
+import { exampleHarnesses, exampleRefusal, type ExampleHarness } from "./agent/examples.ts";
 import { resolveLaunch, type LaunchDescription, type ResolveContext } from "./agent/resolve.ts";
 import type { ConfigOverrides } from "./config/effective.ts";
 import { createDebugLogger, type DebugLogger } from "./log.ts";
@@ -113,8 +114,8 @@ Harnesses:
   harness an agent, which is why harnesses are configured under
   agent_servers.
   Name it first ("acp-tui auggie -r") or with --harness. Without one,
-  acp-tui launches default_agent_server from the configuration, else the
-  built-in "auggie" (auggie --acp, from the PATH). "claude" is built in too:
+  acp-tui launches default_agent_server, else the built-in "auggie"
+  (auggie --acp). "opencode" (opencode acp) and "claude" are built in too:
     bun x --bun ${CLAUDE_AGENT_PACKAGE}
   A command after "--" is launched as given. A new session starts in the
   directory argument, else in the directory acp-tui is started from.
@@ -201,6 +202,14 @@ export interface ParseContext {
   /** Whether a word names a command on the `PATH` (or an executable path), for the lone-word check;
    *  default a real lookup from `cwd`. */
   readonly commandExists?: (word: string) => boolean;
+  /** The commented examples that are neither built in nor configured, with their command lines;
+   *  naming one alone (or with `--harness`) is refused. Default none. */
+  readonly examples?: readonly ExampleHarness[];
+  /** The user's configuration file, named in that refusal. */
+  readonly configPath?: string;
+  /** Each harness's own arguments, so a lone word that is one of them (`acp` after `opencode`) is
+   *  explained. Default none. */
+  readonly harnessCommands?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** Whether `word` names an executable: a path (`./agent`, `/usr/bin/x`, and on Windows `.\agent`,
@@ -239,6 +248,9 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
   const cwd = context.cwd ?? process.cwd();
   const harnesses = context.harnesses ?? [];
   const isHarness = (word: string): boolean => harnesses.includes(word);
+  const examples = context.examples ?? [];
+  const exampleNamed = (word: string): ExampleHarness | undefined => examples.find((e) => e.name === word);
+  const refuseExample = (example: ExampleHarness): CliArgumentError => new CliArgumentError(exampleRefusal(example, context.configPath ?? "the configuration file"));
   const commandExists = context.commandExists ?? ((word: string) => realCommandExists(word, cwd));
   let help = false;
   let version = false;
@@ -276,6 +288,8 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
   const takesId = (next: string | undefined): next is string => next !== undefined && !next.startsWith("-") && !isHarness(next) && existingDirectory(next, cwd) === null;
   const setHarness = (name: string, option: string): void => {
     if (name === "") throw new CliArgumentError(`${option} requires a harness name`);
+    const example = option === "a harness" ? undefined : exampleNamed(name);
+    if (example) throw refuseExample(example);
     if (agentName !== null && agentName !== name) throw new CliArgumentError(`one harness may be named, not '${agentName}' and '${name}'`);
     agentName = name;
   };
@@ -341,9 +355,17 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
         continue;
       }
       const rest = argv.slice(i);
+      if (rest.length === 1 && !help) {
+        // An example's name is refused before any command lookup: with `gemini` on the PATH it would
+        // otherwise start the harness's own terminal interface (spec "Example harnesses are not run as commands").
+        const example = exampleNamed(arg);
+        if (example) throw refuseExample(example);
+      }
       if (rest.length === 1 && !help && !commandExists(arg)) {
         const names = harnesses.length > 0 ? ` (${harnesses.join(", ")})` : "";
-        throw new CliArgumentError(`'${arg}' is not a harness${names}, a directory or a command; an ad hoc command goes after --`);
+        const own = agentName !== null ? context.harnessCommands?.[agentName] : undefined;
+        const runs = agentName !== null && own !== undefined && own.slice(1).includes(arg) ? `; harness '${agentName}' already runs '${own.join(" ")}'` : "";
+        throw new CliArgumentError(`'${arg}' is not a harness${names}, a directory or a command; an ad hoc command goes after --${runs}`);
       }
       agentCommand = rest;
       break;
@@ -533,6 +555,9 @@ export async function main(
   // glyph measurement's module is loaded, and shared with `resolveLaunch` below.
   let catalogue: (() => AgentCatalogue) | undefined = context.catalogue;
   let harnesses: readonly string[] = [];
+  let examples: readonly ExampleHarness[] = [];
+  let configPath: string | undefined;
+  let harnessCommands: Record<string, readonly string[]> = {};
   const reserved = argv[0] !== undefined && (RESERVED_SUBCOMMANDS as readonly string[]).includes(argv[0]);
   if (!reserved && argv.some((arg) => !arg.startsWith("-"))) {
     await import("@opentui/core");
@@ -540,13 +565,16 @@ export async function main(
       const loaded = (catalogue ?? (() => loadAgentCatalogue()))();
       catalogue = () => loaded;
       harnesses = [...loaded.agents.keys(), ...loaded.invalid.keys()];
+      examples = exampleHarnesses(harnesses);
+      configPath = loaded.path;
+      harnessCommands = Object.fromEntries([...loaded.agents.values()].map((a) => [a.name, [a.command, ...a.args]]));
     } catch {
       // Read again by `resolveLaunch`, which reports it.
     }
   }
   let options: CliOptions;
   try {
-    options = parseArgs(argv, { ...context, harnesses });
+    options = parseArgs(argv, { ...context, harnesses, examples, harnessCommands, ...(configPath !== undefined ? { configPath } : {}) });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     io.stderr.write(`acp-tui: ${message}\n`);

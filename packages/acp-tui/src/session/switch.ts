@@ -63,7 +63,7 @@ export const SWITCH_REFUSED_PERMISSION = "a permission request is open: answer i
 export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it before you switch sessions";
 
 /** What names the agent of a launch: the fields `launchFor` copies. */
-type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint">;
+type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint">;
 
 export interface SessionSwitcherOptions {
   /** The launch the command line asked for. */

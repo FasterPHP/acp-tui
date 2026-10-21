@@ -16,23 +16,23 @@ describe("login message", () => {
   });
 
   test("names the harness and keeps the harness's text; the built-in adds nothing when the text names auggie login", () => {
-    const message = loginMessage(new RequestError(-32000, AUGGIE_TEXT), { harness: "auggie", builtInAuggie: true });
+    const message = loginMessage(new RequestError(-32000, AUGGIE_TEXT), { harness: "auggie", loginHint: "auggie login" });
     expect(message).toBe(`harness 'auggie' needs you to log in: ${AUGGIE_TEXT}`);
   });
 
   test("Login hint added: the built-in auggie with the bare message gets the login step", () => {
-    const message = loginMessage(new RequestError(-32000, "Authentication required"), { harness: "auggie", builtInAuggie: true });
+    const message = loginMessage(new RequestError(-32000, "Authentication required"), { harness: "auggie", loginHint: "auggie login" });
     expect(message).toBe(`harness 'auggie' needs you to log in: Authentication required; ${AUGGIE_LOGIN_STEP}`);
     expect(message).toEndWith("run auggie login in a terminal, then start acp-tui again");
   });
 
   test("a configured harness never gets the step", () => {
-    expect(loginMessage(new RequestError(-32000, "Authentication required"), { harness: "auggie", builtInAuggie: false })).toBe("harness 'auggie' needs you to log in: Authentication required");
+    expect(loginMessage(new RequestError(-32000, "Authentication required"), { harness: "auggie", loginHint: undefined })).toBe("harness 'auggie' needs you to log in: Authentication required");
   });
 
   test("the text is sanitised, on one line and cut at 300 columns", () => {
     const hostile = new RequestError(-32000, `bad\n\x1b]52;c;ZXZpbA==\x07line two ${"x".repeat(400)}`);
-    const message = loginMessage(hostile, { harness: "other", builtInAuggie: false });
+    const message = loginMessage(hostile, { harness: "other", loginHint: undefined });
     expect(message).not.toContain("\x1b");
     expect(message).not.toContain("\n");
     expect(message.startsWith("harness 'other' needs you to log in: bad")).toBe(true);
@@ -41,7 +41,7 @@ describe("login message", () => {
   });
 
   test("an ad hoc harness has no name to quote", () => {
-    expect(loginMessage(new RequestError(-32000, "no"), { harness: "ad hoc", builtInAuggie: false })).toBe("the ad hoc harness needs you to log in: no");
+    expect(loginMessage(new RequestError(-32000, "no"), { harness: "ad hoc", loginHint: undefined })).toBe("the ad hoc harness needs you to log in: no");
   });
 });
 
