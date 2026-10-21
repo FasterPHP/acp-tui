@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSession, type Session } from "acp-model";
 import type { CliRenderer } from "@opentui/core";
-import { createTerminalSignals, TITLE_REASSERT_DELAY_MS } from "../../src/renderer/terminal-signals.ts";
+import { createTerminalSignals, TITLE_REASSERT_DELAY_MS, TITLE_WATCH_INTERVAL_MS, TITLE_WATCH_MAX_WRITES } from "../../src/renderer/terminal-signals.ts";
 import { createTitleSlots } from "../../src/renderer/title-slot.ts";
 
 let dir: string;
@@ -175,5 +175,105 @@ describe("harnessActivity", () => {
       expect(t.titles).toEqual(["acp-tui"]);
       t.signals.restore();
     }
+  });
+});
+
+// windows-support D5, decision 16 as amended: between those moments the console's title is read
+// every half second and acp-tui's set again when something else has changed it (Claude Code's
+// process started for a prompt names the tab after a turn that failed at once has ended).
+describe("title watch", () => {
+  function watched(platform: NodeJS.Platform, read: (() => string | null) | null = null) {
+    const f = fixture(platform);
+    let console = "acp-tui";
+    const ticks: { run: () => void; ms: number; stopped: boolean }[] = [];
+    const titles: string[] = [];
+    const renderer = {
+      ...(f.renderer as object),
+      setTerminalTitle: (t: string) => {
+        titles.push(t);
+        console = t;
+      },
+    } as unknown as CliRenderer;
+    const signals = createTerminalSignals({
+      store: { snapshot: () => ({ ...createSession(), cwd: "/work/acp-tui" }), onChange: () => () => {}, ui: { mouse: "wheel" } } as never,
+      platform,
+      env: {},
+      titleSlots: createTitleSlots({ dir }),
+      consoleTitle: read ?? (() => console),
+      every: (run, ms) => {
+        const entry = { run, ms, stopped: false };
+        ticks.push(entry);
+        return () => void (entry.stopped = true);
+      },
+    });
+    signals.install(renderer);
+    const tick = () => ticks.filter((e) => !e.stopped).forEach((e) => e.run());
+    const retitle = (text: string) => void (console = text);
+    return { signals, titles, ticks, tick, retitle };
+  }
+
+  test("on Windows a title changed behind acp-tui's back is set again at the next read", () => {
+    const w = watched("win32");
+    expect(w.ticks).toHaveLength(1);
+    expect(w.ticks[0]!.ms).toBe(TITLE_WATCH_INTERVAL_MS);
+    w.tick();
+    expect(w.titles).toEqual(["acp-tui"]);
+    w.retitle("claude");
+    w.tick();
+    expect(w.titles).toEqual(["acp-tui", "acp-tui"]);
+    w.tick();
+    expect(w.titles).toHaveLength(2);
+    // Each later change is set back again.
+    w.retitle("Administrator:  C:\\WINDOWS\\system32\\cmd.exe");
+    w.tick();
+    expect(w.titles).toHaveLength(3);
+    w.signals.restore();
+  });
+
+  test("a console that keeps another title gets a few writes, then is left be until it changes", () => {
+    const w = watched("win32", () => "stuck");
+    for (let i = 0; i < 10; i++) w.tick();
+    expect(w.titles).toHaveLength(1 + TITLE_WATCH_MAX_WRITES);
+    w.signals.restore();
+  });
+
+  test("a title that cannot be read is left alone", () => {
+    const w = watched("win32", () => null);
+    w.tick();
+    w.tick();
+    expect(w.titles).toEqual(["acp-tui"]);
+    w.signals.restore();
+  });
+
+  test("the watch stops when the terminal is restored", () => {
+    const w = watched("win32");
+    w.signals.restore();
+    expect(w.ticks[0]!.stopped).toBe(true);
+    w.retitle("claude");
+    w.ticks[0]!.run();
+    expect(w.titles).toEqual(["acp-tui"]);
+  });
+
+  test("on Linux and macOS there is no watch", () => {
+    for (const platform of ["linux", "darwin"] as const) {
+      const w = watched(platform);
+      expect(w.ticks).toHaveLength(0);
+      w.signals.restore();
+    }
+  });
+
+  test("without a reader (a platform given by a test, or no kernel32) there is no watch", () => {
+    const f = fixture("win32");
+    const ticks: number[] = [];
+    const signals = createTerminalSignals({
+      store: { snapshot: () => ({ ...createSession(), cwd: "/work/acp-tui" }), onChange: () => () => {}, ui: { mouse: "wheel" } } as never,
+      platform: "win32",
+      env: {},
+      titleSlots: createTitleSlots({ dir }),
+      every: (_run, ms) => (ticks.push(ms), () => {}),
+    });
+    signals.install(f.renderer);
+    expect(ticks).toEqual([]);
+    signals.restore();
   });
 });

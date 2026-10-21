@@ -64,6 +64,7 @@ import {
   type Repainter,
 } from "../renderer/index.ts";
 import { installBareCsiR } from "../renderer/bare-csi-r.ts";
+import { installCtrlBreakKey } from "../renderer/ctrl-break-key.ts";
 import { installDoubleEsc } from "../renderer/double-esc.ts";
 import { logHyperlinks } from "../renderer/hyperlinks.ts";
 import { setDrawCapabilities } from "../conversation/markdown/draw.ts";
@@ -431,6 +432,8 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
           terminalSignals.install(renderer);
           // Two ESC bytes in one read are two Esc presses, not Alt+Esc (mvp-chrome-and-keys D11).
           installDoubleEsc(renderer);
+          // Ctrl+Break sent as a kitty key (Windows Terminal 1.25) ends acp-tui as SIGBREAK does.
+          installCtrlBreakKey(renderer, () => void lifecycle.shutdown({ kind: "signal", signal: "SIGBREAK" }));
           installMouseInput(renderer, {
             policy: () => store.ui.mouse,
             wheel,
