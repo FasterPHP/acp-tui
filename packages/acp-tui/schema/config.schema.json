@@ -53,8 +53,8 @@
       }
     },
     "default_agent_server": {
-      "default": "claude",
-      "description": "The harness launched without a harness name or command: \"claude\" (built in) or the name of an agent_servers entry. The older name default_agent is still accepted.",
+      "default": "auggie",
+      "description": "The harness launched without a harness name or command: \"auggie\" or \"claude\" (both built in) or the name of an agent_servers entry. The older name default_agent is still accepted.",
       "type": "string",
       "minLength": 1
     },

@@ -114,7 +114,7 @@ Harnesses:
   agent_servers.
   Name it first ("acp-tui auggie -r") or with --harness. Without one,
   acp-tui launches default_agent_server from the configuration, else the
-  built-in harness "claude", run by acp-tui's own Bun:
+  built-in "auggie" (auggie --acp, from the PATH). "claude" is built in too:
     bun x --bun ${CLAUDE_AGENT_PACKAGE}
   A command after "--" is launched as given. A new session starts in the
   directory argument, else in the directory acp-tui is started from.

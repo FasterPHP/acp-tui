@@ -33,9 +33,10 @@
 import type { ListSessionsResponse } from "@agentclientprotocol/sdk";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
-import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
+import { findAgent, loadAgentCatalogue, type AgentCatalogue, type AgentEntry } from "../agent/catalogue.ts";
+import { resolveProgram } from "../agent/which.ts";
 import { commandDisplayName } from "../agent/harness-name.ts";
-import { AD_HOC_AGENT, adHocSessionMessage, launchArgv, unconfiguredAgentMessage, type LaunchDescription } from "../agent/resolve.ts";
+import { AD_HOC_AGENT, adHocSessionMessage, hintOf, launchArgv, unconfiguredAgentMessage, type LaunchDescription } from "../agent/resolve.ts";
 import type { DebugLogger } from "../log.ts";
 import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
 import type { ConnectedController } from "./controller.ts";
@@ -61,6 +62,9 @@ export const SWITCH_REFUSED_RUNNING = "the running turn must finish or be interr
 export const SWITCH_REFUSED_PERMISSION = "a permission request is open: answer it before you switch sessions; nothing was sent";
 export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it before you switch sessions";
 
+/** What names the agent of a launch: the fields `launchFor` copies. */
+type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint">;
+
 export interface SessionSwitcherOptions {
   /** The launch the command line asked for. */
   readonly launch: LaunchDescription;
@@ -80,6 +84,9 @@ export interface SessionSwitcherOptions {
   readonly onHarnessActivity?: (activity: HarnessActivity) => void;
   /** Reads the agent catalogue (each time the list asks); default `loadAgentCatalogue()`. */
   readonly catalogue?: () => AgentCatalogue;
+  /** Whether a built-in harness's program is on the PATH, looked up once when the list opens
+   *  (spec tui-sessions "Agent selector"); default `resolveProgram` over `process.env`. */
+  readonly isInstalled?: (entry: AgentEntry) => boolean;
   readonly now?: () => number;
 }
 
@@ -155,11 +162,11 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
    * (`commandKey`). An ad hoc agent, or a named one no longer configured, keeps the command it
    * was launched with.
    */
-  const currentAgentLaunch = (using: LaunchDescription): Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env"> => {
+  const currentAgentLaunch = (using: LaunchDescription): AgentBase => {
     if (using.agentName === AD_HOC_AGENT) return using;
     try {
       const found = findAgent(readCatalogue(), using.agentName);
-      return { agentName: found.name, agentSource: using.agentSource, command: found.command, args: found.args, env: found.env };
+      return { agentName: found.name, agentSource: using.agentSource, command: found.command, args: found.args, env: found.env, ...hintOf(found) };
     } catch {
       return using;
     }
@@ -199,7 +206,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
   /** The launch for a session of `base`'s agent in `dir`. */
   function launchFor(
-    base: Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env">,
+    base: AgentBase,
     dir: string,
     session: LaunchDescription["session"],
   ): LaunchDescription {
@@ -209,6 +216,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       command: base.command,
       args: base.args,
       env: base.env,
+      ...hintOf(base),
       directory: dir,
       directorySource: "index",
       launchDirectory: launch.launchDirectory,
@@ -296,7 +304,12 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       });
     },
 
-    agents: () => [...readCatalogue().agents.keys()],
+    agents: () => {
+      // The harness in use, every configured entry, and each built-in found on the PATH (one lookup each, now).
+      const using = (state?.launch ?? launch).agentName;
+      const installed = options.isInstalled ?? ((entry: AgentEntry) => resolveProgram(entry.command) !== null);
+      return [...readCatalogue().agents.values()].filter((entry) => entry.source !== "built-in" || entry.name === using || installed(entry)).map((entry) => entry.name);
+    },
 
     currentAgent: () => {
       const using = state?.launch ?? launch;
@@ -325,13 +338,13 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
       // Which agent: the one in use for its own sessions and its own new-session row; otherwise a
       // named agent from the catalogue. The index never supplies a command (design decision 2).
-      let base: Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env">;
+      let base: AgentBase;
       if (entry.current) base = currentAgentLaunch(previous.launch);
       else if (entry.kind === "session" && entry.agent === AD_HOC_AGENT) return adHocSessionMessage(entry.sessionId, entry.command);
       else {
         try {
           const found = findAgent(readCatalogue(), entry.agent);
-          base = { agentName: found.name, agentSource: "option", command: found.command, args: found.args, env: found.env };
+          base = { agentName: found.name, agentSource: "option", command: found.command, args: found.args, env: found.env, ...hintOf(found) };
         } catch (error) {
           if (entry.kind === "session") return unconfiguredAgentMessage(entry.sessionId, entry.agent, error);
           return `cannot start a new session: ${message(error)}`;

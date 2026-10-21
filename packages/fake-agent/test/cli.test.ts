@@ -68,3 +68,29 @@ describe("fake-agent CLI --start-delay and --list-delay", () => {
     }
   });
 });
+
+describe("fake-agent CLI --auth-required and --agent-info", () => {
+  test("both are absent by default", () => {
+    const options = parseArgs([], {});
+    expect(options.authRequired).toBeUndefined();
+    expect(options.agentInfo).toBeUndefined();
+  });
+
+  test("--auth-required has a full, a bare and a prompt form", () => {
+    expect(parseArgs(["--auth-required"], {}).authRequired).toBe("full");
+    expect(parseArgs(["--auth-required=bare"], {}).authRequired).toBe("bare");
+    expect(parseArgs(["--auth-required=prompt"], {}).authRequired).toBe("prompt");
+  });
+
+  test("--agent-info splits at the last @", () => {
+    expect(parseArgs(["--agent-info", "auggie@1.2.0"], {}).agentInfo).toEqual({ name: "auggie", version: "1.2.0" });
+    expect(parseArgs(["--agent-info", "@scope/x@2"], {}).agentInfo).toEqual({ name: "@scope/x", version: "2" });
+  });
+
+  test("--agent-info refuses a malformed value", () => {
+    for (const bad of ["auggie", "auggie@", "@1.0", ""]) {
+      expect(() => parseArgs(["--agent-info", bad], {})).toThrow("--agent-info must be <name>@<version>");
+    }
+    expect(() => parseArgs(["--agent-info"], {})).toThrow("--agent-info requires a value");
+  });
+});

@@ -250,3 +250,68 @@ describe("the start-up connection (day-two-feedback D2)", () => {
     expect(switcher.directory()).toBe(dir);
   }, 20000);
 });
+
+describe("built-in harness rows and the install hint (colleague-preview)", () => {
+  const builtIn = (name: string, command: string, hint?: string): AgentEntry => ({ name, command, args: [], env: {}, source: "built-in", ...(hint ? { installHint: hint } : {}) });
+
+  function world(installed: (entry: AgentEntry) => boolean, extra: AgentEntry[] = []) {
+    const dir = temp();
+    const fake = entry("fake", "basic");
+    const agents = new Map<string, AgentEntry>([
+      ["auggie", builtIn("auggie", "no-such-auggie-program-xyz", "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login")],
+      ["claude", builtIn("claude", "claude-stand-in")],
+      ["fake", fake],
+      ...extra.map((e) => [e.name, e] as [string, AgentEntry]),
+    ]);
+    const catalogue: AgentCatalogue = { path: join(dir, "config.jsonc"), agents, invalid: new Map(), defaultAgent: "fake", problems: [] };
+    const launch: LaunchDescription = {
+      agentName: "fake",
+      agentSource: "option",
+      command: fake.command,
+      args: fake.args,
+      env: {},
+      directory: dir,
+      directorySource: "launch",
+      launchDirectory: dir,
+      session: { kind: "new" },
+      indexed: null,
+      indexMatches: 0,
+      problems: [],
+    };
+    switcher = createSessionSwitcher({ launch, index: openSessionIndex({ stateHome: join(dir, "state") }), store: fakeStore(), catalogue: () => catalogue, isInstalled: installed });
+    return switcher;
+  }
+
+  test("Built-in that is not installed: no row for it; the harness in use and configured entries stay", () => {
+    expect(world((e) => e.name === "claude").agents()).toEqual(["claude", "fake"]);
+  });
+
+  test("Built-in that is installed: its row is offered, after the others in catalogue order", () => {
+    expect(world(() => true).agents()).toEqual(["auggie", "claude", "fake"]);
+  });
+
+  test("no built-in found: only the configured entries are offered", () => {
+    const s = world(() => false);
+    expect(s.agents()).toEqual(["fake"]);
+  });
+
+  test("a configured entry named like a built-in is always offered", () => {
+    const configured: AgentEntry = { ...entry("auggie", "basic"), source: "config" };
+    expect(world(() => false, [configured]).agents()).toEqual(["auggie", "fake"]);
+  });
+
+  test("a new session with a built-in that is not installed ends the list's message with the install hint", async () => {
+    const s = world(() => true);
+    await s.start();
+    const problem = await s.choose({ kind: "new", agent: "auggie", current: false });
+    expect(problem).toMatch(/^cannot start harness 'auggie'/);
+    expect(problem).toContain("auggie is not installed: install it with npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login");
+  }, 20000);
+
+  test("a session that cannot be opened never mentions installing", async () => {
+    const s = world(() => true);
+    await s.start();
+    const problem = await s.choose({ kind: "session", agent: "fake", current: true, sessionId: "nope", directory: "/", title: null } as never);
+    expect(problem).not.toContain("install");
+  }, 20000);
+});

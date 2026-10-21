@@ -101,16 +101,16 @@ describe("Session list (task 7.1)", () => {
       expect(s.screenText().findIndex((r) => r.startsWith("╰─ ↑↓ select"))).toBe(size.rows - 3);
       expect(rows[0]).toMatch(/^╭─ Sessions in .* esc ─╮$/);
       expect(body[0]).toContain("type to filter by title, harness or directory");
-      const expected = ["New session with fake", "New session with claude", "New session with other", "Session of another agent", ...titles];
+      const expected = ["New session with fake", "New session with auggie", "New session with claude", "New session with other", "Session of another agent", ...titles];
       for (const title of expected) expect(body.some((r) => r.startsWith(title))).toBe(true);
       // The agent selector heads the list, the current agent first; then newest first.
-      expect(body.slice(1, 4)).toEqual(["New session with fake", "New session with claude", "New session with other"].map((t) => expect.stringMatching(new RegExp(`^${t}`))));
+      expect(body.slice(1, 5)).toEqual(["New session with fake", "New session with auggie", "New session with claude", "New session with other"].map((t) => expect.stringMatching(new RegExp(`^${t}`))));
       // The details in aligned columns over the whole list (IDE check 10.2, F2): the title column
       // takes what the agent and time columns leave (the time at least 14 wide, day-two-feedback
       // task 12.5), the directory column (a long temporary path here) is dropped from every row at once.
       const titleWidth = size.cols - 4 - (2 + 5) - (2 + 14);
       const row = (title: string, agent: string, time: string) => `${title.padEnd(titleWidth)}  ${agent.padEnd(5)}  ${time}`;
-      expect(body.slice(4, 11)).toEqual([
+      expect(body.slice(5, 12)).toEqual([
         row("Render the template", "fake", "7 minutes ago"),
         row("Session of another agent", "other", "30 minutes ago"),
         row("Fix the router", "fake", "3 hours ago"),

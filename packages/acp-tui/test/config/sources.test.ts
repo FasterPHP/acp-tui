@@ -131,7 +131,7 @@ describe("Per-project file (task 2.2)", () => {
     const store = createConfigStore({ env: { XDG_CONFIG_HOME: xdg, HOME: "/nonexistent-home" }, sessionDirectory: repo });
     const config = store.config();
     expect(config.agent_servers).toEqual({});
-    expect(config.default_agent_server).toBe("claude");
+    expect(config.default_agent_server).toBe("auggie");
     expect(config.clipboard).toBe("auto");
     expect(config.terminals).toEqual({});
     expect(config.glyphs.set).toBe("ascii");

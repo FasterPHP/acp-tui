@@ -52,7 +52,7 @@ describe("Named agent in a broken file", () => {
     const { home } = configHome(`{ "agent_servers": `);
     const r = await run([], home);
     expect(r.code).toBe(0);
-    expect(r.launch?.agentName).toBe("claude");
+    expect(r.launch?.agentName).toBe("auggie");
     expect(r.launch?.problems).toHaveLength(1);
   });
 });
@@ -113,7 +113,7 @@ describe("World-writable file (task 1.6)", () => {
   test.skipIf(WINDOWS)("only the built-in agents are available, the refusal is a problem, and other sections still apply", async () => {
     const { home } = configHome(FAKE, { file: 0o666 });
     const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: home } });
-    expect([...catalogue.agents.keys()]).toEqual(["claude"]);
+    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude"]);
     expect(catalogue.problems.some((p) => p.includes("agent_servers is refused: harness commands are not read from a file other users can write"))).toBe(true);
     const store = createConfigStore({ env: { XDG_CONFIG_HOME: home, HOME: home }, sessionDirectory: null });
     expect(store.config().density).toBe("focus");
@@ -122,7 +122,7 @@ describe("World-writable file (task 1.6)", () => {
     // Without -a the default (built-in) agent starts.
     const r = await run([], home);
     expect(r.code).toBe(0);
-    expect(r.launch?.agentName).toBe("claude");
+    expect(r.launch?.agentName).toBe("auggie");
   });
 
   test("a file only its owner can write is read as usual", async () => {

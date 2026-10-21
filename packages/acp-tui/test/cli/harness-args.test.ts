@@ -14,7 +14,7 @@ import { launchArgv } from "../../src/agent/resolve.ts";
 import { CliArgumentError, main, parseArgs, type CliContext, type ParseContext, type StartAppOptions } from "../../src/cli.ts";
 
 const FAKE_COMMAND = ["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"];
-const NAMES = ["claude", "fake", "other"];
+const NAMES = ["auggie", "claude", "fake", "other"];
 const CATALOGUE = JSON.stringify({ agent_servers: { fake: { command: "bun", args: FAKE_COMMAND.slice(1) }, other: { command: "bun", args: ["other.ts"] }, config: { command: "bun", args: ["config.ts"] } } });
 
 /** A temporary `/work` with `repo-b` and `fake` directories and a file `notes.txt`. */
@@ -198,11 +198,11 @@ describe("the lone word (tui-sessions 'Directory argument and agent command are 
   test("Unknown word: augie names no harness, no directory and no command, so it is refused with the harnesses and the `--` rule", async () => {
     const dir = work();
     expect(() => parse(["augie"], dir)).toThrow(
-      new CliArgumentError("'augie' is not a harness (claude, fake, other), a directory or a command; an ad hoc command goes after --"),
+      new CliArgumentError("'augie' is not a harness (auggie, claude, fake, other), a directory or a command; an ad hoc command goes after --"),
     );
     const r = await run(["augie"], dir);
     expect(r.code).toBe(1);
-    expect(r.stderr).toBe("acp-tui: 'augie' is not a harness (claude, fake, other, config), a directory or a command; an ad hoc command goes after --\n");
+    expect(r.stderr).toBe("acp-tui: 'augie' is not a harness (auggie, claude, fake, other, config), a directory or a command; an ad hoc command goes after --\n");
     // Nothing launched, so the alternate screen was never entered.
     expect(r.started).toBe(false);
     expect(r.stdout).toBe("");

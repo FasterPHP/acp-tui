@@ -65,7 +65,7 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
   test("Default loads as the default: saved as the user's file, config --check reports no problem and the effective configuration equals the built-in defaults", async () => {
     const text = commentedDefault();
     const w = world({ config: text });
-    const parsed = parseConfigText(text, w.configFile, { knownAgents: ["claude"] });
+    const parsed = parseConfigText(text, w.configFile, { knownAgents: ["auggie", "claude"] });
     expect(parsed.status).toBe("ok");
     expect(parsed.problems).toEqual([]);
     expect(parsed.rejected).toEqual([]);
@@ -174,7 +174,7 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
       }
     }
     const text = lines.join("\n");
-    const parsed = parseConfigText(text, "/x/config.jsonc", { knownAgents: ["claude"] });
+    const parsed = parseConfigText(text, "/x/config.jsonc", { knownAgents: ["auggie", "claude"] });
     expect(parsed.problems).toEqual([]);
     expect(Object.keys(parsed.sections.agent_servers as object)).toEqual(AGENT_EXAMPLES.map((e) => e.name));
     expect((parsed.sections.keys as { global: unknown }).global).toEqual({ "ctrl+d": null, "ctrl+q": "detach" });
@@ -311,7 +311,7 @@ describe("config --check (task 9.1)", async () => {
     // Windows' locations, so these two read the file's text with the Windows rules directly and
     // format the problems as `config --check` prints them.
     const windowsCheck = (text: string, file = "/x/config.jsonc") => {
-      const problems = parseConfigText(text, file, { knownAgents: ["claude"], platform: "win32" }).problems;
+      const problems = parseConfigText(text, file, { knownAgents: ["auggie", "claude"], platform: "win32" }).problems;
       return { problems, stdout: problems.map(formatProblemWithSeverity).join("\n") };
     };
 
@@ -358,7 +358,7 @@ describe("config --check (task 9.1)", async () => {
     });
 
     test("the warning is a configuration problem like any other, so the app's notice shows it too", () => {
-      const parsed = parseConfigText(entry, "/x/config.jsonc", { knownAgents: ["claude"], platform: "win32" });
+      const parsed = parseConfigText(entry, "/x/config.jsonc", { knownAgents: ["auggie", "claude"], platform: "win32" });
       expect(parsed.problems.map((p) => [p.path, p.severity])).toEqual([
         ["agent_servers.auggie.args.1", "warning"],
         ["agent_servers.auggie.args.2", "warning"],
@@ -436,7 +436,7 @@ describe("Windows: paths, the commented default and the byte order mark (windows
     expect(commentText(windows)).toContain("This is acp-tui's configuration file: %APPDATA%\\acp-tui\\config.jsonc, or $XDG_CONFIG_HOME\\acp-tui\\config.jsonc when XDG_CONFIG_HOME is set.");
     expect(windows).toContain("file:///C:/Users/you/AppData/Roaming/acp-tui/config.schema.json");
     expect(windows).not.toContain("~/.config");
-    const parsed = parseConfigText(windows, "C:\\Users\\u\\AppData\\Roaming\\acp-tui\\config.jsonc", { knownAgents: ["claude"] });
+    const parsed = parseConfigText(windows, "C:\\Users\\u\\AppData\\Roaming\\acp-tui\\config.jsonc", { knownAgents: ["auggie", "claude"] });
     expect(parsed.problems).toEqual([]);
     expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} })).toEqual(defaultConfig());
     // Linux and macOS keep their text.
