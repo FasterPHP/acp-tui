@@ -31,7 +31,7 @@ describe("splash screen (task 4.7)", () => {
     await run.s.waitFor((p) => conversation(p).join("\n").includes("Fake Aurora"), 5000);
     const rows = conversation(run.s);
     const all = rows.join("\n");
-    for (const part of ["┏━┓ ┏━╸ ┏━┓", "IDE · terminal ━→ acp-tui ━→ claude · codex · opencode · …", "fake-agent", "Fake Aurora", "acp-tui-keys-", "enter send", "shift+enter newline", "/ commands", "@ files", "? help", "esc esc interrupt", "ctrl+d detach"]) {
+    for (const part of ["┏━┓ ┏━╸ ┏━┓", "IDE · terminal ━→ acp-tui ━→ auggie · claude · codex · …", "fake-agent", "Fake Aurora", "acp-tui-keys-", "enter send", "shift+enter newline", "/ commands", "@ files", "? help", "esc esc interrupt", "ctrl+d detach"]) {
       expect(all).toContain(part);
     }
     // Centred: the rows used sit in the middle of the 12, each row centred in 63 columns.

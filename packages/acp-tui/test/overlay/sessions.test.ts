@@ -207,13 +207,13 @@ describe("agent selector rows (design decision 6)", () => {
   });
 
   test("a session without a title is listed under its ID; the home directory reads `~`", () => {
-    const [row] = mergeSessions([{ sessionId: "s-untitled", cwd: "/home/marcus/work" }], [], FAKE, null);
-    const item = sessionListItem(row!, { now: 0, home: "/home/marcus" });
+    const [row] = mergeSessions([{ sessionId: "s-untitled", cwd: "/home/user/work" }], [], FAKE, null);
+    const item = sessionListItem(row!, { now: 0, home: "/home/user" });
     expect(item.title).toBe("s-untitled");
     // No time: an empty detail, so the directory stays in its column.
     expect(item.details).toEqual(["fake", "", "~/work"]);
-    expect(shortenHome("/home/marcus", "/home/marcus")).toBe("~");
-    expect(shortenHome("/home/marcusx/a", "/home/marcus")).toBe("/home/marcusx/a");
+    expect(shortenHome("/home/user", "/home/user")).toBe("~");
+    expect(shortenHome("/home/userx/a", "/home/user")).toBe("/home/userx/a");
   });
 
   test("Windows: a session under the profile reads `~\\...`; an ad hoc command is named by its file without the extension", () => {
@@ -367,8 +367,8 @@ describe("the list at start-up (day-two-feedback D2)", () => {
   });
 
   test("No sessions: `no sessions yet in <dir>` (`~` for home), `no matches` while filtering", () => {
-    expect(noSessionsLine("directory", "/work/new", "/home/marcus", false)).toBe("no sessions yet in /work/new");
-    expect(noSessionsLine("directory", "/home/marcus/Projects/x", "/home/marcus", false)).toBe("no sessions yet in ~/Projects/x");
+    expect(noSessionsLine("directory", "/work/new", "/home/user", false)).toBe("no sessions yet in /work/new");
+    expect(noSessionsLine("directory", "/home/user/Projects/x", "/home/user", false)).toBe("no sessions yet in ~/Projects/x");
     expect(noSessionsLine("directory", "/work/new", null, true)).toBe("no matches");
     expect(noSessionsLine("all", "/work/new", null, false)).toBe("no sessions yet");
   });

@@ -22,6 +22,7 @@ import { permissionDiffScenario } from "./permission-diff.ts";
 import { permissionWithdrawScenario } from "./permission-withdraw.ts";
 import { planRunningScenario } from "./plan-running.ts";
 import { promptErrorScenario } from "./prompt-error.ts";
+import { secretEchoScenario } from "./secret-echo.ts";
 import { shortAnswerScenario } from "./short-answer.ts";
 import { slowTurnScenario } from "./slow-turn.ts";
 import { streamLongScenario } from "./stream-long.ts";
@@ -59,6 +60,7 @@ export const SCENARIOS: Readonly<Record<string, Scenario>> = {
   [toolContentScenario.name]: toolContentScenario,
   [linksScenario.name]: linksScenario,
   [shortAnswerScenario.name]: shortAnswerScenario,
+  [secretEchoScenario.name]: secretEchoScenario,
   [commandResultsScenario.name]: commandResultsScenario,
   [usageWithoutCostScenario.name]: usageWithoutCostScenario,
 };

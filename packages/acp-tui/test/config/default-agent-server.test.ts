@@ -12,13 +12,13 @@ import type { ConfigurationRead } from "../../src/config/read.ts";
 
 const FILE = "/home/u/.config/acp-tui/config.jsonc";
 const SERVERS = `"agent_servers": { "fake": { "command": "bun", "args": ["x.ts"] }, "other": { "command": "bun", "args": ["y.ts"] } }`;
-const parse = (text: string, kind: "user" | "project" = "user") => parseConfigText(text, FILE, { kind, knownAgents: ["claude"] });
+const parse = (text: string, kind: "user" | "project" = "user") => parseConfigText(text, FILE, { kind, knownAgents: ["auggie", "claude"] });
 
 describe("default_agent_server", () => {
-  test("claude by default, in the schema and the commented default; the old name is in neither", () => {
-    expect(defaultConfig().default_agent_server).toBe("claude");
+  test("auggie by default, in the schema and the commented default; the old name is in neither", () => {
+    expect(defaultConfig().default_agent_server).toBe("auggie");
     const text = commentedDefault();
-    expect(text).toContain(`"default_agent_server": "claude"`);
+    expect(text).toContain(`"default_agent_server": "auggie"`);
     expect(text).not.toMatch(/"default_agent"\s*:/);
     expect(JSON.parse(jsonSchemaText(ConfigSchema)).properties.default_agent_server).toBeDefined();
     expect(JSON.parse(jsonSchemaText(ConfigSchema)).properties.default_agent).toBeUndefined();
@@ -60,12 +60,12 @@ describe("default_agent_server", () => {
     expect(buildAgentCatalogue(`{ ${SERVERS}, "default_agent_server": "other", "default_agent": "fake" }`, FILE).defaultAgent).toBe("other");
   });
 
-  test("an unknown name is a problem at the value, under the key written, and claude is used", () => {
+  test("an unknown name is a problem at the value, under the key written, and auggie is used", () => {
     for (const key of ["default_agent_server", "default_agent"]) {
       const parsed = parse(`{ "${key}": "ghost" }`);
       expect(parsed.problems).toHaveLength(1);
       expect(parsed.problems[0]).toMatchObject({ path: key, severity: "error" });
-      expect(parsed.problems[0]!.message).toContain(`names "ghost", which is not a known harness; "claude" is used`);
+      expect(parsed.problems[0]!.message).toContain(`names "ghost", which is not a known harness; "auggie" is used`);
       expect(parsed.rejected).toEqual(["default_agent_server"]);
     }
   });

@@ -137,6 +137,9 @@ export interface LifecycleOptions {
    * any error message; called once the exit hooks have run. Empty for none.
    */
   exitText?: (reason: ExitReason) => string;
+  /** Writes a crash report for an uncaught error and returns its path, or null when it cannot be
+   *  written (the stack is then printed instead). */
+  crashReport?: (error: unknown) => string | null;
 }
 
 export interface Lifecycle {
@@ -329,6 +332,11 @@ export function createLifecycle(options: LifecycleOptions = {}): Lifecycle {
         if (reason.kind === "error") {
           try {
             writeError(`\racp-tui: ${errorText(reason)}\n`);
+            if (reason.uncaught && options.crashReport) {
+              const path = options.crashReport(reason.error);
+              if (path !== null) writeError(`crash report: ${path} (attach it when you report this)\n`);
+              else writeError(`${reason.error instanceof Error && reason.error.stack ? reason.error.stack : String(reason.error)}\n`);
+            }
           } catch {
             // stderr may be gone too.
           }

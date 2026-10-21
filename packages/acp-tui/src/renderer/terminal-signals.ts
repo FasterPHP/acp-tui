@@ -6,6 +6,7 @@ import { createEffect, createRoot, on } from "solid-js";
 import type { CliRenderer } from "@opentui/core";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
 import type { DebugLogger } from "../log.ts";
+import type { ConsoleTitleReader } from "../platform/windows-console-title.ts";
 import type { SessionStore } from "../session/store.ts";
 import { DEFAULT_ATTENTION, installAttention, type AttentionSettings } from "./attention.ts";
 import { ALTERNATE_SCROLL_QUERY, createAlternateScroll, installNotchFilter, type AlternateScroll } from "./mouse-off.ts";
@@ -33,10 +34,42 @@ export interface TerminalSignalsOptions {
   readonly logger?: DebugLogger;
   /** For tests: runs `run` after `ms` and returns what cancels it (default `setTimeout`, unref'd). */
   readonly schedule?: (run: () => void, ms: number) => () => void;
+  /**
+   * Reads the console's title (Windows): default `GetConsoleTitleW` through `bun:ffi` when the
+   * platform is the real one and Windows, otherwise none; null turns the title watch off (tests).
+   */
+  readonly consoleTitle?: ConsoleTitleReader | null;
+  /** For tests: runs `run` every `ms` and returns what stops it (default `setInterval`, unref'd). */
+  readonly every?: (run: () => void, ms: number) => () => void;
 }
 
 /** How long a tool call's end waits to set the title again, so a burst of them is one write (ms). */
 export const TITLE_REASSERT_DELAY_MS = 200;
+
+/** How often the console's title is read on Windows, to set acp-tui's again if it changed (ms). */
+export const TITLE_WATCH_INTERVAL_MS = 500;
+/** Writes for one foreign title before the watch leaves it be (a title the console will not take). */
+export const TITLE_WATCH_MAX_WRITES = 3;
+
+function defaultEvery(run: () => void, ms: number): () => void {
+  const timer = setInterval(run, ms);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
+
+/** The Win32 reader, required (not imported) so that only Windows loads `bun:ffi`; null when it
+ *  cannot be opened, which leaves the moments of `harnessActivity` as the only writes. */
+function defaultConsoleTitle(options: TerminalSignalsOptions): ConsoleTitleReader | null {
+  if (options.consoleTitle !== undefined) return options.consoleTitle;
+  if (options.platform !== undefined || process.platform !== "win32") return null;
+  try {
+    const module = require("../platform/windows-console-title.ts") as typeof import("../platform/windows-console-title.ts");
+    return module.consoleTitleReader();
+  } catch (error) {
+    options.logger?.log({ event: "title_watch", state: "unavailable", error: error instanceof Error ? error.message : String(error) });
+    return null;
+  }
+}
 
 function defaultSchedule(run: () => void, ms: number): () => void {
   const timer = setTimeout(run, ms);
@@ -62,7 +95,10 @@ export interface TerminalSignals {
    * built-in Claude harness sets `claude` as its worker starts, and a command a tool runs can set
    * its own): a session created or opened and a turn that ended set the title at once, a tool
    * call that ended after `TITLE_REASSERT_DELAY_MS`, a burst of them as one write. Windows only,
-   * for the reason `reassertTitle` gives; nothing on Linux and macOS.
+   * for the reason `reassertTitle` gives; nothing on Linux and macOS. Between these moments the
+   * title watch covers the rest: on Windows the console's title is read every
+   * `TITLE_WATCH_INTERVAL_MS` and acp-tui's set again when it differs (a harness's process that
+   * names the tab after the turn has ended, a shim's `title` before `initialize` is answered).
    */
   harnessActivity(activity: HarnessActivity): void;
 }
@@ -78,6 +114,7 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
   let reassertAfterInstall = false;
   const schedule = options.schedule ?? defaultSchedule;
   let cancelPending: (() => void) | null = null;
+  let stopWatch: (() => void) | null = null;
   const reassert = (): void => {
     if (platform !== "win32") return;
     if (title) title.reassert();
@@ -96,6 +133,25 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
       if (reassertAfterInstall) {
         reassertAfterInstall = false;
         installed.reassert();
+      }
+      const readTitle = platform === "win32" ? defaultConsoleTitle(options) : null;
+      if (readTitle) {
+        // The foreign title last seen and how many writes it has had: a console that will not
+        // take acp-tui's title (one it rewrites, say) gets a few writes, not one every interval.
+        let foreign: { text: string; writes: number } | null = null;
+        stopWatch = (options.every ?? defaultEvery)(() => {
+          const ours = installed.current();
+          const shown = ours === "" ? null : readTitle();
+          if (shown === null || shown === ours) {
+            foreign = null;
+            return;
+          }
+          if (foreign?.text !== shown) foreign = { text: shown, writes: 0 };
+          if (foreign.writes >= TITLE_WATCH_MAX_WRITES) return;
+          foreign.writes += 1;
+          options.logger?.log({ event: "title_watch", state: "restored", writes: foreign.writes });
+          installed.reassert();
+        }, TITLE_WATCH_INTERVAL_MS);
       }
       // A reload of `title.format` sets the title again.
       if (options.titleFormat) {
@@ -144,6 +200,8 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
     restore() {
       cancelPending?.();
       cancelPending = null;
+      stopWatch?.();
+      stopWatch = null;
       for (const remove of removers.splice(0)) remove();
       return (title?.restore() ?? "") + (alternate?.restore() ?? "");
     },

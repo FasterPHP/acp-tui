@@ -1,0 +1,26 @@
+name: Feedback
+description: An idea, a wish, or something that felt awkward.
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Any impression is welcome, small or large. If something is broken, the bug report form asks for the details that help most.
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Your feedback
+      description: What you tried, what you liked or disliked, and what you would change.
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: acp-tui version
+      description: The output of `acp-tui --version`, if you have it to hand.
+      render: text
+  - type: input
+    id: setup
+    attributes:
+      label: IDE, terminal and operating system
+      description: For example IntelliJ IDEA 2026.2.3, reworked terminal, Windows 11.

@@ -31,7 +31,7 @@ import { MODULE_IDS, MODULES, type ModuleId } from "../layout/modules.ts";
 import { templateFields } from "../layout/template.ts";
 import { DEFAULT_TITLE_FORMAT, titleFormatIssue, titlePlaceholderList } from "../renderer/title-format.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS, type KeyContext } from "../keys/keymap.ts";
-import { BUILT_IN_AGENT_NAME } from "../agent/command.ts";
+import { DEFAULT_HARNESS } from "../agent/command.ts";
 import { CLIPBOARD_MODES, EXIT_PRINTS, MOUSE_POLICIES } from "../renderer/options.ts";
 import { TERMINAL_IDS, type TerminalId } from "../renderer/terminal-ids.ts";
 import { suggest } from "./problems.ts";
@@ -370,7 +370,7 @@ export const SECTIONS = {
     .record(z.string(), AgentServer)
     .default({})
     .describe("Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file."),
-  default_agent_server: z.string().min(1).default(BUILT_IN_AGENT_NAME).describe("The harness launched without a harness name or command: \"claude\" (built in) or the name of an agent_servers entry. The older name default_agent is still accepted."),
+  default_agent_server: z.string().min(1).default(DEFAULT_HARNESS).describe("The harness launched without a harness name or command: \"auggie\" or \"claude\" (both built in) or the name of an agent_servers entry. The older name default_agent is still accepted."),
   mouse: listed(z.enum(MOUSE_POLICIES).default("full"), {
     heading: "Mouse policy",
     values: [

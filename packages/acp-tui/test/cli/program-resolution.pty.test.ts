@@ -3,7 +3,7 @@
 // of "Script in a cloned repository" (a relative `PATH` entry, `.`, which the system's own lookup
 // reads against the session directory, as Windows reads the current directory first).
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
 import { listWorld } from "../session/list-world.ts";
@@ -40,5 +40,39 @@ describe.skipIf(process.platform === "win32")("Programs resolved from the PATH o
     expect(s.screenText().join("")).toContain(`acp-tui: could not start harness 'cloned' (command 'acp-tui-cloned-harness --acp'): Executable not found in $PATH`);
     expect(existsSync(marker)).toBe(false);
     expect(w.events("agent_launched")).toEqual([]);
+  }, 40000);
+
+  // colleague-preview, spec tui-agent-session "Built-in harness not installed": a PATH holding only
+  // bun, so the built-in `auggie` is found nowhere whatever is installed on the machine.
+  function bunOnlyPath(w: ReturnType<typeof listWorld>): void {
+    const bin = join(w.base, "bin");
+    mkdirSync(bin);
+    symlinkSync(process.execPath, join(bin, "bun"));
+    w.env["PATH"] = bin;
+  }
+
+  test("Auggie missing: acp-tui exits 1 naming the harness, its command and the install hint, and never enters the alternate screen", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    bunOnlyPath(w);
+    const s = (session = w.start([], { cwd: repo, cols: 200, rows: 30 }));
+    expect(await s.wait(20000)).toBe(1);
+    const text = s.screenText().join("");
+    expect(text).toContain("acp-tui: could not start harness 'auggie' (command 'auggie --acp')");
+    expect(text).toContain("auggie is not installed: install it with npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login");
+    expect(w.events("agent_launched")).toEqual([]);
+    expect(w.events("launch_error")).toMatchObject([{ kind: "not_found" }]);
+  }, 40000);
+
+  test("Configured entry missing: an auggie entry whose command does not exist gets the plain message", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    bunOnlyPath(w);
+    writeFileSync(join(w.base, "config", "acp-tui", "config.jsonc"), JSON.stringify({ agent_servers: { auggie: { command: "my-auggie-xyz", args: ["--acp"] } } }));
+    const s = (session = w.start(["auggie"], { cwd: repo, cols: 200, rows: 30 }));
+    expect(await s.wait(20000)).toBe(1);
+    const text = s.screenText().join("");
+    expect(text).toContain("could not start harness 'auggie' (command 'my-auggie-xyz --acp')");
+    expect(text).not.toContain("install");
   }, 40000);
 });

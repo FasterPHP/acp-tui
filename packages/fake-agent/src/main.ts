@@ -53,6 +53,8 @@ function main(): void {
         longGap: options.longGap,
         tools: options.tools,
         startDelayMs: options.startDelayMs,
+        ...(options.authRequired === undefined ? {} : { authRequired: options.authRequired }),
+        ...(options.agentInfo === undefined ? {} : { agentInfo: options.agentInfo }),
         sessions: {
           load: options.load,
           resume: options.resume,

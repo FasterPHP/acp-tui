@@ -255,7 +255,7 @@ describe("Directory argument and agent command are told apart (tui-sessions)", (
     const r = await run(["./config"], dir);
     expect(r.code).toBe(0);
     expect(r.launch?.directory).toBe(join(dir, "config"));
-    expect(r.launch?.agentName).toBe("claude");
+    expect(r.launch?.agentName).toBe("auggie");
   });
 
   test("Dropped separator: the positional arguments are the agent command, the session starts in the launch directory", async () => {

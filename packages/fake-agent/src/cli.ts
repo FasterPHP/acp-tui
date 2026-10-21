@@ -33,6 +33,24 @@ export interface FakeAgentCliOptions {
   readonly startDelayMs: number;
   /** `--list-delay <ms>`: wait this long before answering `session/list`. Absolute, never scaled. */
   readonly listDelayMs: number;
+  /** `--auth-required[=bare|prompt]`: `session/new` (or, for `prompt`, `session/prompt`) answers `-32000`
+   *  "authentication required", with Auggie 0.36.0's text (`full`, the bare flag) or `Authentication required` alone. */
+  readonly authRequired: AuthRequiredMode | undefined;
+  /** `--agent-info <name>@<version>`: the `agentInfo` `initialize` reports. */
+  readonly agentInfo: { readonly name: string; readonly version: string } | undefined;
+}
+
+export type AuthRequiredMode = "full" | "bare" | "prompt";
+
+/** Parses `<name>@<version>` (the last `@` splits, so a scoped name keeps its own). */
+function parseAgentInfo(raw: string): { name: string; version: string } {
+  const at = raw.lastIndexOf("@");
+  const name = raw.slice(0, at);
+  const version = raw.slice(at + 1);
+  if (at < 1 || version === "") {
+    throw new Error(`--agent-info must be <name>@<version>, got '${raw}'`);
+  }
+  return { name, version };
 }
 
 const DEFAULT_SCENARIO = "basic";
@@ -100,6 +118,8 @@ export function parseArgs(
   let tools = DEFAULT_TOOLS;
   let startDelayMs = 0;
   let listDelayMs = 0;
+  let authRequired: AuthRequiredMode | undefined;
+  let agentInfo: { name: string; version: string } | undefined;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
@@ -153,6 +173,19 @@ export function parseArgs(
         listDelayMs = parseDelayMs(arg, requireValue(arg, argv, i));
         i += 1;
         break;
+      case "--auth-required":
+        authRequired = "full";
+        break;
+      case "--auth-required=bare":
+        authRequired = "bare";
+        break;
+      case "--auth-required=prompt":
+        authRequired = "prompt";
+        break;
+      case "--agent-info":
+        agentInfo = parseAgentInfo(requireValue(arg, argv, i));
+        i += 1;
+        break;
       case "--chunk":
         chunk = parsePositiveInteger(arg, requireValue(arg, argv, i));
         i += 1;
@@ -197,5 +230,7 @@ export function parseArgs(
     tools,
     startDelayMs,
     listDelayMs,
+    authRequired,
+    agentInfo,
   };
 }

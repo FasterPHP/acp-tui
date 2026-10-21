@@ -45,7 +45,7 @@ describe("defaults (design D2)", () => {
     expect(Object.keys(config).sort()).toEqual([...SECTION_NAMES].sort());
     expect(config).toEqual({
       agent_servers: {},
-      default_agent_server: "claude",
+      default_agent_server: "auggie",
       mouse: "full",
       wheel_lines: null,
       terminals: {},
@@ -139,6 +139,6 @@ describe("agents (tui-sessions' meaning)", () => {
 
   test("an entry in Zed's shape: command, args and env, args and env defaulted", () => {
     expect(SECTIONS.agent_servers.parse({ fake: { command: "bun" } })).toEqual({ fake: { command: "bun", args: [], env: {} } });
-    expect(SECTIONS.default_agent_server.parse(undefined)).toBe("claude");
+    expect(SECTIONS.default_agent_server.parse(undefined)).toBe("auggie");
   });
 });

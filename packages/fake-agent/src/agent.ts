@@ -27,6 +27,7 @@ import {
   type SetSessionModeRequest,
   type SetSessionModeResponse,
 } from "@agentclientprotocol/sdk";
+import type { AuthRequiredMode } from "./cli.ts";
 import type { ScenarioLogger } from "./logger.ts";
 import { redactPromptParams } from "./redact.ts";
 import { createScenarioContext, type Scenario } from "./scenario.ts";
@@ -76,6 +77,10 @@ export interface FakeAgentOptions {
   readonly tools?: number;
   /** The `--start-delay` knob: milliseconds `initialize` waits before answering (absolute, not scaled). */
   readonly startDelayMs?: number;
+  /** `--auth-required`: see `FakeAgentCliOptions.authRequired`. */
+  readonly authRequired?: AuthRequiredMode;
+  /** `--agent-info`: the `agentInfo` `initialize` reports (title equal to the name). */
+  readonly agentInfo?: { readonly name: string; readonly version: string };
   /** Everything off, an empty in-memory store: the behaviour before mvp-sessions. */
   readonly sessions?: FakeAgentSessionOptions;
 }
@@ -85,6 +90,13 @@ interface TurnState {
 }
 
 let sessionCounter = 0;
+
+/** ACP's "authentication required" error code. */
+const AUTH_REQUIRED = -32000;
+
+/** Auggie 0.36.0's text for a logged-out `session/new` (read from its bundle). */
+const AUGGIE_LOGIN_MESSAGE =
+  "Authentication required: Auggie does not currently support authenticating over ACP. Please run `auggie login` from your terminal then try again.";
 
 /**
  * The session updates the agent logs when it sends them (`session/update/sent`, with the session
@@ -105,7 +117,7 @@ export function createFakeAgent(
   conn: AgentSideConnection,
   options: FakeAgentOptions,
 ): Agent {
-  const { scenario, logger, delayScale, items, chunk, longGap, tools, startDelayMs = 0 } = options;
+  const { scenario, logger, delayScale, items, chunk, longGap, tools, startDelayMs = 0, authRequired, agentInfo } = options;
   const sessions: FakeAgentSessionOptions = options.sessions ?? {
     load: false,
     resume: false,
@@ -192,7 +204,7 @@ export function createFakeAgent(
       };
       return {
         protocolVersion: 1,
-        agentInfo: { name: "fake-agent", version: "0.0.0" },
+        agentInfo: agentInfo ? { name: agentInfo.name, title: agentInfo.name, version: agentInfo.version } : { name: "fake-agent", version: "0.0.0" },
         ...overrides,
         agentCapabilities: {
           loadSession: sessions.load,
@@ -205,6 +217,9 @@ export function createFakeAgent(
 
     async newSession(request: NewSessionRequest): Promise<NewSessionResponse> {
       logger.record("session/new", request);
+      if (authRequired !== undefined && authRequired !== "prompt") {
+        throw new RequestError(AUTH_REQUIRED, authRequired === "bare" ? "Authentication required" : AUGGIE_LOGIN_MESSAGE);
+      }
       let sessionId: string;
       do {
         sessionCounter += 1;
@@ -328,6 +343,9 @@ export function createFakeAgent(
 
     async prompt(request: PromptRequest): Promise<PromptResponse> {
       logger.record("session/prompt", redactPromptParams(request));
+      if (authRequired === "prompt") {
+        throw new RequestError(AUTH_REQUIRED, AUGGIE_LOGIN_MESSAGE);
+      }
       await historySends.get(request.sessionId);
       await startedSends.get(request.sessionId);
       const controller = new AbortController();

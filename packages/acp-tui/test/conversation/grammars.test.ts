@@ -40,6 +40,14 @@ describe("bundled grammars (mvp-rendering task 8.2)", () => {
       python: "python",
       yaml: "yaml",
       yml: "yaml",
+      java: "java",
+      kotlin: "kotlin",
+      kt: "kotlin",
+      kts: "kotlin",
+      xml: "xml",
+      pom: "xml",
+      xsd: "xml",
+      svg: "xml",
     };
     const registered = new Set<string>();
     const aliases = new Map<string, string>();
@@ -87,6 +95,9 @@ describe("bundled grammars (mvp-rendering task 8.2)", () => {
     expect(by.sql).toContain("keyword");
     expect(by.python).toContain("keyword");
     expect(by.yaml).toContain("property");
+    expect(by.java).toContain("keyword");
+    expect(by.kotlin).toContain("string");
+    expect(by.xml).toContain("tag");
     expect(by.javascript).toContain("keyword");
     expect(by.typescript).toContain("keyword");
     // OpenTUI 0.6's own TSX grammar (opentui-0-6 design D6): the element is a tag.

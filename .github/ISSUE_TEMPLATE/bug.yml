@@ -1,0 +1,85 @@
+name: Bug report
+description: Something in acp-tui does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing acp-tui. The tester guide (docs/testing.md) says how to gather what this form asks for. Please remove anything private (paths, code, prompts) before you submit.
+  - type: textarea
+    id: version
+    attributes:
+      label: acp-tui version
+      description: The output of `acp-tui --version`.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: ide
+    attributes:
+      label: IDE and version
+      description: For example IntelliJ IDEA 2026.2.3, PhpStorm 2026.2.3, Zed 1.18.1, or a standalone terminal.
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Terminal engine
+      description: In JetBrains IDEs, Settings, Tools, Terminal, "Terminal engine".
+      options:
+        - JetBrains reworked terminal
+        - JetBrains classic terminal
+        - Zed
+        - Another terminal (say which below)
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: For example Windows 11 24H2, macOS 15.4, Ubuntu 24.04.
+    validations:
+      required: true
+  - type: input
+    id: shell
+    attributes:
+      label: Shell
+      description: For example PowerShell 7.5, Windows PowerShell 5.1, zsh, bash.
+    validations:
+      required: true
+  - type: input
+    id: harness
+    attributes:
+      label: Harness and version
+      description: For example auggie 0.36.0 (`auggie --version`).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start `acp-tui` in ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Screenshots help, especially for anything drawn wrongly.
+    validations:
+      required: true
+  - type: textarea
+    id: crash
+    attributes:
+      label: Crash report
+      description: If acp-tui named a crash report when it exited, attach the file (drag it here) or paste its contents.
+      render: text

@@ -101,6 +101,8 @@ export interface TerminalTitle {
   /** Writes the title again even if it has not changed, for a program that retitled the tab
    *  behind acp-tui's back (npm's `.cmd` shims run `title %COMSPEC%`); nothing before `restore`. */
   reassert(): void;
+  /** The title acp-tui last set; empty before the first and after `restore`. */
+  current(): string;
 }
 
 export interface TitleOptions {
@@ -155,5 +157,6 @@ export function installTerminalTitle(
       last = "";
       apply(feed.snapshot());
     },
+    current: () => (stopped ? "" : last),
   };
 }
