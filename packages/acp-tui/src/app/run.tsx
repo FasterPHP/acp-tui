@@ -38,6 +38,7 @@ import { sanitise } from "acp-model";
 import { createSignal } from "solid-js";
 import type { CliRenderer, HostClipboardService } from "@opentui/core";
 import { captureConsole } from "../agent/console-capture.ts";
+import { AgentStartupError } from "../agent/connection.ts";
 import type { StartAppOptions } from "../cli.ts";
 import { showFinding } from "./finding-line.ts";
 import { resolveLayout, type Layout } from "../layout/layout.ts";
@@ -551,13 +552,41 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     // Before the renderer (design decision 13): what `--resume <id>` or `--continue` cannot find
     // or open is said below the command line, and nothing is drawn.
     const finding = launch.session.kind === "resume" || launch.session.kind === "continue" ? showFinding(process.stdout) : () => {};
+    // On the normal screen the terminal is in its cooked mode, so Ctrl+C is SIGINT: it ends the
+    // harness that is being looked in, removes the line and exits with status 130, saying nothing
+    // more (spec tui-agent-session "Exit while the harness starts").
+    let interrupted = false;
+    const onInterrupt = (): void => {
+      if (interrupted) return;
+      interrupted = true;
+      void switcher.detach();
+    };
+    const interruptedExit = (): void => {
+      void switcher.detach().finally(() => {
+        options.logger.log({ event: "exit", reason: "signal", before: "renderer" });
+        capture.restore();
+        store.dispose();
+        resolve(130);
+      });
+    };
+    process.on("SIGINT", onInterrupt);
     switcher.prepare().then(
       () => {
+        process.off("SIGINT", onInterrupt);
         finding();
-        run();
+        if (interrupted) interruptedExit();
+        else run();
       },
-      (error: unknown) => {
+      async (error: unknown) => {
+        // The interrupt reaches the harness too (the same terminal group): the harness's exit may be
+        // noticed before the signal is, so look once more before reporting it as a failure.
+        if (!interrupted && error instanceof AgentStartupError) await Bun.sleep(100);
+        process.off("SIGINT", onInterrupt);
         finding();
+        if (interrupted) {
+          interruptedExit();
+          return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         options.logger.log({ event: "exit", reason: "error", before: "renderer" });
         capture.restore();

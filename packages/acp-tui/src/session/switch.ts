@@ -181,16 +181,23 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
   let connection: Promise<void> | null = null;
   let connecting = false;
 
-  // Harnesses started and not yet through `initialize`: no controller to detach yet, so exit ends them.
-  const launching = new Set<LaunchedHarness>();
+  // Harnesses started and not yet through `initialize` have no controller to detach, so exit ends
+  // them; while `prepare` runs (finding the session for `--resume <id>` and `--continue`, before the
+  // full screen) every harness it launched is ended, since none is in `started` yet.
+  const launching = new Map<LaunchedHarness, { settled: boolean }>();
+  let preparing = false;
   let detaching = false;
   const onLaunched = (launched: LaunchedHarness): void => {
     if (detaching) {
       launched.kill();
       return;
     }
-    launching.add(launched);
-    void launched.settled.then(() => launching.delete(launched));
+    const state = { settled: false };
+    launching.set(launched, state);
+    void launched.settled.then(() => {
+      state.settled = true;
+      if (!preparing) launching.delete(launched);
+    });
   };
 
   const common = {
@@ -245,7 +252,13 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
     async prepare() {
       if (launch.session.kind !== "resume" && launch.session.kind !== "continue") return;
-      prepared = await prepareLaunch({ launch, index, catalogue: readCatalogue, ...common });
+      preparing = true;
+      try {
+        prepared = await prepareLaunch({ launch, index, catalogue: readCatalogue, ...common });
+      } finally {
+        preparing = false;
+        for (const [launched, state] of launching) if (state.settled) launching.delete(launched);
+      }
       started.add(prepared.controller);
     },
 
@@ -436,7 +449,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     async detach() {
       detaching = true;
       // A harness that has not answered `initialize` has no session to detach from: ended at once.
-      for (const launched of launching) launched.kill();
+      for (const [launched, state] of launching) if (!state.settled || preparing) launched.kill();
       await Promise.all([...started].map((c) => c.detach()));
     },
   };

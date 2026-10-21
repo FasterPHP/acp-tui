@@ -91,7 +91,7 @@ It has the same format as your file and the same checks, and it overrides yours 
 
 | A project file cannot set | Why |
 | --- | --- |
-| `agent_servers`, `default_agent_server` | Defining or choosing a harness is choosing what runs; a cloned repository must not make acp-tui run an arbitrary program |
+| `agent_servers`, `default_agent_server`, `agent_startup_timeout_seconds` | Defining or choosing a harness is choosing what runs; a cloned repository must not make acp-tui run an arbitrary program, nor decide how long a harness it did not choose is waited for |
 | `clipboard` | A repository should not decide where copied text goes |
 | `terminals` | It could turn OSC 8 links on for a terminal whose behaviour has not been checked |
 | `keys` in the `card` and `elicitation` contexts | It could otherwise bind a common key to `allow always` |
@@ -151,7 +151,7 @@ Exceptions and rules:
 
 - **`terminals.<id>.hyperlinks` applies from the next start.** The renderer fixes whether OSC 8 links are written when it starts. A reload that changes it for your terminal changes nothing on screen and shows the notice `hyperlinks applies from the next start`. Every other setting, `wheel_lines` and `strikethrough` in the same table included, reloads live.
 - **A `mouse` change can be refused while the terminal is busy** (start-up or a suspend). It is tried once more on the next frame; if the terminal still refuses, the policy in use is kept and a notice says so. Saving the file again retries.
-- **The running harness is never touched.** Changes to `agent_servers` and `default_agent_server` apply to the next session you start; the harness list in the session list shows the new set at once.
+- **The running harness is never touched.** Changes to `agent_servers`, `default_agent_server` and `agent_startup_timeout_seconds` apply to the next session you start; the harness list in the session list shows the new set at once.
 - **`density` switches only when the setting itself changed**, so editing the theme does not undo a `v` you pressed.
 - **No call expands itself.** A failed tool call keeps its own line with `✗` in every density but `verbose` (which expands every call), and you expand it with Enter, a click or Ctrl+O. The status row marks the density only when it differs from your `density` setting, so with the default `focus` it marks `compact` and `verbose`, and with `"density": "compact"` it marks `focus` and `verbose`.
 - **A setting given on the command line stays as given** (see above).
@@ -168,8 +168,9 @@ acp-tui calls the program it launches and talks to over ACP a **harness**: Claud
 | --- | --- | --- | --- |
 | `agent_servers` | object of harnesses | `{}` | Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or `--harness <name>`. Entries have Zed's shape, so they copy across from Zed's settings. Read only from your own file, never from a project file. |
 | `default_agent_server` | string | `"auggie"` | The harness launched without a harness name or command: `"auggie"` or `"claude"` (both built in) or the name of an `agent_servers` entry. The older name default_agent is still accepted. |
+| `agent_startup_timeout_seconds` | whole number from 5 to 600 | `30` | Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. A built-in harness has its own default when this is not set (120 for claude, 30 for the others), and an agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file. |
 
-Each `agent_servers` entry takes `command` (the program: a name is looked up on the `PATH` only, the entry's own `PATH` when its `env` sets one, and never in the session directory, so a repository cannot slip in a program of the same name; a path, with a slash or on Windows a backslash or a drive letter, is used as written), `args` (an array of strings) and `env` (strings added to acp-tui's own environment for the harness); a `"type": "custom"` key, which Zed writes, is accepted and ignored. The harness runs in the session directory, so use absolute paths in `args`. An entry of a built-in name replaces the built-in one.
+Each `agent_servers` entry takes `command` (the program: a name is looked up on the `PATH` only, the entry's own `PATH` when its `env` sets one, and never in the session directory, so a repository cannot slip in a program of the same name; a path, with a slash or on Windows a backslash or a drive letter, is used as written), `args` (an array of strings) and `env` (strings added to acp-tui's own environment for the harness); `startup_timeout_seconds` (a whole number from 5 to 600: how long this harness may stay silent while it starts, see below); a `"type": "custom"` key, which Zed writes, is accepted and ignored. The harness runs in the session directory, so use absolute paths in `args`. An entry of a built-in name replaces the built-in one.
 
 **Telling a harness from a directory and a command.** The first argument is the harness when it names one (a built-in harness, `auggie` or `claude`, or an `agent_servers` entry), even when a directory of that name exists: write `./name` for the directory. Then at most one argument, the directory. A command after `--` is launched as given (an "ad hoc" harness) and wins over a harness name. A lone word that names no harness, no directory and no command on the `PATH` is an error before anything starts. The subcommands `config` and `glyphs` come first: a harness named like one is reached with `--harness config`, and `acp-tui config --check` warns about such a name, and about one that starts with `-`. `-r` is `--resume` and `-c` is `--continue`, as in Claude Code; they are not combined (`-rc` is an unknown option).
 
@@ -182,6 +183,22 @@ Each `agent_servers` entry takes `command` (the program: a name is looked up on 
   "default_agent_server": "codex",
 }
 ```
+
+**When a harness does not start.** While a harness starts (`initialize`, then the request that opens the session, and the `session/list` pages read to find a session for `--resume <id>` or `--continue`) acp-tui waits for it to speak. Any message from the harness, a progress notice or a permission request as much as an answer, restarts the wait, and it is paused while a permission or question card waits for you, so a long `session/load` or an indexing prompt is not cut short. A harness silent for `agent_startup_timeout_seconds` is stopped (its whole process tree on Windows) and the start fails. The order of the values is the entry's `startup_timeout_seconds`, then `agent_startup_timeout_seconds` when your file sets it, then the built-in harness's own default (120 seconds for `claude`, whose first run downloads the adapter and Claude Code, and 30 for `auggie` and `opencode`), then 30. The splash shows `starting…` until the harness has answered `initialize` and `opening session…` after it, with the seconds waited from the fifth on (`starting… 12 s`). Two messages say what went wrong:
+
+- `harness 'x' (command 'x acp') did not answer initialize within 30 s and was stopped`, followed by the end of the harness's own error output. The harness was running but silent. Run its command in a terminal to see why (a login prompt, a download, a database migration), and raise the timeout for it with `startup_timeout_seconds` in its entry if it is only slow; the message names which step it was (`initialize`, `session/new`, `session/load`, `session/resume` or `session/list`). The message appears below the command line with exit status 1, or in the footer of the session list when you chose the harness there.
+- `harness 'x' (command 'x') does not look like an ACP harness: it printed terminal output; ACP harnesses usually need an argument such as acp or --acp`. The program drew a screen or printed plain text on its output instead of speaking ACP, which is what a harness's own terminal interface does. It was stopped, and none of its output is shown. Give the entry the argument that makes the program an ACP harness (`acp` for OpenCode, `--acp` for Auggie and many others). A banner line or two before the first message is allowed.
+
+```jsonc config
+{
+  "agent_startup_timeout_seconds": 60,
+  "agent_servers": {
+    "slow": { "command": "slow-acp", "startup_timeout_seconds": 180 },
+  },
+}
+```
+
+Ctrl+D while the harness is still starting exits at once and ends it; so does Ctrl+C while `acp-tui: finding session…` is shown (exit status 130).
 
 Three harnesses are built in. `auggie` runs `auggie --acp` from your `PATH`, so install it first (`npm install -g @augmentcode/auggie@0.36.0`, which needs Node 20 or later, then run `auggie login` once); it is the default for now, so plain `acp-tui` starts Auggie. `opencode` runs `opencode acp` from your `PATH`: install OpenCode with `npm install -g @opencode/cli` (or follow opencode.ai/docs) and log in once with `opencode auth login`; `acp-tui opencode` starts it, instead of OpenCode's own terminal interface. `claude` runs `@agentclientprotocol/claude-agent-acp@0.94.0` with the Bun that runs acp-tui (`bun x --bun ...`) and uses your Claude Code login; `acp-tui claude` starts it. The session list offers a built-in harness under "New session with" only when its program is found on the `PATH`. If `auggie` or `opencode` is not installed, starting it says so and gives the install command; if you are not logged in, acp-tui says the harness needs you to log in (run `auggie login` or `opencode auth login` in a terminal, then start acp-tui again). Auggie 1.x has not been checked with acp-tui, and a notice says so when it is the one running. An entry named `auggie`, `claude` or `opencode` replaces the built-in one, for example to pin another version or to add environment variables (Claude Code reads `ANTHROPIC_MODEL` to choose the model). The commented default carries one example per harness below, each with the source its command was checked against on 13 October 2026; install the harness before you uncomment it. To start Claude by default, set `"default_agent_server": "claude"`.
 

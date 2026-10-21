@@ -213,4 +213,17 @@ describe("splash while the harness starts (day-two-feedback task group 2)", () =
       expect([y, after[y]]).toEqual([y, before[y]]);
     }
   }, 30000);
+
+  test("Opening the session: once initialize is answered the first identity row reads `opening session…` on the row `starting…` was on", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    w.configure({ fake: ["--scenario", "basic", "--start-delay", "1000", "--session-delay", "3000"] });
+    const s = (session = w.start(["-a", "fake"], { cwd: repo, cols: 100, rows: 30 }));
+    await s.waitFor((p) => p.screenText().join("\n").includes("starting…"), 10000);
+    const at = s.screenText().findIndex((r) => r.includes("starting…"));
+    await s.waitFor((p) => p.screenText().join("\n").includes("opening session…"), 10000);
+    expect(s.screenText()[at]!.trim()).toMatch(/^Harness: fake · \S opening session…$/);
+    await s.waitFor(READY, 15000);
+    expect(s.screenText()[at]!.trim()).toBe("Harness: fake-agent");
+  }, 40000);
 });
