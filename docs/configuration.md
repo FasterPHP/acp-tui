@@ -1,6 +1,6 @@
 # Configuring acp-tui
 
-How to change what acp-tui looks like and how it behaves: the configuration file, the optional project file, themes, glyph sets, key bindings and layouts, and the commands that help you write them. The specification is `tui-config` (with the `tui-theme`, `tui-layout` and `tui-keymap` requirements of `mvp-configuration`) in `openspec/`; the design is section 6.10 of [../acp-tui-technical-design.md](../acp-tui-technical-design.md); build notes are in [mvp-notes/configuration.md](mvp-notes/configuration.md).
+How to change what acp-tui looks like and how it behaves: the configuration file, the optional project file, themes, glyph sets, key bindings and layouts, and the commands that help you write them.
 
 Every JSONC example in this guide is run through `acp-tui config --check` by a test (`packages/acp-tui/test/docs/configuration-examples.test.ts`), so they load as written. The setting tables are generated from the schema in `packages/acp-tui/src/config/schema.ts`; `acp-tui config --print-default` prints the same settings with the same descriptions as a ready-to-edit file, and is the authority if this page and the program ever disagree.
 
@@ -167,11 +167,11 @@ acp-tui calls the program it launches and talks to over ACP a **harness**: Claud
 | Setting | Values | Default | What it does |
 | --- | --- | --- | --- |
 | `agent_servers` | object of harnesses | `{}` | Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or `--harness <name>`. Entries have Zed's shape, so they copy across from Zed's settings. Read only from your own file, never from a project file. |
-| `default_agent_server` | string | `"claude"` | The harness launched without a harness name or command: `"claude"` (built in) or the name of an `agent_servers` entry. The older name default_agent is still accepted. |
+| `default_agent_server` | string | `"auggie"` | The harness launched without a harness name or command: `"auggie"` or `"claude"` (both built in) or the name of an `agent_servers` entry. The older name default_agent is still accepted. |
 
 Each `agent_servers` entry takes `command` (the program: a name is looked up on the `PATH` only, the entry's own `PATH` when its `env` sets one, and never in the session directory, so a repository cannot slip in a program of the same name; a path, with a slash or on Windows a backslash or a drive letter, is used as written), `args` (an array of strings) and `env` (strings added to acp-tui's own environment for the harness); a `"type": "custom"` key, which Zed writes, is accepted and ignored. The harness runs in the session directory, so use absolute paths in `args`. An entry of a built-in name replaces the built-in one.
 
-**Telling a harness from a directory and a command.** The first argument is the harness when it names one (the built-in `claude` or an `agent_servers` entry), even when a directory of that name exists: write `./name` for the directory. Then at most one argument, the directory. A command after `--` is launched as given (an "ad hoc" harness) and wins over a harness name. A lone word that names no harness, no directory and no command on the `PATH` is an error before anything starts. The subcommands `config` and `glyphs` come first: a harness named like one is reached with `--harness config`, and `acp-tui config --check` warns about such a name, and about one that starts with `-`. `-r` is `--resume` and `-c` is `--continue`, as in Claude Code; they are not combined (`-rc` is an unknown option).
+**Telling a harness from a directory and a command.** The first argument is the harness when it names one (a built-in harness, `auggie` or `claude`, or an `agent_servers` entry), even when a directory of that name exists: write `./name` for the directory. Then at most one argument, the directory. A command after `--` is launched as given (an "ad hoc" harness) and wins over a harness name. A lone word that names no harness, no directory and no command on the `PATH` is an error before anything starts. The subcommands `config` and `glyphs` come first: a harness named like one is reached with `--harness config`, and `acp-tui config --check` warns about such a name, and about one that starts with `-`. `-r` is `--resume` and `-c` is `--continue`, as in Claude Code; they are not combined (`-rc` is an unknown option).
 
 ```jsonc config
 {
@@ -183,15 +183,15 @@ Each `agent_servers` entry takes `command` (the program: a name is looked up on 
 }
 ```
 
-Without an entry, `claude` is the only harness: the built-in entry runs `@agentclientprotocol/claude-agent-acp@0.81.2` with the Bun that runs acp-tui (`bun x --bun ...`), and it uses your Claude Code login. An entry named `claude` replaces it, for example to pin another version or to add environment variables (Claude Code reads `ANTHROPIC_MODEL` to choose the model). The commented default carries one example per harness below, each with the source its command was checked against on 13 October 2026; install the harness before you uncomment it.
+Two harnesses are built in. `auggie` runs `auggie --acp` from your `PATH`, so install it first (`npm install -g @augmentcode/auggie@0.36.0`, which needs Node 20 or later, then run `auggie login` once); it is the default for now, so plain `acp-tui` starts Auggie. `claude` runs `@agentclientprotocol/claude-agent-acp@0.81.2` with the Bun that runs acp-tui (`bun x --bun ...`) and uses your Claude Code login; `acp-tui claude` starts it. The session list offers a built-in harness under "New session with" only when its program is found on the `PATH`. If `auggie` is not installed, starting it says so and gives the install command; if you are not logged in, acp-tui says the harness needs you to log in (run `auggie login` in a terminal, then start acp-tui again). Auggie 1.x has not been checked with acp-tui, and a notice says so when it is the one running. An entry named `auggie` or `claude` replaces the built-in one, for example to pin another version or to add environment variables (Claude Code reads `ANTHROPIC_MODEL` to choose the model). The commented default carries one example per harness below, each with the source its command was checked against on 13 October 2026; install the harness before you uncomment it. To start Claude by default, set `"default_agent_server": "claude"`.
 
 | Name in the example | Harness | Command | Source |
 | --- | --- | --- | --- |
-| `claude` | Claude Code through claude-agent-acp (the built-in entry) | `bunx @agentclientprotocol/claude-agent-acp@0.81.2` | npm `@agentclientprotocol/claude-agent-acp`; `ANTHROPIC_MODEL`: code.claude.com/docs/en/settings |
+| `claude` | Claude Code through claude-agent-acp (a built-in entry) | `bunx @agentclientprotocol/claude-agent-acp@0.81.2` | npm `@agentclientprotocol/claude-agent-acp`; `ANTHROPIC_MODEL`: code.claude.com/docs/en/settings |
 | `codex` | OpenAI Codex through codex-acp (`npm install -g @agentclientprotocol/codex-acp`) | `codex-acp` | github.com/agentclientprotocol/codex-acp |
 | `opencode` | OpenCode | `opencode acp` | opencode.ai/docs/acp |
 | `deepseek` | DeepSeek, through OpenCode | `opencode acp`, with `OPENCODE_CONFIG` naming an OpenCode config that sets `"model"` to a DeepSeek model | opencode.ai/docs/providers, opencode.ai/docs/config |
-| `auggie` | Augment Code's Auggie (`npm install -g @augmentcode/auggie`) | `auggie --acp` | docs.augmentcode.com/cli/acp |
+| `auggie` | Augment Code's Auggie (the built-in default; `npm install -g @augmentcode/auggie@0.36.0`, then `auggie login`) | `auggie --acp` | docs.augmentcode.com/cli/acp |
 | `pi` | The pi coding agent through pi-acp (`npm install -g pi-acp`, with `pi` on the `PATH`) | `pi-acp` | github.com/svkozak/pi-acp |
 | `gemini` | Google's Gemini CLI | `gemini --acp` | geminicli.com/docs/cli/acp-mode |
 | `qwen` | Qwen Code | `qwen --acp` | qwenlm.github.io/qwen-code-docs (Zed integration) |
@@ -304,6 +304,14 @@ With `interrupt` `single`, the Esc that would arm an interrupt cancels the turn 
 | --- | --- | --- | --- |
 | `attention.signal` | `"bell"`, `"osc9"`, `"osc777"`, `"none"` | `"bell"` | How acp-tui asks for attention, while the pane is unfocused, when a permission request opens or a long turn ends: `"bell"` - the terminal bell; `"osc9"` - a desktop notification, in terminals that support OSC 9; `"osc777"` - a desktop notification, in terminals that support OSC 777; `"none"` - nothing. |
 | `attention.long_turn_seconds` | whole number from 1 | `30` | A turn longer than this many seconds is signalled when it ends. |
+
+**The bell in JetBrains terminals.** PhpStorm's and IntelliJ's terminals never report whether they have focus, so acp-tui cannot tell that you are looking at it and the bell rings even then. If that bothers you, switch the signal off:
+
+```jsonc config
+{
+  "attention": { "signal": "none" },
+}
+```
 
 ```jsonc config
 {
