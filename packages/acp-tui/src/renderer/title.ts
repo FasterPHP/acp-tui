@@ -2,7 +2,7 @@
 // acp-tui pushes the terminal's title at start-up (`CSI 22 ; 0 t`), sets the text of the setting
 // `title.format` (title-format.ts; by default the session directory's name, with ` 2`, ` 3` and so
 // on when other running acp-tui instances show the same name: title-slot.ts) through OpenTUI's
-// `setTerminalTitle`, prefixed with a marker while the session is `requires_action`, and pops the
+// `setTerminalTitle`, prefixed with a marker while the session is `requires_action` (or, while attention is pending, with the attention marker: attention.ts), and pops the
 // stack in the final reset (`CSI 23 ; 0 t`, lifecycle.ts, before the exit text) on every exit path.
 // The text is built from the model's already sanitised fields, cleaned again here (the title is the
 // one place agent text reaches an OSC sequence), held on one line and cut to 60 columns, so no byte
@@ -13,7 +13,7 @@ import type { CliRenderer } from "@opentui/core";
 import { RESOLVED_SETS } from "../conversation/glyphs.ts";
 import { activeGlyphs } from "../conversation/live-glyphs.ts";
 import { truncateEnd } from "../layout/segments.ts";
-import { DEFAULT_TITLE_FORMAT, expandTitleFormat, titleFormatUsesCounter } from "./title-format.ts";
+import { DEFAULT_TITLE_FORMAT, expandTitleFormat, titleFormatUsesAttention, titleFormatUsesCounter } from "./title-format.ts";
 import type { TitleSlots } from "./title-slot.ts";
 
 export const TITLE_PUSH = "\x1b[22;0t";
@@ -43,6 +43,9 @@ export interface TitleInput {
   readonly cwd: string | null;
   /** True while the session is `requires_action`. */
   readonly waiting: boolean;
+  /** True while the attention marker may be shown: attention is pending and `attention.title_marker`
+   *  is on. Not shown while `waiting`, when the permission marker alone leads. */
+  readonly attention: boolean;
   /** `title.format`; default `DEFAULT_TITLE_FORMAT`. */
   readonly format?: string;
   /** Which running instance showing this directory name this one is (1 for the first); default 1. */
@@ -58,28 +61,33 @@ export function titleDirectory(cwd: string | null): string {
  * The text of the title for a session, at most `TITLE_COLUMNS` columns: the format filled in, the
  * default format when it leaves nothing, then `acp-tui`; the marker leads while the session waits.
  */
-export function terminalTitle(input: TitleInput, marker: string = activeGlyphs().titleMarker): string {
+export function terminalTitle(input: TitleInput, marker: string = activeGlyphs().titleMarker, attentionGlyph: string = activeGlyphs().titleAttention): string {
   const instance = input.instance ?? 1;
+  const format = input.format ?? DEFAULT_TITLE_FORMAT;
+  const showAttention = input.attention && !input.waiting;
   const values = {
+    attention: showAttention ? attentionGlyph : "",
     dir: titleDirectory(input.cwd),
     counter: instance > 1 ? ` ${instance}` : "",
     agent: titlePart(input.agent),
     title: titlePart(input.title),
   };
-  const text =
-    titlePart(expandTitleFormat(input.format ?? DEFAULT_TITLE_FORMAT, values)) ||
-    titlePart(expandTitleFormat(DEFAULT_TITLE_FORMAT, values)) ||
-    TITLE_NAME;
-  return truncateEnd(input.waiting ? `${marker} ${text}` : text, TITLE_COLUMNS);
+  const given = titlePart(expandTitleFormat(format, values));
+  const text = given || titlePart(expandTitleFormat(DEFAULT_TITLE_FORMAT, values)) || TITLE_NAME;
+  // Without `{attention}` in the format that was used, the attention marker leads the title.
+  const placed = given !== "" && titleFormatUsesAttention(format);
+  const led = input.waiting ? `${marker} ${text}` : showAttention && !placed ? `${attentionGlyph} ${text}` : text;
+  return truncateEnd(led, TITLE_COLUMNS);
 }
 
 /** The title of a model snapshot, under `format` and as instance `instance` of its directory. */
-export function titleOf(session: Session, format?: string, instance?: number): string {
+export function titleOf(session: Session, format?: string, instance?: number, attention = false): string {
   return terminalTitle({
     title: session.title,
     agent: session.agent?.title ?? session.agent?.name ?? null,
     cwd: session.cwd,
     waiting: session.state === "requires_action",
+    attention,
     ...(format !== undefined ? { format } : {}),
     ...(instance !== undefined ? { instance } : {}),
   });
@@ -114,6 +122,14 @@ export interface TitleOptions {
   /** The directory the session will start in, shown until the session reports its own (the launch
    *  directory or the directory argument), so the tab does not flash `acp-tui` first. */
   readonly directory?: string | null;
+  /** The attention marker: whether attention is pending and whether the setting lets it show. The
+   *  title is set again whenever `onPending` fires; a change of `enabled` is the caller's to
+   *  `refresh()`. */
+  readonly attention?: {
+    pending(): boolean;
+    onPending(listener: (pending: boolean) => void): () => void;
+    enabled?(): boolean;
+  };
 }
 
 /**
@@ -137,14 +153,20 @@ export function installTerminalTitle(
     const counted = options.slots !== undefined && dir !== "" && titleFormatUsesCounter(format);
     if (!counted) options.slots?.release();
     const instance = counted ? options.slots!.acquire(dir) : 1;
-    const text = titleOf(shown === session.cwd ? session : { ...session, cwd: shown }, format, instance);
+    const marked = options.attention !== undefined && options.attention.pending() && (options.attention.enabled?.() ?? true);
+    const text = titleOf(shown === session.cwd ? session : { ...session, cwd: shown }, format, instance, marked);
     if (text === last) return;
     last = text;
     renderer.setTerminalTitle(text);
   };
   write(TITLE_PUSH);
   apply(feed.snapshot());
-  const stop = feed.onChange(({ session }) => apply(session));
+  const stopFeed = feed.onChange(({ session }) => apply(session));
+  const stopPending = options.attention?.onPending(() => apply(feed.snapshot()));
+  const stop = (): void => {
+    stopFeed();
+    stopPending?.();
+  };
   return {
     restore() {
       stop();

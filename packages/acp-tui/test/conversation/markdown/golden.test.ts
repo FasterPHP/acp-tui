@@ -112,7 +112,7 @@ describe("golden rows under the rendering settings", () => {
       } finally {
         setRenderSettings(null);
       }
-      expect(flags).toEqual({ headingMarkers: c.settings.headingMarkers, tableMinColumnWidth: c.settings.tableMinColumnWidth, codeWrap: "word", codePadding: { rows: 1, columns: 2 }, emoji: [] });
+      expect(flags).toEqual({ headingMarkers: c.settings.headingMarkers, tableMinColumnWidth: c.settings.tableMinColumnWidth, codeWrap: "word", tableRowRules: "auto", codePadding: { rows: 1, columns: 2 }, emoji: [] });
       const rows = new Map(WIDTHS.map((w) => [w as number, galleryByTag(w, undefined, flags)]));
       const text = goldenText(c.tag, WIDTHS, rows, c.note);
       const path = join(GOLDEN_DIR, `${c.tag}.${c.name}.txt`);

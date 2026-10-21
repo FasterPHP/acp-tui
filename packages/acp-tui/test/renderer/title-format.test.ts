@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_TITLE_FORMAT, expandTitleFormat, titleFormatIssue, titlePlaceholderList } from "../../src/renderer/title-format.ts";
 
-const values = { dir: "acp-tui", counter: "", agent: "Auggie", title: "" };
+const values = { dir: "acp-tui", counter: "", agent: "Auggie", title: "", attention: "" };
 
 describe("expandTitleFormat", () => {
   test("the default is the directory's name, with the instance number from the second instance on", () => {
@@ -36,6 +36,25 @@ describe("expandTitleFormat", () => {
   });
 });
 
+describe("the attention placeholder", () => {
+  test("Attention placed by the format: the marker where {attention} stands, nothing once it is empty", () => {
+    const format = "{dir}{counter} {attention}";
+    expect(expandTitleFormat(format, { ...values, attention: "●" })).toBe("acp-tui ●");
+    expect(expandTitleFormat(format, values)).toBe("acp-tui");
+  });
+
+  test("literal text before an empty {attention} is dropped with it", () => {
+    expect(expandTitleFormat("{dir} [{attention}]", values)).toBe("acp-tui]");
+    expect(expandTitleFormat("{dir} - {attention}", values)).toBe("acp-tui");
+    expect(expandTitleFormat("{dir} - {attention}", { ...values, attention: "●" })).toBe("acp-tui - ●");
+  });
+
+  test("it is an allowed placeholder", () => {
+    expect(titleFormatIssue("{attention} {dir}")).toBeNull();
+    expect(titlePlaceholderList()).toContain("{attention}");
+  });
+});
+
 describe("titleFormatIssue", () => {
   test("valid formats have none", () => {
     for (const format of [DEFAULT_TITLE_FORMAT, "{dir}{counter} · {title}", "{agent}", "plain text", ""]) expect(titleFormatIssue(format)).toBeNull();
@@ -45,7 +64,7 @@ describe("titleFormatIssue", () => {
     const issue = titleFormatIssue("{repo}")!;
     expect(issue).toContain("{repo}");
     expect(issue).toContain(titlePlaceholderList());
-    expect(titlePlaceholderList()).toBe("{dir}, {counter}, {agent}, {title}");
+    expect(titlePlaceholderList()).toBe("{dir}, {counter}, {agent}, {title}, {attention}");
   });
 
   test("an unparsable template is a problem too", () => {

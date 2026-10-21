@@ -13,6 +13,9 @@ import type { MarkdownGlyphs } from "./types.ts";
  *  fits in every block (`word`), in prose blocks only (`prose`), or at the column (`column`). */
 export type CodeWrap = "word" | "prose" | "column";
 
+/** When a table draws rules between its body rows (the setting `markdown.table_row_rules`). */
+export type TableRowRules = "auto" | "always" | "never";
+
 /** Settings that change how Markdown is drawn (the `markdown.*` settings, `RenderSettings`). */
 export interface MarkdownFlags {
   /** Show a heading's `#` markers, muted (the setting `markdown.heading_markers`; off). */
@@ -22,6 +25,8 @@ export interface MarkdownFlags {
   readonly tableMinColumnWidth: number;
   /** How long code lines break (the setting `markdown.code_wrap`; `word`). */
   readonly codeWrap: CodeWrap;
+  /** Rules between a table's body rows (the setting `markdown.table_row_rules`; `auto`). */
+  readonly tableRowRules: TableRowRules;
   /** The padding inside a code block's fill outside a card, the cards' own (`cards.padding`;
    *  day-one-feedback, Marcus 15 October 2026): blank rows at the top and the bottom, columns at
    *  the left and the right. A code block inside a card draws none (the card pads it). */
@@ -42,6 +47,7 @@ export const DEFAULT_FLAGS: MarkdownFlags = {
   headingMarkers: false,
   tableMinColumnWidth: TABLE_MIN_COLUMN_WIDTH,
   codeWrap: "word",
+  tableRowRules: "auto",
   codePadding: { rows: 1, columns: 2 },
   emoji: [],
 };
@@ -63,6 +69,8 @@ export interface RenderSettings {
   readonly snippetRows: number;
   /** `markdown.code_wrap`. */
   readonly codeWrap: CodeWrap;
+  /** `markdown.table_row_rules`. */
+  readonly tableRowRules: TableRowRules;
   /** `cards.padding.rows`: blank rows at the top and the bottom of a card (0 or 1). */
   readonly cardPadRows: number;
   /** `cards.padding.columns`: columns at the left and the right of a card's content (1 to 3). */
@@ -83,6 +91,7 @@ export const DEFAULT_RENDER_SETTINGS: RenderSettings = Object.freeze({
   tableMinColumnWidth: DEFAULT_FLAGS.tableMinColumnWidth,
   snippetRows: SNIPPET_ROWS,
   codeWrap: "word",
+  tableRowRules: DEFAULT_FLAGS.tableRowRules,
   cardPadRows: DEFAULT_FLAGS.codePadding.rows,
   cardPadColumns: DEFAULT_FLAGS.codePadding.columns,
 });
@@ -92,6 +101,7 @@ const sameSettings = (a: RenderSettings, b: RenderSettings) =>
   a.tableMinColumnWidth === b.tableMinColumnWidth &&
   a.snippetRows === b.snippetRows &&
   a.codeWrap === b.codeWrap &&
+  a.tableRowRules === b.tableRowRules &&
   a.cardPadRows === b.cardPadRows &&
   a.cardPadColumns === b.cardPadColumns;
 
@@ -117,7 +127,7 @@ export function cardPadding(): CardPadding {
 /** A key of the rendering settings in use, for caches of layouts and heights; reactive. */
 export function renderSettingsKey(): string {
   const s = renderSettings();
-  return `${s.headingMarkers ? "h" : ""}${s.tableMinColumnWidth}:${s.snippetRows}:${s.cardPadRows}${s.cardPadColumns}:${s.codeWrap}`;
+  return `${s.headingMarkers ? "h" : ""}${s.tableMinColumnWidth}:${s.snippetRows}:${s.cardPadRows}${s.cardPadColumns}:${s.codeWrap}:${s.tableRowRules}`;
 }
 
 let terminalEmoji: readonly EmojiClass[] | undefined;
@@ -139,6 +149,7 @@ export function terminalFlags(): MarkdownFlags {
         headingMarkers: settings.headingMarkers,
         tableMinColumnWidth: settings.tableMinColumnWidth,
         codeWrap: settings.codeWrap,
+        tableRowRules: settings.tableRowRules,
         codePadding: { rows: settings.cardPadRows, columns: settings.cardPadColumns },
         emoji: terminalEmoji,
       },

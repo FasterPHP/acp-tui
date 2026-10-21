@@ -29,7 +29,10 @@
 // - Tabs in text OpenTUI draws are 2 columns wide (`OPENTUI_TAB_COLUMNS`);
 //   in cards acp-tui expands them itself to tab stops (`VIEWER_TEXT`).
 // - Tool call, thought, plan: the header row maps the part of the header that
-//   shows projection text (a tool's title, a thought's first line). An
+//   shows projection text (a tool's title, a thought's first line), unless the
+//   expanded card repeats that text (a title part; an expanded thought), when
+//   the header maps nothing, as a plan's does, and a press on it resolves to the
+//   start or end of the text. An
 //   expanded tool card or thought draws a layout (conversation/card.ts) whose
 //   parts say what each row stands for: the wrapped title onto the title line,
 //   Markdown blocks onto their text (`mapBlockRows`, as for agent messages),
@@ -574,17 +577,19 @@ export function itemRows(item: Item, projection: Projection, node: Renderable, o
       break;
     }
     case "tool_call": {
-      const title = lines.text(0);
-      const h = headerSpan(node, header, title, 0, 0, projection.summaryEnd);
-      if (h) out.push(h);
       const drawn = options.expanded && card ? drawnCard(card) : undefined;
+      // A card that shows the title part repeats the header's text: the header is decoration.
+      const repeated = drawn?.parts.some((p) => p.kind === "title") ?? false;
+      const h = headerSpan(node, header, repeated ? "" : lines.text(0), 0, 0, projection.summaryEnd);
+      if (h) out.push(h);
       if (drawn && card) layoutCardSpans(out, node, card, drawn, projection, options.glyphs);
       break;
     }
     case "thought": {
-      const h = headerSpan(node, header, lines.text(0), 0, 0, projection.summaryEnd);
-      if (h) out.push(h);
       const drawn = options.expanded && card ? drawnCard(card) : undefined;
+      // The expanded card draws the whole text, first line included: the header is decoration.
+      const h = headerSpan(node, header, drawn ? "" : lines.text(0), 0, 0, projection.summaryEnd);
+      if (h) out.push(h);
       if (drawn && card) layoutCardSpans(out, node, card, drawn, projection, options.glyphs);
       break;
     }
@@ -635,7 +640,8 @@ function mergeRows(spans: RowSpan[]): RowSpan[] {
 /**
  * The position at cell (`x`, `y`) of an item (both relative to its box). Beside the text, or on
  * a row without text (a blank line inside the item), the nearest line start or end; on
- * decoration inside a row, the next character's start.
+ * decoration inside a row, the next character's start; on a row that maps nothing (a header its
+ * card repeats), the row's start.
  */
 export function hitRows(rows: ItemRows, x: number, y: number, textLength: number): CellHit {
   const spans = rows.spans;
@@ -661,6 +667,9 @@ export function hitRows(rows: ItemRows, x: number, y: number, textLength: number
   if (k < 0) return { from: s.start, to: s.start };
   if (k >= s.from.length) return { from: s.end, to: s.end };
   if (s.from[k]! >= 0) return { from: s.from[k]!, to: s.to[k]! };
+  // A row that maps nothing (a header its card repeats, a plan's header): a press on it is the
+  // start of the text, so a drag down from it takes the whole text.
+  if (s.from.every((f) => f < 0)) return { from: s.start, to: s.start };
   for (let j = k + 1; j < s.from.length; j++) if (s.from[j]! >= 0) return { from: s.from[j]!, to: s.from[j]! };
   return { from: s.end, to: s.end };
 }

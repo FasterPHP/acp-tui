@@ -10,7 +10,7 @@ import { displayWidth } from "../../src/layout/segments.ts";
 import { installTerminalTitle, TITLE_COLUMNS, TITLE_MARKER, TITLE_POP, TITLE_PUSH, terminalTitle, titleOf, titlePart } from "../../src/renderer/title.ts";
 import { createTitleSlots } from "../../src/renderer/title-slot.ts";
 
-const base = { title: null, agent: null, cwd: null, waiting: false };
+const base = { title: null, agent: null, cwd: null, waiting: false, attention: false };
 /** The format that brings the agent's title back. */
 const WITH_TITLE = "{dir}{counter} · {title}";
 
@@ -44,14 +44,14 @@ describe("terminalTitle", () => {
   });
 
   test("Waiting for the user: the marker leads while the session waits", () => {
-    expect(terminalTitle({ ...base, cwd: "/work/acp-tui", waiting: true })).toBe(`${TITLE_MARKER} acp-tui`);
-    expect(terminalTitle({ ...base, title: "Pool reuse", format: "{title}", waiting: true })).toBe(`${TITLE_MARKER} Pool reuse`);
+    expect(terminalTitle({ ...base, cwd: "/work/acp-tui", waiting: true, attention: false })).toBe(`${TITLE_MARKER} acp-tui`);
+    expect(terminalTitle({ ...base, title: "Pool reuse", format: "{title}", waiting: true, attention: false })).toBe(`${TITLE_MARKER} Pool reuse`);
   });
 
   test("cut to 60 columns, the marker kept", () => {
     const long = "x".repeat(200);
     const plain = terminalTitle({ ...base, title: long, format: "{title}" });
-    const waiting = terminalTitle({ ...base, title: long, format: "{title}", waiting: true });
+    const waiting = terminalTitle({ ...base, title: long, format: "{title}", waiting: true, attention: false });
     expect(displayWidth(plain)).toBe(TITLE_COLUMNS);
     expect(displayWidth(waiting)).toBe(TITLE_COLUMNS);
     expect(plain.endsWith("…")).toBe(true);
@@ -75,6 +75,107 @@ describe("terminalTitle", () => {
   test("a title with nothing printable left is empty, so the format drops its literal text", () => {
     expect(titlePart("\x07\x1b]52;c;x\x07")).toBe("");
     expect(terminalTitle({ ...base, cwd: "/work/repo", title: "\x07", format: WITH_TITLE })).toBe("repo");
+  });
+});
+
+describe("the attention marker (interface-feedback)", () => {
+  const dir = { ...base, cwd: "/work/acp-tui" };
+  const DOT = "\u25cf";
+
+  test("Long turn marks the tab: the marker leads the default format", () => {
+    expect(terminalTitle({ ...dir, attention: true })).toBe(`${DOT} acp-tui`);
+  });
+
+  test("Permission marker wins: only the title marker leads while the session waits", () => {
+    expect(terminalTitle({ ...dir, waiting: true, attention: true })).toBe(`${TITLE_MARKER} acp-tui`);
+    expect(terminalTitle({ ...dir, waiting: true, attention: true, format: "{dir} {attention}" })).toBe(`${TITLE_MARKER} acp-tui`);
+  });
+
+  test("Withdrawn request leaves the attention marker", () => {
+    expect(terminalTitle({ ...dir, waiting: true, attention: true })).toBe(`${TITLE_MARKER} acp-tui`);
+    expect(terminalTitle({ ...dir, waiting: false, attention: true })).toBe(`${DOT} acp-tui`);
+  });
+
+  test("Cleared when attention is no longer pending", () => {
+    expect(terminalTitle({ ...dir, attention: false })).toBe("acp-tui");
+  });
+
+  test("Glyph overridden: the glyph given is the one shown", () => {
+    expect(terminalTitle({ ...dir, attention: true }, TITLE_MARKER, "!")).toBe("! acp-tui");
+    expect(terminalTitle({ ...dir, attention: true, format: "{dir} {attention}" }, TITLE_MARKER, "!")).toBe("acp-tui !");
+  });
+
+  test("Attention placed by the format: {attention} where it stands, nothing leading", () => {
+    expect(terminalTitle({ ...dir, attention: true, format: "{dir}{counter} {attention}" })).toBe(`acp-tui ${DOT}`);
+    expect(terminalTitle({ ...dir, attention: false, format: "{dir}{counter} {attention}" })).toBe("acp-tui");
+    expect(terminalTitle({ ...dir, attention: true, format: "{dir} - {attention}" })).toBe(`acp-tui - ${DOT}`);
+    expect(terminalTitle({ ...dir, attention: false, format: "{dir} - {attention}" })).toBe("acp-tui");
+  });
+
+  test("a format that leaves nothing falls back to the default, with the marker leading", () => {
+    expect(terminalTitle({ ...dir, attention: false, format: "{attention}" })).toBe("acp-tui");
+    expect(terminalTitle({ ...dir, attention: true, format: "{title}" })).toBe(`${DOT} acp-tui`);
+  });
+
+  test("the 60-column cut includes the marker", () => {
+    const text = terminalTitle({ ...base, attention: true, title: "x".repeat(200), format: "{title}" });
+    expect(displayWidth(text)).toBe(TITLE_COLUMNS);
+    expect(text.startsWith(`${DOT} `)).toBe(true);
+  });
+
+  test("titleOf takes attention as its fourth argument", () => {
+    const session = { ...createSession(), cwd: "/work/repo" };
+    expect(titleOf(session, undefined, undefined, true)).toBe(`${DOT} repo`);
+    expect(titleOf({ ...session, state: "requires_action" }, undefined, undefined, true)).toBe(`${TITLE_MARKER} repo`);
+  });
+
+  describe("installed", () => {
+    function setup(enabled = () => true) {
+      let pending = false;
+      const listeners = new Set<(pending: boolean) => void>();
+      const titles: string[] = [];
+      const session: Session = { ...createSession(), cwd: "/work/acp-tui" };
+      const handle = installTerminalTitle(
+        { isDestroyed: false, setTerminalTitle: (t: string) => void titles.push(t) },
+        { snapshot: () => session, onChange: () => () => {} },
+        () => {},
+        { attention: { pending: () => pending, onPending: (l) => (listeners.add(l), () => void listeners.delete(l)), enabled } },
+      );
+      const set = (value: boolean) => {
+        pending = value;
+        for (const l of listeners) l(value);
+      };
+      return { titles, set, handle, listeners };
+    }
+
+    test("the title is set again when attention appears and when it goes", () => {
+      const f = setup();
+      f.set(true);
+      f.set(true);
+      f.set(false);
+      expect(f.titles).toEqual(["acp-tui", `${DOT} acp-tui`, "acp-tui"]);
+    });
+
+    test("Marker off: attention pending leaves the title alone", () => {
+      const f = setup(() => false);
+      f.set(true);
+      expect(f.titles).toEqual(["acp-tui"]);
+    });
+
+    test("a setting turned off while the marker shows is applied by refresh", () => {
+      let on = true;
+      const f = setup(() => on);
+      f.set(true);
+      on = false;
+      f.handle.refresh();
+      expect(f.titles).toEqual(["acp-tui", `${DOT} acp-tui`, "acp-tui"]);
+    });
+
+    test("restore stops following attention", () => {
+      const f = setup();
+      f.handle.restore();
+      expect(f.listeners.size).toBe(0);
+    });
   });
 });
 

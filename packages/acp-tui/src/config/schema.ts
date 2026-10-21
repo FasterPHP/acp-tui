@@ -56,6 +56,7 @@ export { TERMINAL_IDS, type TerminalId };
 export const STRIKE_MODES = ["sgr9", "overlay", "colour"] as const;
 export const DENSITIES = ["compact", "verbose", "focus"] as const;
 export const CODE_WRAPS = ["word", "prose", "column"] as const;
+export const TABLE_ROW_RULES = ["auto", "always", "never"] as const;
 export const INTERRUPT_MODES = ["double", "single"] as const;
 export const ATTENTION_SIGNALS = ["bell", "osc9", "osc777", "none"] as const;
 export const BUSY_STYLES = ["gap", "colour", "border"] as const;
@@ -453,6 +454,10 @@ export const SECTIONS = {
         ],
       }),
       long_turn_seconds: whole(1).default(30).describe("A turn longer than this many seconds is signalled when it ends."),
+      title_marker: z
+        .boolean()
+        .default(true)
+        .describe("Mark the terminal title with the attention glyph (title.attention) while attention is pending: a turn that ran long ended, or a request was answered or withdrawn, while the pane was unfocused. It clears when the pane gains focus (where the terminal reports it) and on the next key press, click, scroll or paste. Independent of signal: with signal none the title is still marked. Only terminals that show the program's title in the tab (PhpStorm's reworked terminal) show it."),
     })
     .prefault({})
     .describe("Attention signals while the pane is unfocused."),
@@ -492,7 +497,7 @@ export const SECTIONS = {
         })
         .default(DEFAULT_TITLE_FORMAT)
         .describe(
-          `The terminal title, a template over ${titlePlaceholderList()}: the session directory's name, a counter that is empty for the first acp-tui instance showing that name and " 2", " 3" and so on for the next ones, the agent's name and the agent's session title (empty until it sends one). Literal text directly before an empty placeholder is dropped with it. The default is ${JSON.stringify(DEFAULT_TITLE_FORMAT)}; "acp-tui | {title}" gives the agent's title.`,
+          `The terminal title, a template over ${titlePlaceholderList()}: the session directory's name, a counter that is empty for the first acp-tui instance showing that name and " 2", " 3" and so on for the next ones, the agent's name and the agent's session title (empty until it sends one). {attention} is the attention marker (see attention.title_marker), empty while it is not shown; without {attention} in the format the marker leads the title. Literal text directly before an empty placeholder is dropped with it. The default is ${JSON.stringify(DEFAULT_TITLE_FORMAT)}; "acp-tui | {title}" gives the agent's title.`,
         ),
     })
     .prefault({})
@@ -509,6 +514,15 @@ export const SECTIONS = {
           ["column", "at the column, mid-word, in every block"],
         ],
         note: "A word longer than a row always breaks at the column. A broken row of a code block ends with the continuation mark; a prose block shows none, unless the value is column.",
+      }),
+      table_row_rules: listed(z.enum(TABLE_ROW_RULES).default("auto"), {
+        heading: "When a table draws rules between its body rows",
+        values: [
+          ["auto", "in a table where some body row takes more than one line at the width it is drawn at"],
+          ["always", "in every table, between every pair of body rows"],
+          ["never", "in no table: only the rule under the header"],
+        ],
+        note: "The rules are decoration: copying a table and finding text in it are the same under every value.",
       }),
     })
     .prefault({})

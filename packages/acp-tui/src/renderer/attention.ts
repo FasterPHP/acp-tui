@@ -20,13 +20,15 @@ export interface AttentionSettings {
   readonly signal: AttentionSignal;
   /** A turn that ends after running at least this long signals (design 6.9: 30 s). */
   readonly longTurnSeconds: number;
+  /** Whether the terminal title carries the attention marker (`attention.title_marker`); default true. */
+  readonly titleMarker?: boolean;
 }
 
 export const DEFAULT_ATTENTION: AttentionSettings = { signal: "bell", longTurnSeconds: 30 };
 
 /** The settings of the configuration's `attention` section. */
-export function attentionFromConfig(attention: { readonly signal: AttentionSignal; readonly long_turn_seconds: number }): AttentionSettings {
-  return { signal: attention.signal, longTurnSeconds: attention.long_turn_seconds };
+export function attentionFromConfig(attention: { readonly signal: AttentionSignal; readonly long_turn_seconds: number; readonly title_marker?: boolean }): AttentionSettings {
+  return { signal: attention.signal, longTurnSeconds: attention.long_turn_seconds, ...(attention.title_marker === undefined ? {} : { titleMarker: attention.title_marker }) };
 }
 
 /** Why a signal fires; the notification kinds say it in fixed text. */
@@ -68,6 +70,14 @@ export interface Attention {
   /** One reducer step of the session (the store's `onChange`). */
   observe(session: Session, previous: Session): void;
   readonly focused: boolean;
+  /** The user did something in acp-tui (a key, a paste, a click, the wheel): attention is no
+   *  longer pending, in terminals that never report focus as well. */
+  interacted(): void;
+  /** Whether attention is pending: something would have signalled while the pane was unfocused,
+   *  and the user has not since focused it or touched acp-tui. Set whatever `signal` is. */
+  readonly pending: boolean;
+  /** Runs `listener` whenever `pending` changes; returns what removes it. */
+  onPending(listener: (pending: boolean) => void): () => void;
 }
 
 export function createAttention(options: AttentionOptions): Attention {
@@ -77,9 +87,17 @@ export function createAttention(options: AttentionOptions): Attention {
   // Until the terminal reports focus in, the pane is taken as unfocused.
   let focused = false;
   let turnStartedAt: number | null = null;
+  let pending = false;
+  const listeners = new Set<(pending: boolean) => void>();
+  const setPending = (value: boolean): void => {
+    if (pending === value) return;
+    pending = value;
+    for (const listener of [...listeners]) listener(value);
+  };
 
   const emit = (reason: AttentionReason): void => {
     if (focused) return;
+    setPending(true);
     const sequence = attentionSequence(settings().signal, reason);
     if (sequence !== "") options.write(sequence);
   };
@@ -88,8 +106,19 @@ export function createAttention(options: AttentionOptions): Attention {
     get focused() {
       return focused;
     },
+    get pending() {
+      return pending;
+    },
     setFocused(value) {
       focused = value;
+      if (value) setPending(false);
+    },
+    interacted() {
+      setPending(false);
+    },
+    onPending(listener) {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
     },
     observe(session, previous) {
       const was = previous.state;
@@ -111,21 +140,66 @@ export interface AttentionFeed {
   onChange(listener: (change: { readonly session: Session; readonly previous: Session }) => void): () => void;
 }
 
-/** Wires attention to the renderer's focus events and the session; returns a remover. */
-export function installAttention(
-  renderer: Pick<CliRenderer, "on" | "off">,
-  feed: AttentionFeed,
-  options: AttentionOptions,
-): () => void {
+/** The pieces of the renderer attention listens to; all but `on` and `off` are optional so that a
+ *  test's stand-in can leave them out. */
+export type AttentionRenderer = Pick<CliRenderer, "on" | "off"> & {
+  readonly keyInput?: {
+    processParsedKey?: (key: { readonly eventType?: string }) => boolean;
+    processPaste?: (bytes: Uint8Array, metadata?: unknown) => void;
+  };
+  processSingleMouseEvent?: (report: { readonly type: string }) => boolean;
+};
+
+/** What counts as the user being there: a button press or the wheel, not pointer motion. */
+const MOUSE_INTERACTION: ReadonlySet<string> = new Set(["down", "scroll"]);
+
+/**
+ * Wires attention to the renderer's focus events, its key input, paste and mouse presses and wheel
+ * (not motion), and the session; returns the attention and a remover.
+ */
+export function wireAttention(renderer: AttentionRenderer, feed: AttentionFeed, options: AttentionOptions): { attention: Attention; remove: () => void } {
   const attention = createAttention(options);
   const focus = (): void => attention.setFocused(true);
   const blur = (): void => attention.setFocused(false);
+  const touched = (): void => attention.interacted();
   renderer.on("focus", focus);
   renderer.on("blur", blur);
-  const stop = feed.onChange(({ session, previous }) => attention.observe(session, previous));
-  return () => {
-    renderer.off("focus", focus);
-    renderer.off("blur", blur);
-    stop();
+  // Wrapped ahead of every listener, since the key map stops a key it handles (a permission
+  // answer, say) from reaching listeners added after it.
+  const wrapped: (() => void)[] = [];
+  const wrap = <T extends object, K extends keyof T>(target: T | undefined, name: K, before: (...args: never[]) => void): void => {
+    const original = target?.[name];
+    if (target === undefined || typeof original !== "function") return;
+    const replacement = function (this: unknown, ...args: unknown[]) {
+      before(...(args as never[]));
+      return (original as (...a: unknown[]) => unknown).apply(this, args);
+    } as T[K];
+    target[name] = replacement;
+    // Restored only if nothing wrapped it since; otherwise the wrapper stays and passes through.
+    wrapped.push(() => {
+      if (target[name] === replacement) target[name] = original;
+    });
   };
+  wrap(renderer.keyInput, "processParsedKey", (key: { eventType?: string }) => {
+    if (key?.eventType !== "release") touched();
+  });
+  wrap(renderer.keyInput, "processPaste", touched);
+  wrap(renderer, "processSingleMouseEvent", (report: { type: string }) => {
+    if (MOUSE_INTERACTION.has(report.type)) touched();
+  });
+  const stop = feed.onChange(({ session, previous }) => attention.observe(session, previous));
+  return {
+    attention,
+    remove: () => {
+      renderer.off("focus", focus);
+      renderer.off("blur", blur);
+      for (const restore of wrapped.splice(0)) restore();
+      stop();
+    },
+  };
+}
+
+/** Wires attention to the renderer and the session; returns a remover. */
+export function installAttention(renderer: AttentionRenderer, feed: AttentionFeed, options: AttentionOptions): () => void {
+  return wireAttention(renderer, feed, options).remove;
 }

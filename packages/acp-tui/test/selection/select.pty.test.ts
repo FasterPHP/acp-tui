@@ -386,6 +386,81 @@ describe("selection and copy (phase-1a tasks 14.2, 14.3)", () => {
 // mvp-configuration tasks 4.3 and 4.4 (spec tui-config "Clipboard and copy settings"): the
 // clipboard paths driven from the user's file instead of `--clipboard`, live on a reload, and
 // `selection.copy_on_release`.
+describe("a header repeated by its expanded card is decoration (interface-feedback)", () => {
+  const colours = { foreground: "#bcbec4", background: "#191a1c" } satisfies OscColours;
+  const TITLE = "cd /work/app && composer install --no-interaction --prefer-dist --optimize-autoloader && vendor/bin/phpunit --testdox --filter InvoiceTotals";
+
+  const startScenario = (scenario: string) => {
+    run = startCli({ scenario, cols: 63, rows: 40, env: { ...configEnv(SELECTION_CONFIG), ...localEnv() }, colours });
+    return run.session;
+  };
+  const selectionFill = () => deriveSurfaces(colours)["surface.selection"].toLowerCase();
+  /** The cells of row `y` that carry the selection fill. */
+  const filled = (s: PtySession, y: number): number[] => {
+    const out: number[] = [];
+    for (let x = 0; x < s.cols; x++) {
+      const c = s.cell(s.term.buffer.active.viewportY + y, x)!;
+      if (c.isBgRGB() && `#${c.getBgColor().toString(16).padStart(6, "0")}` === selectionFill()) out.push(x);
+    }
+    return out;
+  };
+
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Title repeated in the card: a drag from the header to the end of the output highlights the card's title and output, not the header, and copies the title once", async () => {
+    const s = startScenario("tool-content");
+    await sendPrompt(s, "go");
+    await s.waitFor((p) => p.screenText().some((l) => l.includes("Edit README.md")) && READY.test(p.screenText().join("\n")), 20000);
+    const header = rowOf(s, "  $ ✓ execute  cd /work/app");
+    s.mouseClick(12, header);
+    await s.waitFor((p) => p.screenText().some((l) => l.includes("2 tests, 2 assertions")), 5000);
+    await Bun.sleep(300);
+    const rows = s.screenText();
+    const last = rows.findIndex((l) => l.includes("OK (2 tests, 2 assertions)"));
+    const titleRow = rows.findIndex((l, y) => y > header && l.includes("cd /work/app"));
+    expect(titleRow).toBeGreaterThan(header);
+    // Pressed left of the header's text, so the press resolves to the title's start.
+    const end = rows[last]!.indexOf(")") + 1;
+    await drag(s, [1, header], [[10, header + 2], [10, last - 1]], [end - 1, last]);
+    const copied = await nextPayload(s, 0);
+    expect(copied.startsWith("cd /work/app && composer install")).toBe(true);
+    expect(copied.split("--optimize-autoloader").length - 1).toBe(1);
+    expect(copied.endsWith("OK (2 tests, 2 assertions)")).toBe(true);
+    await s.waitFor(() => filled(s, last).length > 0, 3000);
+    // The header row has no selected cell; the card's title rows and the output do.
+    expect(filled(s, header)).toEqual([]);
+    expect(filled(s, titleRow).length).toBeGreaterThan(0);
+    expect(filled(s, last).length).toBeGreaterThan(0);
+  }, 40000);
+
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("Expanded thought: a drag from the header to the end of the body's second line highlights the body's first two lines, not the header", async () => {
+    const s = startScenario("short-answer");
+    await sendPrompt(s, "go");
+    await s.waitFor(/end turn/, 20000);
+    const thoughtLine = () => s.findLine(/○ Thought: Planning the S7 steps/);
+    if (thoughtLine() < 0) {
+      s.mouseClick(10, s.findLine(/▸ .*thought/));
+      await s.waitFor(() => thoughtLine() >= 0, 5000);
+    }
+    s.mouseClick(10, thoughtLine());
+    await s.waitFor((p) => p.screenText().some((l) => l.includes("The README describes")), 5000);
+    await Bun.sleep(300);
+    const header = thoughtLine();
+    const rows = s.screenText();
+    const first = rows.findIndex((l, y) => y > header && l.includes("Planning the S7 steps"));
+    const second = rows.findIndex((l, y) => y > first && l.includes("The README describes"));
+    expect(first).toBeGreaterThan(header);
+    const end = rows[second]!.trimEnd().length;
+    await drag(s, [1, header], [[10, first], [10, second]], [end - 1, second]);
+    const copied = await nextPayload(s, 0);
+    expect(copied.startsWith("Planning the S7 steps\n\nThe README describes")).toBe(true);
+    await s.waitFor(() => filled(s, second).length > 0, 3000);
+    expect(filled(s, header)).toEqual([]);
+    expect(filled(s, first).length).toBeGreaterThan(0);
+    expect(filled(s, second).length).toBeGreaterThan(0);
+  }, 40000);
+});
+
 describe("clipboard and copy settings from the configuration", () => {
   /** A configuration home with the user's file holding `config`; `write` saves it by a rename. */
   function configHome(config: unknown) {

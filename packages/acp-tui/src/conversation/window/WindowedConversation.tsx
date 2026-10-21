@@ -421,20 +421,21 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
   };
 
   /** Toggles an entry in place (a group line opens or closes; an item expands or collapses),
-   *  keeping its first row where it is (with `reveal`, then showing as much as fits). */
-  function toggleEntry(key: string, reveal = false): boolean {
+   *  keeping its first row where it is, or while following the bottom (`ScrollController.layout`),
+   *  then showing as much as fits (Enter, a click and Ctrl+O all reveal). */
+  function toggleEntry(key: string): boolean {
     const l = list();
     const at = l.index.get(key);
     if (at === undefined) return false;
     const entry = l.entries[at]!;
     if (entry.kind === "group") {
-      scroll?.beforeToggle(key, reveal);
+      scroll?.beforeToggle(key, true);
       state.setOpen(key, !entry.open);
       return true;
     }
     const item = store.snapshot().items.get(key);
     if (!item || !vm.collapsible(item)) return false;
-    scroll?.beforeToggle(key, reveal);
+    scroll?.beforeToggle(key, true);
     vm.setExpanded(item, !expandedFor(item));
     return true;
   }
@@ -670,7 +671,7 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
         const at = l.holder.get(target);
         const holder = at === undefined ? undefined : l.entries[at];
         if (holder?.kind === "group" && !holder.open) state.setOpen(holder.key, true);
-        return toggleEntry(target, true);
+        return toggleEntry(target);
       },
       // Find (src/find/). The item may be outside the window or behind a
       // closed group line: the group is opened, then `revealKey` mounts around the item and

@@ -141,6 +141,29 @@ describe("subcommands on the command line (task 9.1)", () => {
     expect(r.text).toBe("no configuration problems\n");
   }, 30000);
 
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Difference from the default: config --diff-default prints a plain unified diff of the user's file, says when there is none, and says when it is the default", async () => {
+    const none = world();
+    const absent = await run(["config", "--diff-default"], none);
+    expect(absent.code).toBe(1);
+    expect(absent.text).toContain("no configuration file at");
+    expect(absent.text).toContain("acp-tui config --print-default prints the default");
+
+    const w = world({ config: `{ "mouse": "off" }\n` });
+    const r = await run(["config", "--diff-default"], w);
+    expect(r.code).toBe(0);
+    expect(r.text).toContain("--- config.jsonc");
+    expect(r.text).toContain("+++ default");
+    expect(r.text).toContain('-{ "mouse": "off" }');
+    // eslint-disable-next-line no-control-regex
+    expect(r.raw).not.toContain("\x1b");
+
+    writeFileSync(join(w.dir, "config.jsonc"), commentedDefault());
+    const same = await run(["config", "--diff-default"], w);
+    expect(same.code).toBe(0);
+    expect(same.text).toBe("config.jsonc is the same as the default.\n");
+  }, 30000);
+
   test("a glyph override in the user's file does not stop the launch: the session starts (the glyph width needs OpenTUI loaded before the catalogue is read)", async () => {
     const w = world({ config: `{ "glyphs": { "overrides": { "list.bullet.1": "▸" } } }` });
     const r = startCli({ scenario: "basic", cols: 100, rows: 30, env: w.env });

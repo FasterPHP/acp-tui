@@ -11,13 +11,14 @@ export interface Entry {
   readonly params: { readonly toolCallId?: string; readonly status?: string };
 }
 
-export async function run(delayScale: number, cancelAfterMs?: number): Promise<{ stopReason: string; entries: Entry[]; updates: SessionUpdate[]; ended: number }> {
+export async function run(delayScale: number, cancelAfterMs?: number, args: readonly string[] = []): Promise<{ stopReason: string; entries: Entry[]; updates: SessionUpdate[]; ended: number }> {
   const logPath = `${makeTempDir()}/log.jsonl`;
   const updates: SessionUpdate[] = [];
   const handle = spawnFakeAgent({
     scenario: "fast-tools",
     delayScale,
     logPath,
+    args,
     client: {
       async sessionUpdate(params) {
         updates.push(params.update);

@@ -31,6 +31,7 @@ Every JSONC example in this guide is run through `acp-tui config --check` by a t
 $EDITOR ~/.config/acp-tui/config.jsonc      # change what you want, delete the rest if you like
 acp-tui config --check                      # problems with file, line and column
 acp-tui config --print-default              # the commented defaults again, at any time
+acp-tui config --diff-default               # what differs between your file and the defaults
 ```
 
 Without `install-cli` (or after deleting the file), create it with `mkdir -p ~/.config/acp-tui && acp-tui config --print-default > ~/.config/acp-tui/config.jsonc`. On Windows the file is `%APPDATA%\acp-tui\config.jsonc` instead ([The files and where they live](#the-files-and-where-they-live)); `acp-tui config --path` prints where it is on any system. Leave acp-tui running while you edit: a saved change applies to the whole screen within a second. A missing file is fine; every setting then has its default.
@@ -278,6 +279,7 @@ The default keeps a block where you normally type, at the end of the draft, beca
 | `markdown.heading_markers` | boolean | `false` | Show a heading's `#` markers, muted, before its text. |
 | `markdown.table_min_column_width` | whole number from 3 | `10` | The column width below which a table switches to the record layout. |
 | `markdown.code_wrap` | `"word"`, `"prose"`, `"column"` | `"word"` | How long lines in code blocks break: `"word"` - at the last space that fits, in every block; `"prose"` - at spaces in `text`, `txt`, `plaintext`, `plain`, `markdown` and `md` blocks only and at the column elsewhere; `"column"` - at the column, mid-word, in every block (how code blocks were drawn before). A word longer than a row always breaks at the column. A broken row of a code block ends with the continuation mark; a prose block shows none. Copying always gives each line unbroken. |
+| `markdown.table_row_rules` | `"auto"`, `"always"`, `"never"` | `"auto"` | When a table draws rules between its body rows: `"auto"` - in a table where some body row takes more than one line at the width it is drawn at; `"always"` - in every table, between every pair of body rows; `"never"` - in no table: only the rule under the header. The rules are decoration: copying a table and finding text in it are the same under every value. |
 | `tool_output.snippet_rows` | whole number from 3 | `10` | Rows of a tool call's output shown in its expanded card. |
 | `cards.padding.rows` | `0`, `1` | `1` | Blank rows at the top and the bottom of a card (a user message, an expanded thought, tool call or plan, the permission and question cards) and of a code block in an agent's answer. |
 | `cards.padding.columns` | whole number from 1 to 3 | `2` | Blank columns between a card's edge and its content, on both sides, and the same inset in a code block in an agent's answer. Two columns look as wide as one row is tall. A user message's accent bar is its first column, with the padding after it. |
@@ -285,6 +287,14 @@ The default keeps a block where you normally type, at the end of the draft, beca
 With `interrupt` `single`, the Esc that would arm an interrupt cancels the turn instead. Every other meaning of Esc (closing the palette, the find bar or a selection, leaving the conversation or a card) is unchanged and never cancels, so a stray Esc that closes something cannot interrupt your agent.
 
 **Command results.** An expanded tool card shows the result of a shell command, when the agent reports it in one of two known shapes (Auggie's `launch-process` text with `<return-code>` and `<output>` lines, and `claude-agent-acp`'s `Exit code <n>` failure), as `Output: <output>` (or `Output:` and each output line indented two cells) and `Return code: <n>`; the labels are drawn in the `tool.result.label` token, which follows `muted` unless a theme sets it. Output over `tool_output.snippet_rows` rows is cut to its last rows and the return code stays visible below them. A failed command's collapsed line shows `exit <n>`. A call that carries no content but does carry a raw output text (Auggie's successful commands) shows that text in the same way. Anything else is drawn as the agent sent it.
+
+**Table rules.** A table has a rule under its header. When cells wrap, one row's lines run into the next one's, so with `auto` (the default) acp-tui also draws a rule between the body rows of a table where some row takes more than one line, and takes them away again when a resize lets every row fit on one line. To rule every table, or none:
+
+```jsonc config
+{
+  "markdown": { "table_row_rules": "always" }
+}
+```
 
 **Card padding.** The user's messages, the expanded thoughts, tool calls and plans, and the permission and question cards keep their text inside a padding of blank cells in the card's fill; vertical padding is whole rows, never half rows. Two columns at the sides, the default, look as wide as one row is tall. A code block in an agent's answer takes the same padding on its own fill, its language label as far in from the right edge as the code is from the left; a code block inside a card draws none, the card's padding serving. The padding rows are decoration: copying, find and export never see them. For the narrower sides acp-tui had before 15 October 2026:
 
@@ -304,6 +314,9 @@ With `interrupt` `single`, the Esc that would arm an interrupt cancels the turn 
 | --- | --- | --- | --- |
 | `attention.signal` | `"bell"`, `"osc9"`, `"osc777"`, `"none"` | `"bell"` | How acp-tui asks for attention, while the pane is unfocused, when a permission request opens or a long turn ends: `"bell"` - the terminal bell; `"osc9"` - a desktop notification, in terminals that support OSC 9; `"osc777"` - a desktop notification, in terminals that support OSC 777; `"none"` - nothing. |
 | `attention.long_turn_seconds` | whole number from 1 | `30` | A turn longer than this many seconds is signalled when it ends. |
+| `attention.title_marker` | `true`, `false` | `true` | Mark the terminal title with the attention glyph (`title.attention`) while attention is pending: a permission request opened, or a turn longer than `long_turn_seconds` ended, while the pane was unfocused. Independent of `signal`: with `"none"` the title is still marked. |
+
+**The marker in the tab.** Attention is pending from the moment acp-tui would signal, whatever `attention.signal` is, until you come back: it clears when the pane gains focus (in terminals that report focus, such as Zed) and, in every terminal, on the next key press, click, scroll or paste in acp-tui (pointer movement does not count). While the session waits for a permission or a question, only the permission marker (`title.marker`) leads the title; if the request ends without you touching acp-tui, the attention marker takes over. Only a terminal that shows the program's title in its tab can show the marker: PhpStorm's reworked terminal does (and updates it live); PhpStorm's classic terminal keeps "Local" and Zed shows its own label for the terminal, so neither shows it. The JetBrains terminals never report focus, so there the marker also appears when you were looking at the pane, and clears on your next key press or click, not when you bring the tab forward. See "The terminal title" for `{attention}`.
 
 **The bell in JetBrains terminals.** PhpStorm's and IntelliJ's terminals never report whether they have focus, so acp-tui cannot tell that you are looking at it and the bell rings even then. If that bothers you, switch the signal off:
 
@@ -372,17 +385,25 @@ A project file may set it. A change applies the next time a call finishes.
 
 ### The terminal title
 
-The title of the terminal tab (PhpStorm's tab, Zed's sidebar) is the name of the session directory, so a row of tabs reads as the repositories they work in. When several acp-tui instances run in the same directory name, the second shows ` 2`, the third ` 3`, and so on; each keeps its number for its whole run. While a permission request waits, the glyph set's title marker leads the title. The title is held on one line and cut to 60 columns.
+The title of the terminal tab (PhpStorm's tab, Zed's sidebar) is the name of the session directory, so a row of tabs reads as the repositories they work in. When several acp-tui instances run in the same directory name, the second shows ` 2`, the third ` 3`, and so on; each keeps its number for its whole run. While a permission request waits, the glyph set's title marker leads the title; while attention is pending (see "Attention") the attention marker (`title.attention`) takes its place, at `{attention}` if the format has it and otherwise leading the title, followed by a space. The title is held on one line and cut to 60 columns, the marker included.
 
 | Setting | Values | Default | What it does |
 | --- | --- | --- | --- |
-| `title.format` | format | `"{dir}{counter}"` | The terminal title, a template over `{dir}` (the session directory's name), `{counter}` (empty for the first instance showing that name, ` 2`, ` 3` for the next ones), `{agent}` (the agent's name) and `{title}` (the agent's session title, empty until it sends one). Literal text directly before an empty placeholder is dropped with it, spaces are collapsed and the ends trimmed. |
+| `title.format` | format | `"{dir}{counter}"` | The terminal title, a template over `{dir}` (the session directory's name), `{counter}` (empty for the first instance showing that name, ` 2`, ` 3` for the next ones), `{agent}` (the agent's name), `{title}` (the agent's session title, empty until it sends one) and `{attention}` (the attention marker while it is shown, otherwise empty). Literal text directly before an empty placeholder is dropped with it, spaces are collapsed and the ends trimmed. |
 
 The title no longer carries the agent's own session title by default (`claude-agent-acp` sends one; Auggie never does). To bring it back:
 
 ```jsonc config
 {
   "title": { "format": "{dir}{counter} · {title}" },
+}
+```
+
+To place the attention marker yourself, name `{attention}`; the literal text before it goes when it is empty:
+
+```jsonc config
+{
+  "title": { "format": "{dir}{counter} {attention}" },
 }
 ```
 
@@ -552,7 +573,7 @@ Pinning two surfaces to the same colour is not: the pinned code fill is replaced
 | --- | --- |
 | `unicode` | The default: glyphs present in JetBrains Mono and Lilex (the fonts of PhpStorm and Zed), apart from `◦` and `✗`, which Zed draws from a fallback font. |
 | `ascii` | The fallback: a form for every glyph, for a terminal or font that draws too little. |
-| `nerd-font` | Opt-in: Nerd Font icons for the tool kinds and for `ok`, `fail` and `running`; `unicode` for everything else. |
+| `nerd-font` | Opt-in: Nerd Font icons for the tool kinds, for `ok`, `fail` and `running` and a bell for `title.attention`; `unicode` for everything else. |
 
 A bare name works for the set alone:
 
@@ -581,7 +602,7 @@ An invalid override is reported at its own line and column as a warning and left
 
 - printable: no control, format, surrogate or line-separator character (private-use characters are allowed, since Nerd Font icons live there);
 - the width its name requires, one cell for most, measured as OpenTUI draws it and as the layout counts it, which must agree (so `✅` for `tool.status.ok` is refused: two cells where one is required, and `❤` is refused because OpenTUI draws it two cells wide and the layout counts one);
-- for the permission marker, used by no other glyph of the set, so agent text drawn with the set's other glyphs never shows it in a list or gutter. The title marker (the terminal title) follows the permission marker and is exempt, because the title is never drawn in screen cells. The frame glyphs and the marker cannot be blank.
+- for the permission marker, used by no other glyph of the set, so agent text drawn with the set's other glyphs never shows it in a list or gutter. The title marker (the terminal title) follows the permission marker and is exempt, because the title is never drawn in screen cells. `title.attention`, the attention marker of the tab (`●` in `unicode`, `*` in `ascii`, a bell in `nerd-font`), is one cell wide, cannot be blank and cannot hold the permission marker; like the title marker it is drawn in the tab, in the IDE's interface font and not the terminal's, so check it there with `acp-tui glyphs --test`. The frame glyphs and the marker cannot be blank.
 
 ```sh
 acp-tui glyphs --test          # all three sets
@@ -793,6 +814,7 @@ When the first argument is `config` or `glyphs`, acp-tui runs that subcommand as
 | `acp-tui config --print-default` | Prints a complete file with every setting at its default, after a short guide in sections; each setting has a comment saying what it does and what values it takes, and `agent_servers` has commented examples, each marked `Example, not active`, for the built-in `claude`, `codex-acp`, `opencode acp` and the other agents listed under [Agents](#agents). It loads without problems and gives exactly the defaults. |
 | `acp-tui config --print-schema` | Prints the configuration's JSON Schema. |
 | `acp-tui config --path` | Prints your file, the themes directory and the project file that applies for the current directory, each present or absent. |
+| `acp-tui config --diff-default` | Prints a unified diff (three lines of context, no colour) from your `config.jsonc` to the current default, so the `+` lines are settings you lack or whose default or description changed, and the `-` lines are what you have that the default does not. Your file is read as text, so a file with a mistake in it still diffs. It exits 0 whether or not they differ (use `--check` in a script); identical files print `config.jsonc is the same as the default.`, and with no file it says so, names `--print-default` and exits 1. Useful after a `git pull` to see what is new; the diff also shows your own changes, which is the point of a comparison. |
 | `acp-tui glyphs --test [set]` | Prints each glyph set (or one) by name, a row per group, so you can see which glyphs your terminal's font draws. |
 
 Run `--check` from the directory you start acp-tui in, since it finds the project file the way acp-tui does.
@@ -813,6 +835,8 @@ It writes a small regular file, a short `sh` stub that holds the checkout's abso
 `install-cli` overwrites a file only if it carries its own marker or is the phase-1a launcher (recognised by its header); any other file is kept unless you pass `--force`. `--uninstall` removes only a stub with its marker. It warns when the directory is not on your `PATH`. A copy of the old launcher that is still on your `PATH` keeps working: its `--spike` argument is ignored with a notice, which `install-cli` stops by replacing it.
 
 It also creates your configuration file when there is none: the commented default (what `acp-tui config --print-default` prints) at `$XDG_CONFIG_HOME/acp-tui/config.jsonc`, or `~/.config/acp-tui/config.jsonc` when `XDG_CONFIG_HOME` is unset or not absolute (`%APPDATA%\acp-tui\config.jsonc` on Windows; a directory it has to make is readable only by you), and prints the path. A configuration that already exists is never replaced, not even with `--force` (which is about the command only): `install-cli` says it kept it. `--uninstall` leaves the configuration alone.
+
+Every `install-cli` run (not `--uninstall`) also writes `config.dist.jsonc` beside your configuration: the default configuration of the installed version, three `//` comment lines naming the version and saying what the file is, then exactly what `acp-tui config --print-default` prints. It replaces the previous copy each time (through a temporary file in the same directory, readable only by you), so after a `git pull` and another `bun run install-cli` it holds the new defaults while your `config.jsonc` is untouched. acp-tui never reads or watches it: an error in it is not reported and saving it reloads nothing, so it is safe to open, and edits to it are lost at the next install. To see what is new or changed, compare the two files in your editor or diff tool, or run `acp-tui config --diff-default`, which prints the difference from your file to the defaults in the terminal (it works without the dist file, for a copy of acp-tui that was never installed this way). The installer says `wrote <path>, the default configuration of this version`; if the file cannot be written (the path is a directory or a link, or the disk refuses) it prints a warning and the install still succeeds. `--uninstall` removes `config.dist.jsonc` only if its first line is the one the installer writes, so a file of your own with that name stays.
 
 On Windows the command is `acp-tui.cmd` in `%USERPROFILE%\.bun\bin` (Bun's own directory, already on the `PATH`), a batch file that runs `packages\acp-tui\src\cli.ts` with the Bun that ran `install-cli`; `--uninstall` there removes only an `acp-tui.cmd` that `install-cli` wrote. See [Installing acp-tui on Windows](install-windows.md).
 

@@ -13,6 +13,7 @@ import {
   createAttention,
   DEFAULT_ATTENTION,
   installAttention,
+  wireAttention,
   type AttentionSettings,
 } from "../../src/renderer/attention.ts";
 
@@ -230,5 +231,141 @@ describe("attention settings from the configuration", () => {
     settings = attentionFromConfig({ signal: "osc777", long_turn_seconds: 10 });
     f.step("idle");
     expect(f.written).toEqual(["\x1b]777;notify;acp-tui;turn finished\x07"]);
+  });
+});
+
+// interface-feedback task 6.3 (spec tui-screen "Attention marker in the title"): pending attention.
+describe("pending attention", () => {
+  test("set without focus reports: a terminal that never reported counts as unfocused", () => {
+    const f = fixture();
+    f.step("running");
+    f.advance(45);
+    f.step("idle");
+    expect(f.attention.pending).toBe(true);
+  });
+
+  test("not set while the pane has focus", () => {
+    const f = fixture();
+    f.attention.setFocused(true);
+    f.step("running");
+    f.advance(45);
+    f.step("idle");
+    f.step("running");
+    f.step("requires_action");
+    expect(f.attention.pending).toBe(false);
+  });
+
+  test("not set by a short turn", () => {
+    const f = fixture();
+    f.step("running");
+    f.advance(5);
+    f.step("idle");
+    expect(f.attention.pending).toBe(false);
+  });
+
+  test("set under signal none, though nothing is written", () => {
+    const f = fixture({ signal: "none", longTurnSeconds: 30 });
+    f.step("running");
+    f.step("requires_action");
+    expect(f.written).toEqual([]);
+    expect(f.attention.pending).toBe(true);
+  });
+
+  test("cleared by focus in, by interacted(), and reported to listeners once per change", () => {
+    const f = fixture();
+    const seen: boolean[] = [];
+    f.attention.onPending((p) => void seen.push(p));
+    f.step("requires_action");
+    expect(f.attention.pending).toBe(true);
+    f.attention.setFocused(true);
+    expect(f.attention.pending).toBe(false);
+    f.attention.setFocused(false);
+    f.step("running");
+    f.step("requires_action");
+    f.attention.interacted();
+    f.attention.interacted();
+    expect(seen).toEqual([true, false, true, false]);
+  });
+
+  test("the unsubscribed listener hears nothing more", () => {
+    const f = fixture();
+    const seen: boolean[] = [];
+    const off = f.attention.onPending((p) => void seen.push(p));
+    off();
+    f.step("requires_action");
+    expect(seen).toEqual([]);
+  });
+});
+
+describe("pending attention cleared by interaction (installAttention)", () => {
+  function wired() {
+    const renderer = Object.assign(new EventEmitter(), {
+      keyInput: {
+        processParsedKey: (_key: { eventType?: string }) => true,
+        processPaste: (_bytes: Uint8Array) => {},
+      },
+      processSingleMouseEvent: (_report: { type: string }) => true,
+    });
+    const dispatched: string[] = [];
+    renderer.processSingleMouseEvent = (report) => (dispatched.push(report.type), true);
+    const listeners = new Set<(change: { session: Session; previous: Session }) => void>();
+    const feed = {
+      onChange(listener: (change: { session: Session; previous: Session }) => void) {
+        listeners.add(listener);
+        return () => void listeners.delete(listener);
+      },
+    };
+    const { attention, remove } = wireAttention(renderer as never, feed, { write: () => {} });
+    const idle = createSession();
+    const raise = () => {
+      for (const l of listeners) l({ session: { ...idle, state: "requires_action" }, previous: idle });
+    };
+    return { renderer, attention, remove, raise, dispatched };
+  }
+
+  test("a key press clears it", () => {
+    const w = wired();
+    w.raise();
+    expect(w.attention.pending).toBe(true);
+    w.renderer.keyInput.processParsedKey({});
+    expect(w.attention.pending).toBe(false);
+  });
+
+  test("a key release does not clear it", () => {
+    const w = wired();
+    w.raise();
+    w.renderer.keyInput.processParsedKey({ eventType: "release" });
+    expect(w.attention.pending).toBe(true);
+  });
+
+  test("a paste clears it", () => {
+    const w = wired();
+    w.raise();
+    w.renderer.keyInput.processPaste(new Uint8Array());
+    expect(w.attention.pending).toBe(false);
+  });
+
+  test("a click and a wheel event clear it, pointer motion does not, and every report is still dispatched", () => {
+    const w = wired();
+    w.raise();
+    for (const type of ["move", "drag", "up", "over", "out"]) w.renderer.processSingleMouseEvent({ type });
+    expect(w.attention.pending).toBe(true);
+    w.renderer.processSingleMouseEvent({ type: "down" });
+    expect(w.attention.pending).toBe(false);
+    w.raise();
+    expect(w.attention.pending).toBe(true);
+    w.renderer.processSingleMouseEvent({ type: "scroll" });
+    expect(w.attention.pending).toBe(false);
+    expect(w.dispatched).toEqual(["move", "drag", "up", "over", "out", "down", "scroll"]);
+  });
+
+  test("the remover puts the wrapped methods back, and a key then clears nothing", () => {
+    const w = wired();
+    const wrapped = w.renderer.processSingleMouseEvent;
+    const key = w.renderer.keyInput.processParsedKey;
+    w.remove();
+    expect(w.renderer.processSingleMouseEvent).not.toBe(wrapped);
+    expect(w.renderer.keyInput.processParsedKey).not.toBe(key);
+    expect(w.renderer.listenerCount("focus")).toBe(0);
   });
 });
