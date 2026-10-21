@@ -79,7 +79,8 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     const text = commentedDefault();
     const comments = commentText(text);
     for (const section of Object.keys(SECTIONS) as SectionName[]) {
-      expect(text).toMatch(new RegExp(`^  "${section}": `, "m"));
+      // agent_startup_timeout_seconds is shown commented out, so that claude keeps its longer default.
+      expect(text).toMatch(new RegExp(`^  ${section === "agent_startup_timeout_seconds" ? "// " : ""}"${section}": `, "m"));
       const list = valueListOf(SECTIONS[section]);
       if (list) expect(comments).toContain(`${list.heading}:`);
       else expect(comments).toContain(describeOf(SECTIONS[section])!.replace(/\s+/g, " "));
