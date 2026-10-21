@@ -70,8 +70,8 @@ describe("mode", () => {
 describe("cwd", () => {
   test("shortens the home directory to ~", () => {
     expect(run("cwd", FULL_VIEW)).toEqual([{ text: "~/Projects/acp-tui", token: "muted" }]);
-    expect(shortenHome("/home/marcus", "/home/marcus")).toBe("~");
-    expect(shortenHome("/home/marcusx/a", "/home/marcus")).toBe("/home/marcusx/a");
+    expect(shortenHome("/home/user", "/home/user")).toBe("~");
+    expect(shortenHome("/home/userx/a", "/home/user")).toBe("/home/userx/a");
     expect(shortenHome("/srv/repo", null)).toBe("/srv/repo");
   });
 
@@ -93,7 +93,7 @@ describe("cwd", () => {
     expect(text("cwd", view({ cwd: "/home/u/a\\b", home: "/home/u", platform: "linux" }), { format: "{basename}" })).toBe("a\\b");
   });
   test("middle-truncates long paths to maxWidth", () => {
-    const long = view({ cwd: "/home/marcus/Projects/some/deeply/nested/directory/structure/repo" });
+    const long = view({ cwd: "/home/user/Projects/some/deeply/nested/directory/structure/repo" });
     const out = text("cwd", long, { maxWidth: 24 })!;
     expect(Bun.stringWidth(out)).toBe(24);
     expect(out.startsWith("~/Projects/")).toBe(true);

@@ -16,7 +16,7 @@ const INPUT: SplashInput = {
   launch: { harness: "fake", directory: "/work/repo-b" },
   connecting: false,
   spinner: DEFAULT_GLYPHS.spinner,
-  home: "/home/marcus",
+  home: "/home/user",
   keyMap: DEFAULT_KEY_MAP,
   glyphs: DEFAULT_CHROME_GLYPHS,
 };
@@ -212,7 +212,7 @@ describe("splash rows (task 4.7)", () => {
   });
 
   test("a long agent name is cut to the width; home is shown as ~", () => {
-    const layout = splashLayout({ ...INPUT, agent: "x".repeat(200), cwd: "/home/marcus/Projects/acp-tui" }, 63, 12);
+    const layout = splashLayout({ ...INPUT, agent: "x".repeat(200), cwd: "/home/user/Projects/acp-tui" }, 63, 12);
     for (const row of text(layout.rows)) expect(displayWidth(row)).toBeLessThanOrEqual(63);
     expect(text(layout.rows).join("\n")).toContain("~/Projects/acp-tui");
   });
