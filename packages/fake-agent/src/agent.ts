@@ -75,6 +75,16 @@ export interface FakeAgentOptions {
   readonly longGap?: boolean;
   /** The `--start-delay` knob: milliseconds `initialize` waits before answering (absolute, not scaled). */
   readonly startDelayMs?: number;
+  /** `--no-initialize`: `initialize` is never answered. */
+  readonly noInitialize?: boolean;
+  /** `--additional-directories`: advertise `sessionCapabilities.additionalDirectories`. */
+  readonly additionalDirectories?: boolean;
+  /** `--session-delay`: milliseconds `session/new`, `session/load` and `session/resume` wait before answering (absolute). */
+  readonly sessionDelayMs?: number;
+  /** `--session-heartbeat`: an agent message chunk every this many milliseconds during that wait. */
+  readonly sessionHeartbeatMs?: number;
+  /** `--session-permission`: a permission request before that wait, which starts once it is answered. */
+  readonly sessionPermission?: boolean;
   /** `--auth-required`: see `FakeAgentCliOptions.authRequired`. */
   readonly authRequired?: AuthRequiredMode;
   /** `--agent-info`: the `agentInfo` `initialize` reports (title equal to the name). */
@@ -116,6 +126,7 @@ export function createFakeAgent(
   options: FakeAgentOptions,
 ): Agent {
   const { scenario, logger, delayScale, items, chunk, longGap, startDelayMs = 0, authRequired, agentInfo } = options;
+  const { noInitialize = false, additionalDirectories = false, sessionDelayMs = 0, sessionHeartbeatMs, sessionPermission = false } = options;
   const sessions: FakeAgentSessionOptions = options.sessions ?? {
     load: false,
     resume: false,
@@ -139,6 +150,42 @@ export function createFakeAgent(
       logger.record("session/update/sent", { sessionId, update });
     }
     await conn.sessionUpdate({ sessionId, update });
+  }
+
+  /**
+   * `--session-permission` and `--session-delay` (with `--session-heartbeat`): what a session request
+   * waits for before it is answered. The permission request goes first; the delay starts once it is answered.
+   */
+  async function holdSession(sessionId: string): Promise<void> {
+    if (sessionPermission) {
+      const response = await conn.requestPermission({
+        sessionId,
+        toolCall: { toolCallId: "session-permission", title: "Index the workspace", kind: "other", status: "pending" },
+        options: [
+          { optionId: "allow", name: "Allow", kind: "allow_once" },
+          { optionId: "reject", name: "Reject", kind: "reject_once" },
+        ],
+      });
+      logger.record("session/request_permission/response", response);
+    }
+    if (sessionDelayMs <= 0) {
+      return;
+    }
+    const heartbeat =
+      sessionHeartbeatMs === undefined
+        ? undefined
+        : setInterval(() => {
+            sendUpdate(sessionId, {
+              sessionUpdate: "agent_message_chunk",
+              messageId: "session-heartbeat",
+              content: { type: "text", text: "Indexing workspace...\n" },
+            }).catch(() => {});
+          }, sessionHeartbeatMs);
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, sessionDelayMs));
+    } finally {
+      if (heartbeat !== undefined) clearInterval(heartbeat);
+    }
   }
 
   /** The stored session `session/load` or `session/resume` opens, or Resource not found. */
@@ -192,6 +239,10 @@ export function createFakeAgent(
   return {
     async initialize(request: InitializeRequest): Promise<InitializeResponse> {
       logger.record("initialize", request);
+      if (noInitialize) {
+        // Never answered; the connection keeps reading.
+        return new Promise<InitializeResponse>(() => {});
+      }
       if (startDelayMs > 0) {
         await new Promise<void>((resolve) => setTimeout(resolve, startDelayMs));
       }
@@ -199,6 +250,7 @@ export function createFakeAgent(
       const sessionCapabilities = {
         ...(sessions.list ? { list: {} } : {}),
         ...(sessions.resume ? { resume: {} } : {}),
+        ...(additionalDirectories ? { additionalDirectories: {} } : {}),
       };
       return {
         protocolVersion: 1,
@@ -223,6 +275,7 @@ export function createFakeAgent(
         sessionCounter += 1;
         sessionId = `fake-session-${sessionCounter}`;
       } while (store.has(sessionId));
+      await holdSession(sessionId);
       const history = sessions.history ? scenario.history?.(items) : undefined;
       store.add({
         sessionId,
@@ -271,6 +324,7 @@ export function createFakeAgent(
         throw RequestError.methodNotFound("session/load");
       }
       const session = openable(request.sessionId);
+      await holdSession(session.sessionId);
       const updates = await replay(session);
       scenario.sessionLoaded?.(session.sessionId, turnCount(session));
       logger.record("session/load/response", { sessionId: session.sessionId, updates });
@@ -283,6 +337,7 @@ export function createFakeAgent(
         throw RequestError.methodNotFound("session/resume");
       }
       const session = openable(request.sessionId);
+      await holdSession(session.sessionId);
       scenario.sessionLoaded?.(session.sessionId, turnCount(session));
       logger.record("session/resume/response", { sessionId: session.sessionId });
       return openedResponse(request);

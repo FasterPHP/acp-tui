@@ -6,6 +6,7 @@ import { bigOutputScenario } from "./big-output.ts";
 import { configOptionsScenario } from "./config-options.ts";
 import { configOptionsLegacyScenario } from "./config-options-legacy.ts";
 import { configOptionsModelsScenario } from "./config-options-models.ts";
+import { configOptionsProvidersScenario } from "./config-options-providers.ts";
 import { commandResultsScenario } from "./command-results.ts";
 import { copyFixturesScenario } from "./copy-fixtures.ts";
 import { crashScenario } from "./crash.ts";
@@ -50,6 +51,7 @@ export const SCENARIOS: Readonly<Record<string, Scenario>> = {
   [configOptionsScenario.name]: configOptionsScenario,
   [configOptionsLegacyScenario.name]: configOptionsLegacyScenario,
   [configOptionsModelsScenario.name]: configOptionsModelsScenario,
+  [configOptionsProvidersScenario.name]: configOptionsProvidersScenario,
   [permissionWithdrawScenario.name]: permissionWithdrawScenario,
   [permissionConcurrentScenario.name]: permissionConcurrentScenario,
   [slowTurnScenario.name]: slowTurnScenario,
