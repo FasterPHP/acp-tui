@@ -16,7 +16,7 @@ import { describeSchema, HARNESS_NAME_SUBCOMMANDS, parseConfigText } from "../..
 import { RESERVED_SUBCOMMANDS } from "../../src/cli.ts";
 import { readConfiguration } from "../../src/config/read.ts";
 import { defaultConfig, describeOf, moduleFieldList, SECTIONS, valueListOf, valueListText, type SectionName } from "../../src/config/schema.ts";
-import { DEFAULT_AGENT_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
+import { CLAUDE_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
 import type { z } from "zod";
 import { MODULE_IDS } from "../../src/layout/modules.ts";
 
@@ -61,16 +61,25 @@ const commentText = (text: string): string =>
     .join(" ")
     .replace(/\s+/g, " ");
 
+/** The effective configuration when the user has no file: the default configuration's active lines. */
+const noFileConfig = (file: string) => effectiveConfig({ user: parseConfigText(null, file, { kind: "user", knownAgents: [] }).sections, project: {} });
+
 describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
-  test("Default loads as the default: saved as the user's file, config --check reports no problem and the effective configuration equals the built-in defaults", async () => {
+  test("Default loads as the default: saved as the user's file, config --check reports no problem and the effective configuration equals the one with no file", async () => {
     const text = commentedDefault();
     const w = world({ config: text });
-    const parsed = parseConfigText(text, w.configFile, { knownAgents: ["auggie", "claude"] });
+    const parsed = parseConfigText(text, w.configFile, { knownAgents: [] });
     expect(parsed.status).toBe("ok");
     expect(parsed.problems).toEqual([]);
     expect(parsed.rejected).toEqual([]);
-    expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} })).toEqual(defaultConfig());
-    expect(readConfiguration({ env: w.env, sessionDirectory: w.cwd }).config).toEqual(defaultConfig());
+    expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} })).toEqual(noFileConfig(w.configFile));
+    // The harness lines are read from the file or, with no file, from the default's active lines: the same entries and default.
+    const absent = parseConfigText(null, w.configFile, { kind: "user", knownAgents: [] });
+    expect(absent.sections.agent_servers).toEqual(parsed.sections.agent_servers);
+    expect(absent.sections.default_agent_server).toEqual(parsed.sections.default_agent_server);
+    const { agent_servers: _a, default_agent_server: _d, ...fromFile } = readConfiguration({ env: w.env, sessionDirectory: w.cwd }).config;
+    const { agent_servers: _b, default_agent_server: _e, ...fromNoFile } = readConfiguration({ env: world().env, sessionDirectory: w.cwd }).config;
+    expect(fromFile).toEqual(fromNoFile);
     const r = await w.run(["--check"]);
     expect(r).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
   });
@@ -79,8 +88,7 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     const text = commentedDefault();
     const comments = commentText(text);
     for (const section of Object.keys(SECTIONS) as SectionName[]) {
-      // agent_startup_timeout_seconds is shown commented out, so that claude keeps its longer default.
-      expect(text).toMatch(new RegExp(`^  ${section === "agent_startup_timeout_seconds" ? "// " : ""}"${section}": `, "m"));
+      expect(text).toMatch(new RegExp(`^  "${section}": `, "m"));
       const list = valueListOf(SECTIONS[section]);
       if (list) expect(comments).toContain(`${list.heading}:`);
       else expect(comments).toContain(describeOf(SECTIONS[section])!.replace(/\s+/g, " "));
@@ -144,34 +152,23 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     }
   });
 
-  test("Agent examples (task 12.7): the built-in claude with its real command, codex-acp, opencode acp and the others, each introduced as an example that is not active and naming its source", async () => {
+  test("Agent examples (task 12.7): claude with its real command, codex-acp, opencode acp and the others, each introduced as an example that is not active and naming its source", async () => {
     const text = commentedDefault();
-    expect(text).toContain(`// "claude": { "command": "${DEFAULT_AGENT_EXAMPLE_COMMAND[0]}", "args": [${DEFAULT_AGENT_EXAMPLE_COMMAND.slice(1).map((arg) => JSON.stringify(arg)).join(", ")}], "env": { "ANTHROPIC_MODEL": "opus" } },`);
+    expect(text).toContain(`// "claude": { "command": "${CLAUDE_EXAMPLE_COMMAND[0]}", "args": [${CLAUDE_EXAMPLE_COMMAND.slice(1).map((arg) => JSON.stringify(arg)).join(", ")}], "startup_timeout_seconds": 120 },`);
     expect(text).toContain('// "codex": { "command": "codex-acp", "args": [] },');
     expect(text).toContain('// "opencode": { "command": "opencode", "args": ["acp"] },');
     for (const name of ["auggie", "pi", "gemini", "deepseek"]) expect(text).toContain(`// "${name}": { "command": `);
     const lines = text.split("\n");
     for (const example of AGENT_EXAMPLES) {
-      const at = lines.findIndex((l) => l.trim().startsWith(`// "${example.name}": {`));
+      // The active auggie entry is not commented out; its comment names the source but is not an "Example, not active".
+      const at = lines.findIndex((l) => l.trim().startsWith(example.active ? `"${example.name}": {` : `// "${example.name}": {`));
       expect(at).toBeGreaterThan(-1);
-      // The comment above the entry starts with the example marker and names a source.
+      // The comment above the entry starts with the example marker (the active entry: with a blank line or the brace) and names a source.
       let start = at - 1;
-      while (!lines[start]!.includes(EXAMPLE)) start--;
+      while (!lines[start]!.includes(EXAMPLE) && !(example.active && lines[start]!.trim() === `"agent_servers": {`)) start--;
       const about = lines.slice(start, at).join(" ");
       expect(about).toMatch(/Sources?: /);
     }
-  });
-
-  test("Built-in harnesses shown: auggie, claude and opencode are each marked as built in and run as they do without an entry", async () => {
-    const lines = commentedDefault().split("\n");
-    for (const name of ["auggie", "claude", "opencode"]) {
-      const at = lines.findIndex((l) => l.trim().startsWith(`// "${name}": {`));
-      let start = at - 1;
-      while (!lines[start]!.includes(EXAMPLE)) start--;
-      expect(lines.slice(start, at).join(" ")).toMatch(/the built-in/);
-    }
-    expect(commentedDefault()).toContain("claude-agent-acp@0.94.0");
-    expect(commentedDefault()).toContain("npm install -g @opencode/cli");
   });
 
   test("uncommenting every example gives a clean configuration with every example agent", async () => {
@@ -451,7 +448,7 @@ describe("Windows: paths, the commented default and the byte order mark (windows
     expect(windows).not.toContain("~/.config");
     const parsed = parseConfigText(windows, "C:\\Users\\u\\AppData\\Roaming\\acp-tui\\config.jsonc", { knownAgents: ["auggie", "claude"] });
     expect(parsed.problems).toEqual([]);
-    expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} })).toEqual(defaultConfig());
+    expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} })).toEqual(noFileConfig("C:\\Users\\u\\AppData\\Roaming\\acp-tui\\config.jsonc"));
     // Linux and macOS keep their text.
     for (const platform of ["linux", "darwin"] as const) {
       expect(commentText(commentedDefault(platform))).toContain("$XDG_CONFIG_HOME/acp-tui/config.jsonc, or ~/.config/acp-tui/config.jsonc when XDG_CONFIG_HOME is not set.");
@@ -545,5 +542,65 @@ describe("config --diff-default (interface-feedback 5.3)", () => {
     for (const line of r.stdout.split("\n")) expect(line.length).toBeLessThanOrEqual(78);
     const twice = await w.run(["--diff-default", "--path"]);
     expect(twice.code).toBe(1);
+  });
+});
+
+describe("Harnesses come only from agent_servers (configured-harnesses, tui-config)", async () => {
+  test("Default configuration: the printed file holds the active auggie line, the commented alternative with /path/to/projects and the commented claude line with 120", () => {
+    const text = commentedDefault();
+    expect(text).toMatch(/^ {4}"auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\] \},$/m);
+    expect(text).toMatch(/^ {4}\/\/ "auggie": \{ .*"--reasoning-effort", "high", "--add-workspace", "\/path\/to\/projects".* \},$/m);
+    expect(text).toMatch(/^ {4}\/\/ "claude": \{ "command": "bunx", .*"startup_timeout_seconds": 120 \},$/m);
+    expect(text).toMatch(/^ {2}"default_agent_server": "auggie",$/m);
+    // Every other example is commented out.
+    const active = text.split("\n").filter((l) => /^ {4}"[\w-]+": \{ "command"/.test(l));
+    expect(active).toHaveLength(1);
+  });
+
+  test("Configuration without a file: the printed default and no file give the same harness entries and default", () => {
+    const printed = parseConfigText(commentedDefault(), "/c.jsonc", { kind: "user", knownAgents: [] });
+    const absent = parseConfigText(null, "/c.jsonc", { kind: "user", knownAgents: [] });
+    expect(absent.status).toBe("absent");
+    expect(absent.problems).toEqual([]);
+    expect(absent.sections.agent_servers).toEqual(printed.sections.agent_servers);
+    expect(absent.sections.default_agent_server).toEqual(printed.sections.default_agent_server);
+    expect(Object.keys(absent.sections.agent_servers as object)).toEqual(["auggie"]);
+    expect(absent.sections.default_agent_server).toBe("auggie");
+    // A project file's absence adds no harness.
+    expect(parseConfigText(null, "/p/.acp-tui.jsonc", { kind: "project" }).sections).toEqual({});
+  });
+
+  test("Check without a file: config --check prints no configuration problems and exits 0", async () => {
+    const w = world();
+    expect(await w.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+  });
+
+  test("Empty file: {} is taken as written, has no harnesses and is not itself a problem", async () => {
+    const w = world({ config: "{}" });
+    const parsed = parseConfigText("{}", w.configFile, { kind: "user", knownAgents: [] });
+    expect(parsed.sections).toEqual({});
+    expect(await w.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+  });
+
+  test("Names a harness that is not known: an error at the value, and the name is kept", async () => {
+    const w = world({ config: `{\n  "default_agent_server": "claude",\n}\n` });
+    const r = await w.run(["--check"]);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain(`${w.configFile}:2:27: error: default_agent_server names "claude", which has no agent_servers entry, so acp-tui without a harness name fails`);
+    const parsed = parseConfigText(`{ "default_agent_server": "claude" }`, w.configFile, { kind: "user", knownAgents: [] });
+    expect(parsed.sections.default_agent_server).toBe("claude");
+    expect(parsed.rejected).toEqual([]);
+  });
+
+  test("Old name: default_agent claude is reported the same way, under the key as written", async () => {
+    const w = world({ config: `{ "default_agent": "claude" }` });
+    const r = await w.run(["--check"]);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain(`default_agent names "claude", which has no agent_servers entry, so acp-tui without a harness name fails`);
+  });
+
+  test("an unset default is no problem and no notice, with entries or without", async () => {
+    const w = world({ config: `{ "agent_servers": { "fake": { "command": "bun" } } }` });
+    expect(await w.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
   });
 });

@@ -1,15 +1,15 @@
 // mvp-sessions task 3.3: the launch routed through the agent catalogue, under
-// a PTY. Spec tui-agent-session "Agent launch", "Built-in default" (command
+// a PTY. Spec tui-agent-session "Agent launch", "Auggie by default" (command
 // resolution only: the app is a stub, so claude-agent-acp is never run) and
 // "New session in the current directory", "Explicit directory wins" (the real
 // app against fake-agent: `session/new` got the directory, from fake-agent's
 // own log, and the status row shows it). Each run has its own empty
 // XDG_CONFIG_HOME and XDG_STATE_HOME.
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { DEFAULT_AGENT_COMMAND } from "../../src/agent/command.ts";
+import { CLAUDE_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
 import type { LaunchDescription } from "../../src/agent/resolve.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { READY, statusRow } from "../pty/regions.ts";
@@ -36,7 +36,7 @@ afterEach(async () => {
 });
 
 describe("Agent launch (tui-agent-session)", () => {
-  test("Built-in default: no configuration file and no arguments resolve to auggie --acp", async () => {
+  test("Auggie by default: no configuration file and no arguments resolve to auggie --acp", async () => {
     const cwd = temp("acp-tui-launch-");
     const out = join(cwd, "launch.json");
     session = startPty(["bun", STUB, "--"], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
@@ -56,14 +56,18 @@ describe("Agent launch (tui-agent-session)", () => {
     });
   });
 
-  test("Built-in by position: acp-tui claude resolves to the pinned claude-agent-acp command", async () => {
+  test("Claude after uncommenting: acp-tui claude resolves to the entry's pinned claude-agent-acp command and its 120 second timeout", async () => {
     const cwd = temp("acp-tui-launch-");
     const out = join(cwd, "launch.json");
-    session = startPty(["bun", STUB, "--", "claude"], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
+    const env = xdg();
+    mkdirSync(join(env["XDG_CONFIG_HOME"]!, "acp-tui"), { recursive: true });
+    const [command, ...args] = CLAUDE_EXAMPLE_COMMAND;
+    writeFileSync(join(env["XDG_CONFIG_HOME"]!, "acp-tui", "config.jsonc"), JSON.stringify({ agent_servers: { claude: { command, args, startup_timeout_seconds: 120 } } }));
+    session = startPty(["bun", STUB, "--", "claude"], { cols: 80, rows: 24, cwd, env: { ...env, ACP_TUI_TEST_LAUNCH_OUT: out } });
     expect(await session.wait(15000)).toBe(0);
     const launch = JSON.parse(readFileSync(out, "utf8")) as LaunchDescription;
-    expect([launch.command, ...launch.args]).toEqual([...DEFAULT_AGENT_COMMAND]);
-    expect(launch).toMatchObject({ agentName: "claude", agentSource: "option" });
+    expect([launch.command, ...launch.args]).toEqual([...CLAUDE_EXAMPLE_COMMAND]);
+    expect(launch).toMatchObject({ agentName: "claude", agentSource: "option", startupTimeoutSeconds: 120 });
   });
 });
 

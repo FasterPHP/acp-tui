@@ -32,7 +32,7 @@ function temp(): string {
 
 function entry(name: string, scenario: string): AgentEntry {
   const [command, ...args] = fakeAgentCommand({ scenario });
-  return { name, command: command!, args, env: {}, source: "config" };
+  return { name, command: command!, args, env: {} };
 }
 
 /** A store that records what it attaches, and throws from `replace` while `failing` is set. */
@@ -122,7 +122,7 @@ function repoWorld(session: LaunchDescription["session"] = { kind: "new" }, inde
   const fixture = join(dir, "sessions.json");
   writeFileSync(fixture, JSON.stringify({ sessions: [{ sessionId: "s-b", cwd: repoB, title: "Fix the router", turns: [] }] }));
   const [command, ...args] = fakeAgentCommand({ scenario: "copy-fixtures" });
-  const fake: AgentEntry = { name: "fake", command: command!, args: [...args, "--load", "--sessions", fixture], env: {}, source: "config" };
+  const fake: AgentEntry = { name: "fake", command: command!, args: [...args, "--load", "--sessions", fixture], env: {} };
   const catalogue: AgentCatalogue = { path: join(dir, "config.jsonc"), agents: new Map([["fake", fake]]), invalid: new Map(), defaultAgent: "fake", problems: [] };
   const launch: LaunchDescription = {
     agentName: "fake",
@@ -251,19 +251,15 @@ describe("the start-up connection (day-two-feedback D2)", () => {
   }, 20000);
 });
 
-describe("built-in harness rows and the install hint (colleague-preview)", () => {
-  const builtIn = (name: string, command: string, hint?: string): AgentEntry => ({ name, command, args: [], env: {}, source: "built-in", ...(hint ? { installHint: hint } : {}) });
+describe("harness rows and the install hint (configured-harnesses)", () => {
+  const AUGGIE_HINT = "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login";
+  const OPENCODE_HINT = "npm install -g @opencode/cli, or see opencode.ai/docs";
+  const missing = (name: string, command: string, hint?: string): AgentEntry => ({ name, command, args: [], env: {}, ...(hint ? { installHint: hint } : {}) });
 
-  function world(installed: (entry: AgentEntry) => boolean, extra: AgentEntry[] = []) {
+  function world(configured: AgentEntry[]) {
     const dir = temp();
     const fake = entry("fake", "basic");
-    const agents = new Map<string, AgentEntry>([
-      ["auggie", builtIn("auggie", "no-such-auggie-program-xyz", "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login")],
-      ["claude", builtIn("claude", "claude-stand-in")],
-      ["opencode", builtIn("opencode", "no-such-opencode-program-xyz", "npm install -g @opencode/cli, or see opencode.ai/docs")],
-      ["fake", fake],
-      ...extra.map((e) => [e.name, e] as [string, AgentEntry]),
-    ]);
+    const agents = new Map<string, AgentEntry>([...configured, fake].map((e) => [e.name, e] as [string, AgentEntry]));
     const catalogue: AgentCatalogue = { path: join(dir, "config.jsonc"), agents, invalid: new Map(), defaultAgent: "fake", problems: [] };
     const launch: LaunchDescription = {
       agentName: "fake",
@@ -279,50 +275,85 @@ describe("built-in harness rows and the install hint (colleague-preview)", () =>
       indexMatches: 0,
       problems: [],
     };
-    switcher = createSessionSwitcher({ launch, index: openSessionIndex({ stateHome: join(dir, "state") }), store: fakeStore(), catalogue: () => catalogue, isInstalled: installed });
+    switcher = createSessionSwitcher({ launch, index: openSessionIndex({ stateHome: join(dir, "state") }), store: fakeStore(), catalogue: () => catalogue });
     return switcher;
   }
 
-  test("Built-in that is not installed: no row for it; the harness in use and configured entries stay", () => {
-    expect(world((e) => e.name === "claude").agents()).toEqual(["claude", "fake"]);
+  test("Exactly the configured harnesses: every valid entry has a row, in the file's order, whether or not its program is installed", () => {
+    const s = world([missing("auggie", "no-such-auggie-program-xyz", AUGGIE_HINT), missing("opencode", "no-such-opencode-program-xyz", OPENCODE_HINT)]);
+    expect(s.agents()).toEqual(["auggie", "opencode", "fake"]);
   });
 
-  test("Built-in that is installed: its row is offered, after the others in catalogue order", () => {
-    expect(world(() => true).agents()).toEqual(["auggie", "claude", "opencode", "fake"]);
+  test("Exactly the configured harnesses: a program that is installed but has no entry gets no row, and invalid entries get none", () => {
+    const dir = temp();
+    const fake = entry("fake", "basic");
+    const catalogue: AgentCatalogue = { path: join(dir, "config.jsonc"), agents: new Map([["fake", fake]]), invalid: new Map([["broken", "has an invalid command"]]), defaultAgent: "fake", problems: [] };
+    const launch: LaunchDescription = {
+      agentName: "fake",
+      agentSource: "option",
+      command: fake.command,
+      args: fake.args,
+      env: {},
+      directory: dir,
+      directorySource: "launch",
+      launchDirectory: dir,
+      session: { kind: "new" },
+      indexed: null,
+      indexMatches: 0,
+      problems: [],
+    };
+    switcher = createSessionSwitcher({ launch, index: openSessionIndex({ stateHome: join(dir, "state") }), store: fakeStore(), catalogue: () => catalogue });
+    expect(switcher.agents()).toEqual(["fake"]);
   });
 
-  test("OpenCode installed: auggie not found, claude and opencode found: rows for the two and none for auggie", () => {
-    expect(world((e) => e.name !== "auggie").agents()).toEqual(["claude", "opencode", "fake"]);
+  test("an ad hoc harness in use has no row, and the configured ones keep theirs", () => {
+    const dir = temp();
+    const catalogue: AgentCatalogue = { path: join(dir, "config.jsonc"), agents: new Map([["fake", entry("fake", "basic")]]), invalid: new Map(), defaultAgent: "fake", problems: [] };
+    const fake = catalogue.agents.get("fake")!;
+    const launch: LaunchDescription = {
+      agentName: "ad hoc",
+      agentSource: "command",
+      command: fake.command,
+      args: fake.args,
+      env: {},
+      directory: dir,
+      directorySource: "launch",
+      launchDirectory: dir,
+      session: { kind: "new" },
+      indexed: null,
+      indexMatches: 0,
+      problems: [],
+    } as LaunchDescription;
+    switcher = createSessionSwitcher({ launch, index: openSessionIndex({ stateHome: join(dir, "state") }), store: fakeStore(), catalogue: () => catalogue });
+    expect(switcher.agents()).toEqual(["fake"]);
   });
 
-  test("no built-in found: only the configured entries are offered", () => {
-    const s = world(() => false);
-    expect(s.agents()).toEqual(["fake"]);
-  });
-
-  test("a configured entry named like a built-in is always offered", () => {
-    const configured: AgentEntry = { ...entry("auggie", "basic"), source: "config" };
-    expect(world(() => false, [configured]).agents()).toEqual(["auggie", "fake"]);
-  });
-
-  test("a new session with a built-in that is not installed ends the list's message with the install hint", async () => {
-    const s = world(() => true);
+  test("Configured program missing: a new session with auggie, whose program is not installed, ends the list's message with the install hint", async () => {
+    const s = world([missing("auggie", "no-such-auggie-program-xyz", AUGGIE_HINT)]);
     await s.start();
     const problem = await s.choose({ kind: "new", agent: "auggie", current: false });
     expect(problem).toMatch(/^cannot start harness 'auggie'/);
-    expect(problem).toContain("auggie is not installed: install it with npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login");
+    expect(problem).toContain(`no-such-auggie-program-xyz is not installed: install it with ${AUGGIE_HINT}`);
   }, 20000);
 
-  test("a new session with OpenCode that is not installed ends the list's message with its install hint", async () => {
-    const s = world(() => true);
+  test("Configured program missing: OpenCode's hint ends the message", async () => {
+    const s = world([missing("opencode", "no-such-opencode-program-xyz", OPENCODE_HINT)]);
     await s.start();
     const problem = await s.choose({ kind: "new", agent: "opencode", current: false });
     expect(problem).toMatch(/^cannot start harness 'opencode'/);
-    expect(problem).toContain("opencode is not installed: install it with npm install -g @opencode/cli, or see opencode.ai/docs");
+    expect(problem).toContain(`no-such-opencode-program-xyz is not installed: install it with ${OPENCODE_HINT}`);
+  }, 20000);
+
+  test("a configured program with no hint fails without mentioning installing", async () => {
+    const s = world([missing("mine", "no-such-mine-program-xyz")]);
+    await s.start();
+    const problem = await s.choose({ kind: "new", agent: "mine", current: false });
+    expect(problem).toMatch(/^cannot start harness 'mine'/);
+    expect(problem).not.toContain("install");
   }, 20000);
 
   test("a session that cannot be opened never mentions installing", async () => {
-    const s = world(() => true);
+    const s = world([]);
     await s.start();
     const problem = await s.choose({ kind: "session", agent: "fake", current: true, sessionId: "nope", directory: "/", title: null } as never);
     expect(problem).not.toContain("install");

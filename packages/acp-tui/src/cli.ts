@@ -313,6 +313,8 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
         directory = existing;
         continue;
       }
+      // Before a `--` the word was meant as the directory (spec "Not a directory").
+      if (argv.indexOf("--", i + 1) !== -1) throw new CliArgumentError(`'${arg}' is not a directory`);
       // Anything else is refused before anything is launched; an ad hoc command goes after `--`.
       // An example's name says which entry to uncomment: with `gemini` on the PATH, running it would
       // start the harness's own terminal interface (spec "Example harnesses are not run as commands").

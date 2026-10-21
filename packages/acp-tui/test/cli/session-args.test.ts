@@ -31,7 +31,7 @@ async function run(argv: string[], cwd: string) {
   const stderr: string[] = [];
   const stdout: string[] = [];
   const startApp = mock(async (_options: StartAppOptions) => 0);
-  const config = JSON.stringify({ agent_servers: { fake: { command: "bun", args: FAKE_COMMAND.slice(1) } } });
+  const config = JSON.stringify({ agent_servers: { auggie: { command: "bun", args: ["auggie.ts"] }, fake: { command: "bun", args: FAKE_COMMAND.slice(1) } } });
   const context: CliContext = { cwd, catalogue: () => buildAgentCatalogue(config, "/cfg/acp-tui/config.jsonc") };
   const io = {
     stdout: { isTTY: true, write: (t: string) => stdout.push(t) },
@@ -258,9 +258,17 @@ describe("Directory argument and agent command are told apart (tui-sessions)", (
     expect(r.launch?.agentName).toBe("auggie");
   });
 
-  test("Dropped separator: the positional arguments are the agent command, the session starts in the launch directory", async () => {
+  test("Dropped separator: the command's words with no -- are refused and nothing starts", async () => {
     const dir = work();
     const r = await run([...FAKE_COMMAND], dir);
+    expect(r.code).toBe(1);
+    expect(r.started).toBe(false);
+    expect(r.stderr).toContain("'bun' is not a configured harness (auggie, fake) or a directory");
+  });
+
+  test("Command after the separator: the words after -- are the agent command, the session starts in the launch directory", async () => {
+    const dir = work();
+    const r = await run(["--", ...FAKE_COMMAND], dir);
     expect(r.code).toBe(0);
     expect(launchArgv(r.launch!)).toEqual(FAKE_COMMAND);
     expect(r.launch?.agentName).toBe("ad hoc");
@@ -268,13 +276,11 @@ describe("Directory argument and agent command are told apart (tui-sessions)", (
     expect(r.launch?.directorySource).toBe("launch");
   });
 
-  test("without --, a single existing directory is the directory; a single other word is the agent command", () => {
+  test("without --, a single existing directory is the directory; any other word is refused, whatever is on the PATH", () => {
     const dir = work();
     expect(parseArgs(["repo-b"], { cwd: dir })).toMatchObject({ directory: join(dir, "repo-b"), agentCommand: null });
-    // A lone word that is no harness or directory is the command only when it is one on the PATH.
-    expect(parseArgs(["my-agent"], { cwd: dir, commandExists: (word) => word === "my-agent" })).toMatchObject({ directory: null, agentCommand: ["my-agent"] });
-    // More than one positional argument is always the agent command, even when the first is a directory.
-    expect(parseArgs(["repo-b", "x"], { cwd: dir })).toMatchObject({ directory: null, agentCommand: ["repo-b", "x"] });
+    expect(() => parseArgs(["my-agent"], { cwd: dir })).toThrow("'my-agent' is not a configured harness");
+    expect(() => parseArgs(["repo-b", "x"], { cwd: dir })).toThrow("'x' is not a configured harness");
   });
 
   test("an agent command after -- is launched instead of a named agent (spec tui-agent-session, Agent launch)", async () => {

@@ -51,7 +51,7 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
   },
   {
     name: "claude",
-    about: `Claude Code through the claude-agent-acp adapter, run by bunx (which comes with Bun) and logged in with your Claude Code login. Its start-up timeout is ${CLAUDE_STARTUP_TIMEOUT_SECONDS} seconds because bunx may download the adapter first. Change args to run another version; add "env": { "ANTHROPIC_MODEL": "opus" } to choose the model, or CLAUDE_CODE_EXECUTABLE to run your own Claude Code. Sources: npm @agentclientprotocol/claude-agent-acp, and code.claude.com/docs/en/settings for ANTHROPIC_MODEL.`,
+    about: `Claude Code through the claude-agent-acp adapter, run by bunx (which comes with Bun) and logged in with your Claude Code login. Its start-up timeout is ${CLAUDE_STARTUP_TIMEOUT_SECONDS} seconds because bunx may download the adapter first. Change args to run another version. To choose the model, add an env entry such as "env": { "ANTHROPIC_MODEL": "opus" }; CLAUDE_CODE_EXECUTABLE there runs your own Claude Code. Sources: npm @agentclientprotocol/claude-agent-acp, and code.claude.com/docs/en/settings for ANTHROPIC_MODEL.`,
     entry: { command: CLAUDE_EXAMPLE_COMMAND[0]!, args: CLAUDE_EXAMPLE_COMMAND.slice(1), startupTimeoutSeconds: CLAUDE_STARTUP_TIMEOUT_SECONDS },
   },
   {

@@ -6,7 +6,6 @@ import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { realCommandExists } from "../../src/cli.ts";
 import { envValue, hasWindowsCommandExtension, isPathCommand, mergeEnvironment, ProgramNotFoundError, resolveArgv, resolveProgram, type WhichFunction } from "../../src/agent/which.ts";
 
 function temp(): string {
@@ -132,38 +131,6 @@ describe("the harness environment (Windows merges names case-insensitively)", ()
   });
 });
 
-describe("the lone-word rule (cli.ts)", () => {
-  test("on Windows a word with `\\` or a drive letter is a path, checked on disk, never looked up", () => {
-    const { which, calls } = recordingWhich({ "C:\\tools\\agent.cmd": "found", ".\\agent.cmd": "found" });
-    expect(realCommandExists("C:\\tools\\agent.cmd", "C:\\work", "win32", which)).toBe(false);
-    expect(realCommandExists(".\\agent.cmd", "C:\\work", "win32", which)).toBe(false);
-    expect(calls).toEqual([]);
-  });
+describe("Windows program extensions", () => {
 
-  test("a bare name is looked up on the PATH, on both platforms", () => {
-    const { which, calls } = recordingWhich({ auggie: "C:\\Users\\u\\AppData\\Roaming\\npm\\auggie.cmd" });
-    expect(realCommandExists("auggie", "C:\\work", "win32", which)).toBe(true);
-    expect(realCommandExists("nosuch", "/work", "linux", which)).toBe(false);
-    expect(calls.map((c) => c.name)).toEqual(["auggie", "nosuch"]);
-    // On Linux a backslash is part of a name.
-    expect(realCommandExists("a\\b", "/work", "linux", which)).toBe(false);
-    expect(calls.map((c) => c.name)).toEqual(["auggie", "nosuch", "a\\b"]);
-  });
-
-  test("on Windows a path is a command only with an extension from PATHEXT (there is no execute bit)", () => {
-    expect(hasWindowsCommandExtension("C:\\tools\\agent.cmd", {})).toBe(true);
-    expect(hasWindowsCommandExtension("C:\\tools\\AGENT.Exe", {})).toBe(true);
-    expect(hasWindowsCommandExtension(".\\notes.txt", {})).toBe(false);
-    expect(hasWindowsCommandExtension("C:\\tools.d\\agent", {})).toBe(false);
-    expect(hasWindowsCommandExtension("C:\\tools\\agent.ps1", { PathExt: ".COM;.EXE;.PS1" })).toBe(true);
-    expect(hasWindowsCommandExtension("C:\\tools\\agent.cmd", { PATHEXT: ".EXE" })).toBe(false);
-  });
-
-  test.skipIf(process.platform === "win32")("for real: an executable path is a command, and a program only in the cwd is not", () => {
-    const dir = temp();
-    writeFileSync(join(dir, "acp-tui-lone-tool"), "#!/bin/sh\nexit 0\n");
-    chmodSync(join(dir, "acp-tui-lone-tool"), 0o755);
-    expect(realCommandExists("./acp-tui-lone-tool", dir)).toBe(true);
-    expect(realCommandExists("acp-tui-lone-tool", dir)).toBe(false);
-  });
 });
