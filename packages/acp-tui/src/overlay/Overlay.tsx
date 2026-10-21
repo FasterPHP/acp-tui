@@ -59,6 +59,7 @@ import { useTerminalDimensions } from "@opentui/solid";
 import { TextAttributes, type BoxRenderable, type KeyEvent } from "@opentui/core";
 import type { SessionConfigOption } from "@agentclientprotocol/sdk";
 import { useApp } from "../app/context.ts";
+import { DEFAULT_MODEL_LIST_SETTINGS, type ModelListSettings } from "../layout/provider-groups.ts";
 import { cardModel } from "../app/permission.ts";
 import { typedText } from "../card/elicitation.tsx";
 import { clean } from "../card/elicitation-form.ts";
@@ -162,6 +163,10 @@ export function PaletteOverlay(): JSX.Element {
   const [opened, setOpened] = createSignal({ selection: false, promptSelection: false, fromConversation: false });
 
   // The agent's options, with legacy modes as a `mode` option when it offers no other.
+  const modelSettings = (): ModelListSettings => {
+    const models = config?.config().models;
+    return models ? { groupByProvider: models.group_by_provider, separator: models.provider_separator } : DEFAULT_MODEL_LIST_SETTINGS;
+  };
   const options = createMemo(() => pickerOptions({ configOptions: store.session.configOptions, modes: store.session.modes, models: store.session.models }));
 
   const permissionOptions = () => {
@@ -238,7 +243,7 @@ export function PaletteOverlay(): JSX.Element {
     },
     items: () => {
       const option = pickerOption(configId);
-      return option ? pickerItems(option) : [];
+      return option ? pickerItems(option, modelSettings()) : [];
     },
     filter: () => items().length > PICKER_FILTER_ABOVE,
     placeholder: "type to search",
@@ -390,7 +395,7 @@ export function PaletteOverlay(): JSX.Element {
     sent.then(
       () => {
         const updated = options().find((o) => o.id === configId);
-        controller.notify(`${name}: ${updated ? currentName(updated) : clean(String(value))}`, "muted");
+        controller.notify(`${name}: ${updated ? currentName(updated, modelSettings()) : clean(String(value))}`, "muted");
       },
       (error: unknown) => controller.notify(`could not change ${name}: ${clean(error instanceof Error ? error.message : String(error))}`, "warning"),
     );
@@ -406,7 +411,7 @@ export function PaletteOverlay(): JSX.Element {
     }
     const next = nextChoice(option as Extract<SessionConfigOption, { type: "select" }>);
     if (!next) {
-      controller.notify(`${clean(option.name)}: ${currentName(option)} (the only value)`, "muted");
+      controller.notify(`${clean(option.name)}: ${currentName(option, modelSettings())} (the only value)`, "muted");
       return true;
     }
     apply(option.id, next.value);

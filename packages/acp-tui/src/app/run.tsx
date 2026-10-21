@@ -189,7 +189,13 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
   const theme = createLiveTheme(themeConfig.source, { forceFlat: themeConfig.flat() });
   themeConfig.attach(theme);
   // The effective mouse policy starts as the chosen one (the `mouse` module; F2 flips it).
-  const store = createSessionStore({ mouse: screen.mouse });
+  const store = createSessionStore({
+    mouse: screen.mouse,
+    models: () => {
+      const models = config.config().models;
+      return { groupByProvider: models.group_by_provider, separator: models.provider_separator };
+    },
+  });
   const capture = captureConsole(options.logger);
   // mvp-sessions: whether opening the session from the command line failed (then the exit text
   // names no session).

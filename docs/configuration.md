@@ -401,6 +401,24 @@ One line above the prompt box shows the tool calls in progress (`2 running: Sear
 
 A project file may set it. A change applies the next time a call finishes.
 
+### Model lists
+
+Some harnesses (OpenCode, for one) send the model list as one flat list of `provider/model` values, each named `provider/Display Name`, which can run to hundreds of rows. When every value has a provider before its first `/`, every name starts with that provider and the list covers at least two providers, acp-tui groups the picker by provider (a heading for each provider, in the order the harness sent them, and the model's name under it), and shows the current model in the pill, the `model` status module and the splash as `provider / name`. The filter still matches the full name and the value, so typing `openrouter/q` narrows the list. A harness that groups its list itself, or a list that does not fit the rule, is drawn as sent.
+
+| Setting | Values | Default | What it does |
+| --- | --- | --- | --- |
+| `models.group_by_provider` | `true` or `false` | `true` | Draw a model list whose values and names are all "provider/model" over two or more providers grouped by provider in the picker, and its names as "provider / model" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent. |
+| `models.provider_separator` | one to five printable characters | `" / "` | The text between the provider and the model in a grouped model's name, one to five printable characters. |
+
+```jsonc config
+{
+  // names as "openrouter·Qwen: Qwen3 Coder"
+  "models": { "provider_separator": "·" },
+}
+```
+
+A project file may set both. A change applies at once, to the picker and to the names on screen.
+
 ### The terminal title
 
 The title of the terminal tab (PhpStorm's tab, Zed's sidebar) is the name of the session directory, so a row of tabs reads as the repositories they work in. When several acp-tui instances run in the same directory name, the second shows ` 2`, the third ` 3`, and so on; each keeps its number for its whole run. While a permission request waits, the glyph set's title marker leads the title. The title is held on one line and cut to 60 columns.

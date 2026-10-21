@@ -484,6 +484,20 @@ export const SECTIONS = {
     })
     .prefault({})
     .describe("The activity bar."),
+  models: z
+    .object({
+      group_by_provider: z
+        .boolean()
+        .default(true)
+        .describe("Draw a model list whose values and names are all \"provider/model\" over two or more providers grouped by provider in the picker, and its names as \"provider / model\" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent."),
+      provider_separator: z
+        .string()
+        .refine((text) => /^[^\p{Cc}\p{Cf}\p{Zl}\p{Zp}]+$/u.test(text) && [...text].length <= 5, "one to five printable characters")
+        .default(" / ")
+        .describe("The text between the provider and the model in a grouped model's name, one to five printable characters."),
+    })
+    .prefault({})
+    .describe("Model lists by provider."),
   title: z
     .object({
       format: z
@@ -602,6 +616,7 @@ export const PROJECT_FILE_RULES: { readonly [K in SectionName | "$schema"]: Proj
   attention: "allowed",
   busy: "allowed",
   activity: "allowed",
+  models: "allowed",
   title: "allowed",
   markdown: "allowed",
   tool_output: "allowed",

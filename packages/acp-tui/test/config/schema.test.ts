@@ -59,6 +59,7 @@ describe("defaults (design D2)", () => {
       attention: { signal: "bell", long_turn_seconds: 30 },
       busy: { track_percent: 40, style: "gap" },
       activity: { linger_seconds: 1.5 },
+      models: { group_by_provider: true, provider_separator: " / " },
       title: { format: "{dir}{counter}" },
       markdown: { heading_markers: false, table_min_column_width: 10, code_wrap: "word" },
       tool_output: { snippet_rows: 10 },

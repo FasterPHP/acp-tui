@@ -14,6 +14,7 @@
 import { batch, createEffect, onCleanup as onCleanupRoot, createMemo, createRoot, createSignal, type Accessor } from "solid-js";
 import { createStore, produce, type SetStoreFunction } from "solid-js/store";
 import { createSession, type Item, type Session } from "acp-model";
+import type { ModelListSettings } from "../layout/provider-groups.ts";
 import { deriveSessionView, FOLLOWING, type ArmedState, type Focus, type ScrollPosition, type SessionView } from "../layout/view.ts";
 import { userHome } from "../platform/paths.ts";
 import type { MousePolicy } from "../renderer/options.ts";
@@ -171,6 +172,9 @@ export interface SessionStoreOptions {
   mouse?: MousePolicy;
   /** Clock for `turn-state`'s elapsed time; default `Date.now`. */
   now?: () => number;
+  /** The `models` settings (read where the view is derived, so a change redraws the pills);
+   *  default the built-in ones. */
+  models?: () => ModelListSettings;
 }
 
 /** How often the clock ticks while a turn runs. */
@@ -313,6 +317,7 @@ export function createSessionStore(options: SessionStoreOptions = {}): SessionSt
         now: now(),
         mouse: ui.mouse,
         scroll: { following: ui.scroll.following, percent: ui.scroll.percent, below: ui.scroll.below, newBelow: ui.scroll.newBelow },
+        models: options.models?.(),
         density: ui.density,
         densitySetting: ui.densitySetting,
         ui: {

@@ -21,6 +21,7 @@ import { approvalText } from "../app/permission.ts";
 import type { CatalogueEntry } from "../keys/register.ts";
 import { actionLabel, KEY_SCOPES, type KeyContext, type KeyMap } from "../keys/keymap.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
+import { LEGACY_MODEL_ID, legacyModelOption, modelDisplayName, providerGroups, DEFAULT_MODEL_LIST_SETTINGS, type ModelListSettings } from "../layout/provider-groups.ts";
 import type { ListItem } from "./list.ts";
 
 /** The group each context's commands are listed under, in the palette's order. */
@@ -125,7 +126,7 @@ export const LEGACY_MODE_ID = "acp-tui:legacy-mode";
  * `session/set_model`), a compatibility fallback (design 5.5, Models; session-models D4). Never
  * sent to the agent.
  */
-export const LEGACY_MODEL_ID = "acp-tui:legacy-model";
+export { LEGACY_MODEL_ID };
 
 type SelectOption = Extract<SessionConfigOption, { type: "select" }>;
 
@@ -150,14 +151,7 @@ export function pickerOptions(session: Pick<Session, "configOptions" | "modes" |
     } satisfies SelectOption);
   }
   if (models && models.availableModels.length > 0 && !configOptions.some((o) => o.category === "model" || o.id === "model")) {
-    out.push({
-      type: "select",
-      id: LEGACY_MODEL_ID,
-      name: "Model",
-      category: "model",
-      currentValue: models.currentModelId,
-      options: models.availableModels.map((model) => ({ value: model.modelId, name: model.name, description: model.description })),
-    } satisfies SelectOption);
+    out.push(legacyModelOption(models));
   }
   return out.length === configOptions.length ? configOptions : out;
 }
@@ -268,10 +262,11 @@ export function selectChoices(option: SelectOption): { value: string; name: stri
 }
 
 /** The display name of an option's current value. */
-export function currentName(option: SessionConfigOption): string {
+export function currentName(option: SessionConfigOption, models?: ModelListSettings): string {
   if (option.type === "boolean") return option.currentValue ? "on" : "off";
   if (option.type !== "select") return "";
   const found = selectChoices(option).find((c) => c.value === option.currentValue);
+  if (found && option.category === "model") return approvalText(modelDisplayName(option, found.value, found.name, models));
   return approvalText(found?.name ?? String(option.currentValue ?? ""));
 }
 
@@ -460,14 +455,20 @@ export function paletteItems(catalogue: readonly CatalogueEntry[], state: Palett
   return items;
 }
 
-/** A picker's items: the option's choices (grouped as the agent groups them), the current one marked. */
-export function pickerItems(option: SelectOption): ListItem[] {
-  return selectChoices(option).map((choice) => ({
-    id: choice.value,
-    group: choice.group === null ? null : approvalText(choice.group),
-    title: approvalText(choice.name),
-    value: choice.description ? approvalText(choice.description) : null,
-    current: choice.value === option.currentValue,
-    search: approvalText(choice.value),
-  }));
+/** A picker's items: the option's choices (grouped as the agent groups them, else by provider for
+ *  a model list that meets the rule of `providerGroups` while `models.groupByProvider` is on), the
+ *  current one marked. The filter matches the full name and the value. */
+export function pickerItems(option: SelectOption, models: ModelListSettings = DEFAULT_MODEL_LIST_SETTINGS): ListItem[] {
+  const byProvider = models.groupByProvider ? providerGroups(option) : null;
+  return selectChoices(option).map((choice) => {
+    const split = byProvider?.get(choice.value);
+    return {
+      id: choice.value,
+      group: split ? approvalText(split.provider) : choice.group === null ? null : approvalText(choice.group),
+      title: approvalText(split ? split.title : choice.name),
+      value: choice.description ? approvalText(choice.description) : null,
+      current: choice.value === option.currentValue,
+      search: split ? approvalText(`${choice.name} ${choice.value}`) : approvalText(choice.value),
+    };
+  });
 }

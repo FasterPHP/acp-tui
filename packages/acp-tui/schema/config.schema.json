@@ -442,6 +442,23 @@
         }
       }
     },
+    "models": {
+      "description": "Model lists by provider.",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "group_by_provider": {
+          "default": true,
+          "description": "Draw a model list whose values and names are all \"provider/model\" over two or more providers grouped by provider in the picker, and its names as \"provider / model\" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent.",
+          "type": "boolean"
+        },
+        "provider_separator": {
+          "default": " / ",
+          "description": "The text between the provider and the model in a grouped model's name, one to five printable characters.",
+          "type": "string"
+        }
+      }
+    },
     "title": {
       "description": "The terminal title (the tab's name in an IDE terminal).",
       "default": {},
