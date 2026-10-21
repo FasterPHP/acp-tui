@@ -8,7 +8,7 @@
 // below the exit text. Since mvp-sessions task 12.2 the exit text is the resume
 // line alone, and only for a session that can be resumed and had a prompt.
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { shellQuote } from "../../src/renderer/exit-text.ts";
@@ -161,14 +161,81 @@ describe("every exit path restores the terminal (task 4.1)", () => {
     expect(await s.wait(10000)).toBe(1);
     const rows = await expectRestored(s);
     // The resume line (wrapped by the terminal at 100 columns), then the error's line.
-    expect(afterReset(s)).toBe(`\r${resumeLine(agent)}\r\n\racp-tui: uncaught error: crash test hook: F12 pressed\r\n`);
-    expect(rows.at(-1)).toBe("acp-tui: uncaught error: crash test hook: F12 pressed");
-    expect(rows.slice(0, -1).join("")).toBe(resumeLine(agent));
+    // The crash report's line follows the error (its path is in a temporary state directory).
+    expect(afterReset(s)).toMatch(new RegExp(`^\\r${resumeLine(agent).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\r\\n\\racp-tui: uncaught error: crash test hook: F12 pressed\\r\\ncrash report: \\S+\\.txt \\(attach it when you report this\\)\\r\\n$`));
+    expect(rows.join("")).toStartWith(resumeLine(agent));
+    expect(rows.join("")).toContain("acp-tui: uncaught error: crash test hook: F12 pressed");
     expectCursorBelow(s, rows.length);
     const sent = methods(agentLog);
     expect(sent).toContain("session/prompt");
     expect(sent).not.toContain("session/cancel");
     expect(sent).not.toContain("session/close");
+  });
+
+  // Spec tui-screen "Crash report".
+  describe("crash report", () => {
+    const stateEnv = (): { state: string; env: Record<string, string> } => {
+      const state = realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-state-")));
+      return { state, env: { ACP_TUI_TEST_HOOKS: "crash", XDG_STATE_HOME: state } };
+    };
+    const crashed = async (s: PtySession): Promise<void> => {
+      await ready(s);
+      s.sendKeys({ text: F12 });
+      expect(await s.wait(10000)).toBe(1);
+    };
+    const reportPath = (s: PtySession): string => /crash report: (\S+\.txt) \(attach it when you report this\)/.exec(s.rawOutput().replace(/\r?\n/g, ""))?.[1] ?? "";
+
+    test.skipIf(WINDOWS)("Crash with a report: the exit text names the file, which holds the version, the error, a stack and the launch event", async () => {
+      const { state, env } = stateEnv();
+      const { s } = start({ env });
+      await crashed(s);
+      const path = reportPath(s);
+      expect(path.startsWith(join(state, "acp-tui", "crashes") + "/")).toBe(true);
+      expect(path).toMatch(/\/\d{8}T\d{6}Z\.txt$/);
+      const text = readFileSync(path, "utf8");
+      expect(text).toMatch(/^acp-tui 0\.1\.0/);
+      expect(text).toContain("error: crash test hook: F12 pressed");
+      expect(text).toMatch(/\n\s+at /);
+      expect(text).toContain('"event":"launch"');
+      expect(statSync(path).mode & 0o777).toBe(0o600);
+    });
+
+    test.skipIf(WINDOWS)("No conversation text: a prompt and an answer holding zebra-secret stay out of the report", async () => {
+      const { env } = stateEnv();
+      const { s } = start({ env, scenario: "secret-echo" });
+      await ready(s);
+      s.sendKeys({ text: "zebra-secret" });
+      await s.waitFor((p) => promptText(p)[0] === "zebra-secret", 5000);
+      s.sendKeys("Enter");
+      await s.waitFor("The answer holds zebra-secret.", 10000);
+      s.sendKeys({ text: F12 });
+      expect(await s.wait(10000)).toBe(1);
+      const path = reportPath(s);
+      expect(path).not.toBe("");
+      const text = readFileSync(path, "utf8");
+      expect(text).toContain('"event":"launch"');
+      expect(text).not.toContain("zebra-secret");
+    });
+
+    test.skipIf(WINDOWS)("State directory not writable: the exit text holds the message and the stack", async () => {
+      const { state, env } = stateEnv();
+      // `acp-tui` is a file, so `crashes/` cannot be created below it.
+      writeFileSync(join(state, "acp-tui"), "not a directory");
+      const { s } = start({ env });
+      await crashed(s);
+      const out = s.rawOutput();
+      expect(out).toContain("acp-tui: uncaught error: crash test hook: F12 pressed");
+      expect(out).not.toContain("crash report:");
+      expect(out).toMatch(/\n\s+at /);
+    });
+
+    test.skipIf(WINDOWS)("Start-up failure is not a crash: a harness that does not exist writes no report", async () => {
+      const { state, env } = stateEnv();
+      const { s } = start({ env, agent: ["acp-tui-no-such-harness-command"] });
+      expect(await s.wait(15000)).toBe(1);
+      expect(existsSync(join(state, "acp-tui", "crashes"))).toBe(false);
+      expect(s.rawOutput()).not.toContain("crash report:");
+    });
   });
 
   // Spec tui-config "Spike switch retired": the forced error is reached only by the test hook, never

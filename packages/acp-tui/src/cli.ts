@@ -77,6 +77,8 @@ export interface CliOptions {
    *  parsed then. */
   readonly subcommand: { readonly name: ReservedSubcommand; readonly args: readonly string[] } | null;
   readonly help: boolean;
+  /** `--version` or `-v`: print the version lines and exit. */
+  readonly version: boolean;
   readonly screen: ScreenOptions;
   /** The screen options given on the command line, as overrides of the settings of the same name
    *  for this run (mvp-configuration design D5): only the options given are present. */
@@ -126,7 +128,7 @@ Options:
   -c, --continue          Open the latest session in the session directory
                           (only the named harness's, when one is named).
                           At most one of --resume and --continue.
-  --help, -h              Show this help and exit.
+  --help, -h, --version, -v  Show this help, or the version, and exit.
 
 Settings for this run (each overrides the configuration setting of the
 same name, and a reload of the configuration never changes it):
@@ -239,6 +241,7 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
   const isHarness = (word: string): boolean => harnesses.includes(word);
   const commandExists = context.commandExists ?? ((word: string) => realCommandExists(word, cwd));
   let help = false;
+  let version = false;
   let agentName: string | null = null;
   let agentCommand: string[] | null = null;
   let directoryArg: string | null = null;
@@ -261,6 +264,7 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
       session: { kind: "new" },
       subcommand: { name: first as ReservedSubcommand, args: argv.slice(1) },
       help,
+      version,
       screen: DEFAULT_SCREEN_OPTIONS,
       overrides,
       notices,
@@ -296,6 +300,10 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
     const arg = argv[i]!;
     if (arg === "--help" || arg === "-h") {
       help = true;
+      continue;
+    }
+    if (arg === "--version" || arg === "-v") {
+      version = true;
       continue;
     }
     if (arg === "--") {
@@ -413,6 +421,7 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
     session,
     subcommand: null,
     help,
+    version,
     screen: { mouse, wheelLines, exitPrint, clipboard },
     overrides,
     notices,
@@ -555,6 +564,11 @@ export async function main(
 
   if (options.help) {
     io.stdout.write(HELP_TEXT);
+    return 0;
+  }
+  if (options.version) {
+    const { gatherVersionInfo, versionLines } = await import("./version.ts");
+    io.stdout.write(`${versionLines(gatherVersionInfo()).join("\n")}\n`);
     return 0;
   }
 

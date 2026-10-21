@@ -32,6 +32,7 @@
 // resume line), then any error. The renderer's settle repaint and Ctrl+L come from
 // renderer/repaint.ts; `repainter.onRepaint` and `lifecycle.onThemeSignal`
 // (SIGUSR2) are the hooks for re-reading the terminal's colours.
+import { writeCrashReport } from "../crash-report.ts";
 import { render } from "@opentui/solid";
 import { sanitise } from "acp-model";
 import { createSignal } from "solid-js";
@@ -376,6 +377,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
         // OSC 8 on its own judgement.
         renderer: { mouse: screen.mouse, osc8: builtOsc8 },
         finalReset: terminalSignals.restore,
+        crashReport: (error) => writeCrashReport(error),
         onExit: async (reason) => {
           options.logger.log({ event: "exit", reason: reason.kind, ...(reason.kind === "error" && reason.uncaught ? { uncaught: true } : {}) });
           // Every agent this run started (after a switch in progress, the old one too).
