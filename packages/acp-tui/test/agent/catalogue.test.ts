@@ -23,6 +23,8 @@ import { launchAgent } from "../../src/agent/launch.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
 import { main, type StartAppOptions } from "../../src/cli.ts";
 import { WINDOWS } from "../windows.ts";
+import { shortenHome } from "../../src/layout/segments.ts";
+import { userHome } from "../../src/platform/paths.ts";
 
 function temp(prefix: string): string {
   return realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix)));
@@ -101,7 +103,7 @@ describe("Named agents (tui-sessions)", () => {
     const r = await run([], home);
     expect(r.code).not.toBe(0);
     expect(r.started).toBe(false);
-    expect(r.stderr).toBe(`acp-tui: default harness 'auggie' is not configured; add its entry to ${join(home, "acp-tui", "config.jsonc")} (see config.dist.jsonc or acp-tui config --print-default)\n`);
+    expect(r.stderr).toBe(`acp-tui: default harness 'auggie' is not configured; add its entry to ${shortenHome(join(home, "acp-tui", "config.jsonc"), userHome())} (see config.dist.jsonc or acp-tui config --print-default)\n`);
   });
 
   test("Old file naming Claude: default_agent claude with no claude entry fails with the default harness message", async () => {
@@ -112,7 +114,7 @@ describe("Named agents (tui-sessions)", () => {
     const r = await run([], home);
     expect(r.code).not.toBe(0);
     expect(r.started).toBe(false);
-    expect(r.stderr).toBe(`acp-tui: default harness 'claude' is not configured; add its entry to ${join(home, "acp-tui", "config.jsonc")} (see config.dist.jsonc or acp-tui config --print-default)\n`);
+    expect(r.stderr).toBe(`acp-tui: default harness 'claude' is not configured; add its entry to ${shortenHome(join(home, "acp-tui", "config.jsonc"), userHome())} (see config.dist.jsonc or acp-tui config --print-default)\n`);
   });
 
   test("Name with no entry: the default name is kept, with no fallback to auggie", () => {
