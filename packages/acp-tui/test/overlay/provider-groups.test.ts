@@ -57,10 +57,34 @@ describe("providerGroups", () => {
     expect(pickerItems(grouped).map((i) => [i.group, i.title])).toEqual([["Claude", "anthropic/A"], ["Open", "openai/B"]]);
   });
 
-  test("a list that fails the rule is drawn as sent: a value without a provider, a name whose prefix differs from its value's", () => {
+  test("a list that fails the rule is drawn as sent: a value without a provider, a name without a prefix, two prefixes for one provider, one prefix for two providers", () => {
     expect(providerGroups(model([{ value: "plain", name: "Plain" }, { value: "a/b", name: "a/B" }], "plain"))).toBeNull();
-    expect(providerGroups(model([{ value: "a/x", name: "a/X" }, { value: "b/y", name: "Beta/Y" }], "a/x"))).toBeNull();
+    expect(providerGroups(model([{ value: "a/x", name: "a/X" }, { value: "b/y", name: "Y" }], "a/x"))).toBeNull();
+    expect(providerGroups(model([{ value: "a/x", name: "a/X" }, { value: "b/y", name: "b/" }], "a/x"))).toBeNull();
+    // A slash inside one provider's model names (`Qwen/Qwen3`) is not a provider.
+    expect(providerGroups(model([{ value: "a/x", name: "Alpha/X" }, { value: "a/q", name: "Qwen/Qwen3" }, { value: "b/y", name: "Beta/Y" }], "a/x"))).toBeNull();
+    expect(providerGroups(model([{ value: "a/x", name: "Same/X" }, { value: "b/y", name: "Same/Y" }], "a/x"))).toBeNull();
     expect(providerGroups({ ...OPENCODE, category: "mode" })).toBeNull();
+  });
+
+  test("OpenCode 1.x list, named `<display name>/<model>`: headings from the names' prefix, and the pill names the display name", () => {
+    const v1 = model(
+      [
+        { value: "augment/gpt-6-luna", name: "Augment Code/GPT 6 Luna" },
+        { value: "augment/kimi-k3", name: "Augment Code/Kimi K3" },
+        { value: "blueai/Gemma-4-31B", name: "BlueAI Platform/Gemma4 31b" },
+        { value: "blueai/Qwen3.5-397B-A17B-AWQ", name: "BlueAI Platform/Qwen3.5 397b" },
+      ],
+      "blueai/Qwen3.5-397B-A17B-AWQ",
+    );
+    expect(pickerItems(v1).map((i) => [i.group, i.title, i.current])).toEqual([
+      ["Augment Code", "GPT 6 Luna", false],
+      ["Augment Code", "Kimi K3", false],
+      ["BlueAI Platform", "Gemma4 31b", false],
+      ["BlueAI Platform", "Qwen3.5 397b", true],
+    ]);
+    expect(pickerItems(v1)[0]!.search).toContain("augment/gpt-6-luna");
+    expect(modelDisplayName(v1, "blueai/Qwen3.5-397B-A17B-AWQ", "BlueAI Platform/Qwen3.5 397b")).toBe("BlueAI Platform / Qwen3.5 397b");
   });
 
   test("Older model state: the fold groups in the same way", () => {
