@@ -33,3 +33,32 @@ describe("fake-agent delays", () => {
     }
   });
 });
+
+describe("fake-agent set_config_option delays", () => {
+  test("--config-delay holds the answer back; --config-never leaves the request unanswered while other requests are answered", async () => {
+    const delayed = spawnFakeAgent({ scenario: "config-options-providers", args: ["--config-delay", "400"], client: recordingClient().client });
+    try {
+      await delayed.conn.initialize({ protocolVersion: 1 });
+      const { sessionId } = await delayed.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
+      const set = await timed(() => delayed.conn.setSessionConfigOption({ sessionId, configId: "model", value: "openai/gpt-x" }));
+      expect(set.value.configOptions.find((o) => o.id === "model")?.currentValue).toBe("openai/gpt-x");
+      expect(set.ms).toBeGreaterThanOrEqual(400 - SLACK_MS);
+    } finally {
+      delayed.stop();
+    }
+
+    const never = spawnFakeAgent({ scenario: "config-options-providers", args: ["--config-never"], client: recordingClient().client });
+    try {
+      await never.conn.initialize({ protocolVersion: 1 });
+      const { sessionId } = await never.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
+      let answered = false;
+      void never.conn.setSessionConfigOption({ sessionId, configId: "model", value: "openai/gpt-x" }).then(() => (answered = true), () => (answered = true));
+      // A later request is answered, so the agent is alive; the change is still unanswered after it.
+      await never.conn.setSessionMode({ sessionId, modeId: "plan" }).catch(() => {});
+      await never.conn.prompt({ sessionId, prompt: [{ type: "text", text: "x" }] });
+      expect(answered).toBe(false);
+    } finally {
+      never.stop();
+    }
+  });
+});

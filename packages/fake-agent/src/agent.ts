@@ -77,6 +77,10 @@ export interface FakeAgentOptions {
   readonly tools?: number;
   /** The `--start-delay` knob: milliseconds `initialize` waits before answering (absolute, not scaled). */
   readonly startDelayMs?: number;
+  /** `--config-delay`: milliseconds `session/set_config_option` waits before answering (absolute). */
+  readonly configDelayMs?: number;
+  /** `--config-never`: `session/set_config_option` is never answered. */
+  readonly configNever?: boolean;
   /** `--no-initialize`: `initialize` is never answered. */
   readonly noInitialize?: boolean;
   /** `--additional-directories`: advertise `sessionCapabilities.additionalDirectories`. */
@@ -362,6 +366,10 @@ export function createFakeAgent(
       logger.record("session/set_config_option", request);
       if (!scenario.setConfigOption) {
         throw RequestError.methodNotFound("session/set_config_option");
+      }
+      if (options.configNever) return new Promise<SetSessionConfigOptionResponse>(() => {});
+      if (options.configDelayMs !== undefined && options.configDelayMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, options.configDelayMs));
       }
       return scenario.setConfigOption(request);
     },
