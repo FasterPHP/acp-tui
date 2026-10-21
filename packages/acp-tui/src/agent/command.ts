@@ -30,5 +30,28 @@ export const DEFAULT_AGENT_COMMAND: readonly string[] = builtInAgentCommand();
  *  default's `claude` example): `bunx`, found on the PATH when the entry is used. */
 export const DEFAULT_AGENT_EXAMPLE_COMMAND: readonly string[] = ["bunx", "--bun", CLAUDE_AGENT_PACKAGE];
 
-/** The name of the built-in agent entry, which is also the default agent (`default_agent`). */
-export const BUILT_IN_AGENT_NAME = "claude";
+/** A built-in harness: its name, the program and arguments it runs, and (for a program the user
+ *  must install first) how to install it, which an error for a missing program ends with. */
+export interface BuiltInHarness {
+  readonly name: string;
+  readonly command: readonly string[];
+  readonly installHint?: string;
+}
+
+/** Auggie 0.36.0 is what the colleagues testing acp-tui run (plan decision 2: pinned in the hint). */
+export const AUGGIE_INSTALL_HINT = "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login";
+
+/** The built-in harnesses, in the order the messages list them. `auggie` runs from the PATH as an
+ *  ordinary executable (a Node bundle, never under Bun); `claude` is the pinned command above. */
+export const BUILT_IN_HARNESSES: readonly BuiltInHarness[] = [
+  { name: "auggie", command: ["auggie", "--acp"], installHint: AUGGIE_INSTALL_HINT },
+  { name: "claude", command: DEFAULT_AGENT_COMMAND },
+];
+
+/** The harness launched when no name, command or `default_agent_server` says otherwise: `auggie`
+ *  for now (Marcus, 19 October 2026: the colleagues testing acp-tui use Auggie). Switching back is
+ *  this one constant plus the tests that name it. */
+export const DEFAULT_HARNESS = "auggie";
+
+/** The built-in harnesses' names, in table order. */
+export const BUILT_IN_HARNESS_NAMES: readonly string[] = BUILT_IN_HARNESSES.map((h) => h.name);

@@ -27,7 +27,7 @@ import { displayWidth, shortenHome, truncateEnd, truncateMiddle, type Segment } 
  *  IDE", Marcus, 11 October 2026, task 12.3), and the agents on its right, followed by the glyph
  *  set's `more` (examples, not a list). */
 export const SPLASH_TERMINALS = ["IDE", "terminal"] as const;
-export const SPLASH_AGENTS = ["claude", "codex", "opencode"] as const;
+export const SPLASH_AGENTS = ["auggie", "claude", "codex"] as const;
 /** What acp-tui is, the graphic's second row (Marcus, 15 October 2026): its own qualities, not
  *  features every client has. Plain text, not a setting. */
 export const SPLASH_TAGLINE = ["clear", "concise", "fast", "customisable"] as const;

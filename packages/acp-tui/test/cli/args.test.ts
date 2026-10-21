@@ -35,6 +35,7 @@ describe("cli parseArgs (task 5.1)", () => {
       session: { kind: "new" },
       subcommand: null,
       help: false,
+      version: false,
       screen: DEFAULT_SCREEN_OPTIONS,
       overrides: {},
       notices: [],

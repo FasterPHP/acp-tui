@@ -28,7 +28,7 @@ describe("terminalTitle", () => {
 
   test("the old titles as formats", () => {
     expect(terminalTitle({ ...base, title: "Pool reuse", cwd: "/work/repo", format: "acp-tui | {title}" })).toBe("acp-tui | Pool reuse");
-    expect(terminalTitle({ ...base, agent: "Claude Code", cwd: "/home/marcus/Projects/acp-tui", format: "acp-tui | {agent} | {dir}" })).toBe("acp-tui | Claude Code | acp-tui");
+    expect(terminalTitle({ ...base, agent: "Claude Code", cwd: "/home/user/Projects/acp-tui", format: "acp-tui | {agent} | {dir}" })).toBe("acp-tui | Claude Code | acp-tui");
   });
 
   test("a format that leaves nothing falls back to the directory, then to acp-tui", () => {

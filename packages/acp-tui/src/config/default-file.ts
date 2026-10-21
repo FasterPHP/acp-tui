@@ -22,7 +22,7 @@ import type { z } from "zod";
 import { BLOCK_NAMES, DEFAULT_LAYOUT } from "../layout/layout.ts";
 import { MODULE_IDS, MODULES } from "../layout/modules.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS } from "../keys/keymap.ts";
-import { DEFAULT_AGENT_EXAMPLE_COMMAND, BUILT_IN_AGENT_NAME } from "../agent/command.ts";
+import { AUGGIE_INSTALL_HINT, BUILT_IN_HARNESSES, DEFAULT_AGENT_EXAMPLE_COMMAND } from "../agent/command.ts";
 import { TERMINAL_TABLE, type TerminalCapabilities } from "../renderer/capabilities.ts";
 import { describeSchema } from "./load.ts";
 import {
@@ -190,7 +190,12 @@ export interface AgentExample {
  */
 export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
-    name: BUILT_IN_AGENT_NAME,
+    name: "auggie",
+    about: `the built-in auggie as acp-tui runs it without an entry (the default harness), installed with ${AUGGIE_INSTALL_HINT}. Add "--reasoning-effort", "high" to args to choose how hard it thinks (none, low, medium, high, xhigh, max or dynamic). Source: docs.augmentcode.com/cli/acp.`,
+    entry: { command: "auggie", args: ["--acp"] },
+  },
+  {
+    name: "claude",
     about:
       "the built-in claude as acp-tui runs it without an entry (which uses the Bun running acp-tui in place of bunx), plus Claude Code's ANTHROPIC_MODEL to choose the model. Change args to run another version of claude-agent-acp. Sources: npm @agentclientprotocol/claude-agent-acp, and code.claude.com/docs/en/settings for ANTHROPIC_MODEL.",
     entry: { command: DEFAULT_AGENT_EXAMPLE_COMMAND[0]!, args: DEFAULT_AGENT_EXAMPLE_COMMAND.slice(1), env: { ANTHROPIC_MODEL: "opus" } },
@@ -210,11 +215,6 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
     about:
       'DeepSeek has no ACP agent of its own, so reach it through a harness such as OpenCode. Connect DeepSeek in OpenCode with /connect, then give this entry an OpenCode config file that sets "model" to a DeepSeek model, which /models lists. Sources: opencode.ai/docs/providers and opencode.ai/docs/config for OPENCODE_CONFIG.',
     entry: { command: "opencode", args: ["acp"], env: { OPENCODE_CONFIG: "/home/you/.config/opencode/deepseek.json" } },
-  },
-  {
-    name: "auggie",
-    about: "Augment Code's Auggie, installed with npm install -g @augmentcode/auggie. Source: docs.augmentcode.com/cli/acp.",
-    entry: { command: "auggie", args: ["--acp"] },
   },
   {
     name: "pi",
@@ -266,7 +266,7 @@ const SPECIALS: Readonly<Record<string, Special>> = {
       ...(["command", "args", "env"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
       ...comment('The harness runs in the session directory, so give paths in "command" and "args" as absolute paths.', indent),
       ...comment(
-        `With no entry, the built-in "${BUILT_IN_AGENT_NAME}" is the only harness. Every entry below is an example, not active: install the harness, then remove the // in front of its line to add it.`,
+        `With no entry, the built-in ${BUILT_IN_HARNESSES.map((h) => `"${h.name}"`).join(" and ")} are the only harnesses. Every entry below is an example, not active: install the harness, then remove the // in front of its line to add it.`,
         indent,
       ),
       `${indent}"${key}": {`,

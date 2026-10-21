@@ -23,6 +23,7 @@
 // Pure: no file is read here (see sources.ts and store.ts).
 import { findNodeAtLocation, parseTree, printParseErrorCode, type Node, type ParseError } from "jsonc-parser";
 import type { z } from "zod";
+import { DEFAULT_HARNESS } from "../agent/command.ts";
 import { checkOverrides, type GlyphSetName } from "../conversation/glyphs.ts";
 import { formatProblem, suggest, type ConfigProblem, type ProblemSeverity } from "./problems.ts";
 import { AgentServerSchema, projectRule, SECTION_NAMES, SECTIONS, unwrap, type SectionName } from "./schema.ts";
@@ -653,7 +654,7 @@ export function parseConfigText(source: string | null, file: string, options: Pa
       const known = options.knownAgents.includes(name) || validAgents.has(name);
       if (!known) {
         const reason = invalidAgents[name] !== undefined ? `names harness ${JSON.stringify(name)}, which ${invalidAgents[name]}` : `names ${JSON.stringify(name)}, which is not a known harness`;
-        loader.problem(node, [written], "error", `${reason}; ${JSON.stringify(options.knownAgents[0] ?? "claude")} is used`);
+        loader.problem(node, [written], "error", `${reason}; ${JSON.stringify(DEFAULT_HARNESS)} is used`);
         rejected.push(section);
         continue;
       }

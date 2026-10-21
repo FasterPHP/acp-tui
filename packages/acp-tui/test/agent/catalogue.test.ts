@@ -12,7 +12,6 @@ import { isAbsolute, join } from "node:path";
 import {
   AgentNameError,
   BUILT_IN_AGENTS,
-  BUILT_IN_AGENT_NAME,
   buildAgentCatalogue,
   configFilePath,
   findAgent,
@@ -71,7 +70,7 @@ describe("The default agent command", () => {
   test("runs the Bun that runs acp-tui, by its absolute path, not a bunx looked up on the PATH (on Windows too)", () => {
     expect(builtInAgentCommand("C:\\Users\\u\\.bun\\bin\\bun.exe")).toEqual(["C:\\Users\\u\\.bun\\bin\\bun.exe", "x", "--bun", CLAUDE_AGENT_PACKAGE]);
     expect(isAbsolute(DEFAULT_AGENT_COMMAND[0]!)).toBe(true);
-    expect(BUILT_IN_AGENTS[0]).toMatchObject({ name: "claude", command: process.execPath, args: ["x", "--bun", CLAUDE_AGENT_PACKAGE] });
+    expect(BUILT_IN_AGENTS[1]).toMatchObject({ name: "claude", command: process.execPath, args: ["x", "--bun", CLAUDE_AGENT_PACKAGE] });
   });
 
   test("the commented default's claude example writes the same package and arguments through bunx, the same on every machine", () => {
@@ -93,11 +92,12 @@ describe("the configuration file's path", () => {
 });
 
 describe("Named agents (tui-sessions)", () => {
-  test("without a configuration file: the built-in claude entry only, no problem", () => {
+  test("without a configuration file: the built-in entries only, no problem", () => {
     const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: configHome(null) } });
-    expect([...catalogue.agents.keys()]).toEqual([BUILT_IN_AGENT_NAME]);
+    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude"]);
     expect(launchArgv(findAgent(catalogue, "claude"))).toEqual(DEFAULT_AGENT_COMMAND);
-    expect(catalogue.defaultAgent).toBe("claude");
+    expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["auggie", "--acp"]);
+    expect(catalogue.defaultAgent).toBe("auggie");
     expect(catalogue.problems).toEqual([]);
   });
 
@@ -132,7 +132,7 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.code).not.toBe(0);
     expect(r.started).toBe(false);
     expect(r.stderr).toBe(
-      `acp-tui: 'nosuch' is not a known harness (known: 'claude', 'fake'; harnesses are defined in agent_servers in ${join(home, "acp-tui", "config.jsonc")})\n`,
+      `acp-tui: 'nosuch' is not a known harness (known: 'auggie', 'claude', 'fake'; harnesses are defined in agent_servers in ${join(home, "acp-tui", "config.jsonc")})\n`,
     );
   });
 
@@ -152,20 +152,20 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.launch?.problems).toEqual([]);
   });
 
-  test("no default_agent: claude", async () => {
+  test("no default_agent: auggie", async () => {
     const r = await run([], configHome(FAKE_CONFIG));
-    expect(r.launch?.agentName).toBe("claude");
-    expect(launchArgv(r.launch!)).toEqual(DEFAULT_AGENT_COMMAND);
+    expect(r.launch?.agentName).toBe("auggie");
+    expect(launchArgv(r.launch!)).toEqual(["auggie", "--acp"]);
   });
 
-  test("a default_agent that names no agent is a problem, and claude is launched (a broken file never stops acp-tui)", async () => {
+  test("a default_agent that names no agent is a problem, and auggie is launched (a broken file never stops acp-tui)", async () => {
     const r = await run([], configHome(`{ "default_agent": "ghost" }`));
     expect(r.code).toBe(0);
-    expect(r.launch?.agentName).toBe("claude");
+    expect(r.launch?.agentName).toBe("auggie");
     expect(r.launch?.problems).toHaveLength(1);
     expect(r.launch?.problems[0]).toContain("default_agent");
     // Since mvp-configuration the problem carries its place (task 1.5).
-    expect(r.launch?.problems[0]).toContain(`config.jsonc:1:20: default_agent names "ghost", which is not a known harness; "claude" is used`);
+    expect(r.launch?.problems[0]).toContain(`config.jsonc:1:20: default_agent names "ghost", which is not a known harness; "auggie" is used`);
   });
 
   test("an ad hoc harness command never reads the configuration", async () => {
@@ -187,7 +187,7 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
     expect(r.stderr).toContain("'evil' is not a known harness");
     // Nor does the project file choose the default.
     const plain = await run([], home, project);
-    expect(plain.launch?.agentName).toBe("claude");
+    expect(plain.launch?.agentName).toBe("auggie");
   });
 
   test("Invalid entry: a numeric command is reported with the entry's name and the problem; nothing is launched", async () => {
@@ -216,7 +216,7 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
       }),
       "/c.jsonc",
     );
-    expect([...catalogue.agents.keys()]).toEqual(["claude", "ok"]);
+    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude", "ok"]);
     // Since mvp-configuration (task 1.5) each reason is written from the schema, with its place.
     expect(Object.fromEntries(catalogue.invalid)).toEqual({
       empty: 'has an invalid command: it takes a non-empty string, not "" (line 1, column 59)',
@@ -239,18 +239,32 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
     expect(catalogue.problems).toEqual(["/c.jsonc:1:45: agent_servers.claude.command takes a non-empty string, not an array"]);
   });
 
-  test("a default_agent naming an invalid entry is a problem; claude is the default", () => {
+  test("an auggie entry replaces the built-in and carries no install hint", () => {
+    const catalogue = buildAgentCatalogue(`{ "agent_servers": { "auggie": { "command": "my-auggie", "args": ["--acp", "--reasoning-effort", "high"] } } }`, "/c.jsonc");
+    expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["my-auggie", "--acp", "--reasoning-effort", "high"]);
+    expect(findAgent(catalogue, "auggie")).toMatchObject({ source: "config" });
+    expect(findAgent(catalogue, "auggie").installHint).toBeUndefined();
+  });
+
+  test("an invalid auggie override leaves the built-in launchable, with its install hint", () => {
+    const catalogue = buildAgentCatalogue(`{ "agent_servers": { "auggie": { "command": [] } } }`, "/c.jsonc");
+    expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["auggie", "--acp"]);
+    expect(findAgent(catalogue, "auggie").installHint).toContain("npm install -g @augmentcode/auggie@0.36.0");
+    expect(catalogue.problems).toHaveLength(1);
+  });
+
+  test("a default_agent naming an invalid entry is a problem; auggie is the default", () => {
     const catalogue = buildAgentCatalogue(`{ "agent_servers": { "broken": { "command": 1 } }, "default_agent": "broken" }`, "/c.jsonc");
-    expect(catalogue.defaultAgent).toBe("claude");
+    expect(catalogue.defaultAgent).toBe("auggie");
     expect(catalogue.problems).toContain(
-      '/c.jsonc:1:69: default_agent names harness "broken", which has an invalid command: it takes a non-empty string, not 1 (line 1, column 45); "claude" is used',
+      '/c.jsonc:1:69: default_agent names harness "broken", which has an invalid command: it takes a non-empty string, not 1 (line 1, column 45); "auggie" is used',
     );
   });
 
   test("a syntax error, a non-object file or a non-object agent_servers: a problem, the built-in entry only", () => {
     for (const text of ["{ \"agent_servers\": ", "[1, 2]", `{ "agent_servers": ["fake"] }`]) {
       const catalogue = buildAgentCatalogue(text, "/c.jsonc");
-      expect([...catalogue.agents.keys()]).toEqual(["claude"]);
+      expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude"]);
       expect(catalogue.problems).toHaveLength(1);
     }
     expect(buildAgentCatalogue("{ oops", "/c.jsonc").problems[0]).toBe("/c.jsonc:1:3: is not valid JSONC here: an unexpected character; the file is ignored until it parses");

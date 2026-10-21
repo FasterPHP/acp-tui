@@ -239,6 +239,36 @@ a tilde fence (python):
 print("tilde")
 ~~~
 
+java:
+
+```java
+public final class Account {
+    private long id; // the account number
+
+    public String label() {
+        return "account-" + id;
+    }
+}
+```
+
+kotlin (a Gradle script):
+
+```kts
+dependencies {
+    implementation("org.slf4j:slf4j-api:2.0.16")
+}
+```
+
+xml (a Maven dependency):
+
+```xml
+<dependency>
+  <groupId>junit</groupId>
+  <artifactId>junit</artifactId>
+  <version>4.13.2</version>
+</dependency>
+```
+
 M22 indented code block (four spaces):
 
     $indented = 'code block';

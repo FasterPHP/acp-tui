@@ -17,12 +17,34 @@ export interface DebugLogger {
   readonly enabled: boolean;
 }
 
+/** How many events the in-memory ring keeps (the crash report holds them). */
+export const RING_SIZE = 200;
+
+const ring: Record<string, unknown>[] = [];
+
+/** Keeps the event in the ring (every logger does, with or without a file). */
+function remember(line: Record<string, unknown>): void {
+  ring.push(line);
+  if (ring.length > RING_SIZE) ring.splice(0, ring.length - RING_SIZE);
+}
+
+/** The last events logged by any logger, oldest first (at most `RING_SIZE`). */
+export function recentEvents(): readonly Record<string, unknown>[] {
+  return ring.slice();
+}
+
+/** Empties the ring (tests). */
+export function clearRecentEvents(): void {
+  ring.length = 0;
+}
+
 class FileDebugLogger implements DebugLogger {
   readonly enabled = true;
   constructor(private readonly path: string) {}
 
   log(entry: DebugLogEntry): void {
     const line = { ts: new Date().toISOString(), ...entry };
+    remember(line);
     try {
       appendFileSync(this.path, `${JSON.stringify(line)}\n`, "utf8");
     } catch {
@@ -33,8 +55,8 @@ class FileDebugLogger implements DebugLogger {
 
 class NullDebugLogger implements DebugLogger {
   readonly enabled = false;
-  log(): void {
-    // no-op
+  log(entry: DebugLogEntry): void {
+    remember({ ts: new Date().toISOString(), ...entry });
   }
 }
 
