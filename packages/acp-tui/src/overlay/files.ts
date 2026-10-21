@@ -12,6 +12,9 @@
 // built-in matcher (src/overlay/gitignore.ts); symbolic links are listed, never
 // followed. Either way the list stops at `FILE_CAP` paths.
 //
+// The list is kept in alphabetical order (`comparePaths`, `PathList`), whatever order the sources
+// produce it in.
+//
 // The rest is pure: fuzzy matching on the typed text (`rankFiles`), the name
 // shown (`displayPath`, sanitised; the real path is never drawn) and the link's
 // URI (`fileUri`, percent-encoded from the real path).
@@ -140,7 +143,7 @@ async function walkFiles(root: string, sink: FileListSink, cap: number, signal: 
         // unreadable: its rules are not applied
       }
     }
-    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    entries.sort((a, b) => comparePaths(a.name, b.name));
     for (const entry of entries) {
       if (entry.directory && entry.name === ".git") continue;
       const path = `${dir}${entry.name}`;
@@ -168,6 +171,82 @@ async function walkFiles(root: string, sink: FileListSink, cap: number, signal: 
   return { capped: false };
 }
 
+/**
+ * Compares two paths already lower-cased, by code unit, except that `/` sorts before every other
+ * character, so a directory's files stay together (`docs/x` before `docs-old/y`, as in a tree).
+ */
+export function compareLower(a: string, b: string): number {
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const ca = a.charCodeAt(i);
+    const cb = b.charCodeAt(i);
+    if (ca !== cb) return (ca === 47 ? -1 : ca) - (cb === 47 ? -1 : cb);
+  }
+  return a.length - b.length;
+}
+
+/**
+ * The list's order: case-insensitive alphabetical on the full path (`compareLower` on the
+ * lower-cased paths), the exact path breaking a tie so the order is total. `lowerA` and `lowerB`
+ * are the paths lower-cased, when the caller has them.
+ */
+export function comparePaths(a: string, b: string, lowerA: string = a.toLowerCase(), lowerB: string = b.toLowerCase()): number {
+  return compareLower(lowerA, lowerB) || (a < b ? -1 : a > b ? 1 : 0);
+}
+
+/** The picker's paths and their lower-cased forms (`paths[i]` and `lower[i]`), kept in
+ *  `comparePaths` order as batches are merged in, whatever order each batch arrives in. The arrays
+ *  are never changed in place (each batch makes new ones), so indices into an earlier `paths` stay
+ *  valid for that array. */
+export class PathList {
+  paths: readonly string[] = [];
+  lower: readonly string[] = [];
+
+  clear(): void {
+    this.paths = [];
+    this.lower = [];
+  }
+
+  add(batch: readonly string[]): void {
+    if (batch.length === 0) return;
+    const incoming = batch.map((path) => ({ path, lower: path.toLowerCase() }));
+    incoming.sort((a, b) => comparePaths(a.path, b.path, a.lower, b.lower));
+    const n = this.paths.length;
+    // The common case (git's output is nearly in order): everything lands after the end.
+    if (n === 0 || comparePaths(this.paths[n - 1]!, incoming[0]!.path, this.lower[n - 1]!, incoming[0]!.lower) <= 0) {
+      this.paths = this.paths.concat(incoming.map((e) => e.path));
+      this.lower = this.lower.concat(incoming.map((e) => e.lower));
+      return;
+    }
+    const paths: string[] = new Array(n + incoming.length);
+    const lower: string[] = new Array(n + incoming.length);
+    let i = 0;
+    let j = 0;
+    let k = 0;
+    while (i < n && j < incoming.length) {
+      const e = incoming[j]!;
+      if (comparePaths(this.paths[i]!, e.path, this.lower[i]!, e.lower) <= 0) {
+        paths[k] = this.paths[i]!;
+        lower[k++] = this.lower[i++]!;
+      } else {
+        paths[k] = e.path;
+        lower[k++] = e.lower;
+        j++;
+      }
+    }
+    while (i < n) {
+      paths[k] = this.paths[i]!;
+      lower[k++] = this.lower[i++]!;
+    }
+    while (j < incoming.length) {
+      paths[k] = incoming[j]!.path;
+      lower[k++] = incoming[j++]!.lower;
+    }
+    this.paths = paths;
+    this.lower = lower;
+  }
+}
+
 /** A path as the picker draws it: sanitised (approval mode), with every control character left
  *  after that shown as `?`, so a name can neither style the terminal nor break the row. */
 export function displayPath(path: string): string {
@@ -181,8 +260,8 @@ export function fileUri(cwd: string, relative: string): string {
 
 // Fuzzy matching: every character of the query in order (case-insensitive unless the query has
 // an upper-case letter, as find's smart case), scored by an alignment that prefers matches at the
-// start of a path segment or word, and consecutive matches; ties go to the shorter path, then the
-// path in order.
+// start of a path segment or word, and consecutive matches; ties go to the path in alphabetical
+// order (`comparePaths`).
 const MATCH = 16;
 const CONSECUTIVE = 8;
 const GAP = 1;
@@ -248,7 +327,8 @@ export const caseSensitive = (query: string) => query !== query.toLowerCase();
 
 /**
  * The paths that match `query`, best first, as indices into `paths` (`lower` holds the same
- * paths lower-cased). With an empty query every path, in the order listed. Only `among` is
+ * paths lower-cased). With an empty query every path, in the order listed (a `PathList` lists
+ * them alphabetically); equal scores go in `comparePaths` order. Only `among` is
  * searched when given (the matches of a shorter query, while the list has not grown since).
  */
 export function rankFiles(query: string, paths: readonly string[], lower: readonly string[], among?: readonly number[]): number[] {
@@ -262,6 +342,6 @@ export function rankFiles(query: string, paths: readonly string[], lower: readon
   };
   if (among) for (const i of among) visit(i);
   else for (let i = 0; i < paths.length; i++) visit(i);
-  scored.sort((a, b) => b.score - a.score || paths[a.index]!.length - paths[b.index]!.length || (paths[a.index]! < paths[b.index]! ? -1 : 1));
+  scored.sort((a, b) => b.score - a.score || comparePaths(paths[a.index]!, paths[b.index]!, lower[a.index], lower[b.index]));
   return scored.map((s) => s.index);
 }
