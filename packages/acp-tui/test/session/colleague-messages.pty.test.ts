@@ -103,7 +103,7 @@ describe.skipIf(process.platform === "win32")("Harness version not yet checked",
   test("Second-generation Auggie: --agent-info auggie@1.2.0 shows the notice and the session is usable", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
-    w.configure({ auggie: ["--scenario", "basic", "--agent-info", "auggie@1.2.0"] });
+    w.configure({ auggie: ["--scenario", "short-answer", "--agent-info", "auggie@1.2.0"] });
     const s = (session = w.start(["auggie"], { cwd: repo, cols: 200, rows: 30 }));
     await s.waitFor(READY, 20000);
     await s.waitFor(NOTICE_1_2, 5000);
