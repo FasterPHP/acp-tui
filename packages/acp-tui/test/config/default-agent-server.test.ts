@@ -60,13 +60,14 @@ describe("default_agent_server", () => {
     expect(buildAgentCatalogue(`{ ${SERVERS}, "default_agent_server": "other", "default_agent": "fake" }`, FILE).defaultAgent).toBe("other");
   });
 
-  test("an unknown name is a problem at the value, under the key written, and auggie is used", () => {
+  test("Names a harness that is not known: a problem at the value, under the key written; the name is kept", () => {
     for (const key of ["default_agent_server", "default_agent"]) {
       const parsed = parse(`{ "${key}": "ghost" }`);
       expect(parsed.problems).toHaveLength(1);
       expect(parsed.problems[0]).toMatchObject({ path: key, severity: "error" });
-      expect(parsed.problems[0]!.message).toContain(`names "ghost", which is not a known harness; "auggie" is used`);
-      expect(parsed.rejected).toEqual(["default_agent_server"]);
+      expect(parsed.problems[0]!.message).toContain(`names "ghost", which has no agent_servers entry, so acp-tui without a harness name fails`);
+      expect(parsed.rejected).toEqual([]);
+      expect(parsed.sections.default_agent_server).toBe("ghost");
     }
   });
 

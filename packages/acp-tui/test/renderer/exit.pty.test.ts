@@ -139,7 +139,7 @@ describe("every exit path restores the terminal (task 4.1)", () => {
 
   // Skipped on Windows: it compares the main screen and the raw restore sequences of the PTY stream (ConPTY clears, repaints and rewrites them), or sends POSIX signals.
   test.skipIf(WINDOWS)("start-up failure: status 1, the error below the command line, no resume line", async () => {
-    const { s } = start({ agent: ["--", "acp-tui-no-such-agent"] });
+    const { s } = start({ agent: ["acp-tui-no-such-agent"] });
     expect(await s.wait(10000)).toBe(1);
     const rows = await expectRestored(s);
     expect(rows.join("\n")).toContain("acp-tui: could not start ad hoc harness command 'acp-tui-no-such-agent'");

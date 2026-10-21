@@ -48,12 +48,13 @@ describe("Named agent in a broken file", () => {
     expect(r.stderr).toContain(`the configuration file has a problem: ${file}:3:3: is not valid JSONC here: a comma was expected`);
   });
 
-  test("without -a, a broken file still starts the built-in agent (acp-tui always starts)", async () => {
-    const { home } = configHome(`{ "agent_servers": `);
+  test("without -a, a file that does not parse gives no harness: acp-tui exits non-zero, naming the file's problem (a file that exists is taken as written)", async () => {
+    const { home, file } = configHome(`{ "agent_servers": `);
     const r = await run([], home);
-    expect(r.code).toBe(0);
-    expect(r.launch?.agentName).toBe("auggie");
-    expect(r.launch?.problems).toHaveLength(1);
+    expect(r.code).not.toBe(0);
+    expect(r.started).toBe(false);
+    expect(r.stderr).toContain("harness 'auggie' is not configured; add its entry to");
+    expect(r.stderr).toContain(`the configuration file has a problem: ${file}:1:`);
   });
 });
 
@@ -110,19 +111,20 @@ describe("World-writable file (task 1.6)", () => {
   });
 
   // Skipped on Windows: mode bits decide this check on POSIX; Windows checks the file owner instead (test/config/writers.test.ts).
-  test.skipIf(WINDOWS)("only the built-in agents are available, the refusal is a problem, and other sections still apply", async () => {
+  test.skipIf(WINDOWS)("no harness is available, the refusal is a problem, and other sections still apply", async () => {
     const { home } = configHome(FAKE, { file: 0o666 });
     const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: home } });
-    expect([...catalogue.agents.keys()]).toEqual(["auggie", "claude", "opencode"]);
+    expect([...catalogue.agents.keys()]).toEqual([]);
     expect(catalogue.problems.some((p) => p.includes("agent_servers is refused: harness commands are not read from a file other users can write"))).toBe(true);
     const store = createConfigStore({ env: { XDG_CONFIG_HOME: home, HOME: home }, sessionDirectory: null });
     expect(store.config().density).toBe("focus");
     expect(store.config().agent_servers).toEqual({});
     expect(store.problems().map((p) => p.path)).toEqual(["agent_servers"]);
-    // Without -a the default (built-in) agent starts.
+    // Without -a there is no default entry to start, and the refusal is said.
     const r = await run([], home);
-    expect(r.code).toBe(0);
-    expect(r.launch?.agentName).toBe("auggie");
+    expect(r.code).not.toBe(0);
+    expect(r.started).toBe(false);
+    expect(r.stderr).toContain("harness commands are not read from a file other users can write");
   });
 
   test("a file only its owner can write is read as usual", async () => {

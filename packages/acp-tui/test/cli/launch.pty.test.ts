@@ -115,9 +115,9 @@ describe("New session in the current directory (tui-agent-session)", () => {
         : [];
     // The list opens with the first frame, before the agent is up (day-two-feedback D2): wait for it.
     await s.waitFor(() => methods().some((e) => e.method === "initialize"), 15000);
-    // An agent without session/list: no list request; the selector's built-in row only.
+    // An agent without session/list: no list request; the selector's row for the default configuration's auggie only.
     expect(methods().map((e) => e.method)).toEqual(["initialize"]);
-    expect(s.screenText().some((r) => r.includes("New session with claude"))).toBe(true);
+    expect(s.screenText().some((r) => r.includes("New session with auggie"))).toBe(true);
     s.sendKeys("Esc");
     // The status row says connected once the agent is initialised, before the session starts.
     await s.waitFor(() => methods().some((e) => e.method === "session/new"), 5000);

@@ -1,7 +1,7 @@
 // colleague-preview, under a PTY against fake-agent configured as `auggie`: the login message
 // (spec tui-agent-session "Harness needs a login"), the notice for an unchecked Auggie ("Harness
 // version not yet checked") and the debug log events. No test launches a real `auggie`: the
-// built-in is reached only through a shell shim on a PATH of our own.
+// program is reached only through a shell shim on a PATH of our own.
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,8 +20,8 @@ const AUGGIE_TEXT = "Authentication required: Auggie does not currently support 
 const NOTICE_1_2 = "auggie 1.2.0 has not been checked with acp-tui; testers use 0.36.0";
 
 /** A PATH holding bun and a shim named `name` (`auggie`, `opencode`) that runs fake-agent with `args`:
- *  that built-in, found. */
-function shimBuiltIn(w: ListWorld, name: string, args: readonly string[]): void {
+ *  that program, found. */
+function shimProgram(w: ListWorld, name: string, args: readonly string[]): void {
   const bin = join(w.base, "bin");
   mkdirSync(bin);
   symlinkSync(process.execPath, join(bin, "bun"));
@@ -43,24 +43,36 @@ describe.skipIf(process.platform === "win32")("Harness needs a login", () => {
     expect(w.events("auth_required")).toMatchObject([{ phase: "new" }]);
   }, 40000);
 
-  test("Login hint added: the built-in auggie answering a bare Authentication required gets the login step", async () => {
+  test("Login hint added: the default configuration's auggie answering a bare Authentication required gets the login step", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
-    shimBuiltIn(w, "auggie", ["--scenario", "basic", "--auth-required=bare"]);
+    shimProgram(w, "auggie", ["--scenario", "basic", "--auth-required=bare"]);
     const s = (session = w.start([], { cwd: repo, cols: 220, rows: 30 }));
     expect(await s.wait(20000)).toBe(1);
     const text = s.screenText().join(" ").replace(/\s+/g, " ");
     expect(text).toContain("harness 'auggie' needs you to log in: Authentication required; run auggie login in a terminal, then start acp-tui again");
   }, 40000);
 
-  test("OpenCode login hint: the built-in opencode answering a bare Authentication required gets opencode auth login", async () => {
+  test("OpenCode login hint: a configured entry running opencode answering a bare Authentication required gets opencode auth login", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
-    shimBuiltIn(w, "opencode", ["--scenario", "basic", "--auth-required=bare"]);
+    shimProgram(w, "opencode", ["--scenario", "basic", "--auth-required=bare"]);
+    writeFileSync(join(w.base, "config", "acp-tui", "config.jsonc"), JSON.stringify({ agent_servers: { opencode: { command: "opencode", args: ["acp"] } } }));
     const s = (session = w.start(["opencode"], { cwd: repo, cols: 220, rows: 30 }));
     expect(await s.wait(20000)).toBe(1);
     const text = s.screenText().join(" ").replace(/\s+/g, " ");
     expect(text).toContain("harness 'opencode' needs you to log in: Authentication required; run opencode auth login in a terminal, then start acp-tui again");
+  }, 40000);
+
+  test("Hints follow the program: an entry called oc that runs opencode gets opencode's login step", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    shimProgram(w, "opencode", ["--scenario", "basic", "--auth-required=bare"]);
+    writeFileSync(join(w.base, "config", "acp-tui", "config.jsonc"), JSON.stringify({ agent_servers: { oc: { command: "opencode", args: ["acp"] } } }));
+    const s = (session = w.start(["oc"], { cwd: repo, cols: 220, rows: 30 }));
+    expect(await s.wait(20000)).toBe(1);
+    const text = s.screenText().join(" ").replace(/\s+/g, " ");
+    expect(text).toContain("harness 'oc' needs you to log in: Authentication required; run opencode auth login in a terminal, then start acp-tui again");
   }, 40000);
 
   test("a configured harness gets the harness's text and no added step", async () => {

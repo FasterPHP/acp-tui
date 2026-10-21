@@ -37,7 +37,11 @@ function tree() {
 }
 
 const none = { agentName: null, agentCommand: null, directory: null, session: { kind: "new" as const } };
-const CATALOGUE = () => buildAgentCatalogue(JSON.stringify({ agent_servers: { fake: { command: "bun", args: ["fake.ts"] } } }), "/cfg/acp-tui/config.jsonc");
+const CATALOGUE = () =>
+  buildAgentCatalogue(
+    JSON.stringify({ agent_servers: { auggie: { command: "auggie", args: ["--acp"], additional_directory_args: ["--add-workspace", "{dir}"] }, fake: { command: "bun", args: ["fake.ts"] } } }),
+    "/cfg/acp-tui/config.jsonc",
+  );
 function context(cwd: string, configured: Partial<ConfigDirectories> = {}): ResolveContext {
   return { cwd, catalogue: CATALOGUE, index: () => openSessionIndex({ stateHome: temp("acp-tui-adddirs-state-") }), configDirectories: () => ({ directories: [], projectDirectories: [], projectFile: null, ...configured }) };
 }
