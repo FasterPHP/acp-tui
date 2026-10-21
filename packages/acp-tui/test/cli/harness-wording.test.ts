@@ -56,7 +56,7 @@ describe("Unknown name in the harness's words", () => {
       findAgent(catalogue, "nosuch");
     } catch (error) {
       const message = (error as Error).message;
-      expect(message).toStartWith("'nosuch' is not a known harness (known: 'auggie', 'claude', 'opencode', 'fake'; harnesses are defined in agent_servers in /cfg/acp-tui/config.jsonc)");
+      expect(message).toStartWith("'nosuch' is not a known harness (known: 'fake'; harnesses are defined in agent_servers in /cfg/acp-tui/config.jsonc)");
       expect(message).not.toContain("known agent");
     }
   });

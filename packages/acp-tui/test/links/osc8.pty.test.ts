@@ -168,7 +168,7 @@ describe("OSC 8 (task 6.4)", () => {
     const logPath = join(dir, "acp-tui.log");
     const env = localEnv({ ...NO_TERMINAL, TERM_PROGRAM: "zed", COLORTERM: undefined, FORCE_HYPERLINK: undefined, OPENTUI_GRAPHICS: undefined, OPENTUI_FORCE_EXPLICIT_WIDTH: undefined, ACP_TUI_LOG: logPath });
     const agent = ["sh", "-c", `env > '${envFile}'; exec bun '${FAKE_AGENT}' --scenario basic --delay-scale 0`];
-    const s = startPty(["bun", CLI, "--", ...agent], { cols: 100, rows: 30, cwd: dir, env, prefill: PREFILL });
+    const s = startPty(["bun", CLI, "--", "--", ...agent], { cols: 100, rows: 30, cwd: dir, env, prefill: PREFILL });
     run = { session: s, logPath, events: (name) => readEvents(logPath, name), agentMethods: () => [] };
     await s.waitFor(READY, 15000);
     expectHyperlinksLogged(true);

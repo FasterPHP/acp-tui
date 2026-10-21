@@ -34,7 +34,7 @@ function setup(options: { readonly args: readonly string[]; readonly template?: 
   const [command, ...base] = fakeAgentCommand({ scenario: options.scenario ?? "basic", logPath });
   // A restarted harness is a new process: a persisted store lets it find the session, as a real harness's disk does.
   const args = [...base, ...options.args, ...(options.persist ? ["--sessions", join(dir, "store.json"), "--persist"] : [])];
-  const fake: AgentEntry = { name: "fake", command: command!, args, env: {}, source: "config", ...(options.template ? { additionalDirectoryArgs: ["--add-workspace", "{dir}"] } : {}) };
+  const fake: AgentEntry = { name: "fake", command: command!, args, env: {}, ...(options.template ? { additionalDirectoryArgs: ["--add-workspace", "{dir}"] } : {}) };
   const catalogue: AgentCatalogue = { path: join(dir, "config.jsonc"), agents: new Map([["fake", fake]]), invalid: new Map(), defaultAgent: "fake", problems: [] };
   const launch: LaunchDescription = {
     agentName: "fake",

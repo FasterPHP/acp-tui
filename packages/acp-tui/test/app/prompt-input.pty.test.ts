@@ -28,7 +28,7 @@ function start(): { s: PtySession; sent: () => { method?: string; params?: { pro
   const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-prompt-input-"));
   const wire = join(dir, "to-agent.jsonl");
   const agent = ["sh", "-c", `tee '${wire}' | exec bun '${FAKE_AGENT}' --scenario basic --delay-scale 0`];
-  const s = startPty(["bun", CLI, "--", ...agent], { cols: 80, rows: 24, cwd: dir, env: { WAYLAND_DISPLAY: undefined, DISPLAY: undefined } });
+  const s = startPty(["bun", CLI, "--", "--", ...agent], { cols: 80, rows: 24, cwd: dir, env: { WAYLAND_DISPLAY: undefined, DISPLAY: undefined } });
   session = s;
   const sent = () =>
     existsSync(wire)

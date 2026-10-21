@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { BUILT_IN_HARNESSES } from "../../src/agent/command.ts";
+import { OPENCODE_INSTALL_HINT } from "../../src/agent/command.ts";
 import { AgentLaunchError, launchAgent } from "../../src/agent/launch.ts";
 import { AgentStartupError } from "../../src/agent/connection.ts";
 import { startSession } from "../../src/session/controller.ts";
@@ -23,7 +23,7 @@ describe("agent/launch (task 5.2)", () => {
     }
   });
 
-  test("a built-in's install hint ends the message when the program is not found", () => {
+  test("an install hint ends the message when the program is not found", () => {
     const hint = "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login";
     try {
       launchAgent(["acp-tui-no-such-auggie", "--acp"], { harness: "auggie", installHint: hint, env: { PATH: "/usr/bin:/bin" } });
@@ -33,14 +33,13 @@ describe("agent/launch (task 5.2)", () => {
       expect(failure).toBeInstanceOf(AgentLaunchError);
       expect(failure.notFound).toBe(true);
       expect(failure.message).toContain("harness 'auggie' (command 'acp-tui-no-such-auggie --acp')");
-      expect(failure.message).toEndWith(`; auggie is not installed: install it with ${hint}`);
+      expect(failure.message).toEndWith(`; acp-tui-no-such-auggie is not installed: install it with ${hint}`);
     }
   });
 
   test("OpenCode: a PATH without opencode ends the message with its install hint and opencode.ai/docs", () => {
-    const builtIn = BUILT_IN_HARNESSES.find((h) => h.name === "opencode")!;
     try {
-      launchAgent(builtIn.command, { harness: "opencode", installHint: builtIn.installHint!, env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent" } });
+      launchAgent(["opencode", "acp"], { harness: "opencode", installHint: OPENCODE_INSTALL_HINT, env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent" } });
       throw new Error("expected launchAgent to throw");
     } catch (error) {
       const failure = error as AgentLaunchError;

@@ -1,8 +1,8 @@
 // day-two-feedback task group 4 (design D3 and D5), through `parseArgs` and through `main` with an
 // injected `startApp`, so that "exits non-zero without launching anything" is observable: `-r` and
 // `-c` as `--resume` and `--continue`, the harness as the first positional argument or `--harness`
-// (with `-a` and `--agent` kept as aliases), the order of the positional rules, and the lone-word
-// check. Every scenario of spec tui-sessions "Session options on the command line", "Named agents"
+// (with `-a` and `--agent` kept as aliases), the order of the positional rules, and the unknown-word
+// refusal. Every scenario of spec tui-sessions "Session options on the command line", "Named agents"
 // and "Directory argument and agent command are told apart" that this change adds. The catalogue is
 // injected (no user configuration is read); directories are temporary.
 import { describe, expect, mock, test } from "bun:test";
@@ -14,8 +14,8 @@ import { launchArgv } from "../../src/agent/resolve.ts";
 import { CliArgumentError, main, parseArgs, type CliContext, type ParseContext, type StartAppOptions } from "../../src/cli.ts";
 
 const FAKE_COMMAND = ["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"];
-const NAMES = ["auggie", "claude", "opencode", "fake", "other"];
-const CATALOGUE = JSON.stringify({ agent_servers: { fake: { command: "bun", args: FAKE_COMMAND.slice(1) }, other: { command: "bun", args: ["other.ts"] }, config: { command: "bun", args: ["config.ts"] } } });
+const NAMES = ["auggie", "opencode", "fake", "other"];
+const CATALOGUE = JSON.stringify({ agent_servers: { auggie: { command: "bun", args: ["auggie.ts"] }, opencode: { command: "opencode", args: ["acp"] }, fake: { command: "bun", args: FAKE_COMMAND.slice(1) }, other: { command: "bun", args: ["other.ts"] }, config: { command: "bun", args: ["config.ts"] } } });
 
 /** A temporary `/work` with `repo-b` and `fake` directories and a file `notes.txt`. */
 function work(): string {
@@ -126,7 +126,8 @@ describe("the harness (tui-sessions 'Named agents' and 'Directory argument and a
     const dir = work();
     expect(parse(["fake", "./repo-b"], dir)).toMatchObject({ agentName: "fake", directory: join(dir, "repo-b"), agentCommand: null });
     expect(parse(["fake", "repo-b", "-c"], dir)).toMatchObject({ agentName: "fake", directory: join(dir, "repo-b"), session: { kind: "continue" } });
-    expect(parse(["./repo-b", "fake"], dir)).not.toMatchObject({ agentName: "fake" });
+    // The harness comes first: after a directory, `fake` is the second directory (it exists here).
+    expect(() => parse(["./repo-b", "fake"], dir)).toThrow("only one directory argument may come before --");
     const r = await run(["fake", "./repo-b"], dir);
     expect(r.code).toBe(0);
     expect(r.launch?.agentName).toBe("fake");
@@ -155,14 +156,23 @@ describe("the harness (tui-sessions 'Named agents' and 'Directory argument and a
     expect(parse(["./repo-b", "-c"], dir)).toMatchObject({ directory: join(dir, "repo-b"), session: { kind: "continue" }, agentCommand: null });
   });
 
-  test("Dropped separator: the positional arguments are still the command when the first names no harness", async () => {
+  test("Command after the separator: the words after a -- that reaches acp-tui are the command", async () => {
     const dir = work();
-    expect(parse([...FAKE_COMMAND], dir)).toMatchObject({ agentName: null, agentCommand: FAKE_COMMAND, directory: null });
-    const r = await run([...FAKE_COMMAND], dir);
+    expect(parse(["--", ...FAKE_COMMAND], dir)).toMatchObject({ agentName: null, agentCommand: FAKE_COMMAND, directory: null });
+    const r = await run(["--", ...FAKE_COMMAND], dir);
     expect(launchArgv(r.launch!)).toEqual(FAKE_COMMAND);
     expect(r.launch?.agentName).toBe("ad hoc");
     // Options inside the command are the command's, not acp-tui's.
-    expect(parse(["bun", "x.ts", "--resume", "-c"], dir)).toMatchObject({ agentCommand: ["bun", "x.ts", "--resume", "-c"], session: { kind: "new" } });
+    expect(parse(["--", "bun", "x.ts", "--resume", "-c"], dir)).toMatchObject({ agentCommand: ["bun", "x.ts", "--resume", "-c"], session: { kind: "new" } });
+  });
+
+  test("Dropped separator: the command's words with no -- are refused, bun is no harness even though it is on the PATH", async () => {
+    const dir = work();
+    expect(() => parse([...FAKE_COMMAND], dir)).toThrow(/^'bun' is not a configured harness \(auggie, opencode, fake, other\) or a directory; an ad hoc command goes after --, as in acp-tui -- bun$/);
+    const r = await run([...FAKE_COMMAND], dir);
+    expect(r.code).toBe(1);
+    expect(r.started).toBe(false);
+    expect(r.stderr).toBe("acp-tui: 'bun' is not a configured harness (auggie, opencode, fake, other, config) or a directory; an ad hoc command goes after --, as in acp-tui -- bun\n");
   });
 
   test("Directory and command: ./repo-b -- command is unchanged", async () => {
@@ -171,7 +181,7 @@ describe("the harness (tui-sessions 'Named agents' and 'Directory argument and a
     expect(launchArgv(r.launch!)).toEqual(FAKE_COMMAND);
     expect(r.launch?.directory).toBe(join(dir, "repo-b"));
     expect(r.launch?.agentName).toBe("ad hoc");
-    expect(() => parse(["./repo-b", "notes.txt", "--", "agent"], dir)).toThrow("only one directory argument may come before --");
+    expect(() => parse(["./repo-b", "./fake", "--", "agent"], dir)).toThrow("only one directory argument may come before --");
     expect(() => parse(["notes.txt", "--", "agent"], dir)).toThrow("'notes.txt' is not a directory");
   });
 
@@ -194,41 +204,47 @@ describe("the harness (tui-sessions 'Named agents' and 'Directory argument and a
   });
 });
 
-describe("the lone word (tui-sessions 'Directory argument and agent command are told apart', Unknown word)", () => {
-  test("Unknown word: augie names no harness, no directory and no command, so it is refused with the harnesses and the `--` rule", async () => {
+describe("the unknown word (tui-sessions 'Directory argument and agent command are told apart', Unknown word)", () => {
+  test("Unknown word: augie names no configured harness and no directory, so it is refused with the harnesses and the `--` rule", async () => {
     const dir = work();
     expect(() => parse(["augie"], dir)).toThrow(
-      new CliArgumentError("'augie' is not a harness (auggie, claude, opencode, fake, other), a directory or a command; an ad hoc command goes after --"),
+      new CliArgumentError("'augie' is not a configured harness (auggie, opencode, fake, other) or a directory; an ad hoc command goes after --, as in acp-tui -- augie"),
     );
     const r = await run(["augie"], dir);
     expect(r.code).toBe(1);
-    expect(r.stderr).toBe("acp-tui: 'augie' is not a harness (auggie, claude, opencode, fake, other, config), a directory or a command; an ad hoc command goes after --\n");
+    expect(r.stderr).toBe("acp-tui: 'augie' is not a configured harness (auggie, opencode, fake, other, config) or a directory; an ad hoc command goes after --, as in acp-tui -- augie\n");
     // Nothing launched, so the alternate screen was never entered.
     expect(r.started).toBe(false);
     expect(r.stdout).toBe("");
   });
 
-  test("a lone word that is a command on the PATH, or an executable path, is the command", () => {
+  test("Unknown word: a command on the PATH, or an executable path, is refused all the same", () => {
     const dir = work();
-    expect(parse(["my-agent"], dir, { commandExists: (word) => word === "my-agent" })).toMatchObject({ agentCommand: ["my-agent"] });
-    expect(parse(["bun"], dir)).toMatchObject({ agentCommand: ["bun"] });
-    // A path that is not an executable file is not a command.
-    expect(() => parse(["./notes.txt"], dir)).toThrow("is not a harness");
+    expect(() => parse(["bun"], dir)).toThrow("'bun' is not a configured harness");
+    expect(() => parse(["./notes.txt"], dir)).toThrow("is not a configured harness");
+    expect(() => parse([process.execPath], dir)).toThrow("is not a configured harness");
   });
 
-  test("the check applies only to a lone word with no --: two words, or a word before a --, are what they were", () => {
+  test("Stray argument after a harness: any word after the harness and the directory is refused, with or without other words", () => {
     const dir = work();
-    expect(parse(["augie", "serve"], dir)).toMatchObject({ agentCommand: ["augie", "serve"] });
+    expect(() => parse(["fake", "augie"], dir)).toThrow("'augie' is not a configured harness");
+    expect(() => parse(["augie", "serve"], dir)).toThrow("'augie' is not a configured harness");
+    expect(() => parse(["fake", "./repo-b", "extra"], dir)).toThrow("'extra' is not a configured harness");
+    // Before a `--` the word was meant as the directory.
     expect(() => parse(["augie", "--", "x"], dir)).toThrow("'augie' is not a directory");
     // --help is not turned into an error by a word after it.
-    expect(parse(["--help", "augie"], dir).help).toBe(true);
-    // A harness after a harness is a lone word too.
-    expect(() => parse(["fake", "augie"], dir)).toThrow("is not a harness");
+    expect(() => parse(["--help", "augie"], dir)).toThrow("'augie' is not a configured harness");
+  });
+
+  test("No harness configured: the refusal says so, naming the configuration file", () => {
+    expect(() => parseArgs(["augie"], { cwd: work(), configPath: "/cfg/acp-tui/config.jsonc" })).toThrow(
+      new CliArgumentError("'augie' is not a configured harness or a directory; an ad hoc command goes after --, as in acp-tui -- augie; no harness is configured in /cfg/acp-tui/config.jsonc"),
+    );
   });
 });
 
 describe("example harnesses are not run as commands (tui-sessions)", () => {
-  const ANY_COMMAND = { commandExists: () => true };
+  const ANY_COMMAND = {};
   const GEMINI = "acp-tui: harness 'gemini' is not configured; uncomment its entry in /cfg/acp-tui/config.jsonc, or run acp-tui -- gemini --acp\n";
 
   test("Gemini not configured: with gemini on the PATH, the lone word is refused with the entry to uncomment and the -- command, and nothing starts", async () => {
@@ -253,11 +269,26 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
     expect(r.started).toBe(false);
   });
 
-  test("Arguments given: gemini --acp with no -- is an ad hoc command, as before", async () => {
+  test("Arguments given: gemini --acp with no -- is refused as the example gemini, and nothing starts", async () => {
     const r = await run(["gemini", "--acp"], work(), ANY_COMMAND);
-    expect(r.code).toBe(0);
-    expect(launchArgv(r.launch!)).toEqual(["gemini", "--acp"]);
-    expect(r.launch?.agentName).toBe("ad hoc");
+    expect(r.code).toBe(1);
+    expect(r.stderr).toBe(GEMINI);
+    expect(r.started).toBe(false);
+  });
+
+  test("Example with settings: claude is refused without a -- alternative, since its timeout needs the entry", async () => {
+    const r = await run(["claude"], work(), ANY_COMMAND);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toBe("acp-tui: harness 'claude' is not configured; uncomment its entry in /cfg/acp-tui/config.jsonc\n");
+    expect(r.started).toBe(false);
+  });
+
+  test("Example with a template: auggie, when its entry is missing, is told to add it and where to find it", async () => {
+    const catalogue = () => buildAgentCatalogue(`{ "mouse": "off" }`, "/cfg/acp-tui/config.jsonc");
+    const r = await run(["auggie"], work(), { catalogue });
+    expect(r.code).toBe(1);
+    expect(r.stderr).toBe("acp-tui: harness 'auggie' is not configured; add its entry to /cfg/acp-tui/config.jsonc (see config.dist.jsonc or acp-tui config --print-default)\n");
+    expect(r.started).toBe(false);
   });
 
   test("Directory of an example's name: a directory named goose wins, and the default harness starts there", async () => {
@@ -276,7 +307,7 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
     expect(r.launch?.agentName).toBe("gemini");
   });
 
-  test("a built-in's name is a harness: opencode is not an example, and the parsed harness is opencode", async () => {
+  test("a configured entry named like a well-known harness is a harness: opencode is not an example, and the parsed harness is opencode", async () => {
     const r = await run(["opencode"], work(), ANY_COMMAND);
     expect(r.code).toBe(0);
     expect(r.launch?.agentName).toBe("opencode");
@@ -284,11 +315,11 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
     expect(parse(["opencode"], work()).agentName).toBe("opencode");
   });
 
-  test("Stray argument after a built-in: opencode acp is refused and says the harness already runs opencode acp", async () => {
+  test("Stray argument after a harness: opencode acp is refused and says the harness already runs opencode acp", async () => {
     const r = await run(["opencode", "acp"], work());
     expect(r.code).toBe(1);
-    expect(r.stderr).toContain("'acp' is not a harness");
-    expect(r.stderr).toContain("an ad hoc command goes after --; harness 'opencode' already runs 'opencode acp'\n");
+    expect(r.stderr).toContain("'acp' is not a configured harness");
+    expect(r.stderr).toContain("an ad hoc command goes after --, as in acp-tui -- acp; harness 'opencode' already runs 'opencode acp'\n");
     expect(r.started).toBe(false);
   });
 
@@ -300,7 +331,7 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
 
   test("parseArgs on its own: examples in the context are refused with the configuration file named, home as ~", () => {
     const examples = [{ name: "gemini", commandLine: "gemini --acp" }];
-    expect(() => parse(["gemini"], work(), { examples, configPath: `${process.env["HOME"]}/.config/acp-tui/config.jsonc`, commandExists: () => true })).toThrow(
+    expect(() => parse(["gemini"], work(), { examples, configPath: `${process.env["HOME"]}/.config/acp-tui/config.jsonc` })).toThrow(
       new CliArgumentError("harness 'gemini' is not configured; uncomment its entry in ~/.config/acp-tui/config.jsonc, or run acp-tui -- gemini --acp"),
     );
   });

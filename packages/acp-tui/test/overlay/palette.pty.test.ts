@@ -41,7 +41,7 @@ function start(opts: Parameters<typeof startChrome>[0]): ChromeRun {
 
 /** acp-tui against palette-agent.ts, at 63x21. */
 function startPaletteAgent(): PtySession {
-  const s = startPty(["bun", CLI, "--", "bun", PALETTE_AGENT], { cols: 63, rows: 21, cwd: tempDir() });
+  const s = startPty(["bun", CLI, "--", "--", "bun", PALETTE_AGENT], { cols: 63, rows: 21, cwd: tempDir() });
   session = s;
   return s;
 }
@@ -324,7 +324,7 @@ describe("legacy models (session-models, spec tui-palette \"Config option picker
   }, 30000);
 
   test("Legacy model refused: the agent's error leaves the pill at its value and a notice shows the message", async () => {
-    const s = startPty(["bun", CLI, "--", "bun", PALETTE_AGENT], { cols: 63, rows: 21, cwd: tempDir(), env: { PALETTE_AGENT_LEGACY: "1" } });
+    const s = startPty(["bun", CLI, "--", "--", "bun", PALETTE_AGENT], { cols: 63, rows: 21, cwd: tempDir(), env: { PALETTE_AGENT_LEGACY: "1" } });
     session = s;
     await s.waitFor(READY, 10000);
     await s.waitFor(() => bottomBorder(s).includes("Model Alpha"), 5000);

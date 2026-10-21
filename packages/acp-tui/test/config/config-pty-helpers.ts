@@ -47,7 +47,7 @@ export function start(opts: { home: string; scenario?: string; args?: string[]; 
   const log = join(logDir, "acp-tui.log");
   const agentLog = join(logDir, "agent.log");
   const agent = opts.agent ?? ["--", "bun", FAKE_AGENT, "--scenario", opts.scenario ?? "basic", "--delay-scale", "0", "--log", agentLog, ...(opts.agentArgs ?? [])];
-  const s = startPty(["bun", CLI, ...(opts.args ?? []), ...agent], {
+  const s = startPty(["bun", CLI, "--", ...(opts.args ?? []), ...agent], {
     cols: opts.cols ?? 80,
     rows: opts.rows ?? 24,
     cwd: dir,

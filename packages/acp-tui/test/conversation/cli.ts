@@ -59,7 +59,7 @@ export function startCli(opts: StartOptions): CliRun {
   const logPath = join(dir, "acp-tui.log");
   const agentLog = join(dir, "fake-agent.log");
   const agent = ["bun", FAKE_AGENT, "--scenario", opts.scenario, "--delay-scale", String(opts.delayScale ?? 0), "--log", agentLog, ...(opts.agentArgs ?? [])];
-  const session = startPty(["bun", opts.entry ?? CLI, ...(opts.args ?? []), "--", ...agent], {
+  const session = startPty(["bun", opts.entry ?? CLI, "--", ...(opts.args ?? []), "--", ...agent], {
     cols: opts.cols ?? 100,
     rows: opts.rows ?? 60,
     cwd: dir,

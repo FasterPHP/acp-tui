@@ -30,7 +30,7 @@ describe("--version", () => {
   });
 
   function run(args: string[], env: Record<string, string>) {
-    const result = Bun.spawnSync([process.execPath, CLI, ...args], { env, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
+    const result = Bun.spawnSync([process.execPath, CLI, "--", ...args], { env, stdout: "pipe", stderr: "pipe", stdin: "ignore" });
     return { code: result.exitCode, out: result.stdout.toString(), err: result.stderr.toString() };
   }
 

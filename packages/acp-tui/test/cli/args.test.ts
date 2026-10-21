@@ -54,11 +54,11 @@ describe("cli parseArgs (task 5.1)", () => {
     expect(options.agentCommand).toEqual(["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"]);
   });
 
-  test("a leading -- removed by Bun: the first non-option argument starts the agent command", () => {
-    // `my-agent` is no directory here, and no `--` reaches acp-tui.
+  test("Dropped separator: with no -- reaching acp-tui, the command's words are refused", () => {
     const cwd = tempDir();
-    expect(parseArgs(["my-agent", "--flag"], { cwd }).agentCommand).toEqual(["my-agent", "--flag"]);
-    expect(parseArgs(["-h", "my-agent", "-x"], { cwd })).toMatchObject({ agentCommand: ["my-agent", "-x"], help: true, screen: DEFAULT_SCREEN_OPTIONS });
+    expect(() => parseArgs(["my-agent", "--flag"], { cwd })).toThrow("'my-agent' is not a configured harness");
+    // The command after a -- is the command; options before it are acp-tui's.
+    expect(parseArgs(["-h", "--", "my-agent", "-x"], { cwd })).toMatchObject({ agentCommand: ["my-agent", "-x"], help: true, screen: DEFAULT_SCREEN_OPTIONS });
   });
 
   test("-- with nothing after it is an error", () => {
@@ -213,8 +213,10 @@ describe("cli --help text (task 5.1)", () => {
     expect(HELP_TEXT).toMatch(/never prompt or\s+message text/);
   });
 
-  test("documents the default agent command", () => {
-    expect(HELP_TEXT).toContain(`bun x --bun ${CLAUDE_AGENT_PACKAGE}`);
+  test("says a harness works through an agent_servers entry, and no longer mentions the Claude package", () => {
+    expect(HELP_TEXT).toContain("A harness works once it has an agent_servers entry");
+    expect(HELP_TEXT).not.toContain(CLAUDE_AGENT_PACKAGE);
+    expect(HELP_TEXT).not.toContain("built in");
   });
 
   test("describes the session options, named agents, the directory argument and the -- rule (mvp-sessions tasks 3.4 and 12.8)", () => {

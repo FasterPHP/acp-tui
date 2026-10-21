@@ -1,36 +1,34 @@
-// The agent catalogue (mvp-sessions task 3.2, design decision 8, spec
-// tui-sessions "Named agents" and "Agents are defined only in the user's
-// configuration"): the built-in entries (BUILT_IN_HARNESSES: `auggie`, `claude`, `opencode`) and the
-// `agent_servers` entries of the user's configuration file,
-// `$XDG_CONFIG_HOME/acp-tui/config.jsonc` (`~/.config` when XDG_CONFIG_HOME is
-// unset or not absolute, `%APPDATA%` on Windows), in Zed's shape: `command` a
-// string, `args` an array of strings, `env` an object of strings. A configured entry overrides a
-// built-in one of the same name. `default_agent_server` (once `default_agent`) names the agent launched
-// when neither `-a` nor an agent command is given.
+// The agent catalogue (mvp-sessions task 3.2, design decision 8, spec tui-sessions "Named agents",
+// "Agents are defined only in the user's configuration" and, since configured-harnesses,
+// "Configured harnesses only"): the `agent_servers` entries of the user's configuration file,
+// `$XDG_CONFIG_HOME/acp-tui/config.jsonc` (`~/.config` when XDG_CONFIG_HOME is unset or not
+// absolute, `%APPDATA%` on Windows), in Zed's shape: `command` a string, `args` an array of
+// strings, `env` an object of strings. There are no built-in harnesses: when the file does not
+// exist, the loader reads it as the default configuration's active lines (the `auggie` entry and
+// `default_agent_server` `auggie`, design D1); a file that exists is taken as written.
+// `default_agent_server` (once `default_agent`) names the agent launched when neither a harness
+// name nor an agent command is given; a name with no entry is kept, and launching by it fails
+// (design D3).
 //
-// Since mvp-configuration (task 1.5) the file is read by the configuration
-// loader (src/config/load.ts), which replaced the stopgap reader: the two keys
-// keep their meaning, and the problems now carry the file's line and column. A
-// broken file never stops acp-tui: a syntax error, an `agent_servers` that is
-// not an object, an invalid entry or a `default_agent_server` that names no valid
-// agent is a problem (shown by the app), and the built-in entry remains. An
-// invalid entry is kept by name so that `-a <name>` can say what is wrong with
-// it, but it is never launchable. When another user could have written the
-// file (it or its directory writable by group or others, or owned by someone
-// else; on Windows owned by someone other than the user, Administrators or
-// SYSTEM, or outside the profile and XDG_CONFIG_HOME: config/writers.ts), its
-// agents are refused and only the built-in ones are available
-// (mvp-configuration task 1.6).
+// The file is read by the configuration loader (src/config/load.ts). A broken file never stops
+// acp-tui: a syntax error, an `agent_servers` that is not an object or an invalid entry is a
+// problem (shown by the app). An invalid entry is kept by name so that `-a <name>` can say what is
+// wrong with it, but it is never launchable. When another user could have written the file (it or
+// its directory writable by group or others, or owned by someone else; on Windows owned by someone
+// other than the user, Administrators or SYSTEM, or outside the profile and XDG_CONFIG_HOME:
+// config/writers.ts), its agents are refused and no harness is available by name.
 //
-// Agents never come from a per-project `.acp-tui.jsonc` (design 6.10) or from
+// Install and login hints follow the program an entry runs, whatever it is called
+// (src/agent/hints.ts). Agents never come from a per-project `.acp-tui.jsonc` (design 6.10) or from
 // the session index: this module reads one file, the user's own.
 import { sanitise } from "acp-model";
 import { parseConfigText, type ParsedSource } from "../config/load.ts";
 import { formatProblem } from "../config/problems.ts";
 import { AgentServerSchema } from "../config/schema.ts";
 import { readConfigFile, userConfigFile } from "../config/sources.ts";
-import { exampleHarnesses, exampleRefusal } from "./examples.ts";
-import { BUILT_IN_HARNESS_NAMES, BUILT_IN_HARNESSES, DEFAULT_HARNESS, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "./command.ts";
+import { defaultNotConfigured, exampleHarnesses, exampleRefusal } from "./examples.ts";
+import { DEFAULT_HARNESS, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "./command.ts";
+import { hintsFor } from "./hints.ts";
 
 export { DEFAULT_HARNESS };
 
@@ -40,33 +38,31 @@ export interface AgentEntry {
   readonly command: string;
   readonly args: readonly string[];
   readonly env: Readonly<Record<string, string>>;
-  readonly source: "built-in" | "config";
-  /** For a built-in whose program the user installs: how (an error for a missing program ends with it). */
+  /** For a program acp-tui knows (src/agent/hints.ts): how to install it (an error for a missing program ends with it). */
   readonly installHint?: string;
-  /** For a built-in with a login command (`auggie login`): what an authentication-required error adds. */
+  /** For a program with a login command (`auggie login`): what an authentication-required error adds. */
   readonly loginHint?: string;
   /** Seconds of silence a starting harness is allowed: the entry's `startup_timeout_seconds`, else the
-   *  user's `agent_startup_timeout_seconds` when the file sets it, else the built-in's own default, else 30. */
+   *  user's `agent_startup_timeout_seconds`, else 30. */
   readonly startupTimeoutSeconds?: number;
-  /** For a built-in that takes directories as arguments: the template with `{dir}` (used when additional directories are delivered). */
+  /** For an entry that takes directories as arguments: the template with `{dir}` (used when additional directories are delivered). */
   readonly additionalDirectoryArgs?: readonly string[];
 }
 
 export interface AgentCatalogue {
   /** The user's configuration file this catalogue was read from (it need not exist). */
   readonly path: string;
-  /** Launchable agents by name: the built-in entries, then the valid configured ones. */
+  /** Launchable agents by name: the valid configured entries, in the file's order. */
   readonly agents: ReadonlyMap<string, AgentEntry>;
-  /** Configured entries that cannot be launched, by name, with the problem. An invalid entry with
-   *  a built-in name leaves the built-in entry in `agents`. */
+  /** Configured entries that cannot be launched, by name, with the problem. */
   readonly invalid: ReadonlyMap<string, string>;
-  /** The agent launched without `-a` or an agent command: `default_agent_server` when it names a
-   *  launchable agent, else `auggie`. */
+  /** The agent launched without a harness name or an agent command: `default_agent_server` (by
+   *  default `auggie`), whether or not it names an entry; `findDefaultAgent` says when it does not. */
   readonly defaultAgent: string;
   /** Every problem found in the file, as messages for the user (empty when the file is fine or
    *  absent). */
   readonly problems: readonly string[];
-  /** The user's `agent_startup_timeout_seconds` when the file sets it, else null (ad hoc commands use it, else 30). */
+  /** The user's `agent_startup_timeout_seconds` when the file sets it, else null (entries without their own and ad hoc commands use it, else 30). */
   readonly startupTimeoutSetting?: number | null;
   /** Why the file's agents were refused (another user could have written it), else null. */
   readonly refused?: string | null;
@@ -74,20 +70,6 @@ export interface AgentCatalogue {
    *  rejected section), formatted with its place, else null. */
   readonly fileProblem?: string | null;
 }
-
-export const BUILT_IN_AGENTS: readonly AgentEntry[] = BUILT_IN_HARNESSES.map((h) => ({
-  name: h.name,
-  command: h.command[0]!,
-  args: h.command.slice(1),
-  env: {},
-  source: "built-in" as const,
-  startupTimeoutSeconds: h.startupTimeoutSeconds,
-  ...(h.installHint !== undefined ? { installHint: h.installHint } : {}),
-  ...(h.loginHint !== undefined ? { loginHint: h.loginHint } : {}),
-  ...(h.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: h.additionalDirectoryArgs } : {}),
-}));
-
-const BUILT_IN_NAMES = BUILT_IN_HARNESS_NAMES;
 
 /** Thrown for `-a <name>` when no launchable agent has that name; the message names it and
  *  lists the known names, or says what is wrong with a configured entry of that name. */
@@ -113,22 +95,25 @@ function quote(text: string): string {
 /** The catalogue a loaded user file gives. */
 export function catalogueFromSource(source: ParsedSource, options: { refused?: string | null } = {}): AgentCatalogue {
   const path = source.file;
-  const agents = new Map<string, AgentEntry>(BUILT_IN_AGENTS.map((a) => [a.name, a]));
-  // The user's setting, when the file sets it; without it each harness keeps its own default.
+  const agents = new Map<string, AgentEntry>();
   const setting = typeof source.sections.agent_startup_timeout_seconds === "number" ? source.sections.agent_startup_timeout_seconds : null;
-  if (setting !== null) {
-    for (const [name, agent] of agents) agents.set(name, { ...agent, startupTimeoutSeconds: setting });
-  }
   const servers = (source.sections.agent_servers ?? {}) as Record<string, unknown>;
   for (const [name, raw] of Object.entries(servers)) {
     const entry = AgentServerSchema.parse(raw);
-    // An entry of a built-in name replaces the built-in one but keeps its default timeout.
-    const timeout = entry.startup_timeout_seconds ?? setting ?? BUILT_IN_AGENTS.find((a) => a.name === name)?.startupTimeoutSeconds ?? DEFAULT_STARTUP_TIMEOUT_SECONDS;
-    agents.set(name, { name, command: entry.command, args: entry.args, env: { ...entry.env }, source: "config", startupTimeoutSeconds: timeout, ...(entry.additional_directory_args !== undefined ? { additionalDirectoryArgs: entry.additional_directory_args } : {}) });
+    const timeout = entry.startup_timeout_seconds ?? setting ?? DEFAULT_STARTUP_TIMEOUT_SECONDS;
+    agents.set(name, {
+      name,
+      command: entry.command,
+      args: entry.args,
+      env: { ...entry.env },
+      startupTimeoutSeconds: timeout,
+      ...hintsFor(entry.command, entry.args),
+      ...(entry.additional_directory_args !== undefined ? { additionalDirectoryArgs: entry.additional_directory_args } : {}),
+    });
   }
   const invalid = new Map(Object.entries(source.invalidAgents));
   const chosen = source.sections.default_agent_server;
-  const defaultAgent = typeof chosen === "string" && agents.has(chosen) ? chosen : DEFAULT_HARNESS;
+  const defaultAgent = typeof chosen === "string" && chosen !== "" ? chosen : DEFAULT_HARNESS;
   // The error that kept `agent_servers` out, if one did: the whole file, or that section.
   const blocking = source.problems.find((p) => p.severity === "error" && (p.path === "" || p.path === "agent_servers"));
   return {
@@ -147,17 +132,18 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
  *  reads the file). `text` null means the file does not exist; `refused` says why its agents are
  *  not trusted, when another user could have written it. */
 export function buildAgentCatalogue(text: string | null, path: string, options: { refused?: string | null } = {}): AgentCatalogue {
-  const source = parseConfigText(text, path, { kind: "user", agentsRefused: options.refused ?? null, knownAgents: BUILT_IN_NAMES });
+  const source = parseConfigText(text, path, { kind: "user", agentsRefused: options.refused ?? null, knownAgents: [] });
   return catalogueFromSource(source, options);
 }
 
-/** Reads the user's configuration file into a catalogue. A missing file gives the built-in entry
- *  alone, with no problem. */
+/** Reads the user's configuration file into a catalogue. A missing file gives the default
+ *  configuration's `auggie` entry, with no problem. */
 export function loadAgentCatalogue(options: { env?: Readonly<Record<string, string | undefined>>; path?: string } = {}): AgentCatalogue {
   const path = options.path ?? configFilePath(options.env);
   const read = readConfigFile(path, { checkWriters: true, ...(options.env ? { env: options.env } : {}) });
   if (read.error !== null) {
-    const catalogue = buildAgentCatalogue(null, path);
+    // A file that exists but cannot be read is not an absent one: it gives no harnesses.
+    const catalogue = buildAgentCatalogue("", path);
     const problem = `${path}:1:1: could not be read (${read.error}) and is ignored`;
     return { ...catalogue, problems: [problem], fileProblem: problem };
   }
@@ -173,12 +159,27 @@ export function findAgent(catalogue: AgentCatalogue, name: string): AgentEntry {
   if (problem !== undefined) {
     throw new AgentNameError(`harness ${quote(name)} in ${catalogue.path} ${problem}, so it cannot be launched`);
   }
-  // The name of a commented example that is neither built in nor configured: not run as a command.
+  // Why the file gave no entries, when it did not: added to either message.
+  const why = catalogue.refused
+    ? `; harness commands are not read from a file other users can write (${catalogue.refused})`
+    : catalogue.fileProblem
+      ? `; the configuration file has a problem: ${catalogue.fileProblem}`
+      : "";
+  // The name of an example that is not configured: not run as a command.
   const example = exampleHarnesses([...catalogue.agents.keys(), ...catalogue.invalid.keys()]).find((e) => e.name === name);
-  if (example) throw new AgentNameError(exampleRefusal(example, catalogue.path));
+  if (example) throw new AgentNameError(`${exampleRefusal(example, catalogue.path)}${why}`);
   const known = [...catalogue.agents.keys()].map(quote).join(", ");
-  let message = `${quote(name)} is not a known harness (known: ${known}; harnesses are defined in agent_servers in ${catalogue.path})`;
-  if (catalogue.refused) message += `; harness commands are not read from a file other users can write (${catalogue.refused})`;
-  else if (catalogue.fileProblem) message += `; the configuration file has a problem: ${catalogue.fileProblem}`;
-  throw new AgentNameError(message);
+  const list = known === "" ? "no harness is configured" : `known: ${known}`;
+  throw new AgentNameError(`${quote(name)} is not a known harness (${list}; harnesses are defined in agent_servers in ${catalogue.path})${why}`);
+}
+
+/** The default harness's entry (`default_agent_server`); throws `AgentNameError` with the message of
+ *  configured-harnesses design D3 when it names no entry at all, and as `findAgent` does for an
+ *  invalid entry or a refused file. */
+export function findDefaultAgent(catalogue: AgentCatalogue): AgentEntry {
+  const name = catalogue.defaultAgent;
+  if (!catalogue.agents.has(name) && !catalogue.invalid.has(name) && !catalogue.refused && !catalogue.fileProblem) {
+    throw new AgentNameError(defaultNotConfigured(name, catalogue.path));
+  }
+  return findAgent(catalogue, name);
 }

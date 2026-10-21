@@ -4,12 +4,14 @@
 // preceded by its description from the schema (schema.ts) and what values it takes, built by
 // walking the schema, so it cannot disagree with validation or the JSON Schema.
 //
-// The output loads without problems and gives exactly the built-in defaults
-// (test/config/config-command.test.ts). So a setting with no default, whose absence is its meaning
-// (the layout's `margins`, `screen`, `prompt` and `modules`, which keep the default layout's;
-// `terminals` entries; key contexts), is shown commented out with the value acp-tui uses without
-// it, and objects of names (`agent_servers`, `theme.tokens`, `glyphs.overrides`, `keys`) are
-// empty, with commented examples, each introduced as "Example, not active".
+// The output loads without problems and gives exactly the configuration acp-tui uses with no file
+// (test/config/config-command.test.ts): the built-in defaults, plus the one harness entry in effect,
+// `auggie` (configured-harnesses, design D1: acp-tui reads an absent file as these lines). So a
+// setting with no default, whose absence is its meaning (the layout's `margins`, `screen`, `prompt`
+// and `modules`, which keep the default layout's; `terminals` entries; key contexts), is shown
+// commented out with the value acp-tui uses without it, and objects of names (`theme.tokens`,
+// `glyphs.overrides`, `keys`) are empty, with commented examples, each introduced as "Example, not
+// active"; `agent_servers` holds `auggie` and commented examples.
 //
 // Task 12.7 (Marcus, 13 October 2026): the header is in sections with headings; a setting whose
 // values each need a meaning (`valueListOf`) prints a heading line and one line per value
@@ -22,7 +24,6 @@ import type { z } from "zod";
 import { BLOCK_NAMES, DEFAULT_LAYOUT } from "../layout/layout.ts";
 import { MODULE_IDS, MODULES } from "../layout/modules.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS } from "../keys/keymap.ts";
-import { BUILT_IN_HARNESSES, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
 import { AGENT_EXAMPLES, type AgentExample } from "../agent/examples.ts";
 import { TERMINAL_TABLE, type TerminalCapabilities } from "../renderer/capabilities.ts";
 import { describeSchema } from "./load.ts";
@@ -177,10 +178,23 @@ const ABSENT = "The default layout's value, shown commented out, applies while t
 export { AGENT_EXAMPLES };
 
 /** An agent example's entry as one JSONC line. */
-function agentLine({ name, entry }: AgentExample): string {
+function agentLine(name: string, entry: AgentExample["entry"]): string {
   const env = entry.env ? `, "env": ${json(entry.env)}` : "";
-  const directories = entry.additionalDirectoryArgs ? `, "additional_directory_args": ${JSON.stringify(entry.additionalDirectoryArgs).replace(/","/g, '", "')}` : "";
-  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${JSON.stringify(entry.args).replace(/","/g, '", "')}${env}${directories} },`;
+  const list = (values: readonly string[]) => JSON.stringify(values).replace(/","/g, '", "');
+  const directories = entry.additionalDirectoryArgs ? `, "additional_directory_args": ${list(entry.additionalDirectoryArgs)}` : "";
+  const timeout = entry.startupTimeoutSeconds !== undefined ? `, "startup_timeout_seconds": ${entry.startupTimeoutSeconds}` : "";
+  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${list(entry.args)}${env}${directories}${timeout} },`;
+}
+
+/** An example's lines: in effect (`auggie`, with its commented alternative) or commented out. */
+function exampleLines(example: AgentExample, indent: string): string[] {
+  if (example.active !== true) return [...comment(`${EXAMPLE} ${example.about}`, indent), ...commentedOut([agentLine(example.name, example.entry)], indent)];
+  const suggestion = example.suggestion;
+  return [
+    ...comment(example.about, indent),
+    `${indent}${agentLine(example.name, example.entry)}`,
+    ...(suggestion ? [...comment(`${EXAMPLE} ${suggestion.about}`, indent), ...commentedOut([agentLine(example.name, suggestion.entry)], indent)] : []),
+  ];
 }
 
 type Special = (key: string, schema: AnySchema, indent: string) => string[];
@@ -195,11 +209,11 @@ const SPECIALS: Readonly<Record<string, Special>> = {
       ...(["command", "args", "env", "additional_directory_args"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
       ...comment('The harness runs in the session directory, so give paths in "command" and "args" as absolute paths.', indent),
       ...comment(
-        `With no entry, the built-in ${BUILT_IN_HARNESSES.map((h) => `"${h.name}"`).join(" and ")} are the only harnesses. Every entry below is an example, not active: install the harness, then remove the // in front of its line to add it.`,
+        "Each harness needs an entry here: acp-tui launches nothing else by name. The default configuration has one, auggie, in effect; every entry after it is an example, not active: install the harness, then remove the // in front of its line to add it.",
         indent,
       ),
       `${indent}"${key}": {`,
-      ...AGENT_EXAMPLES.flatMap((example, i) => [...(i > 0 ? [""] : []), ...comment(`${EXAMPLE} ${example.about}`, inner), ...commentedOut([agentLine(example)], inner)]),
+      ...AGENT_EXAMPLES.flatMap((example, i) => [...(i > 0 ? [""] : []), ...exampleLines(example, inner)]),
       `${indent}},`,
     ];
   },
@@ -241,12 +255,6 @@ const SPECIALS: Readonly<Record<string, Special>> = {
     ...comment(`${EXAMPLE} a triangle as the first-level bullet.`, indent + STEP),
     ...commentedOut(['"list.bullet.1": "▸",'], indent + STEP),
     `${indent}},`,
-  ],
-
-  // Commented out: a value written here would also apply to `claude`, whose own default is longer.
-  agent_startup_timeout_seconds: (key, schema, indent) => [
-    ...comment(`${describeOf(schema) ?? ""} While this is not set, each harness uses its own default, and 30 seconds otherwise (shown commented out, so that claude keeps its longer one):`, indent),
-    ...commentedOut([`"${key}": ${json(DEFAULT_STARTUP_TIMEOUT_SECONDS)},`], indent),
   ],
 
   "layout.margins": (key, schema, indent) => [...comment(`${describeOf(schema) ?? ""} ${ABSENT}`, indent), ...commentedOut([`"${key}": ${json(DEFAULT_LAYOUT.margins)},`], indent)],
@@ -346,7 +354,7 @@ export function defaultFileHeader(platform: NodeJS.Platform = process.platform):
       paragraphs: [
         "Lines that are not commented out are in effect. Each holds its setting's built-in default, so this file as printed changes nothing: acp-tui behaves as it does with no file. Edit a value to change that setting.",
         'Lines commented out with // are not in effect. Some show the value acp-tui uses while a setting is absent: uncomment one and change it to replace that value. The others are examples, each introduced by "Example, not active": uncomment one to use it.',
-        "Delete whatever you do not need: a setting that is absent keeps its default.",
+        "Delete whatever you do not need: a setting that is absent keeps its default. The exception is agent_servers: a harness works only while it has an entry there.",
       ],
     },
     {

@@ -137,7 +137,7 @@ describe.skipIf(WINDOWS)("Agent Markdown uses theme tokens only", () => {
 
   test("a list, headings, emphasis, code, a link and a quote print no RGB foreground and only derived RGB fills", async () => {
     const cwd = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-markdown-"));
-    const s = startPty(["bun", CLI, "--", "bun", AGENT], { cols: 100, rows: 50, cwd, colours: LIGHT, env: { COLORTERM: "truecolor" } });
+    const s = startPty(["bun", CLI, "--", "--", "bun", AGENT], { cols: 100, rows: 50, cwd, colours: LIGHT, env: { COLORTERM: "truecolor" } });
     track(s);
     await s.waitFor(READY, 10000);
     s.sendKeys({ text: "go" }, "Enter");

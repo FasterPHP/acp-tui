@@ -36,7 +36,7 @@ export const CONVERSATION_GLYPHS = /[●○•◦━▖▘▝▗]/;
 
 /** `acp-tui glyphs ...` under a PTY; the output so far once it has exited. */
 export async function runGlyphs(args: string[]): Promise<{ code: number; output: string }> {
-  const s = startPty(["bun", CLI, "glyphs", ...args], { cols: 120, rows: 60, env: {} });
+  const s = startPty(["bun", CLI, "--", "glyphs", ...args], { cols: 120, rows: 60, env: {} });
   sessions.push(s);
   const code = await s.wait(15000);
   return { code, output: s.rawOutput() };

@@ -19,6 +19,7 @@ function temp(prefix: string): string {
 
 const CONFIG = JSON.stringify({
   agent_servers: {
+    auggie: { command: "auggie", args: ["--acp"] },
     fake: { command: "bun", args: ["fake.ts"] },
     other: { command: "bun", args: ["other.ts"] },
   },
@@ -130,5 +131,25 @@ describe("resolveLaunch for --resume <id> (tasks 5.2 and 12.5)", () => {
     );
     expect(adHocSessionMessage("s-9", ["a b"], "linux")).toContain("-- 'a b'");
     expect(adHocSessionMessage("-s9", ["bun"], "win32")).toContain("acp-tui --resume=-s9 -- bun");
+  });
+});
+
+describe("Hints for an ad hoc command (configured-harnesses, by program)", () => {
+  test("-- auggie --acp gets auggie's install and login hints; an unknown program gets none", () => {
+    const { context } = setup();
+    const auggie = resolveLaunch({ ...none, agentCommand: ["auggie", "--acp"], session: { kind: "new" } }, context);
+    expect(auggie).toMatchObject({ agentName: "ad hoc", installHint: expect.stringContaining("npm install -g @augmentcode/auggie@0.36.0"), loginHint: "auggie login" });
+    const other = resolveLaunch({ ...none, agentCommand: ["my-auggie", "--acp"], session: { kind: "new" } }, context);
+    expect(other.installHint).toBeUndefined();
+    expect(other.loginHint).toBeUndefined();
+  });
+
+  test("the Claude adapter run by bunx gets the Bun install hint, and an absolute path to opencode gets opencode's", () => {
+    const { context } = setup();
+    const claude = resolveLaunch({ ...none, agentCommand: ["bunx", "--bun", "@agentclientprotocol/claude-agent-acp@0.94.0"], session: { kind: "new" } }, context);
+    expect(claude.installHint).toContain("Bun");
+    expect(claude.loginHint).toBeUndefined();
+    const opencode = resolveLaunch({ ...none, agentCommand: ["/opt/bin/opencode", "acp"], session: { kind: "new" } }, context);
+    expect(opencode).toMatchObject({ loginHint: "opencode auth login" });
   });
 });

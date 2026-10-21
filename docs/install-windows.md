@@ -9,7 +9,7 @@ How to run acp-tui on Windows 11 (x64; Windows 10 and Windows on ARM have not be
 | Bun 1.3.14 or later | runs acp-tui | `winget install Oven-sh.Bun`, or `powershell -c "irm bun.sh/install.ps1 \| iex"` |
 | Git for Windows | the checkout, the `@` file picker, and Claude Code's shell tool | `winget install Git.Git` |
 | Node.js 20 or later (with npm) | Auggie and most other harnesses are npm packages | `winget install OpenJS.NodeJS.LTS` |
-| A harness | the agent you talk to | [Auggie](#3-install-a-harness) or the built-in `claude` |
+| A harness | the agent you talk to | [Auggie](#3-install-a-harness) (the default) or Claude Code |
 
 Open a new terminal after installing, so that the `PATH` is read again, and check:
 
@@ -69,29 +69,19 @@ auggie login
 
 npm 11 prints a warning that the install script of `node-pty` was not run. It did not stop Auggie from running over ACP. Log in with `auggie login` in an ordinary terminal first: Auggie cannot log in over ACP, and without a login acp-tui starts, then exits with "Authentication required: ... Please run 'auggie login'".
 
-Then give acp-tui an entry for it in your configuration file (`acp-tui config --path` prints where that is; open it in any editor):
-
-```jsonc
-{
-  "agent_servers": {
-    "auggie": { "command": "auggie", "args": ["--acp"] },
-  },
-}
-```
-
-The commented default already holds this entry: remove the comment marks from it. `acp-tui config --check` reports mistakes in the file, and then:
+acp-tui needs no configuration for it: the default configuration has an `auggie` entry, and acp-tui reads that default when you have no configuration file. So
 
 ```powershell
-acp-tui auggie
+acp-tui
 ```
 
-starts Auggie in the current directory. Set `"default_agent_server": "auggie"` to start it with a bare `acp-tui`.
+starts Auggie in the current directory. A harness works only while it has an entry in `agent_servers` (`acp-tui config --path` prints where your file is); if your file has none, copy the `auggie` entry from `acp-tui config --print-default`. `acp-tui config --check` reports mistakes in the file.
 
 On Windows `auggie` is a `.cmd` file made by npm, which acp-tui starts through `cmd.exe`, as Bun does. Bun refuses to start a `.cmd` or `.bat` file when an argument holds `"`, `%`, `&`, `|`, `<`, `>`, `^` or a line break, so keep them out of an entry's `args`; `acp-tui config --check` warns about them. The same goes for the path of the `.cmd` file itself: a user name such as `R&D` puts one in every npm command. Spaces are fine, in the path (`C:\Users\First Last\...`) and in the arguments.
 
-### Claude Code (built in)
+### Claude Code
 
-With no configuration, plain `acp-tui` runs the built-in `claude` harness, `claude-agent-acp`, which Bun downloads on first use. It uses your Claude Code login, so sign in to Claude Code first. While it runs, the terminal tab reads `claude` rather than the directory's name: Claude Code names the tab itself. Other harnesses (Codex, OpenCode and the rest) are listed, with their commands, in [configuration.md](configuration.md#harnesses).
+`claude-agent-acp`, which Bun downloads on first use, is a commented example in the default configuration: remove the `//` in front of the `claude` line under `agent_servers`, then run `acp-tui claude` (or set `"default_agent_server": "claude"` to start it with a bare `acp-tui`). It uses your Claude Code login, so sign in to Claude Code first. While it runs, the terminal tab reads `claude` rather than the directory's name: Claude Code names the tab itself. Other harnesses (Codex, OpenCode and the rest) are examples too, listed with their commands in [configuration.md](configuration.md#harnesses).
 
 ## 4. Terminals
 
@@ -148,7 +138,7 @@ The resume line (`resume: acp-tui --resume <id>`) is quoted for PowerShell, so y
 | Themes | `%APPDATA%\acp-tui\themes\` |
 | Session index and state | `%LOCALAPPDATA%\acp-tui\` (usually `C:\Users\<you>\AppData\Local\acp-tui`) |
 
-`install-cli` creates the configuration file with every setting commented at its default, and never replaces one that exists. An `XDG_CONFIG_HOME` or `XDG_STATE_HOME` environment variable that holds an absolute path overrides these places. [configuration.md](configuration.md) describes every setting.
+`install-cli` creates the configuration file with the `auggie` harness and every setting at its default, and never replaces one that exists. An `XDG_CONFIG_HOME` or `XDG_STATE_HOME` environment variable that holds an absolute path overrides these places. [configuration.md](configuration.md) describes every setting.
 
 ## When something goes wrong
 

@@ -21,7 +21,7 @@ import { WINDOWS } from "../windows.ts";
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
 const FAKE_AGENT = join(ROOT, "packages/fake-agent/src/main.ts");
-const COMMAND = ["bun", CLI, "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"];
+const COMMAND = ["bun", CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"];
 const PREFILL = "BEFORE-ACP-TUI\r\n\x1b[32mgreen line\x1b[0m\r\n$ acp-tui\r\n";
 
 let session: PtySession | undefined;

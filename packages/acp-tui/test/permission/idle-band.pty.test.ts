@@ -26,7 +26,7 @@ afterEach(async () => {
 
 function start(appArgs: readonly string[]): PtySession {
   const cwd = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-idle-band-"));
-  const args = [CLI, ...appArgs, "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"];
+  const args = [CLI, "--", ...appArgs, "--", "bun", FAKE_AGENT, "--scenario", "basic", "--delay-scale", "0"];
   const s = startPty(["bun", ...args], { cols: 80, rows: 30, cwd, colours: DARK, env: { COLORTERM: "truecolor" } });
   session = s;
   return s;

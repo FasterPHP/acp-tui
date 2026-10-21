@@ -174,9 +174,9 @@ export interface StartSessionOptions {
   readonly env?: Readonly<Record<string, string>>;
   /** The harness's name in the catalogue, or `ad hoc`, for the errors that name it. */
   readonly harness?: string;
-  /** For a built-in harness whose program the user installs: how, appended to the error when the program is not found. */
+  /** For a program acp-tui knows (src/agent/hints.ts): how to install it, appended to the error when the program is not found. */
   readonly installHint?: string;
-  /** The built-in harness's login command, for the authentication-required message. */
+  /** The login command of the harness's program, for the authentication-required message. */
   readonly loginHint?: string;
   /** The agent process's working directory, and the `cwd` of `startSession`'s new session. */
   readonly cwd: string;
@@ -410,7 +410,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
   const support = sessionSupport(init);
   const agentInfo = init.agentInfo ?? null;
-  // A built-in harness with a login command is launched with its `loginHint` (a configured entry has none).
+  // A harness whose program has a login command is launched with its `loginHint` (src/agent/hints.ts).
   const loginOptions = { harness: options.harness, loginHint: options.loginHint };
 
   /** Makes `core` the controller the agent's messages go to; the previous one's session retires. */

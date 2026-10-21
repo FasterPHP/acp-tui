@@ -23,7 +23,7 @@
 // Pure: no file is read here (see sources.ts and store.ts).
 import { findNodeAtLocation, parseTree, printParseErrorCode, type Node, type ParseError } from "jsonc-parser";
 import type { z } from "zod";
-import { DEFAULT_HARNESS } from "../agent/command.ts";
+import { defaultHarnessSections } from "../agent/examples.ts";
 import { checkOverrides, type GlyphSetName } from "../conversation/glyphs.ts";
 import { resolveDirectories } from "./directories.ts";
 import { formatProblem, suggest, type ConfigProblem, type ProblemSeverity } from "./problems.ts";
@@ -59,8 +59,8 @@ export interface ParseOptions {
    *  Its `agent_servers` are then refused with that reason (spec tui-config "Agents in the
    *  configuration"). */
   readonly agentsRefused?: string | null;
-  /** Agent names that exist without the file (the built-in entries), for checking
-   *  `default_agent_server`; default: it is not checked. */
+  /** Agent names that exist without the file's own entries, for checking `default_agent_server`
+   *  (none since configured-harnesses: every harness is an entry); default: it is not checked. */
   readonly knownAgents?: readonly string[];
   /** The platform the file is read on, for the checks that depend on it (the arguments the Windows
    *  command interpreter reads); default `process.platform`. */
@@ -547,7 +547,10 @@ function checkGlyphSection(loader: Loader, value: unknown): unknown {
 export function parseConfigText(source: string | null, file: string, options: ParseOptions = {}): ParsedSource {
   const kind = options.kind ?? "user";
   const empty = { file, kind, sections: {}, rejected: [], invalidAgents: {}, notices: [] } as const;
-  if (source === null) return { ...empty, status: "absent", problems: [] };
+  // No user file: acp-tui behaves as if it held the default file's active harness lines, `auggie`
+  // and `default_agent_server` (configured-harnesses, design D1; every other active line of the
+  // default is the schema's default already). A project file's absence adds nothing.
+  if (source === null) return { ...empty, ...(kind === "user" ? { sections: defaultHarnessSections() } : {}), status: "absent", problems: [] };
   // readConfigFile drops a byte order mark already; text from elsewhere (a test's reader) too.
   const text = withoutBom(source);
 
@@ -653,14 +656,14 @@ export function parseConfigText(source: string | null, file: string, options: Pa
       continue;
     }
 
-    if (section === "default_agent_server" && options.knownAgents && node?.type === "string") {
+    // A default that names no entry is reported and kept: nothing else is launched in its place
+    // (configured-harnesses, design D3), so starting without a harness name fails and says why.
+    if (section === "default_agent_server" && options.knownAgents && !options.agentsRefused && node?.type === "string") {
       const name = String(node.value);
       const known = options.knownAgents.includes(name) || validAgents.has(name);
       if (!known) {
-        const reason = invalidAgents[name] !== undefined ? `names harness ${JSON.stringify(name)}, which ${invalidAgents[name]}` : `names ${JSON.stringify(name)}, which is not a known harness`;
-        loader.problem(node, [written], "error", `${reason}; ${JSON.stringify(DEFAULT_HARNESS)} is used`);
-        rejected.push(section);
-        continue;
+        const reason = invalidAgents[name] !== undefined ? `names harness ${JSON.stringify(name)}, which ${invalidAgents[name]}` : `names ${JSON.stringify(name)}, which has no agent_servers entry`;
+        loader.problem(node, [written], "error", `${reason}, so acp-tui without a harness name fails`);
       }
     }
 

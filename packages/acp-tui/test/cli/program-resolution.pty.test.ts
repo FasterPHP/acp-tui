@@ -64,10 +64,11 @@ describe.skipIf(process.platform === "win32")("Programs resolved from the PATH o
     expect(w.events("launch_error")).toMatchObject([{ kind: "not_found" }]);
   }, 40000);
 
-  test("OpenCode missing: acp-tui exits 1 naming the harness, its command, an install command and opencode.ai/docs, and never enters the alternate screen", async () => {
+  test("Configured OpenCode missing: acp-tui exits 1 naming the harness, its command, an install command and opencode.ai/docs, and never enters the alternate screen", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     bunOnlyPath(w);
+    writeFileSync(join(w.base, "config", "acp-tui", "config.jsonc"), JSON.stringify({ agent_servers: { opencode: { command: "opencode", args: ["acp"] } } }));
     const s = (session = w.start(["opencode"], { cwd: repo, cols: 200, rows: 30 }));
     expect(await s.wait(20000)).toBe(1);
     const text = s.screenText().join("");

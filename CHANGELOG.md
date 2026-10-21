@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- A harness works only if it has an `agent_servers` entry. The default configuration has one, `auggie`, in effect; `claude`, `opencode` and the others are commented examples: remove the `//` to add one. With no configuration file acp-tui behaves as if it held that default, so a fresh checkout starts Auggie without `install-cli`. A file that exists is taken as written.
+- What a harness needs is in its entry: Auggie's `additional_directory_args`, Claude's `startup_timeout_seconds` of 120. Install and login hints follow the program an entry runs, whatever the entry is called.
+- A `default_agent_server` (or `default_agent`) naming a harness without an entry is reported by `acp-tui config --check`, and plain `acp-tui` then stops with `default harness '<name>' is not configured` and where to copy the entry from. Nothing changes your file.
+- A word that names no configured harness and no directory is an error; acp-tui never looks it up on your `PATH`. A command runs only after `--` (`acp-tui -- opencode acp`).
+- The session list offers exactly your configured harnesses.
+
 ## 0.1.0 (preview for testers)
 
 First version shared with testers.

@@ -61,7 +61,7 @@ function sections(markdown: string): Section[] {
 }
 
 function run(xdg: string, cwd: string): { code: number; out: string } {
-  const result = Bun.spawnSync(["bun", CLI, "config", "--check"], {
+  const result = Bun.spawnSync(["bun", CLI, "--", "config", "--check"], {
     cwd,
     env: { ...process.env, XDG_CONFIG_HOME: xdg, HOME: xdg },
     stdout: "pipe",

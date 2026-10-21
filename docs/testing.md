@@ -50,7 +50,7 @@ The full table, with Windows Terminal, is under "Keys the IDE terminals keep" in
 
 ## Configuration basics
 
-`bun run install-cli` created `config.jsonc` with every setting commented at its default (`acp-tui config --path` prints where it is). Edit it while acp-tui runs: a saved change applies within a second. `acp-tui config --check` reports mistakes with file, line and column. Three settings worth knowing:
+`bun run install-cli` created `config.jsonc` with the `auggie` harness and every setting at its default (`acp-tui config --path` prints where it is). Without a configuration file (if you never ran `install-cli`, or deleted the file) acp-tui behaves as if it held that default: plain `acp-tui` starts Auggie, and `acp-tui claude` says that `claude` is not configured and to uncomment its entry. A harness works only once it has an entry under `agent_servers`: to try Claude Code or OpenCode, remove the `//` in front of its line. If your file names a default harness without an entry (an older file may say `"default_agent": "claude"`), plain `acp-tui` stops with `default harness 'claude' is not configured` and says where to copy the entry from. Edit it while acp-tui runs: a saved change applies within a second. `acp-tui config --check` reports mistakes with file, line and column. Three settings worth knowing:
 
 - `mouse`: `"full"`, `"wheel"` or `"off"`. Use `"off"` to let the terminal select text itself.
 - `density`: how much of each turn's tool calls is shown.
@@ -98,7 +98,7 @@ If you run `npm install -g @augmentcode/auggie@0.36.0` with npm 11, it may warn 
 acp-tui sends nothing anywhere itself: it has no telemetry and makes no network calls of its own (its syntax grammars are bundled). Network traffic comes from other programs:
 
 - the harness: Auggie talks to Augment;
-- `bunx`, which fetches `claude-agent-acp` the first time the built-in `claude` harness runs;
+- `bunx`, which fetches `claude-agent-acp` the first time a `claude` harness entry runs;
 - `bun install` and `bun run update`;
 - your browser, when you open a link.
 

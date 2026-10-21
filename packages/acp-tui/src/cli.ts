@@ -27,14 +27,15 @@
 // user-facing text (the code keeps "agent"); the harness is an optional first positional argument
 // (`acp-tui auggie`) or `--harness <name>`, with `-a` and `--agent` kept as aliases; `-r` and `-c`
 // are `--resume` and `--continue`. The parser takes the catalogue's names (`ParseContext.harnesses`,
-// read by `main`), so it stays pure, and refuses a lone word that is neither a harness, a directory
-// nor a command on the `PATH` before anything is launched.
-import { accessSync, constants, realpathSync, statSync } from "node:fs";
-import { resolve, win32 } from "node:path";
-import { CLAUDE_AGENT_PACKAGE } from "./agent/command.ts";
-import { hasWindowsCommandExtension, isPathCommand, resolveProgram, type WhichFunction } from "./agent/which.ts";
+// read by `main`), so it stays pure. configured-harnesses (design D4): positional arguments before a
+// `--` are only the harness (a configured name) and the directory; any other word is refused before
+// anything is launched, and no word is looked up on the `PATH`. An ad hoc command comes only after a
+// `--` that reaches acp-tui (the launcher passes the user's own; a direct `bun src/cli.ts` run
+// writes `-- --`, since Bun drops a `--` that directly follows the script).
+import { realpathSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 import { loadAgentCatalogue, type AgentCatalogue } from "./agent/catalogue.ts";
-import { exampleHarnesses, exampleRefusal, type ExampleHarness } from "./agent/examples.ts";
+import { exampleHarnesses, exampleRefusal, withTilde, type ExampleHarness } from "./agent/examples.ts";
 import { projectDirectoriesNotice, resolveLaunch, type LaunchDescription, type ResolveContext } from "./agent/resolve.ts";
 import type { ConfigOverrides } from "./config/effective.ts";
 import { createDebugLogger, type DebugLogger } from "./log.ts";
@@ -116,15 +117,15 @@ Harnesses:
   harness with a model is the agent you talk to. ACP and Zed call the
   harness an agent, which is why harnesses are configured under
   agent_servers.
-  Name it first ("acp-tui auggie -r") or with --harness. Without one,
-  acp-tui launches default_agent_server, else the built-in "auggie"
-  (auggie --acp). "opencode" (opencode acp) and "claude" are built in too:
-    bun x --bun ${CLAUDE_AGENT_PACKAGE}
-  A command after "--" is launched as given. A new session starts in the
-  directory argument, else in the directory acp-tui is started from.
+  A harness works once it has an agent_servers entry: the default
+  configuration has "auggie" (auggie --acp), and "acp-tui config
+  --print-default" shows examples (claude, opencode and others). Name
+  it first ("acp-tui auggie -r") or with --harness; without one, acp-tui
+  launches default_agent_server. Any other command runs only after "--".
+  A new session starts in the directory argument, else in the launch one.
 
 Options:
-  --harness <name>        Launch the named harness (built-in or configured).
+  --harness <name>        Launch the named harness (an agent_servers entry).
   -a, --agent <name>      Aliases of --harness.
   -r, --resume [<id>]     Without an ID, choose an earlier session from a
                           list at start-up. With an ID, open that session
@@ -199,39 +200,17 @@ const VALUE_OPTIONS = new Set(["--add-dir", "--mouse", "--wheel-lines", "--exit-
 export interface ParseContext {
   /** The directory a relative directory argument is resolved against; default `process.cwd()`. */
   readonly cwd?: string;
-  /** The catalogue's harness names (the built-in `claude` and every `agent_servers` entry, valid or
-   *  not), so the parser stays pure; default none. */
+  /** The catalogue's harness names (every `agent_servers` entry, valid or not), so the parser
+   *  stays pure; default none. */
   readonly harnesses?: readonly string[];
-  /** Whether a word names a command on the `PATH` (or an executable path), for the lone-word check;
-   *  default a real lookup from `cwd`. */
-  readonly commandExists?: (word: string) => boolean;
-  /** The commented examples that are neither built in nor configured, with their command lines;
-   *  naming one alone (or with `--harness`) is refused. Default none. */
+  /** The examples that are not configured, with their command lines; naming one is refused with
+   *  the entry to uncomment. Default none. */
   readonly examples?: readonly ExampleHarness[];
   /** The user's configuration file, named in that refusal. */
   readonly configPath?: string;
-  /** Each harness's own arguments, so a lone word that is one of them (`acp` after `opencode`) is
+  /** Each harness's own arguments, so a word that is one of them (`acp` after `opencode`) is
    *  explained. Default none. */
   readonly harnessCommands?: Readonly<Record<string, readonly string[]>>;
-}
-
-/** Whether `word` names an executable: a path (`./agent`, `/usr/bin/x`, and on Windows `.\agent`,
- *  `C:\tools\agent.cmd` or `\\server\x`) that is one, else a command on the `PATH` (never one in
- *  `cwd`; src/agent/which.ts). `which` and `platform` are for tests. */
-export function realCommandExists(word: string, cwd: string, platform: NodeJS.Platform = process.platform, which?: WhichFunction): boolean {
-  if (isPathCommand(word, platform)) {
-    try {
-      const path = (platform === "win32" ? win32.resolve : resolve)(cwd, word);
-      if (!statSync(path).isFile()) return false;
-      // Windows has no execute bit (X_OK passes for any file), so the extension decides there.
-      if (platform === "win32") return hasWindowsCommandExtension(path);
-      accessSync(path, constants.X_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  return resolveProgram(word, { platform, ...(which ? { which } : {}) }) !== null;
 }
 
 /**
@@ -242,10 +221,9 @@ export function realCommandExists(word: string, cwd: string, platform: NodeJS.Pl
  * options are read wherever they stand before a `--`; the first positional argument is the harness
  * when it names one (`context.harnesses`), winning over a directory of that name; then at most one
  * positional argument, the directory, which must exist; a `--` that reaches acp-tui starts the
- * command; without one (Bun drops a `--` that directly follows the script, also through the
- * shebang) a single remaining argument naming an existing directory is the directory, and
- * otherwise the remaining arguments, from the first on, are the command, a lone word that is no
- * harness, directory or command on the `PATH` being an error.
+ * command, the only way to give one. Any other positional word is an error (configured-harnesses,
+ * design D4): an example's name with the entry to uncomment, else a word that is no configured
+ * harness and no directory; nothing is looked up on the `PATH`.
  */
 export function parseArgs(argv: readonly string[], context: ParseContext = {}): CliOptions {
   const cwd = context.cwd ?? process.cwd();
@@ -254,7 +232,6 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
   const examples = context.examples ?? [];
   const exampleNamed = (word: string): ExampleHarness | undefined => examples.find((e) => e.name === word);
   const refuseExample = (example: ExampleHarness): CliArgumentError => new CliArgumentError(exampleRefusal(example, context.configPath ?? "the configuration file"));
-  const commandExists = context.commandExists ?? ((word: string) => realCommandExists(word, cwd));
   let help = false;
   let version = false;
   let agentName: string | null = null;
@@ -298,21 +275,6 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
     if (agentName !== null && agentName !== name) throw new CliArgumentError(`one harness may be named, not '${agentName}' and '${name}'`);
     agentName = name;
   };
-  /** How many arguments the option at `at` spans, for looking ahead over options. */
-  const optionSpan = (at: number): number => {
-    const arg = argv[at]!;
-    if (arg === "--resume" || arg === "-r") return takesId(argv[at + 1]) ? 2 : 1;
-    if (arg === "--spike") {
-      const next = argv[at + 1];
-      return next !== undefined && !next.startsWith("-") && existingDirectory(next, cwd) === null ? 2 : 1;
-    }
-    return VALUE_OPTIONS.has(arg) ? 2 : 1;
-  };
-  /** Whether a positional argument (not an option or an option's value) stands at or after `from`. */
-  const positionalFrom = (from: number): boolean => {
-    for (let j = from; j < argv.length; j += optionSpan(j)) if (!argv[j]!.startsWith("-")) return true;
-    return false;
-  };
 
   let positionals = 0;
   for (let i = 0; i < argv.length; i += 1) {
@@ -341,39 +303,28 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
         continue;
       }
       positionals += 1;
-      if (argv.indexOf("--", i + 1) !== -1) {
-        // A `--` follows, so this is the directory; options may still come before the `--`.
+      // Then one existing directory, the session's.
+      const existing = existingDirectory(arg, cwd);
+      if (existing !== null) {
         if (directoryArg !== null) {
           throw new CliArgumentError(`only one directory argument may come before --, not '${directoryArg}' and '${arg}'`);
         }
         directoryArg = arg;
-        directory = existingDirectory(arg, cwd);
-        if (directory === null) throw new CliArgumentError(`'${arg}' is not a directory`);
-        continue;
-      }
-      // No `--` reached acp-tui: a lone existing directory is the directory (options may still
-      // come after it); anything else starts the harness command.
-      const existing = directoryArg === null ? existingDirectory(arg, cwd) : null;
-      if (existing !== null && !positionalFrom(i + 1)) {
         directory = existing;
-        directoryArg = arg;
         continue;
       }
-      const rest = argv.slice(i);
-      if (rest.length === 1 && !help) {
-        // An example's name is refused before any command lookup: with `gemini` on the PATH it would
-        // otherwise start the harness's own terminal interface (spec "Example harnesses are not run as commands").
-        const example = exampleNamed(arg);
-        if (example) throw refuseExample(example);
-      }
-      if (rest.length === 1 && !help && !commandExists(arg)) {
-        const names = harnesses.length > 0 ? ` (${harnesses.join(", ")})` : "";
-        const own = agentName !== null ? context.harnessCommands?.[agentName] : undefined;
-        const runs = agentName !== null && own !== undefined && own.slice(1).includes(arg) ? `; harness '${agentName}' already runs '${own.join(" ")}'` : "";
-        throw new CliArgumentError(`'${arg}' is not a harness${names}, a directory or a command; an ad hoc command goes after --${runs}`);
-      }
-      agentCommand = rest;
-      break;
+      // Before a `--` the word was meant as the directory (spec "Not a directory").
+      if (argv.indexOf("--", i + 1) !== -1) throw new CliArgumentError(`'${arg}' is not a directory`);
+      // Anything else is refused before anything is launched; an ad hoc command goes after `--`.
+      // An example's name says which entry to uncomment: with `gemini` on the PATH, running it would
+      // start the harness's own terminal interface (spec "Example harnesses are not run as commands").
+      const example = exampleNamed(arg);
+      if (example) throw refuseExample(example);
+      const names = harnesses.length > 0 ? ` (${harnesses.join(", ")})` : "";
+      const own = agentName !== null ? context.harnessCommands?.[agentName] : undefined;
+      const runs = agentName !== null && own !== undefined && own.slice(1).includes(arg) ? `; harness '${agentName}' already runs '${own.join(" ")}'` : "";
+      const none = harnesses.length === 0 ? `; no harness is configured${context.configPath !== undefined ? ` in ${withTilde(context.configPath)}` : ""}` : "";
+      throw new CliArgumentError(`'${arg}' is not a configured harness${names} or a directory; an ad hoc command goes after --, as in acp-tui -- ${arg}${runs}${none}`);
     }
     if (arg === "--continue" || arg === "-c") {
       sessionOptions.push({ kind: "continue" });

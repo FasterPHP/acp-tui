@@ -376,9 +376,9 @@ export const SECTIONS = {
   agent_servers: z
     .record(z.string(), AgentServer)
     .default({})
-    .describe("Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file."),
-  default_agent_server: z.string().min(1).default(DEFAULT_HARNESS).describe("The harness launched without a harness name or command: \"auggie\" or \"claude\" (both built in) or the name of an agent_servers entry. The older name default_agent is still accepted."),
-  agent_startup_timeout_seconds: whole(5, 600).default(DEFAULT_STARTUP_TIMEOUT_SECONDS).describe("Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. A built-in harness has its own default when this is not set (120 for claude, 30 for the others), and an agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file."),
+    .describe("Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. A harness works only while it has an entry here; with no configuration file, acp-tui has the default's auggie entry. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file."),
+  default_agent_server: z.string().min(1).default(DEFAULT_HARNESS).describe("The harness launched without a harness name or command: the name of an agent_servers entry. Without an entry of that name, acp-tui without a harness name fails and says so. The older name default_agent is still accepted."),
+  agent_startup_timeout_seconds: whole(5, 600).default(DEFAULT_STARTUP_TIMEOUT_SECONDS).describe("Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. An agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file."),
   additional_directories: z
     .array(z.string().min(1))
     .default([])

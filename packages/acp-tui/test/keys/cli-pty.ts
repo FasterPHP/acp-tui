@@ -57,7 +57,7 @@ export interface StartCliOptions {
 /** Starts `acp-tui -- fake-agent --scenario <scenario> --delay-scale <scale> --log <log>`. */
 export function startCli(scenario = "basic", delayScale = 0, opts: StartCliOptions = {}): CliRun {
   const log = join(tempDir(), "agent.log");
-  const args = [opts.entry ?? CLI, ...(opts.args ?? []), "--", "bun", FAKE_AGENT, "--scenario", scenario, "--delay-scale", String(delayScale), "--log", log];
+  const args = [opts.entry ?? CLI, "--", ...(opts.args ?? []), "--", "bun", FAKE_AGENT, "--scenario", scenario, "--delay-scale", String(delayScale), "--log", log];
   const s = startPty(["bun", ...args], { cols: opts.cols ?? 80, rows: opts.rows ?? 24, cwd: tempDir(), env: { ...compactEnv(), ...SHORT_HOME, ...opts.env }, colours: opts.colours });
   const entries = (): LogEntry[] =>
     existsSync(log)

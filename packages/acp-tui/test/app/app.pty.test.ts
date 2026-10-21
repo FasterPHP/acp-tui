@@ -42,7 +42,7 @@ let cwd = "";
  *  bunfig.toml. */
 function startCli(agent: string[]): PtySession {
   cwd = tempDir();
-  session = startPty(["bun", CLI, "--", ...agent], { cols: 80, rows: 24, cwd, prefill: PREFILL, env: compactEnv() });
+  session = startPty(["bun", CLI, "--", "--", ...agent], { cols: 80, rows: 24, cwd, prefill: PREFILL, env: compactEnv() });
   return session;
 }
 
@@ -270,7 +270,7 @@ describe("prompt errors and agent crashes on the full screen (spec tui-agent-ses
 describe("agent fails to start (spec tui-agent-session)", () => {
   // Skipped on Windows: it compares the main screen before and after the run (or the raw restore sequences), and ConPTY rewrites that output.
   test.skipIf(WINDOWS)("missing command: terminal restored, error names the command below the earlier lines, exit 1", async () => {
-    const s = startCli(["--", "acp-tui-no-such-agent"]); // behind its own `--` (Bun drops the first; a lone word is no command)
+    const s = startCli(["acp-tui-no-such-agent"]); // after the separator the launcher keeps
     expect(await s.wait(10000)).toBe(1);
     await s.flush();
     expectRestored(s);

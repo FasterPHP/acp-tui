@@ -44,7 +44,7 @@ function world(files: { config?: string; themes?: Record<string, string> } = {})
 }
 
 /** `acp-tui <args>` (through `bun cli.ts`) under the PTY until it exits: its status and output. */
-async function run(args: string[], w: ReturnType<typeof world>, command: string[] = ["bun", CLI]): Promise<{ code: number; raw: string; text: string }> {
+async function run(args: string[], w: ReturnType<typeof world>, command: string[] = ["bun", CLI, "--"]): Promise<{ code: number; raw: string; text: string }> {
   const s = startPty([...command, ...args], { cols: 200, rows: 60, cwd: w.cwd, env: w.env });
   sessions.push(s);
   const code = await s.wait(20000);
