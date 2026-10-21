@@ -63,6 +63,8 @@ function main(): void {
         tools: options.tools,
         startDelayMs: options.startDelayMs,
         noInitialize: options.noInitialize,
+        configDelayMs: options.configDelayMs,
+        configNever: options.configNever,
         additionalDirectories: options.additionalDirectories,
         sessionDelayMs: options.sessionDelayMs,
         ...(options.sessionHeartbeatMs === undefined ? {} : { sessionHeartbeatMs: options.sessionHeartbeatMs }),

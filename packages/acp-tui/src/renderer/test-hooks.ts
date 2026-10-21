@@ -24,13 +24,17 @@
 // `PATH` of their own (`test/selection/clipboard-stub.ts`): the stubs are found and run, but the
 // native backend is never created, so even a failing stub cannot fall through to the real
 // clipboard. The PTY harness adds `no-host-clipboard` unless a test names this one.
+//
+// `short-change-timeout` (oc-model): a config option change the harness has not answered shows its
+// waiting notice after 300 ms instead of 3 s and its warning after 2 s instead of 30 s
+// (`overlay/Overlay.tsx`), so a PTY test can see both.
 import type { CliRenderer, KeyEvent } from "@opentui/core";
 
 /** The variable that names the test hooks to install. */
 export const TEST_HOOKS_VAR = "ACP_TUI_TEST_HOOKS";
 
-export type TestHook = "crash" | "no-host-clipboard" | "no-native-clipboard";
-const TEST_HOOK_NAMES: readonly TestHook[] = ["crash", "no-host-clipboard", "no-native-clipboard"];
+export type TestHook = "crash" | "no-host-clipboard" | "no-native-clipboard" | "short-change-timeout";
+const TEST_HOOK_NAMES: readonly TestHook[] = ["crash", "no-host-clipboard", "no-native-clipboard", "short-change-timeout"];
 
 /** The hooks `ACP_TUI_TEST_HOOKS` names; unknown names are ignored. */
 export function testHooks(env: Readonly<Record<string, string | undefined>> = process.env): ReadonlySet<TestHook> {

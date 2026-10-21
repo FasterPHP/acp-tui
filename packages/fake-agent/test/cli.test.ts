@@ -150,3 +150,13 @@ describe("fake-agent CLI options for harness-feedback", () => {
     }
   });
 });
+
+describe("fake-agent CLI --config-delay and --config-never", () => {
+  test("parsed, off by default", () => {
+    expect(parseArgs([], {}).configDelayMs).toBe(0);
+    expect(parseArgs([], {}).configNever).toBe(false);
+    const options = parseArgs(["--config-delay", "250", "--config-never"], {});
+    expect(options.configDelayMs).toBe(250);
+    expect(options.configNever).toBe(true);
+  });
+});

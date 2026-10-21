@@ -33,6 +33,11 @@ export interface FakeAgentCliOptions {
   readonly startDelayMs: number;
   /** `--list-delay <ms>`: wait this long before answering `session/list`. Absolute, never scaled. */
   readonly listDelayMs: number;
+  /** `--config-delay <ms>`: wait this long before answering `session/set_config_option`. Absolute, never scaled. */
+  readonly configDelayMs: number;
+  /** `--config-never`: `session/set_config_option` is never answered (as when a harness's child process
+   *  reads the request off the harness's stdin: OpenCode 1.19.3 with a plugin that runs `auggie`). */
+  readonly configNever: boolean;
   /** `--auth-required[=bare|prompt]`: `session/new` (or, for `prompt`, `session/prompt`) answers `-32000`
    *  "authentication required", with Auggie 0.36.0's text (`full`, the bare flag) or `Authentication required` alone. */
   readonly authRequired: AuthRequiredMode | undefined;
@@ -135,6 +140,8 @@ export function parseArgs(
   let tools = DEFAULT_TOOLS;
   let startDelayMs = 0;
   let listDelayMs = 0;
+  let configDelayMs = 0;
+  let configNever = false;
   let authRequired: AuthRequiredMode | undefined;
   let agentInfo: { name: string; version: string } | undefined;
   let additionalDirectories = false;
@@ -196,6 +203,13 @@ export function parseArgs(
       case "--list-delay":
         listDelayMs = parseDelayMs(arg, requireValue(arg, argv, i));
         i += 1;
+        break;
+      case "--config-delay":
+        configDelayMs = parseDelayMs(arg, requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--config-never":
+        configNever = true;
         break;
       case "--auth-required":
         authRequired = "full";
@@ -281,6 +295,8 @@ export function parseArgs(
     tools,
     startDelayMs,
     listDelayMs,
+    configDelayMs,
+    configNever,
     authRequired,
     agentInfo,
     additionalDirectories,

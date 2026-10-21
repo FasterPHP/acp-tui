@@ -46,4 +46,69 @@ describe("model picker by provider", () => {
     await run.s.waitFor((p) => bottom(p).includes("openrouter / Qwen: Qwen3 Coder"), 5000);
     expect(run.methods()).toContain("session/set_config_option");
   }, 30000);
+
+  test("a model chosen between turns sends one session/set_config_option and nothing else; the next Enter sends one prompt", async () => {
+    const run = startCli("config-options-providers", 0, { cols: 100, rows: 30 });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "first" });
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => screen(p).includes("model=anthropic/claude-x"), 5000);
+    await run.s.waitFor(READY, 5000);
+
+    run.s.sendKeys({ text: "/model" });
+    await run.s.waitFor((p) => promptText(p).join(" ").includes("/model"), 5000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => screen(p).includes("GPT X Mini"), 5000);
+    run.s.sendKeys({ text: "openai/gpt-x-mini" });
+    await run.s.waitFor((p) => !screen(p).includes("Claude Y"), 5000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => bottom(p).includes("openai / GPT X Mini"), 5000);
+
+    run.s.sendKeys({ text: "second" });
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => screen(p).includes("model=openai/gpt-x-mini"), 5000);
+    await run.s.waitFor(READY, 5000);
+
+    const after = run.methods().slice(run.methods().indexOf("session/new") + 1);
+    expect(after).toEqual(["session/prompt", "session/set_config_option", "session/prompt"]);
+    // fake-agent logs no prompt text, only the block count: one text block each, nothing empty.
+    const blocks = run.entries().filter((e) => e.method === "session/prompt").map((e) => (e.params as { promptBlockCount: number }).promptBlockCount);
+    expect(blocks).toEqual([1, 1]);
+  }, 30000);
+
+  test("a change the harness is slow to answer shows a waiting notice, then the new model", async () => {
+    const run = startCli("config-options-providers", 0, { cols: 100, rows: 30, agentArgs: ["--config-delay", "1500"], env: { ACP_TUI_TEST_HOOKS: "short-change-timeout" } });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/model" });
+    await run.s.waitFor((p) => promptText(p).join(" ").includes("/model"), 5000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => screen(p).includes("GPT X Mini"), 5000);
+    run.s.sendKeys({ text: "openai/gpt-x-mini" });
+    await run.s.waitFor((p) => !screen(p).includes("Claude Y"), 5000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => screen(p).includes("waiting for fake-agent to change Model…"), 5000);
+    expect(bottom(run.s)).toContain("anthropic / Claude X");
+    await run.s.waitFor((p) => bottom(p).includes("openai / GPT X Mini") && !screen(p).includes("waiting for"), 5000);
+    expect(screen(run.s)).not.toContain("has not answered");
+  }, 30000);
+
+  test("a change the harness never answers: a waiting notice, then a warning that the model is unchanged", async () => {
+    const run = startCli("config-options-providers", 0, { cols: 100, rows: 30, agentArgs: ["--config-never"], env: { ACP_TUI_TEST_HOOKS: "short-change-timeout" } });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/model" });
+    await run.s.waitFor((p) => promptText(p).join(" ").includes("/model"), 5000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => screen(p).includes("GPT X Mini"), 5000);
+    run.s.sendKeys({ text: "openai/gpt-x-mini" });
+    await run.s.waitFor((p) => !screen(p).includes("Claude Y"), 5000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor((p) => screen(p).includes("waiting for fake-agent to change Model…"), 5000);
+    await run.s.waitFor((p) => screen(p).includes("fake-agent has not answered the change of Model; it is still anthropic / Claude X"), 5000);
+    expect(screen(run.s)).not.toContain("waiting for fake-agent");
+    expect(bottom(run.s)).toContain("anthropic / Claude X");
+    expect(run.methods()).toContain("session/set_config_option");
+  }, 30000);
 });

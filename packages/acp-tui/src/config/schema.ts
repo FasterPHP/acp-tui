@@ -508,7 +508,7 @@ export const SECTIONS = {
       group_by_provider: z
         .boolean()
         .default(true)
-        .describe("Draw a model list whose values and names are all \"provider/model\" over two or more providers grouped by provider in the picker, and its names as \"provider / model\" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent."),
+        .describe("Draw a model list whose values and names are all \"provider/model\" (the name may give the provider's display name) over two or more providers grouped by provider in the picker, and its names as \"provider / model\" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent."),
       provider_separator: z
         .string()
         .refine((text) => /^[^\p{Cc}\p{Cf}\p{Zl}\p{Zp}]+$/u.test(text) && [...text].length <= 5, "one to five printable characters")

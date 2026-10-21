@@ -478,7 +478,7 @@
       "properties": {
         "group_by_provider": {
           "default": true,
-          "description": "Draw a model list whose values and names are all \"provider/model\" over two or more providers grouped by provider in the picker, and its names as \"provider / model\" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent.",
+          "description": "Draw a model list whose values and names are all \"provider/model\" (the name may give the provider's display name) over two or more providers grouped by provider in the picker, and its names as \"provider / model\" in the pill, the status row and the splash. false draws every list and name as the harness sent it. A list the harness groups itself is always drawn as sent.",
           "type": "boolean"
         },
         "provider_separator": {

@@ -71,6 +71,7 @@ import { useKeys } from "../keys/context.ts";
 import { actionLabel, keysFor, type KeyContext } from "../keys/keymap.ts";
 import { commandCatalogue, CONTEXT_PRIORITY, registerContext, type CatalogueEntry, type ContextHandlers } from "../keys/register.ts";
 import { spanStyle as toSpan } from "../theme/index.ts";
+import { testHooks } from "../renderer/test-hooks.ts";
 import { helpItems } from "./help.ts";
 import { problemDetail, problemItems } from "./problems.ts";
 import { filterItems, firstActive, moveSelection, overlayLayout, pageSelection, PICKER_FILTER_ABOVE, type ListItem, type OverlaySegment } from "./list.ts";
@@ -145,6 +146,13 @@ export interface Palette {
   /** Rendered over the screen (the palette, pickers and key help). */
   readonly overlay: () => JSX.Element;
 }
+
+/** How long a config option change may go unanswered before a notice says acp-tui is waiting. */
+export const CHANGE_WAIT_NOTICE_MS = 3000;
+/** How long a config option change may go unanswered before a warning says it has not applied. */
+export const CHANGE_TIMEOUT_MS = 30000;
+/** How long that warning stays. */
+export const CHANGE_TIMEOUT_NOTICE_MS = 8000;
 
 export function createPalette(): Palette {
   return { overlay: () => <PaletteOverlay /> };
@@ -414,6 +422,17 @@ export function PaletteOverlay(): JSX.Element {
     open({ kind: "picker", configId: option.id });
   };
 
+  // `short-change-timeout` (renderer/test-hooks.ts) shortens both waits for the PTY tests.
+  const short = testHooks().has("short-change-timeout");
+  const waitNoticeMs = short ? 300 : CHANGE_WAIT_NOTICE_MS;
+  const timeoutMs = short ? 2000 : CHANGE_TIMEOUT_MS;
+  // The timers of changes the harness has not answered yet, cleared with the overlay.
+  const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
+  onCleanup(() => {
+    for (const timer of pendingTimers) clearTimeout(timer);
+    pendingTimers.clear();
+  });
+
   /** Applies a value as the picker does: `session/set_config_option` (or `session/set_mode` for a
    *  legacy mode, `session/set_model` for a legacy model: the synthesised options are never sent
    *  to the agent as config options), then a notice naming the new value, or the agent's error. */
@@ -434,12 +453,42 @@ export function PaletteOverlay(): JSX.Element {
       controller.notify(`cannot change ${name} here`, "muted");
       return;
     }
+    // A harness that is slow to answer, or never does (OpenCode 1.19.3 whose plugin's child process
+    // read the request off the harness's stdin), is shown as such rather than as nothing: a notice
+    // while it is awaited, and a warning that the value is unchanged when it has not answered in time.
+    const harness = store.session.agent?.title ?? store.session.agent?.name ?? "the harness";
+    let waiting: number | null = null;
+    const dismissWaiting = () => {
+      if (waiting !== null) store.dismissNotice(waiting);
+      waiting = null;
+    };
+    const waitTimer = setTimeout(() => {
+      waiting = store.notify(`waiting for ${harness} to change ${name}…`, "muted");
+    }, waitNoticeMs);
+    const timeoutTimer = setTimeout(() => {
+      dismissWaiting();
+      const still = options().find((o) => o.id === configId);
+      controller.notify(`${harness} has not answered the change of ${name}; it is still ${still ? currentName(still, modelSettings()) : "unchanged"}`, "warning", CHANGE_TIMEOUT_NOTICE_MS);
+    }, timeoutMs);
+    pendingTimers.add(waitTimer);
+    pendingTimers.add(timeoutTimer);
+    const settle = () => {
+      clearTimeout(waitTimer);
+      clearTimeout(timeoutTimer);
+      pendingTimers.delete(waitTimer);
+      pendingTimers.delete(timeoutTimer);
+      dismissWaiting();
+    };
     sent.then(
       () => {
+        settle();
         const updated = options().find((o) => o.id === configId);
         controller.notify(`${name}: ${updated ? currentName(updated, modelSettings()) : clean(String(value))}`, "muted");
       },
-      (error: unknown) => controller.notify(`could not change ${name}: ${clean(error instanceof Error ? error.message : String(error))}`, "warning"),
+      (error: unknown) => {
+        settle();
+        controller.notify(`could not change ${name}: ${clean(error instanceof Error ? error.message : String(error))}`, "warning");
+      },
     );
   };
 
