@@ -170,14 +170,61 @@ describe("toggles and reveal", () => {
     expect(geometry.row("i33")).toBe(row);
   });
 
-  test("toggling while following keeps the item's row too (then follows only if at the bottom)", () => {
-    const { geometry, scroll } = setup();
-    const row = geometry.row("i98");
+  test("toggling while following keeps following when the row stays in view", () => {
+    const { geometry, scroll, state } = setup();
+    // i98 is 3 items from the bottom; opening it by 6 rows leaves its first row in view.
+    scroll.beforeToggle("i98");
+    geometry.height("i98", 9);
+    scroll.layout();
+    expect(geometry.top).toBe(geometry.contentHeight() - 20);
+    expect(scroll.following).toBe(true);
+    expect(state.following).toBe(true);
+    expect(geometry.row("i98")).toBeGreaterThanOrEqual(0);
+    // Still following when the turn adds an entry after the open one.
+    geometry.items.push({ id: "new", height: 3, margin: 1 });
+    scroll.layout();
+    expect(geometry.top).toBe(geometry.contentHeight() - 20);
+    expect(scroll.following).toBe(true);
+  });
+
+  test("expansion taller than the room below goes to the top and stops following", () => {
+    const { geometry, scroll, reports } = setup();
     scroll.beforeToggle("i98");
     geometry.height("i98", 30);
     scroll.layout();
-    expect(geometry.row("i98")).toBe(row);
+    expect(geometry.row("i98")).toBe(0);
     expect(scroll.following).toBe(false);
+    expect(reports.at(-1)!.below).toBeGreaterThan(0);
+    // What arrives later does not move the reader.
+    geometry.items.push({ id: "new", height: 3, margin: 1 });
+    scroll.layout();
+    expect(geometry.row("i98")).toBe(0);
+  });
+
+  test("collapse at the bottom keeps following", () => {
+    const { geometry, scroll } = setup();
+    scroll.beforeToggle("i98");
+    geometry.height("i98", 9);
+    scroll.layout();
+    scroll.beforeToggle("i98");
+    geometry.height("i98", 3);
+    scroll.layout();
+    expect(geometry.top).toBe(geometry.contentHeight() - 20);
+    expect(scroll.following).toBe(true);
+  });
+
+  test("Ctrl+O while following: the most recent call opens, the bottom stays and following goes on", () => {
+    const { geometry, scroll } = setup();
+    scroll.beforeToggle("i100", true);
+    geometry.height("i100", 8);
+    scroll.layout();
+    expect(geometry.top).toBe(geometry.contentHeight() - 20);
+    expect(scroll.following).toBe(true);
+    expect(geometry.row("i100")).toBe(12);
+    geometry.items.push({ id: "new", height: 3, margin: 1 });
+    scroll.layout();
+    expect(scroll.following).toBe(true);
+    expect(geometry.row("i100")).toBe(8);
   });
 
   test("with reveal (Ctrl+O), the item's row is kept unless the expansion does not fit below it", () => {
