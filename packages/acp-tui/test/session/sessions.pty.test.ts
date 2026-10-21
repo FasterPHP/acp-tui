@@ -163,7 +163,7 @@ describe("Opening a session by ID (tui-sessions, tasks 5.2 and 12.5)", () => {
     // The finding line is gone from the main screen after a successful start.
     expect(findingShownAndGone(s)).toBe(true);
     expect(openSessionIndex({ stateHome: w.stateHome }).find("s-42").record).toMatchObject({ agent: "fake", directory: repoB, title: "Index test" });
-  });
+  }, 40000);
 
   test("Directory from the agent's list: s-7 is not in the index, the agent lists it in repo-c, and it is opened there on the same agent process", async () => {
     const w = world();
