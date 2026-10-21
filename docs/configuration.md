@@ -223,7 +223,7 @@ The names in the table are examples until you uncomment them: `acp-tui gemini` (
 | `cursor` | Cursor's CLI, whose command is `agent` | `agent acp` | cursor.com/docs/cli/acp |
 | `goose` | Goose | `goose acp` | goose-docs.ai/docs/guides/acp-clients |
 
-Auggie reports its models in the older ACP model state, so acp-tui shows its current model in the `Model` pill and lists its models in the picker; its `--model` flag or its settings choose the model it starts with. It takes its reasoning effort only as a start-up option, `--reasoning-effort <effort>` (one of `none`, `low`, `medium`, `high`, `xhigh`, `max` or `dynamic`), and offers no effort setting over ACP, so acp-tui draws no `Effort` pill for it and Ctrl+T says the harness offers no thinking levels. Choose the effort in the entry's `args`, as the commented alternative below the default's `auggie` entry does with `"args": ["--acp", "--reasoning-effort", "high", ...]`.
+Auggie reports its models in the older ACP model state, so acp-tui shows its current model in the `Model` pill and lists its models in the picker; its `--model` flag or its settings choose the model it starts with. It takes its reasoning effort only as a start-up option, `--reasoning-effort <effort>` (one of `none`, `low`, `medium`, `high`, `xhigh`, `max` or `dynamic`), and offers no effort setting over ACP, so acp-tui draws no `Effort` pill for it and Ctrl+T says the harness offers no thinking levels. Choose the effort in the entry's `args`, as the commented alternative below the default's `auggie` entry does with `"args": ["--acp", "--reasoning-effort", "dynamic", ...]`.
 
 To let Auggie's context engine answer about any of your projects, whichever one you start in, give it the folder that holds them all in the entry's `additional_directories`: `"additional_directories": ["/path/to/projects"]`, as the commented alternative below the default's `auggie` entry does; replace the path with yours. acp-tui passes it with the entry's `additional_directory_args`, as `--add-workspace /path/to/projects`, and a directory that does not exist is a warning and left out rather than stopping Auggie. Writing `--add-workspace <dir>` in `args` yourself also works, but bypasses acp-tui: the directory is not counted by the `dirs` status module and is not deduplicated with the others. Auggie indexes that folder in the background, so start-up is not delayed, though answers about a project it has not indexed yet may be incomplete at first. Auggie 0.36.0 may still refuse a question that names a project below that folder rather than the folder itself (`The workspace_folder parameter does not match an open workspace folder`); the agent usually asks again, and a question about the folder as a whole works. For a directory you want only now and then, use `--add-dir` or `/add-dir` instead (below).
 
@@ -233,7 +233,7 @@ A model or provider without an ACP agent of its own, such as DeepSeek, is reache
 {
   "agent_servers": {
     "claude": { "command": "bunx", "args": ["--bun", "@agentclientprotocol/claude-agent-acp@0.94.0"], "env": { "ANTHROPIC_MODEL": "opus" }, "startup_timeout_seconds": 120 },
-    "auggie": { "command": "auggie", "args": ["--acp", "--reasoning-effort", "high"], "additional_directory_args": ["--add-workspace", "{dir}"] },
+    "auggie": { "command": "auggie", "args": ["--acp", "--reasoning-effort", "dynamic"], "additional_directory_args": ["--add-workspace", "{dir}"] },
     "pi": { "command": "pi-acp", "args": [] },
     "deepseek": { "command": "opencode", "args": ["acp"], "env": { "OPENCODE_CONFIG": "/home/you/.config/opencode/deepseek.json" } },
   },
@@ -283,7 +283,7 @@ A session can include directories beside its own: a library the project depends 
 ```jsonc config
 {
   "agent_servers": {
-    "my-auggie": { "command": "auggie", "args": ["--acp", "--reasoning-effort", "high"], "additional_directory_args": ["--add-workspace", "{dir}"] },
+    "my-auggie": { "command": "auggie", "args": ["--acp", "--reasoning-effort", "dynamic"], "additional_directory_args": ["--add-workspace", "{dir}"] },
   },
 }
 ```
