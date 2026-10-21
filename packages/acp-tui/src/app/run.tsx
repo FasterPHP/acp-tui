@@ -216,6 +216,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     headingMarkers: c.markdown.heading_markers,
     tableMinColumnWidth: c.markdown.table_min_column_width,
     codeWrap: c.markdown.code_wrap,
+    tableRowRules: c.markdown.table_row_rules,
     snippetRows: c.tool_output.snippet_rows,
     cardPadRows: c.cards.padding.rows,
     cardPadColumns: c.cards.padding.columns,

@@ -14,13 +14,17 @@ in a pane 63 columns wide (61 behind the agent gutter):
     «markdown.table.border ~»├────────────────────┼────────┼──────────┼──────────────────┤
   7 ││ a                  │   b    │        c │ d                ││
     «markdown.table.border ~»│ «text»a«text ~»                 «markdown.table.border ~» │ «text ~»  «text»b«text ~»   «markdown.table.border ~» │ «text ~»       «text»c«markdown.table.border ~» │ «text»d«text ~»               «markdown.table.border ~» │
-  8 ││ bold               │ italic │     code │ struck           ││
+  8 │├────────────────────┼────────┼──────────┼──────────────────┤│ (decorative)
+    «markdown.table.border ~»├────────────────────┼────────┼──────────┼──────────────────┤
+  9 ││ bold               │ italic │     code │ struck           ││
     «markdown.table.border ~»│ «text +b»bold«text ~»              «markdown.table.border ~» │ «text +i»italic«markdown.table.border ~» │ «text ~»    «markdown.code»code«markdown.table.border ~» │ «markdown.strike +s»struck«text ~»          «markdown.table.border ~» │
-  9 ││ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped     ││
+ 10 │├────────────────────┼────────┼──────────┼──────────────────┤│ (decorative)
+    «markdown.table.border ~»├────────────────────┼────────┼──────────┼──────────────────┤
+ 11 ││ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped     ││
     «markdown.table.border ~»│ «markdown.link ->https://example.com/cell»link«text» «muted ->https://example.com/cell»(example.com)«markdown.table.border ~» │ «text»日本語«markdown.table.border ~» │ «text»1,234.56«markdown.table.border ~» │ «text»an | escaped«text ~»    «markdown.table.border ~» │
- 10 ││                    │        │          │ pipe             ││
+ 12 ││                    │        │          │ pipe             ││
     «markdown.table.border ~»│ «text ~»                  «markdown.table.border ~» │ «text ~»      «markdown.table.border ~» │ «text ~»        «markdown.table.border ~» │ «text»pipe«text ~»            «markdown.table.border ~» │
- 11 │╰────────────────────┴────────┴──────────┴──────────────────╯│ (decorative)
+ 13 │╰────────────────────┴────────┴──────────┴──────────────────╯│ (decorative)
     «markdown.table.border ~»╰────────────────────┴────────┴──────────┴──────────────────╯
 
 in a pane 100 columns wide (98 behind the agent gutter):

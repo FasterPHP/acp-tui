@@ -14,13 +14,17 @@ at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
     «default»  «bright-black»├──────────────────┼────────┼──────────┼─────────────────┤
   7 │  │ a                │   b    │        c │ d               ││
     «default»  «bright-black»│ «default»a                «bright-black»│   «default»b    «bright-black»│        «default»c «bright-black»│ «default»d               «bright-black»│
-  8 │  │ bold             │ italic │     code │ struck          ││
+  8 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
+    «default»  «bright-black»├──────────────────┼────────┼──────────┼─────────────────┤
+  9 │  │ bold             │ italic │     code │ struck          ││
     «default»  «bright-black»│ «default +b»bold             «bright-black»│ «default +i»italic «bright-black»│     «yellow»code «bright-black»│ «bright-black +i»struck          «bright-black»│
-  9 │  │ link             │ 日本語 │ 1,234.56 │ an | escaped    ││
+ 10 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
+    «default»  «bright-black»├──────────────────┼────────┼──────────┼─────────────────┤
+ 11 │  │ link             │ 日本語 │ 1,234.56 │ an | escaped    ││
     «default»  «bright-black»│ «blue +u»link«default»             «bright-black»│ «default»日本語 «bright-black»│ «default»1,234.56 «bright-black»│ «default»an | escaped    «bright-black»│
- 10 │  │ (example.com)    │        │          │ pipe            ││
+ 12 │  │ (example.com)    │        │          │ pipe            ││
     «default»  «bright-black»│ (example.com)    │        │          │ «default»pipe            «bright-black»│
- 11 │  ╰──────────────────┴────────┴──────────┴─────────────────╯│
+ 13 │  ╰──────────────────┴────────┴──────────┴─────────────────╯│
     «default»  «bright-black»╰──────────────────┴────────┴──────────┴─────────────────╯
 
 at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
@@ -37,13 +41,17 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  «default +d»├──────────────────┼────────┼──────────┼─────────────────┤
   7 │  │ a                │   b    │        c │ d               ││
     «default»  «default +d»│ «default»a                «default +d»│   «default»b    «default +d»│        «default»c «default +d»│ «default»d               «default +d»│
-  8 │  │ bold             │ italic │     code │ struck          ││
+  8 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
+    «default»  «default +d»├──────────────────┼────────┼──────────┼─────────────────┤
+  9 │  │ bold             │ italic │     code │ struck          ││
     «default»  «default +d»│ «default +b»bold             «default +d»│ «default +i»italic «default +d»│     «magenta»code «default +d»│ «default +i +d»struck          «default +d»│
-  9 │  │ link             │ 日本語 │ 1,234.56 │ an | escaped    ││
+ 10 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
+    «default»  «default +d»├──────────────────┼────────┼──────────┼─────────────────┤
+ 11 │  │ link             │ 日本語 │ 1,234.56 │ an | escaped    ││
     «default»  «default +d»│ «blue +u»link«default»             «default +d»│ «default»日本語 «default +d»│ «default»1,234.56 «default +d»│ «default»an | escaped    «default +d»│
- 10 │  │ (example.com)    │        │          │ pipe            ││
+ 12 │  │ (example.com)    │        │          │ pipe            ││
     «default»  «default +d»│ (example.com)    │        │          │ «default»pipe            «default +d»│
- 11 │  ╰──────────────────┴────────┴──────────┴─────────────────╯│
+ 13 │  ╰──────────────────┴────────┴──────────┴─────────────────╯│
     «default»  «default +d»╰──────────────────┴────────┴──────────┴─────────────────╯
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):

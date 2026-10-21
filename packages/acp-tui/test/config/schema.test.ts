@@ -59,7 +59,7 @@ describe("defaults (design D2)", () => {
       busy: { track_percent: 40, style: "gap" },
       activity: { linger_seconds: 1.5 },
       title: { format: "{dir}{counter}" },
-      markdown: { heading_markers: false, table_min_column_width: 10, code_wrap: "word" },
+      markdown: { heading_markers: false, table_min_column_width: 10, code_wrap: "word", table_row_rules: "auto" },
       tool_output: { snippet_rows: 10 },
       cards: { padding: { rows: 1, columns: 2 } },
       theme: { name: "default", flat: false, surface_contrast: 1, tokens: {} },

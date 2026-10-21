@@ -467,6 +467,16 @@
             "prose",
             "column"
           ]
+        },
+        "table_row_rules": {
+          "default": "auto",
+          "description": "When a table draws rules between its body rows: \"auto\" - in a table where some body row takes more than one line at the width it is drawn at; \"always\" - in every table, between every pair of body rows; \"never\" - in no table: only the rule under the header. The rules are decoration: copying a table and finding text in it are the same under every value.",
+          "type": "string",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ]
         }
       }
     },

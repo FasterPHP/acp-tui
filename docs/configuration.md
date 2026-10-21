@@ -278,6 +278,7 @@ The default keeps a block where you normally type, at the end of the draft, beca
 | `markdown.heading_markers` | boolean | `false` | Show a heading's `#` markers, muted, before its text. |
 | `markdown.table_min_column_width` | whole number from 3 | `10` | The column width below which a table switches to the record layout. |
 | `markdown.code_wrap` | `"word"`, `"prose"`, `"column"` | `"word"` | How long lines in code blocks break: `"word"` - at the last space that fits, in every block; `"prose"` - at spaces in `text`, `txt`, `plaintext`, `plain`, `markdown` and `md` blocks only and at the column elsewhere; `"column"` - at the column, mid-word, in every block (how code blocks were drawn before). A word longer than a row always breaks at the column. A broken row of a code block ends with the continuation mark; a prose block shows none. Copying always gives each line unbroken. |
+| `markdown.table_row_rules` | `"auto"`, `"always"`, `"never"` | `"auto"` | When a table draws rules between its body rows: `"auto"` - in a table where some body row takes more than one line at the width it is drawn at; `"always"` - in every table, between every pair of body rows; `"never"` - in no table: only the rule under the header. The rules are decoration: copying a table and finding text in it are the same under every value. |
 | `tool_output.snippet_rows` | whole number from 3 | `10` | Rows of a tool call's output shown in its expanded card. |
 | `cards.padding.rows` | `0`, `1` | `1` | Blank rows at the top and the bottom of a card (a user message, an expanded thought, tool call or plan, the permission and question cards) and of a code block in an agent's answer. |
 | `cards.padding.columns` | whole number from 1 to 3 | `2` | Blank columns between a card's edge and its content, on both sides, and the same inset in a code block in an agent's answer. Two columns look as wide as one row is tall. A user message's accent bar is its first column, with the padding after it. |
@@ -285,6 +286,14 @@ The default keeps a block where you normally type, at the end of the draft, beca
 With `interrupt` `single`, the Esc that would arm an interrupt cancels the turn instead. Every other meaning of Esc (closing the palette, the find bar or a selection, leaving the conversation or a card) is unchanged and never cancels, so a stray Esc that closes something cannot interrupt your agent.
 
 **Command results.** An expanded tool card shows the result of a shell command, when the agent reports it in one of two known shapes (Auggie's `launch-process` text with `<return-code>` and `<output>` lines, and `claude-agent-acp`'s `Exit code <n>` failure), as `Output: <output>` (or `Output:` and each output line indented two cells) and `Return code: <n>`; the labels are drawn in the `tool.result.label` token, which follows `muted` unless a theme sets it. Output over `tool_output.snippet_rows` rows is cut to its last rows and the return code stays visible below them. A failed command's collapsed line shows `exit <n>`. A call that carries no content but does carry a raw output text (Auggie's successful commands) shows that text in the same way. Anything else is drawn as the agent sent it.
+
+**Table rules.** A table has a rule under its header. When cells wrap, one row's lines run into the next one's, so with `auto` (the default) acp-tui also draws a rule between the body rows of a table where some row takes more than one line, and takes them away again when a resize lets every row fit on one line. To rule every table, or none:
+
+```jsonc config
+{
+  "markdown": { "table_row_rules": "always" }
+}
+```
 
 **Card padding.** The user's messages, the expanded thoughts, tool calls and plans, and the permission and question cards keep their text inside a padding of blank cells in the card's fill; vertical padding is whole rows, never half rows. Two columns at the sides, the default, look as wide as one row is tall. A code block in an agent's answer takes the same padding on its own fill, its language label as far in from the right edge as the code is from the left; a code block inside a card draws none, the card's padding serving. The padding rows are decoration: copying, find and export never see them. For the narrower sides acp-tui had before 15 October 2026:
 

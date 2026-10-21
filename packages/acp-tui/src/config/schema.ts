@@ -56,6 +56,7 @@ export { TERMINAL_IDS, type TerminalId };
 export const STRIKE_MODES = ["sgr9", "overlay", "colour"] as const;
 export const DENSITIES = ["compact", "verbose", "focus"] as const;
 export const CODE_WRAPS = ["word", "prose", "column"] as const;
+export const TABLE_ROW_RULES = ["auto", "always", "never"] as const;
 export const INTERRUPT_MODES = ["double", "single"] as const;
 export const ATTENTION_SIGNALS = ["bell", "osc9", "osc777", "none"] as const;
 export const BUSY_STYLES = ["gap", "colour", "border"] as const;
@@ -509,6 +510,15 @@ export const SECTIONS = {
           ["column", "at the column, mid-word, in every block"],
         ],
         note: "A word longer than a row always breaks at the column. A broken row of a code block ends with the continuation mark; a prose block shows none, unless the value is column.",
+      }),
+      table_row_rules: listed(z.enum(TABLE_ROW_RULES).default("auto"), {
+        heading: "When a table draws rules between its body rows",
+        values: [
+          ["auto", "in a table where some body row takes more than one line at the width it is drawn at"],
+          ["always", "in every table, between every pair of body rows"],
+          ["never", "in no table: only the rule under the header"],
+        ],
+        note: "The rules are decoration: copying a table and finding text in it are the same under every value.",
       }),
     })
     .prefault({})
