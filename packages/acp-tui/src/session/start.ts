@@ -50,7 +50,8 @@ import type { HarnessActivity } from "../agent/harness-activity.ts";
 import { AD_HOC_AGENT, launchArgv, type LaunchDescription } from "../agent/resolve.ts";
 import { shortenHome } from "../layout/segments.ts";
 import type { DebugLogger } from "../log.ts";
-import { CannotReopenError, connectAgent, type ConnectedController, type SessionController } from "./controller.ts";
+import { AgentNotAcpError, AgentStartupTimeoutError } from "../agent/startup-watch.ts";
+import { CannotReopenError, connectAgent, type ConnectedController, type LaunchedHarness, type SessionController } from "./controller.ts";
 import { createSessionRecorder, type SessionRecorder } from "./recorder.ts";
 import { userHome } from "../platform/paths.ts";
 import { oneLine, type SessionIndex } from "./session-index.ts";
@@ -111,6 +112,8 @@ export interface StartLaunchOptions {
   readonly pace?: Pace;
   /** Called each time a harness has answered `initialize` (a start, a switch to another harness). */
   readonly onHarnessInitialized?: () => void;
+  /** Called as soon as a harness process has started, before `initialize` (controller.ts `onLaunched`). */
+  readonly onLaunched?: (launched: LaunchedHarness) => void;
   /** Called when a harness may have retitled the console (controller.ts `onActivity`). */
   readonly onHarnessActivity?: (activity: HarnessActivity) => void;
   readonly now?: () => number;
@@ -204,8 +207,12 @@ async function scanList(
   for (let page = 0; page < LIST_PAGE_LIMIT; page++) {
     let response;
     try {
-      response = await controller.listSessions({ ...(cwd !== undefined ? { cwd } : {}), ...(cursor !== undefined ? { cursor } : {}) });
+      // Reading the pages is part of starting: a harness that goes silent here is stopped.
+      response = await controller.listSessions({ ...(cwd !== undefined ? { cwd } : {}), ...(cursor !== undefined ? { cursor } : {}) }, undefined, { startup: true });
     } catch (error) {
+      // A harness stopped for its silence (or for printing terminal output) cannot answer the
+      // rest of the start: that is the error, not a list that "failed".
+      if (error instanceof AgentStartupTimeoutError || error instanceof AgentNotAcpError) throw error;
       logger?.log({ event: "session_list_error", code: errorCode(error) });
       onError?.(error);
       return false;
@@ -229,7 +236,7 @@ function homeOf(options: Pick<StartLaunchOptions, "home">): string | null {
 
 /** Launches and initialises the agent `launch` names, in the session directory (or the launch
  *  directory when that has gone), with no session yet. Throws the agent's start-up errors. */
-export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace" | "onHarnessInitialized" | "onHarnessActivity">): Promise<ConnectedController> {
+export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace" | "onHarnessInitialized" | "onLaunched" | "onHarnessActivity">): Promise<ConnectedController> {
   const { launch, logger } = options;
   // The agent runs in the session directory; one the index recorded may have gone since.
   const processCwd = isDirectory(launch.directory) ? launch.directory : launch.launchDirectory;
@@ -239,12 +246,14 @@ export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logg
     harness: launch.agentName,
     ...(launch.installHint !== undefined ? { installHint: launch.installHint } : {}),
     ...(launch.loginHint !== undefined ? { loginHint: launch.loginHint } : {}),
+    ...(launch.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: launch.startupTimeoutSeconds } : {}),
     cwd: processCwd,
     ...(logger ? { logger } : {}),
     ...(options.now ? { now: options.now } : {}),
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
     ...(options.onHarnessInitialized ? { onInitialized: options.onHarnessInitialized } : {}),
+    ...(options.onLaunched ? { onLaunched: options.onLaunched } : {}),
     ...(options.onHarnessActivity ? { onActivity: options.onHarnessActivity } : {}),
   });
 }
@@ -413,6 +422,7 @@ async function prepareContinue(options: StartLaunchOptions): Promise<PreparedLau
       command: entry.command,
       args: entry.args,
       env: entry.env,
+      ...(entry.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: entry.startupTimeoutSeconds } : {}),
       directory: target.directory,
       directorySource: "index",
     };

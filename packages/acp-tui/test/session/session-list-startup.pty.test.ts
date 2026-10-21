@@ -226,18 +226,18 @@ describe("Marcus's Mac review, 18 October 2026 (tasks 14.2 and 14.3)", () => {
 });
 
 describe("the status row while the list is open (task 12.7)", () => {
-  test("`connecting` until the harness has answered initialize, `connected` after it, with the list still open and no session started", async () => {
+  test("`starting` until the harness has answered initialize, `connected` after it, with the list still open and no session started", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     indexSessions(w, repo, 2);
     w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--start-delay", "1200", "--list-delay", "2500"] });
     const s = (session = w.start(["-a", "fake", "--resume"], { cwd: repo }));
-    await s.waitFor(() => listOpen(s) && /connecting/.test(statusRow(s)), 10000);
+    await s.waitFor(() => listOpen(s) && /starting/.test(statusRow(s)), 10000);
     expect(footerLine(s)).toMatch(/starting fake…/);
     // initialize answered: the footer reads the sessions, the status row says connected.
     await s.waitFor(() => /reading fake's sessions…/.test(footerLine(s)), 10000);
     await s.waitFor(() => /connected/.test(statusRow(s)), 3000);
-    expect(statusRow(s)).not.toMatch(/connecting/);
+    expect(statusRow(s)).not.toMatch(/starting/);
     expect(listOpen(s)).toBe(true);
     expect(methods(w)).not.toContain("session/new");
   }, 40000);

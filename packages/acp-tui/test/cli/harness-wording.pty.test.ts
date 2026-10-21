@@ -22,7 +22,7 @@ describe("Still starting", () => {
     const repo = w.dir("repo");
     w.configure({ fake: ["--scenario", "basic", "--start-delay", "3000"] });
     const s = (session = w.start(["fake"], { cwd: repo, cols: 100, rows: 30 }));
-    await s.waitFor((p) => p.screenText().join("\n").includes("connecting…"), 15000);
+    await s.waitFor((p) => p.screenText().join("\n").includes("starting…"), 15000);
     s.sendKeys({ text: "hello there" });
     await s.waitFor((p) => promptText(p)[0] === "hello there", 5000);
     s.sendKeys("Enter");

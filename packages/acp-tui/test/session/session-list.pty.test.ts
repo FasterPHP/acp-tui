@@ -576,8 +576,8 @@ describe("Honest errors in the list (task 7.5)", () => {
     expect(footer).not.toMatch(/install/i);
     expect(listOpen(s)).toBe(true);
     expect(methods(w, "fake").includes("session/new")).toBe(false);
-    // Back to `connecting` while there is no session.
-    expect(statusRow(s)).toContain("connecting");
+    // Back to `opening` (the harness is up) while there is no session.
+    expect(statusRow(s)).toContain("opening");
     s.sendKeys("Esc");
     await s.waitFor(() => w.received("fake").some((e) => e.method === "session/new"), 5000);
     await s.waitFor(READY, 5000);

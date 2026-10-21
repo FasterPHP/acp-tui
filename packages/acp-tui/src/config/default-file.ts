@@ -22,7 +22,7 @@ import type { z } from "zod";
 import { BLOCK_NAMES, DEFAULT_LAYOUT } from "../layout/layout.ts";
 import { MODULE_IDS, MODULES } from "../layout/modules.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS } from "../keys/keymap.ts";
-import { BUILT_IN_HARNESSES } from "../agent/command.ts";
+import { BUILT_IN_HARNESSES, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
 import { AGENT_EXAMPLES, type AgentExample } from "../agent/examples.ts";
 import { TERMINAL_TABLE, type TerminalCapabilities } from "../renderer/capabilities.ts";
 import { describeSchema } from "./load.ts";
@@ -242,6 +242,12 @@ const SPECIALS: Readonly<Record<string, Special>> = {
     `${indent}},`,
   ],
 
+  // Commented out: a value written here would also apply to `claude`, whose own default is longer.
+  agent_startup_timeout_seconds: (key, schema, indent) => [
+    ...comment(`${describeOf(schema) ?? ""} While this is not set, each harness uses its own default, and 30 seconds otherwise (shown commented out, so that claude keeps its longer one):`, indent),
+    ...commentedOut([`"${key}": ${json(DEFAULT_STARTUP_TIMEOUT_SECONDS)},`], indent),
+  ],
+
   "layout.margins": (key, schema, indent) => [...comment(`${describeOf(schema) ?? ""} ${ABSENT}`, indent), ...commentedOut([`"${key}": ${json(DEFAULT_LAYOUT.margins)},`], indent)],
 
   "layout.screen": (key, schema, indent) => [
@@ -359,7 +365,7 @@ export function defaultFileHeader(platform: NodeJS.Platform = process.platform):
     {
       heading: "Project files",
       paragraphs: [
-        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent, clipboard, terminals, and the keys of the card and elicitation contexts.",
+        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent_server, agent_startup_timeout_seconds, clipboard, terminals, and the keys of the card and elicitation contexts.",
       ],
     },
     {

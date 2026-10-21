@@ -18,6 +18,7 @@ import {
   loadAgentCatalogue,
 } from "../../src/agent/catalogue.ts";
 import { builtInAgentCommand, CLAUDE_AGENT_PACKAGE, DEFAULT_AGENT_COMMAND, DEFAULT_AGENT_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
+import { commentedDefault } from "../../src/config/default-file.ts";
 import { launchAgent } from "../../src/agent/launch.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
 import { main, type StartAppOptions } from "../../src/cli.ts";
@@ -168,8 +169,8 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.launch?.problems[0]).toContain(`config.jsonc:1:20: default_agent names "ghost", which is not a known harness; "auggie" is used`);
   });
 
-  test("an ad hoc harness command never reads the configuration", async () => {
-    // A syntax error would be a problem if the file were read.
+  test("an ad hoc harness command takes no harness or problem from the configuration", async () => {
+    // A syntax error would be a problem if the file's problems were shown for it.
     const r = await run(["--", "my-agent"], configHome("{ not json"));
     expect(r.launch?.problems).toEqual([]);
     expect(r.launch?.agentName).toBe("ad hoc");
@@ -285,5 +286,53 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
       expect(catalogue.problems).toHaveLength(1);
     }
     expect(buildAgentCatalogue("{ oops", "/c.jsonc").problems[0]).toBe("/c.jsonc:1:3: is not valid JSONC here: an unexpected character; the file is ignored until it parses");
+  });
+});
+
+describe("Start-up timeout setting (harness-feedback tui-config)", () => {
+  const timeout = (text: string | null, name: string): number | undefined => buildAgentCatalogue(text, "/c/config.jsonc").agents.get(name)?.startupTimeoutSeconds;
+
+  test("built-in defaults: 120 for claude, 30 for the others; an ad hoc command has none until the setting names one", () => {
+    expect(timeout(null, "claude")).toBe(120);
+    expect(timeout(null, "auggie")).toBe(30);
+    expect(timeout(null, "opencode")).toBe(30);
+    expect(buildAgentCatalogue(null, "/c/config.jsonc").startupTimeoutSetting).toBeNull();
+  });
+
+  test("Per-harness value: the entry wins for its harness, the setting is every other harness's", () => {
+    const text = `{ "agent_startup_timeout_seconds": 10, "agent_servers": { "slow": { "command": "x", "startup_timeout_seconds": 90 }, "plain": { "command": "y" } } }`;
+    const catalogue = buildAgentCatalogue(text, "/c/config.jsonc");
+    expect(catalogue.problems).toEqual([]);
+    expect(catalogue.agents.get("slow")?.startupTimeoutSeconds).toBe(90);
+    expect(catalogue.agents.get("plain")?.startupTimeoutSeconds).toBe(10);
+    expect(catalogue.agents.get("auggie")?.startupTimeoutSeconds).toBe(10);
+    expect(catalogue.agents.get("claude")?.startupTimeoutSeconds).toBe(10);
+    expect(catalogue.startupTimeoutSetting).toBe(10);
+  });
+
+  test("a configured entry of a built-in name keeps that built-in's default, and without the setting a plain entry has 30", () => {
+    const text = `{ "agent_servers": { "claude": { "command": "x" }, "plain": { "command": "y" }, "auggie": { "command": "z", "startup_timeout_seconds": 600 } } }`;
+    expect(timeout(text, "claude")).toBe(120);
+    expect(timeout(text, "plain")).toBe(30);
+    expect(timeout(text, "auggie")).toBe(600);
+  });
+
+  test("Out of range: 2 is a problem at the value saying a whole number from 5 to 600, and the last good value (the built-in default) stays", () => {
+    for (const bad of ["2", "601", "7.5", `"30"`]) {
+      const catalogue = buildAgentCatalogue(`{ "agent_startup_timeout_seconds": ${bad} }`, "/c/config.jsonc");
+      expect(catalogue.problems.join("\n")).toContain("agent_startup_timeout_seconds");
+      expect(catalogue.agents.get("claude")?.startupTimeoutSeconds).toBe(120);
+    }
+    const message = buildAgentCatalogue(`{ "agent_startup_timeout_seconds": 2 }`, "/c/config.jsonc").problems[0]!;
+    expect(message).toMatch(/whole number from 5 to 600/);
+    const entry = buildAgentCatalogue(`{ "agent_servers": { "x": { "command": "x", "startup_timeout_seconds": 3 } } }`, "/c/config.jsonc");
+    expect(entry.invalid.get("x")).toContain("startup_timeout_seconds");
+    expect(entry.agents.has("x")).toBe(false);
+  });
+
+  test("the commented default shows the setting only commented out, so it loads as the defaults (claude keeps 120)", () => {
+    const text = commentedDefault();
+    expect(text).toMatch(/^\s*\/\/ "agent_startup_timeout_seconds": 30,$/m);
+    expect(timeout(text, "claude")).toBe(120);
   });
 });

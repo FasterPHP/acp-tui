@@ -6,7 +6,7 @@ import { DEFAULT_GLYPHS } from "../../src/conversation/glyphs.ts";
 import { ASCII_CHROME_GLYPHS, DEFAULT_CHROME_GLYPHS } from "../../src/layout/glyphs.ts";
 import { DEFAULT_KEY_MAP, loadKeyMap } from "../../src/keys/keymap.ts";
 import { displayWidth } from "../../src/layout/segments.ts";
-import { harnessName, hintRows, SPLASH_TAGLINE, splashHints, splashLaunch, splashLayout, type SplashInput } from "../../src/app/splash.ts";
+import { harnessName, hintRows, phaseCell, SPLASH_PHASE_WIDTH, SPLASH_TAGLINE, splashHints, splashLaunch, splashLayout, type SplashInput } from "../../src/app/splash.ts";
 
 const INPUT: SplashInput = {
   version: "0.0.0",
@@ -125,20 +125,43 @@ describe("splash rows (task 4.7)", () => {
     expect(displayWidth(text(splashLayout(INPUT, 63, 12).rows).find((r) => r.includes("clear"))!)).toBe(37);
   });
 
-  test("connecting: the harness, a spinner cell and `connecting…` on row 1, the launch directory on row 2", () => {
+  test("starting: the harness, a spinner cell and `starting…` on row 1, the launch directory on row 2", () => {
     const connecting: SplashInput = { ...INPUT, agent: null, model: null, cwd: null, connecting: true };
     const rows = text(splashLayout(connecting, 100, 30).rows);
-    const at = rows.findIndex((r) => r.includes("connecting…"));
+    const at = rows.findIndex((r) => r.includes("starting…"));
     expect(at).toBeGreaterThan(0);
-    expect(rows[at]!.trim()).toBe("Harness: fake · ▖ connecting…");
+    expect(rows[at]!.trim()).toBe("Harness: fake · ▖ starting…");
     expect(rows[at + 1]!.trim()).toBe("/work/repo-b");
-    // The spinner cell is the one marked for redraw, and `connecting…` is muted.
+    // The spinner cell is the one marked for redraw, and the phase cell is muted.
     const row = splashLayout(connecting, 100, 30).rows[at]!;
     expect(row.filter((seg) => seg.spinner === true).map((seg) => seg.text)).toEqual(["▖"]);
-    expect(row.find((seg) => seg.text.includes("connecting…"))?.token).toBe("muted");
+    expect(row.find((seg) => seg.text.includes("starting…"))?.token).toBe("muted");
     // The ascii set's spinner.
-    const ascii = text(splashLayout({ ...connecting, spinner: ["|", "/", "-", "\\"] }, 100, 30).rows).find((r) => r.includes("connecting…"));
-    expect(ascii!.trim()).toBe("Harness: fake · | connecting…");
+    const ascii = text(splashLayout({ ...connecting, spinner: ["|", "/", "-", "\\"] }, 100, 30).rows).find((r) => r.includes("starting…"));
+    expect(ascii!.trim()).toBe("Harness: fake · | starting…");
+  });
+
+  test("start-up progress: `starting…`, `opening session…` and the seconds from the fifth, every form the same width and the harness name in the same columns", () => {
+    const connecting: SplashInput = { ...INPUT, agent: null, model: null, cwd: null, connecting: true };
+    const forms = [
+      { phase: "starting" as const, seconds: 0, text: "Harness: fake · ▖ starting…" },
+      { phase: "starting" as const, seconds: 4.9, text: "Harness: fake · ▖ starting…" },
+      { phase: "starting" as const, seconds: 5, text: "Harness: fake · ▖ starting… 5 s" },
+      { phase: "starting" as const, seconds: 12.4, text: "Harness: fake · ▖ starting… 12 s" },
+      { phase: "opening" as const, seconds: 0, text: "Harness: fake · ▖ opening session…" },
+      { phase: "opening" as const, seconds: 123, text: "Harness: fake · ▖ opening session… 123 s" },
+    ];
+    for (const form of forms) {
+      const layout = splashLayout({ ...connecting, phase: form.phase, seconds: form.seconds }, 100, 30);
+      const rows = text(layout.rows);
+      const at = rows.findIndex((r) => r.includes("Harness:"));
+      expect(rows[at]!.trim()).toBe(form.text);
+      // Every form takes the same columns, so the centred row never moves.
+      expect(displayWidth(rows[at]!)).toBe(displayWidth(text(splashLayout(connecting, 100, 30).rows)[at]!));
+      expect(rows[at]!.indexOf("Harness:")).toBe(text(splashLayout(connecting, 100, 30).rows)[at]!.indexOf("Harness:"));
+    }
+    expect(displayWidth(phaseCell("starting", 0))).toBe(SPLASH_PHASE_WIDTH);
+    expect(displayWidth(phaseCell("opening", 600))).toBe(SPLASH_PHASE_WIDTH);
   });
 
   test("nothing moves: the layout's height and drop order are the same before and after the session starts, whatever the pane", () => {
@@ -164,7 +187,7 @@ describe("splash rows (task 4.7)", () => {
     expect(text(splashLayout({ ...INPUT, cwd: null }, 100, 30).rows).join("\n")).toContain("/work/repo-b");
   });
 
-  test("Marcus's wording: `Harness: Claude · Model: Default (recommended)`, labels muted and values text; `Harness: claude · ⠋ connecting…` before", () => {
+  test("Marcus's wording: `Harness: Claude · Model: Default (recommended)`, labels muted and values text; `Harness: claude · ⠋ starting…` before", () => {
     const started: SplashInput = { ...INPUT, agent: "Claude Agent", model: "Default (recommended)" };
     const layout = splashLayout(started, 100, 30);
     const row = layout.rows.find((r) => r.map((x) => x.text).join("").includes("Harness:"))!;
@@ -172,7 +195,7 @@ describe("splash rows (task 4.7)", () => {
     expect(row.map((x) => [x.text, x.token])).toEqual([["Harness: ", "muted"], ["Claude", "text"], [" · ", "muted"], ["Model: ", "muted"], ["Default (recommended)", "text"]]);
     const before = splashLayout({ ...INPUT, agent: null, model: null, connecting: true, launch: { harness: "claude", directory: "/w" } }, 100, 30);
     const first = before.rows.find((r) => r.map((x) => x.text).join("").includes("Harness:"))!;
-    expect(first.map((x) => [x.text, x.token])).toEqual([["Harness: ", "muted"], ["claude", "text"], [" · ", "muted"], ["▖", "muted"], [" connecting…", "muted"]]);
+    expect(first.map((x) => [x.text, x.token])).toEqual([["Harness: ", "muted"], ["claude", "text"], [" · ", "muted"], ["▖", "muted"], [` ${phaseCell("starting", 0)}`, "muted"]]);
     // No model: just the harness.
     expect(text(splashLayout({ ...started, model: null }, 100, 30).rows).map((r) => r.trim())).toContain("Harness: Claude");
   });

@@ -39,7 +39,7 @@ import { commandDisplayName } from "../agent/harness-name.ts";
 import { AD_HOC_AGENT, adHocSessionMessage, hintOf, launchArgv, unconfiguredAgentMessage, type LaunchDescription } from "../agent/resolve.ts";
 import type { DebugLogger } from "../log.ts";
 import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
-import type { ConnectedController } from "./controller.ts";
+import type { ConnectedController, LaunchedHarness } from "./controller.ts";
 import type { SessionRecorder } from "./recorder.ts";
 import { oneLine, type SessionIndex, type SessionRecord } from "./session-index.ts";
 import { agentLabel, connectLaunch, prepareLaunch, RESUME_HINT, SessionOpenFailure, startOn, type PreparedLaunch, type SessionTarget } from "./start.ts";
@@ -63,7 +63,7 @@ export const SWITCH_REFUSED_PERMISSION = "a permission request is open: answer i
 export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it before you switch sessions";
 
 /** What names the agent of a launch: the fields `launchFor` copies. */
-type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint">;
+type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds">;
 
 export interface SessionSwitcherOptions {
   /** The launch the command line asked for. */
@@ -181,7 +181,20 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
   let connection: Promise<void> | null = null;
   let connecting = false;
 
+  // Harnesses started and not yet through `initialize`: no controller to detach yet, so exit ends them.
+  const launching = new Set<LaunchedHarness>();
+  let detaching = false;
+  const onLaunched = (launched: LaunchedHarness): void => {
+    if (detaching) {
+      launched.kill();
+      return;
+    }
+    launching.add(launched);
+    void launched.settled.then(() => launching.delete(launched));
+  };
+
   const common = {
+    onLaunched,
     ...(logger ? { logger } : {}),
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
@@ -421,6 +434,9 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     },
 
     async detach() {
+      detaching = true;
+      // A harness that has not answered `initialize` has no session to detach from: ended at once.
+      for (const launched of launching) launched.kill();
       await Promise.all([...started].map((c) => c.detach()));
     },
   };

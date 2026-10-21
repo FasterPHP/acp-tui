@@ -26,6 +26,7 @@ import {
   type AcpClient,
   type SessionSupport,
 } from "../agent/connection.ts";
+import { DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
 import { harnessActivity, type HarnessActivity } from "../agent/harness-activity.ts";
 import { killProcessTree } from "../agent/kill-tree.ts";
 import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
@@ -72,7 +73,7 @@ export interface SessionController {
    *  session directory marker, mvp-sessions task 12.3). Nothing is sent to the agent. */
   notice(text: string): void;
   /** One page of `session/list` (`cwd` filters by directory); only when `support.list`. */
-  listSessions(params: { readonly cwd?: string; readonly cursor?: string }, signal?: AbortSignal): Promise<ListSessionsResponse>;
+  listSessions(params: { readonly cwd?: string; readonly cursor?: string }, signal?: AbortSignal, options?: { readonly startup?: boolean }): Promise<ListSessionsResponse>;
   /** Current, immutable session snapshot. */
   getSession(): Session;
   /** Registers a listener called after every state change; returns an unsubscribe function.
@@ -161,6 +162,11 @@ export interface StartSessionOptions {
   readonly logger?: DebugLogger;
   /** Clock override for tests; defaults to `Date.now`. */
   now?(): number;
+  /** Seconds a starting harness may stay silent before it is stopped (start-up timeout, agent/startup-watch.ts); default 30. */
+  readonly startupTimeoutSeconds?: number;
+  /** Called as soon as the harness process has been started, before `initialize`: the caller can
+   *  end it while it starts (Ctrl+D), which the controller does not exist for yet. */
+  onLaunched?(launched: LaunchedHarness): void;
   /** Called once `initialize` has been answered, when the harness is surely running (the Windows
    *  title is set again then: renderer/terminal-signals.ts `reassertTitle`). */
   onInitialized?(): void;
@@ -175,6 +181,14 @@ export interface StartSessionOptions {
   /** Paces the replay's drain and the agent read loop around the renderer's frames during a load
    *  (renderer/frame-pace.ts); without one, timer turns. */
   pace?: Pace;
+}
+
+/** A harness process that has been started and may still be starting. */
+export interface LaunchedHarness {
+  /** Ends the process at once (its whole tree on Windows), with no grace period. */
+  kill(): void;
+  /** Resolves when `initialize` has been answered or the start has failed. */
+  readonly settled: Promise<void>;
 }
 
 /** How long `detach()` waits for the process tree to be ended after the grace period (ms). */
@@ -288,7 +302,11 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
   // While a load replays, the agent's messages are read in slices too (connection.ts `pacedStream`),
   // with their turns from the pace when there is one (history-replay-pacing design D1).
-  const conn = createConnection(agent, () => routed, () => active.handler.replaying(), options.pace);
+  const conn = createConnection(agent, () => routed, () => active.handler.replaying(), options.pace, {
+    command: options.command,
+    timeoutSeconds: options.startupTimeoutSeconds ?? DEFAULT_STARTUP_TIMEOUT_SECONDS,
+    logger,
+  });
 
   function handleDisconnect(exitCode: number | null): void {
     if (disconnected) return;
@@ -347,11 +365,22 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   }
 
   let init: Awaited<ReturnType<typeof initializeAgent>>;
+  let markSettled!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    markSettled = resolve;
+  });
+  try {
+    options.onLaunched?.({ kill, settled });
+  } catch {
+    // a hook never fails the start-up
+  }
   try {
     init = await initializeAgent(conn, agent, options.command, { logger, elicitation: options.elicitation !== undefined });
   } catch (error) {
     kill();
     throw error;
+  } finally {
+    markSettled();
   }
   try {
     options.onInitialized?.();
@@ -438,8 +467,8 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
         dispatch({ type: "client_notice", text, at: now() });
       },
 
-      listSessions(params, signal): Promise<ListSessionsResponse> {
-        return listSessions(conn, agent, options.command, params, { logger, ...(signal ? { signal } : {}) });
+      listSessions(params, signal, listOptions): Promise<ListSessionsResponse> {
+        return listSessions(conn, agent, options.command, params, { logger, ...(signal ? { signal } : {}), ...(listOptions?.startup ? { startup: true } : {}) });
       },
 
       getSession(): Session {

@@ -36,7 +36,10 @@ describe("session store", () => {
   test("starts connecting; attach follows the source and clears it", () => {
     const store = createSessionStore({ home: "/home/x" });
     expect(store.ui.connecting).toBe(true);
-    expect(store.view().connection).toBe("connecting");
+    expect(store.view().connection).toBe("starting");
+    store.setHarnessInitialized();
+    expect(store.view().connection).toBe("opening");
+    expect(store.ui.initializedAt).not.toBeNull();
     const source = fakeSource();
     source.dispatch({ type: "session_created", at: 0, cwd: "/w", agentInfo: { name: "fake", version: "1" }, response: { sessionId: "s1" } });
     store.attach(source);

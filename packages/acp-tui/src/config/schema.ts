@@ -31,7 +31,7 @@ import { MODULE_IDS, MODULES, type ModuleId } from "../layout/modules.ts";
 import { templateFields } from "../layout/template.ts";
 import { DEFAULT_TITLE_FORMAT, titleFormatIssue, titlePlaceholderList } from "../renderer/title-format.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS, type KeyContext } from "../keys/keymap.ts";
-import { DEFAULT_HARNESS } from "../agent/command.ts";
+import { DEFAULT_HARNESS, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
 import { CLIPBOARD_MODES, EXIT_PRINTS, MOUSE_POLICIES } from "../renderer/options.ts";
 import { TERMINAL_IDS, type TerminalId } from "../renderer/terminal-ids.ts";
 import { suggest } from "./problems.ts";
@@ -182,6 +182,7 @@ const AgentServer = z
     // Zed writes `"type": "custom"` on the agents it runs from a command (design 6.8: entries copy
     // across from Zed's settings), so the key is accepted and ignored rather than reported.
     type: z.literal("custom").optional().describe("Ignored; Zed's entry type, so entries copied from Zed's settings load unchanged."),
+    startup_timeout_seconds: whole(5, 600).optional().describe("Seconds this harness may stay silent while it starts (a whole number from 5 to 600) before acp-tui stops it; wins over agent_startup_timeout_seconds for this harness."),
   })
   .describe("A harness in Zed's shape (Zed calls it an agent server): command, args and env.");
 
@@ -370,6 +371,7 @@ export const SECTIONS = {
     .default({})
     .describe("Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file."),
   default_agent_server: z.string().min(1).default(DEFAULT_HARNESS).describe("The harness launched without a harness name or command: \"auggie\" or \"claude\" (both built in) or the name of an agent_servers entry. The older name default_agent is still accepted."),
+  agent_startup_timeout_seconds: whole(5, 600).default(DEFAULT_STARTUP_TIMEOUT_SECONDS).describe("Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. A built-in harness has its own default when this is not set (120 for claude, 30 for the others), and an agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file."),
   mouse: listed(z.enum(MOUSE_POLICIES).default("full"), {
     heading: "Mouse policy",
     values: [
@@ -587,6 +589,7 @@ export const PROJECT_FILE_RULES: { readonly [K in SectionName | "$schema"]: Proj
   $schema: "allowed",
   agent_servers: { denied: AGENTS_DENIED },
   default_agent_server: { denied: AGENTS_DENIED },
+  agent_startup_timeout_seconds: { denied: "a project file cannot decide how long a harness it did not choose is waited for" },
   mouse: "allowed",
   wheel_lines: "allowed",
   terminals: { denied: "a project file cannot change what the terminal is trusted to draw (OSC 8 links, strikethrough)" },

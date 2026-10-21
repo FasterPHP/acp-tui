@@ -4,7 +4,7 @@
 // version, a graphic of what acp-tui does (any IDE or terminal, acp-tui, the
 // agents it drives, and a tagline of its qualities), the harness, model and
 // directory (two rows, drawn from the first frame: before the session has started
-// `Harness: <launch name> • <spinner> connecting…`, then `Harness: <agent name> • Model: <model>`,
+// `Harness: <launch name> • <spinner> starting…` then `opening session…`, then `Harness: <agent name> • Model: <model>`,
 // the labels in `muted` and the values in `text`), and the keys that are not in the status row (send, newline, the
 // agent's commands, file mention, the command palette, interrupt, detach) with
 // labels from the key map in use. Every
@@ -31,8 +31,26 @@ export const SPLASH_AGENTS = ["auggie", "claude", "codex"] as const;
 /** What acp-tui is, the graphic's second row (Marcus, 15 October 2026): its own qualities, not
  *  features every client has. Plain text, not a setting. */
 export const SPLASH_TAGLINE = ["clear", "concise", "fast", "customisable"] as const;
-/** What the first identity row says, after the spinner, until the session has started. */
-export const SPLASH_CONNECTING = "connecting…";
+/** What the first identity row says, after the spinner, until the session has started: `starting…`
+ *  until the harness has answered `initialize`, then `opening session…`, and from the fifth second of
+ *  a wait on the whole seconds waited (`starting… 12 s`). */
+export const SPLASH_STARTING = "starting…";
+export const SPLASH_OPENING = "opening session…";
+/** The seconds are shown from this many on. */
+export const SPLASH_SECONDS_FROM = 5;
+/** The seconds the form reserves room for (a start-up timeout is at most 600 s). */
+const SPLASH_SECONDS_RESERVED = " 600 s";
+/** The columns the phase cell holds, whichever form it shows, so nothing on the row moves. */
+export const SPLASH_PHASE_WIDTH = displayWidth(SPLASH_OPENING) + displayWidth(SPLASH_SECONDS_RESERVED);
+
+export type StartupPhase = "starting" | "opening";
+
+/** The phase cell's text for a wait of `seconds` whole seconds, padded to `SPLASH_PHASE_WIDTH`
+ *  columns: `starting…`, or from the fifth second `starting… 12 s`. */
+export function phaseCell(phase: StartupPhase, seconds: number): string {
+  const text = `${phase === "starting" ? SPLASH_STARTING : SPLASH_OPENING}${seconds >= SPLASH_SECONDS_FROM ? ` ${Math.min(999, Math.floor(seconds))} s` : ""}`;
+  return text + " ".repeat(Math.max(0, SPLASH_PHASE_WIDTH - displayWidth(text)));
+}
 
 /** The identity row's labels, in `muted`; the values after them are in `text` (Marcus, 18 October 2026). */
 export const SPLASH_HARNESS_LABEL = "Harness: ";
@@ -68,6 +86,8 @@ export function splashLaunch(launch: { readonly agentName: string; readonly comm
 /** A segment the spinner's current frame replaces (the splash redraws that cell alone). */
 export interface SplashSegment extends Segment {
   readonly spinner?: true;
+  /** The cell showing what the start waits for (`phaseCell`); the app redraws it as the seconds pass. */
+  readonly phase?: true;
 }
 
 export interface SplashInput {
@@ -82,6 +102,9 @@ export interface SplashInput {
   /** True until the session has started: the first identity row then reads the harness and
    *  `connecting…` after a spinner cell. */
   readonly connecting: boolean;
+  /** What the start waits for while `connecting` (default `starting`), and the seconds waited (default 0). */
+  readonly phase?: StartupPhase;
+  readonly seconds?: number;
   /** The spinner's frames (`spinner.1` to `spinner.4`, one column each); the layout holds the
    *  first, and `SplashSegment.spinner` marks the cell to redraw. */
   readonly spinner: readonly string[];
@@ -190,7 +213,7 @@ function sections(input: SplashInput, width: number): Section[] {
     const tail: SplashSegment[] = [
       { text: sep, token: "muted" },
       { text: input.spinner[0] ?? " ", token: "muted", spinner: true },
-      { text: ` ${SPLASH_CONNECTING}`, token: "muted" },
+      { text: ` ${phaseCell(input.phase ?? "starting", input.seconds ?? 0)}`, token: "muted", phase: true },
     ];
     const tailWidth = tail.reduce((w, seg) => w + displayWidth(seg.text), 0);
     identity.push([harnessLabel, { text: truncateEnd(input.launch.harness, Math.max(1, room - labelWidth - tailWidth)), token: "text" }, ...tail]);

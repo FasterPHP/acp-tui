@@ -292,7 +292,11 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     elicitation: cards.elicitation,
     pace,
     // On Windows a harness run through npm's `.cmd` shim retitles the tab (windows-support D5).
-    onHarnessInitialized: () => terminalSignals.reassertTitle(),
+    onHarnessInitialized: () => {
+      terminalSignals.reassertTitle();
+      // The splash and the `connection` module move from `starting` to `opening session`.
+      store.setHarnessInitialized();
+    },
     // ... and so does a harness that starts a worker or runs a command later (Claude Code names
     // the tab `claude` as its process starts): the title is set again at those moments too.
     onHarnessActivity: (activity) => terminalSignals.harnessActivity(activity),

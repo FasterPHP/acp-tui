@@ -48,6 +48,8 @@ export interface LaunchDescription {
   readonly installHint?: string;
   /** For a built-in harness with a login command: what an authentication-required error adds. */
   readonly loginHint?: string;
+  /** Seconds a starting harness may stay silent before it is stopped (catalogue.ts); 30 when absent. */
+  readonly startupTimeoutSeconds?: number;
   /** The session directory: the directory argument, else (for `--resume <id>`) the index's, else
    *  the launch directory; absolute and symlink-resolved. */
   readonly directory: string;
@@ -66,8 +68,9 @@ export interface LaunchDescription {
 }
 
 /** The install and login hints of a built-in catalogue entry, as spreadable properties. */
-export function hintOf(entry: Pick<AgentEntry, "installHint" | "loginHint">): { installHint?: string; loginHint?: string } {
+export function hintOf(entry: Pick<AgentEntry, "installHint" | "loginHint" | "startupTimeoutSeconds">): { installHint?: string; loginHint?: string; startupTimeoutSeconds?: number } {
   return {
+    ...(entry.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: entry.startupTimeoutSeconds } : {}),
     ...(entry.installHint !== undefined ? { installHint: entry.installHint } : {}),
     ...(entry.loginHint !== undefined ? { loginHint: entry.loginHint } : {}),
   };
@@ -127,7 +130,9 @@ export function resolveLaunch(options: Pick<CliOptions, "agentName" | "agentComm
   // either" a name or the default.
   if (options.agentCommand !== null) {
     const [command, ...args] = options.agentCommand;
-    return { agentName: AD_HOC_AGENT, agentSource: "command", command: command!, args, env: {}, ...base, ...fromIndex(AD_HOC_AGENT), problems: [] };
+    // The user's timeout setting applies to a command given after `--` too.
+    const setting = (context.catalogue ?? (() => loadAgentCatalogue()))().startupTimeoutSetting;
+    return { agentName: AD_HOC_AGENT, agentSource: "command", command: command!, args, env: {}, ...(typeof setting === "number" ? { startupTimeoutSeconds: setting } : {}), ...base, ...fromIndex(AD_HOC_AGENT), problems: [] };
   }
   const catalogue = (context.catalogue ?? (() => loadAgentCatalogue()))();
   if (session.kind === "resume" && options.agentName === null) {

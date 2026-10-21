@@ -46,6 +46,7 @@ describe("defaults (design D2)", () => {
     expect(config).toEqual({
       agent_servers: {},
       default_agent_server: "auggie",
+      agent_startup_timeout_seconds: 30,
       mouse: "full",
       wheel_lines: null,
       terminals: {},
@@ -118,7 +119,7 @@ describe("project-file classification (design D4)", () => {
         denied.push(path.join("."));
       }
     }
-    expect(denied.sort()).toEqual(["agent_servers", "clipboard", "default_agent_server", "keys.card", "keys.elicitation", "terminals"]);
+    expect(denied.sort()).toEqual(["agent_servers", "agent_startup_timeout_seconds", "clipboard", "default_agent_server", "keys.card", "keys.elicitation", "terminals"]);
     // Anything below a denied entry is denied; other keys contexts are allowed.
     expect(projectRule(["keys", "card", "escape"])).toEqual(projectRule(["keys", "card"]));
     expect(projectRule(["keys", "global", "ctrl+q"])).toBe("allowed");

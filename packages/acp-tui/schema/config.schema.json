@@ -44,6 +44,12 @@
             "description": "Ignored; Zed's entry type, so entries copied from Zed's settings load unchanged.",
             "type": "string",
             "const": "custom"
+          },
+          "startup_timeout_seconds": {
+            "description": "Seconds this harness may stay silent while it starts (a whole number from 5 to 600) before acp-tui stops it; wins over agent_startup_timeout_seconds for this harness.",
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 600
           }
         },
         "required": [
@@ -57,6 +63,13 @@
       "description": "The harness launched without a harness name or command: \"auggie\" or \"claude\" (both built in) or the name of an agent_servers entry. The older name default_agent is still accepted.",
       "type": "string",
       "minLength": 1
+    },
+    "agent_startup_timeout_seconds": {
+      "default": 30,
+      "description": "Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. A built-in harness has its own default when this is not set (120 for claude, 30 for the others), and an agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file.",
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 600
     },
     "mouse": {
       "default": "full",

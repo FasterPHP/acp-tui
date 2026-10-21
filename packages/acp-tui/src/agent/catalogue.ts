@@ -30,7 +30,7 @@ import { formatProblem } from "../config/problems.ts";
 import { AgentServerSchema } from "../config/schema.ts";
 import { readConfigFile, userConfigFile } from "../config/sources.ts";
 import { exampleHarnesses, exampleRefusal } from "./examples.ts";
-import { BUILT_IN_HARNESS_NAMES, BUILT_IN_HARNESSES, DEFAULT_HARNESS } from "./command.ts";
+import { BUILT_IN_HARNESS_NAMES, BUILT_IN_HARNESSES, DEFAULT_HARNESS, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "./command.ts";
 
 export { DEFAULT_HARNESS };
 
@@ -45,7 +45,8 @@ export interface AgentEntry {
   readonly installHint?: string;
   /** For a built-in with a login command (`auggie login`): what an authentication-required error adds. */
   readonly loginHint?: string;
-  /** For a built-in: its start-up timeout in seconds (data until the timer uses it). */
+  /** Seconds of silence a starting harness is allowed: the entry's `startup_timeout_seconds`, else the
+   *  user's `agent_startup_timeout_seconds` when the file sets it, else the built-in's own default, else 30. */
   readonly startupTimeoutSeconds?: number;
   /** For a built-in that takes directories as arguments: the template with `{dir}` (data until used). */
   readonly additionalDirectoryArgs?: readonly string[];
@@ -65,6 +66,8 @@ export interface AgentCatalogue {
   /** Every problem found in the file, as messages for the user (empty when the file is fine or
    *  absent). */
   readonly problems: readonly string[];
+  /** The user's `agent_startup_timeout_seconds` when the file sets it, else null (ad hoc commands use it, else 30). */
+  readonly startupTimeoutSetting?: number | null;
   /** Why the file's agents were refused (another user could have written it), else null. */
   readonly refused?: string | null;
   /** The file's first error when it kept `agent_servers` from being read (a syntax error, a
@@ -111,10 +114,17 @@ function quote(text: string): string {
 export function catalogueFromSource(source: ParsedSource, options: { refused?: string | null } = {}): AgentCatalogue {
   const path = source.file;
   const agents = new Map<string, AgentEntry>(BUILT_IN_AGENTS.map((a) => [a.name, a]));
+  // The user's setting, when the file sets it; without it each harness keeps its own default.
+  const setting = typeof source.sections.agent_startup_timeout_seconds === "number" ? source.sections.agent_startup_timeout_seconds : null;
+  if (setting !== null) {
+    for (const [name, agent] of agents) agents.set(name, { ...agent, startupTimeoutSeconds: setting });
+  }
   const servers = (source.sections.agent_servers ?? {}) as Record<string, unknown>;
   for (const [name, raw] of Object.entries(servers)) {
     const entry = AgentServerSchema.parse(raw);
-    agents.set(name, { name, command: entry.command, args: entry.args, env: { ...entry.env }, source: "config" });
+    // An entry of a built-in name replaces the built-in one but keeps its default timeout.
+    const timeout = entry.startup_timeout_seconds ?? setting ?? BUILT_IN_AGENTS.find((a) => a.name === name)?.startupTimeoutSeconds ?? DEFAULT_STARTUP_TIMEOUT_SECONDS;
+    agents.set(name, { name, command: entry.command, args: entry.args, env: { ...entry.env }, source: "config", startupTimeoutSeconds: timeout });
   }
   const invalid = new Map(Object.entries(source.invalidAgents));
   const chosen = source.sections.default_agent_server;
@@ -126,6 +136,7 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
     agents,
     invalid,
     defaultAgent,
+    startupTimeoutSetting: setting,
     problems: source.problems.map(formatProblem),
     refused: options.refused ?? null,
     fileProblem: blocking ? formatProblem(blocking) : null,

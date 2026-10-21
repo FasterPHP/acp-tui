@@ -46,8 +46,8 @@ export interface SessionView {
   home: string | null;
   /** The platform whose path rules the `cwd` module applies (tests inject `win32`); absent = this one. */
   platform?: NodeJS.Platform;
-  /** `connecting` until `initialize` and `session/new` have completed. */
-  connection: ConnectionState | "connecting";
+  /** `starting` until `initialize` has been answered, then `opening` until the session has started. */
+  connection: ConnectionState | "starting" | "opening";
   turnState: TurnState;
   /** How the session is being opened (`load` or `resume`), or null once it is open
    *  (mvp-sessions task 6.2); absent in fixtures built by hand. */
@@ -112,6 +112,8 @@ export interface ViewInput {
   /** True once the harness has answered `initialize`: the connection reads `connected` though no
    *  session has started yet (the session list is open). */
   harnessReady?: boolean;
+  /** True once the harness has answered `initialize` (the start is then `opening`, else `starting`). */
+  initialized?: boolean;
   /** Overrides the session's own `agent` (from `initialize`); mostly for fixtures. */
   agent?: AgentIdentity | null;
   home?: string | null;
@@ -205,7 +207,7 @@ export function deriveSessionView(session: Session, input: ViewInput = {}): Sess
     mode: clean(mode),
     cwd: clean(session.cwd),
     home: input.home ?? null,
-    connection: input.connecting && input.harnessReady !== true ? "connecting" : session.connection,
+    connection: input.connecting && input.harnessReady !== true ? (input.initialized === true ? "opening" : "starting") : session.connection,
     turnState: session.state,
     opening: session.opening,
     loaded: session.order.length,
