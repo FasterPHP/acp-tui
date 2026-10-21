@@ -128,8 +128,7 @@ Options:
   -c, --continue          Open the latest session in the session directory
                           (only the named harness's, when one is named).
                           At most one of --resume and --continue.
-  --help, -h              Show this help and exit.
-  --version, -v           Show the version and exit.
+  --help, -h, --version, -v  Show this help, or the version, and exit.
 
 Settings for this run (each overrides the configuration setting of the
 same name, and a reload of the configuration never changes it):
