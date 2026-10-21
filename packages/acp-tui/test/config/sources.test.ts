@@ -167,7 +167,7 @@ describe("Precedence of settings (task 2.4)", () => {
     expect(config.mouse).toBe("wheel");
     expect(config.density).toBe("focus");
     // Objects merge key by key: the project file's threshold keeps the user's signal.
-    expect(config.attention).toEqual({ signal: "osc9", long_turn_seconds: 10 });
+    expect(config.attention).toEqual({ signal: "osc9", long_turn_seconds: 10, title_marker: true });
     expect(config.exit.print).toBe("transcript");
     expect(config.wheel_lines).toBeNull();
     expect(effectiveConfig({ user: {}, project: {}, overrides: { wheel_lines: 2, clipboard: "none" } })).toMatchObject({ wheel_lines: 2, clipboard: "none" });

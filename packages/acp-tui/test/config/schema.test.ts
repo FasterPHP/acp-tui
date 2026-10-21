@@ -55,7 +55,7 @@ describe("defaults (design D2)", () => {
       prompt: { cursor: "block_at_end" },
       density: "focus",
       interrupt: "double",
-      attention: { signal: "bell", long_turn_seconds: 30 },
+      attention: { signal: "bell", long_turn_seconds: 30, title_marker: true },
       busy: { track_percent: 40, style: "gap" },
       activity: { linger_seconds: 1.5 },
       title: { format: "{dir}{counter}" },

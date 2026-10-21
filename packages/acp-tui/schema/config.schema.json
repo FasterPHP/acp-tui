@@ -388,6 +388,11 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
+        },
+        "title_marker": {
+          "default": true,
+          "description": "Mark the terminal title with the attention glyph (title.attention) while attention is pending: a turn that ran long ended, or a request was answered or withdrawn, while the pane was unfocused. It clears when the pane gains focus (where the terminal reports it) and on the next key press, click, scroll or paste. Independent of signal: with signal none the title is still marked. Only terminals that show the program's title in the tab (PhpStorm's reworked terminal) show it.",
+          "type": "boolean"
         }
       }
     },
@@ -436,7 +441,7 @@
       "properties": {
         "format": {
           "default": "{dir}{counter}",
-          "description": "The terminal title, a template over {dir}, {counter}, {agent}, {title}: the session directory's name, a counter that is empty for the first acp-tui instance showing that name and \" 2\", \" 3\" and so on for the next ones, the agent's name and the agent's session title (empty until it sends one). Literal text directly before an empty placeholder is dropped with it. The default is \"{dir}{counter}\"; \"acp-tui | {title}\" gives the agent's title.",
+          "description": "The terminal title, a template over {dir}, {counter}, {agent}, {title}, {attention}: the session directory's name, a counter that is empty for the first acp-tui instance showing that name and \" 2\", \" 3\" and so on for the next ones, the agent's name and the agent's session title (empty until it sends one). {attention} is the attention marker (see attention.title_marker), empty while it is not shown; without {attention} in the format the marker leads the title. Literal text directly before an empty placeholder is dropped with it. The default is \"{dir}{counter}\"; \"acp-tui | {title}\" gives the agent's title.",
           "type": "string"
         }
       }
