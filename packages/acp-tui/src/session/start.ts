@@ -235,6 +235,7 @@ export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logg
     command: launchArgv(launch),
     env: launch.env,
     harness: launch.agentName,
+    ...(launch.installHint !== undefined ? { installHint: launch.installHint } : {}),
     cwd: processCwd,
     ...(logger ? { logger } : {}),
     ...(options.now ? { now: options.now } : {}),

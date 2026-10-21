@@ -37,10 +37,21 @@ export class AgentLaunchError extends Error {
     readonly command: readonly string[],
     cause: unknown,
     readonly harness?: string,
+    installHint?: string,
   ) {
-    super(`could not start ${harnessDescription(harness, command)}: ${causeMessage(cause)}`);
+    const notFound = isNotFound(cause);
+    super(`could not start ${harnessDescription(harness, command)}: ${causeMessage(cause)}${notFound && installHint !== undefined && harness !== undefined ? `; ${harness} is not installed: install it with ${installHint}` : ""}`);
     this.name = "AgentLaunchError";
+    this.notFound = notFound;
   }
+
+  /** Whether the program was not found (Bun's `ENOENT`, or acp-tui's own PATH lookup), as opposed to another start-up failure. */
+  readonly notFound: boolean;
+}
+
+/** Whether a spawn failure means the program does not exist (Bun's and acp-tui's lookup both carry `code: "ENOENT"`). */
+function isNotFound(cause: unknown): boolean {
+  return (cause as { code?: unknown } | null)?.code === "ENOENT";
 }
 
 function causeMessage(cause: unknown): string {
@@ -53,6 +64,8 @@ export interface LaunchOptions {
   env?: Readonly<Record<string, string>>;
   /** The harness's name in the catalogue, or `ad hoc`, for error messages. */
   harness?: string;
+  /** For a built-in harness whose program the user installs: how. Appended to the error when the program is not found. */
+  installHint?: string;
   logger?: DebugLogger;
   /** acp-tui's own environment, under the entry's; default `process.env` (tests). */
   baseEnv?: Env;
@@ -92,7 +105,10 @@ export function launchAgent(command: readonly string[], options: LaunchOptions =
       stderr: "pipe",
     });
   } catch (error) {
-    throw new AgentLaunchError(command, error, options.harness);
+    const failure = new AgentLaunchError(command, error, options.harness, options.installHint);
+    // The kind only, never the command or the message (spec: no text in the log).
+    options.logger?.log({ event: "launch_error", kind: failure.notFound ? "not_found" : "other" });
+    throw failure;
   }
 
   const stderr = new RingBuffer();

@@ -18,7 +18,7 @@
 // rule run by its consumer) are added under a channel name with `setProblems`;
 // `problems()` lists the loader's first, then every channel's.
 import { createSignal, type Accessor } from "solid-js";
-import { BUILT_IN_AGENT_NAME } from "../agent/command.ts";
+import { BUILT_IN_HARNESS_NAMES } from "../agent/command.ts";
 import { changedSections, effectiveConfig, nextLastGood, pinnedSettings, type ConfigOverrides, type Sections } from "./effective.ts";
 import type { ConfigProblem } from "./problems.ts";
 import { loadSource } from "./read.ts";
@@ -86,7 +86,7 @@ const load = loadSource;
 export function createConfigStore(options: ConfigStoreOptions): ConfigStore {
   const env = options.env ?? process.env;
   const read = options.read ?? readConfigFile;
-  const knownAgents = options.knownAgents ?? [BUILT_IN_AGENT_NAME];
+  const knownAgents = options.knownAgents ?? BUILT_IN_HARNESS_NAMES;
   const overrides = options.overrides ?? {};
   const home = homeDirectory(env);
   const userFile = userConfigFile(env);

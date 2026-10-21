@@ -36,16 +36,16 @@ afterEach(async () => {
 });
 
 describe("Agent launch (tui-agent-session)", () => {
-  test("Built-in default: no configuration file and no arguments resolve to the pinned claude-agent-acp command", async () => {
+  test("Built-in default: no configuration file and no arguments resolve to auggie --acp", async () => {
     const cwd = temp("acp-tui-launch-");
     const out = join(cwd, "launch.json");
     session = startPty(["bun", STUB], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
     expect(await session.wait(15000)).toBe(0);
     expect(existsSync(out)).toBe(true);
     const launch = JSON.parse(readFileSync(out, "utf8")) as LaunchDescription;
-    expect([launch.command, ...launch.args]).toEqual([...DEFAULT_AGENT_COMMAND]);
+    expect([launch.command, ...launch.args]).toEqual(["auggie", "--acp"]);
     expect(launch).toMatchObject({
-      agentName: "claude",
+      agentName: "auggie",
       agentSource: "default",
       env: {},
       directory: cwd,
@@ -54,6 +54,16 @@ describe("Agent launch (tui-agent-session)", () => {
       session: { kind: "new" },
       problems: [],
     });
+  });
+
+  test("Built-in by position: acp-tui claude resolves to the pinned claude-agent-acp command", async () => {
+    const cwd = temp("acp-tui-launch-");
+    const out = join(cwd, "launch.json");
+    session = startPty(["bun", STUB, "claude"], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
+    expect(await session.wait(15000)).toBe(0);
+    const launch = JSON.parse(readFileSync(out, "utf8")) as LaunchDescription;
+    expect([launch.command, ...launch.args]).toEqual([...DEFAULT_AGENT_COMMAND]);
+    expect(launch).toMatchObject({ agentName: "claude", agentSource: "option" });
   });
 });
 

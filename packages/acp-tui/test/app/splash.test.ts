@@ -27,7 +27,7 @@ describe("splash rows (task 4.7)", () => {
     const layout = splashLayout(INPUT, 63, 12);
     expect(layout.shown).toEqual(["wordmark", "graphic", "identity", "hints"]);
     const all = text(layout.rows).join("\n");
-    for (const part of ["┏━┓", "0.0.0", "IDE · terminal", "acp-tui", "opencode", "Harness: claude-agent-acp", "Model: Opus 5.5", "/work/repo-b", "enter", "shift+enter", "/ commands", "@ files", "? help", "esc esc", "ctrl+d"]) {
+    for (const part of ["┏━┓", "0.0.0", "IDE · terminal", "acp-tui", "codex", "Harness: claude-agent-acp", "Model: Opus 5.5", "/work/repo-b", "enter", "shift+enter", "/ commands", "@ files", "? help", "esc esc", "ctrl+d"]) {
       expect(all).toContain(part);
     }
     expect(layout.rows.length).toBeLessThanOrEqual(12);
@@ -76,10 +76,10 @@ describe("splash rows (task 4.7)", () => {
     expect(splashLayout(INPUT, 50, 40).shown).toEqual(["wordmark", "identity", "hints"]);
   });
 
-  test("the graphic (task 12.3): `IDE · terminal ━→ acp-tui ━→ claude · codex · opencode · …`, 58 columns; kept at 63 and 61 columns in 12 rows, dropped below 58", () => {
+  test("the graphic (task 12.3): `IDE · terminal ━→ acp-tui ━→ auggie · claude · codex · …`, 56 columns; kept at 63 and 61 columns in 12 rows, dropped below 56", () => {
     const graphic = (width: number, height = 12) => text(splashLayout(INPUT, width, height).rows).filter((r) => r.includes("acp-tui ━→"));
-    expect(graphic(63)).toEqual(["IDE · terminal ━→ acp-tui ━→ claude · codex · opencode · …"]);
-    expect(displayWidth(graphic(63)[0]!)).toBe(58);
+    expect(graphic(63)).toEqual(["IDE · terminal ━→ acp-tui ━→ auggie · claude · codex · …"]);
+    expect(displayWidth(graphic(63)[0]!)).toBe(56);
     // 63x21 and 61x20 both leave the conversation 12 rows (design D1): the whole splash fits.
     for (const width of [63, 61]) {
       const layout = splashLayout(INPUT, width, 12);
@@ -95,13 +95,13 @@ describe("splash rows (task 4.7)", () => {
     expect(splashLayout(INPUT, 61, 6).shown).toEqual(["identity", "hints"]);
     expect(splashLayout(INPUT, 61, 3).shown).toEqual(["hints"]);
     // Wider than the region: left out at any height.
-    expect(splashLayout(INPUT, 58, 40).shown).toContain("graphic");
-    expect(splashLayout(INPUT, 57, 40).shown).not.toContain("graphic");
+    expect(splashLayout(INPUT, 56, 40).shown).toContain("graphic");
+    expect(splashLayout(INPUT, 55, 40).shown).not.toContain("graphic");
     // The graphic's second row is the tagline (Marcus, 15 October 2026), not the features.
     expect(text(splashLayout(INPUT, 63, 12).rows)).toContain("clear · concise · fast · customisable");
     // The ascii set's arrow, separator and `more`.
     const ascii = text(splashLayout({ ...INPUT, glyphs: ASCII_CHROME_GLYPHS }, 63, 12).rows).find((r) => r.includes("acp-tui ->"));
-    expect(ascii).toBe("IDE - terminal -> acp-tui -> claude - codex - opencode - ...");
+    expect(ascii).toBe("IDE - terminal -> acp-tui -> auggie - claude - codex - ...");
   });
 
   test("centred: as many rows above as below, give or take one", () => {

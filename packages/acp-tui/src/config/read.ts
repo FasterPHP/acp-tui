@@ -5,7 +5,7 @@
 // file's last good sections in between; `acp-tui config --check` does it once
 // (src/config-command.ts). No Solid and no OpenTUI here: the subcommands never
 // start the renderer.
-import { BUILT_IN_AGENT_NAME } from "../agent/command.ts";
+import { BUILT_IN_HARNESS_NAMES } from "../agent/command.ts";
 import { effectiveConfig, nextLastGood, type ConfigOverrides } from "./effective.ts";
 import { parseConfigText, type ConfigSourceKind, type ParsedSource } from "./load.ts";
 import type { ConfigProblem } from "./problems.ts";
@@ -53,7 +53,7 @@ export interface ConfigurationRead {
 export function readConfiguration(options: ReadConfigurationOptions): ConfigurationRead {
   const env = options.env ?? process.env;
   const read = options.read ?? readConfigFile;
-  const knownAgents = options.knownAgents ?? [BUILT_IN_AGENT_NAME];
+  const knownAgents = options.knownAgents ?? BUILT_IN_HARNESS_NAMES;
   const platform = options.platform ?? process.platform;
   const userFile = userConfigFile(env, platform);
   const user = loadSource(read(userFile, { checkWriters: true, env, platform }), userFile, "user", knownAgents, platform);

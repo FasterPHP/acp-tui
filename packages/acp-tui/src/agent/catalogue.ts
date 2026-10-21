@@ -1,6 +1,6 @@
 // The agent catalogue (mvp-sessions task 3.2, design decision 8, spec
 // tui-sessions "Named agents" and "Agents are defined only in the user's
-// configuration"): the built-in `claude` entry (DEFAULT_AGENT_COMMAND) and the
+// configuration"): the built-in entries (BUILT_IN_HARNESSES: `auggie`, `claude`) and the
 // `agent_servers` entries of the user's configuration file,
 // `$XDG_CONFIG_HOME/acp-tui/config.jsonc` (`~/.config` when XDG_CONFIG_HOME is
 // unset or not absolute, `%APPDATA%` on Windows), in Zed's shape: `command` a
@@ -29,9 +29,9 @@ import { parseConfigText, type ParsedSource } from "../config/load.ts";
 import { formatProblem } from "../config/problems.ts";
 import { AgentServerSchema } from "../config/schema.ts";
 import { readConfigFile, userConfigFile } from "../config/sources.ts";
-import { BUILT_IN_AGENT_NAME, DEFAULT_AGENT_COMMAND } from "./command.ts";
+import { BUILT_IN_HARNESS_NAMES, BUILT_IN_HARNESSES, DEFAULT_HARNESS } from "./command.ts";
 
-export { BUILT_IN_AGENT_NAME };
+export { DEFAULT_HARNESS };
 
 /** A launchable agent: its name, the command and its arguments, and environment added to acp-tui's own. */
 export interface AgentEntry {
@@ -40,6 +40,8 @@ export interface AgentEntry {
   readonly args: readonly string[];
   readonly env: Readonly<Record<string, string>>;
   readonly source: "built-in" | "config";
+  /** For a built-in whose program the user installs: how (an error for a missing program ends with it). */
+  readonly installHint?: string;
 }
 
 export interface AgentCatalogue {
@@ -51,7 +53,7 @@ export interface AgentCatalogue {
    *  a built-in name leaves the built-in entry in `agents`. */
   readonly invalid: ReadonlyMap<string, string>;
   /** The agent launched without `-a` or an agent command: `default_agent_server` when it names a
-   *  launchable agent, else `claude`. */
+   *  launchable agent, else `auggie`. */
   readonly defaultAgent: string;
   /** Every problem found in the file, as messages for the user (empty when the file is fine or
    *  absent). */
@@ -63,17 +65,16 @@ export interface AgentCatalogue {
   readonly fileProblem?: string | null;
 }
 
-export const BUILT_IN_AGENTS: readonly AgentEntry[] = [
-  {
-    name: BUILT_IN_AGENT_NAME,
-    command: DEFAULT_AGENT_COMMAND[0]!,
-    args: DEFAULT_AGENT_COMMAND.slice(1),
-    env: {},
-    source: "built-in",
-  },
-];
+export const BUILT_IN_AGENTS: readonly AgentEntry[] = BUILT_IN_HARNESSES.map((h) => ({
+  name: h.name,
+  command: h.command[0]!,
+  args: h.command.slice(1),
+  env: {},
+  source: "built-in" as const,
+  ...(h.installHint !== undefined ? { installHint: h.installHint } : {}),
+}));
 
-const BUILT_IN_NAMES = BUILT_IN_AGENTS.map((a) => a.name);
+const BUILT_IN_NAMES = BUILT_IN_HARNESS_NAMES;
 
 /** Thrown for `-a <name>` when no launchable agent has that name; the message names it and
  *  lists the known names, or says what is wrong with a configured entry of that name. */
@@ -107,7 +108,7 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
   }
   const invalid = new Map(Object.entries(source.invalidAgents));
   const chosen = source.sections.default_agent_server;
-  const defaultAgent = typeof chosen === "string" && agents.has(chosen) ? chosen : BUILT_IN_AGENT_NAME;
+  const defaultAgent = typeof chosen === "string" && agents.has(chosen) ? chosen : DEFAULT_HARNESS;
   // The error that kept `agent_servers` out, if one did: the whole file, or that section.
   const blocking = source.problems.find((p) => p.severity === "error" && (p.path === "" || p.path === "agent_servers"));
   return {

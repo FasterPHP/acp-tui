@@ -151,6 +151,8 @@ export interface StartSessionOptions {
   readonly env?: Readonly<Record<string, string>>;
   /** The harness's name in the catalogue, or `ad hoc`, for the errors that name it. */
   readonly harness?: string;
+  /** For a built-in harness whose program the user installs: how, appended to the error when the program is not found. */
+  readonly installHint?: string;
   /** The agent process's working directory, and the `cwd` of `startSession`'s new session. */
   readonly cwd: string;
   readonly logger?: DebugLogger;
@@ -210,7 +212,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   // Set synchronously when detach() starts, before the connection is closed.
   let detached = false;
 
-  const agent: LaunchedAgent = launchAgent(options.command, { cwd: options.cwd, logger, ...(options.env ? { env: options.env } : {}), ...(options.harness !== undefined ? { harness: options.harness } : {}) });
+  const agent: LaunchedAgent = launchAgent(options.command, { cwd: options.cwd, logger, ...(options.env ? { env: options.env } : {}), ...(options.harness !== undefined ? { harness: options.harness } : {}), ...(options.installHint !== undefined ? { installHint: options.installHint } : {}) });
 
   // One controller's session: the model, its listeners and its client handler. The connection's
   // messages go to the active one (`reuse` makes another active; mvp-sessions design decision 7);

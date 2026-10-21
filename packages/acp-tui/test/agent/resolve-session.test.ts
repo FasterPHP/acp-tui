@@ -76,7 +76,7 @@ describe("resolveLaunch for --resume <id> (tasks 5.2 and 12.5)", () => {
   test("not in the index: the default agent and the launch directory", () => {
     const { context, cwd } = setup();
     const launch = resolveLaunch({ ...none, session: session("s-7") }, context);
-    expect(launch).toMatchObject({ agentName: "claude", agentSource: "default", directory: cwd, directorySource: "launch", indexMatches: 0 });
+    expect(launch).toMatchObject({ agentName: "auggie", agentSource: "default", directory: cwd, directorySource: "launch", indexMatches: 0 });
   });
 
   test("an ad hoc entry without -a or --: an error with the command to rerun, quoted for a POSIX shell", () => {
