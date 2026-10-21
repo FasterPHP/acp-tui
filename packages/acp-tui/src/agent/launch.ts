@@ -7,6 +7,7 @@ import type { DebugLogger } from "../log.ts";
 import { RingBuffer } from "./ring-buffer.ts";
 import { scriptSpawn } from "./command-script.ts";
 import { mergeEnvironment, resolveArgv, type Env } from "./which.ts";
+import { commandBaseName } from "./hints.ts";
 
 export interface LaunchedAgent {
   readonly proc: Bun.Subprocess<"pipe", "pipe", "pipe">;
@@ -40,7 +41,10 @@ export class AgentLaunchError extends Error {
     installHint?: string,
   ) {
     const notFound = isNotFound(cause);
-    super(`could not start ${harnessDescription(harness, command)}: ${causeMessage(cause)}${notFound && installHint !== undefined && harness !== undefined ? `; ${harness} is not installed: install it with ${installHint}` : ""}`);
+    // The program that was not found is named by its base name (`auggie`, `bunx`), whatever the
+    // harness is called (configured-harnesses: hints follow the program, src/agent/hints.ts).
+    const program = commandBaseName(command[0] ?? "");
+    super(`could not start ${harnessDescription(harness, command)}: ${causeMessage(cause)}${notFound && installHint !== undefined ? `; ${program} is not installed: install it with ${installHint}` : ""}`);
     this.name = "AgentLaunchError";
     this.notFound = notFound;
   }
@@ -64,7 +68,7 @@ export interface LaunchOptions {
   env?: Readonly<Record<string, string>>;
   /** The harness's name in the catalogue, or `ad hoc`, for error messages. */
   harness?: string;
-  /** For a built-in harness whose program the user installs: how. Appended to the error when the program is not found. */
+  /** For a program acp-tui knows (src/agent/hints.ts): how to install it. Appended to the error when the program is not found. */
   installHint?: string;
   logger?: DebugLogger;
   /** acp-tui's own environment, under the entry's; default `process.env` (tests). */

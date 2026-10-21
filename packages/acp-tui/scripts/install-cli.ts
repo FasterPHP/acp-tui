@@ -181,8 +181,8 @@ On Windows the command is acp-tui.cmd and the default directory is %USERPROFILE%
 where Bun's installer already put a directory on your PATH.
 
 It also creates your configuration file, $XDG_CONFIG_HOME/acp-tui/config.jsonc (else
-~/.config/acp-tui/config.jsonc; on Windows %APPDATA%\\acp-tui\\config.jsonc), with every setting
-commented at its default, when there is none. An existing configuration is never replaced, not
+~/.config/acp-tui/config.jsonc; on Windows %APPDATA%\\acp-tui\\config.jsonc), with the auggie
+harness and every setting at its default, when there is none. An existing configuration is never replaced, not
 even with --force, and --uninstall leaves it alone.
 
 Every install also writes config.dist.jsonc beside it: the default configuration of this
@@ -420,7 +420,7 @@ export async function main(
   }
   io.stdout(
     outcome.created
-      ? `install-cli: created ${outcome.file}, every setting commented at its default; edit it to add agents (acp-tui config --check checks it)\n`
+      ? `install-cli: created ${outcome.file}, with the auggie harness and every setting at its default; uncomment an example to add a harness (acp-tui config --check checks it)\n`
       : `install-cli: kept the existing configuration ${outcome.file}\n`,
   );
   const dist = await writeDistConfiguration(join(dirname(outcome.file), DIST_FILE_NAME));

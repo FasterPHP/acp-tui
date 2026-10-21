@@ -5,7 +5,6 @@
 // file's last good sections in between; `acp-tui config --check` does it once
 // (src/config-command.ts). No Solid and no OpenTUI here: the subcommands never
 // start the renderer.
-import { BUILT_IN_HARNESS_NAMES } from "../agent/command.ts";
 import { effectiveConfig, nextLastGood, type ConfigOverrides } from "./effective.ts";
 import { parseConfigText, type ConfigSourceKind, type ParsedSource } from "./load.ts";
 import type { ConfigProblem } from "./problems.ts";
@@ -29,7 +28,7 @@ export interface ReadConfigurationOptions {
   /** The session directory, where the project file is looked for; null for none. */
   readonly sessionDirectory: string | null;
   readonly overrides?: ConfigOverrides;
-  /** Agent names that exist without the file; default the built-in. */
+  /** Agent names that exist without the file's entries; default none (every harness is an entry). */
   readonly knownAgents?: readonly string[];
   /** Reads a file (tests); default `readConfigFile`. */
   readonly read?: (path: string, options: ReadOptions) => FileRead;
@@ -55,7 +54,7 @@ export interface ConfigurationRead {
 export function readConfiguration(options: ReadConfigurationOptions): ConfigurationRead {
   const env = options.env ?? process.env;
   const read = options.read ?? readConfigFile;
-  const knownAgents = options.knownAgents ?? BUILT_IN_HARNESS_NAMES;
+  const knownAgents = options.knownAgents ?? [];
   const platform = options.platform ?? process.platform;
   const userFile = userConfigFile(env, platform);
   const user = loadSource(read(userFile, { checkWriters: true, env, platform }), userFile, "user", knownAgents, platform, homeDirectory(env));

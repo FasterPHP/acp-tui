@@ -2,7 +2,8 @@
 // "Agent launch" and "New session in the current directory", tui-sessions
 // "Named agents"): the parsed command line resolved through the agent
 // catalogue into one `LaunchDescription`. An agent command (after `--`) wins;
-// else `-a <name>`; else the default agent (`default_agent_server`, else `auggie`).
+// else `-a <name>`; else the default agent (`default_agent_server`, by default `auggie`, which
+// must name an entry: configured-harnesses, design D3).
 // The catalogue, and with it the user's configuration file, is read only when
 // a name has to be looked up, so an ad hoc command never touches it. The
 // session directory is the explicit directory argument (already absolute and
@@ -32,7 +33,8 @@ import { shortenHome } from "../layout/segments.ts";
 import { homeDirectory } from "../config/sources.ts";
 import { shellWordFor } from "../platform/shell-quote.ts";
 import { AD_HOC_AGENT, openSessionIndex, type SessionIndex, type SessionRecord } from "../session/session-index.ts";
-import { AgentNameError, findAgent, loadAgentCatalogue, type AgentCatalogue, type AgentEntry } from "./catalogue.ts";
+import { AgentNameError, findAgent, findDefaultAgent, loadAgentCatalogue, type AgentCatalogue, type AgentEntry } from "./catalogue.ts";
+import { hintsFor } from "./hints.ts";
 
 export { AD_HOC_AGENT };
 
@@ -40,17 +42,16 @@ export interface LaunchDescription {
   /** The agent's name in the catalogue, or `ad hoc` for a command given after `--`. */
   readonly agentName: string;
   /** How the agent was chosen: `-a` (`option`), an agent command (`command`), the session index
-   *  for `--resume <id>` or `--continue` (`index`), or none of these (`default`: `default_agent_server`, else `auggie`). */
+   *  for `--resume <id>` or `--continue` (`index`), or none of these (`default`: `default_agent_server`). */
   readonly agentSource: "option" | "command" | "index" | "default";
   /** The executable and its arguments. */
   readonly command: string;
   readonly args: readonly string[];
   /** Added to acp-tui's own environment for the agent process (a configured entry's `env`). */
   readonly env: Readonly<Record<string, string>>;
-  /** For a built-in harness whose program the user installs: how, for the launch error (a configured
-   *  entry of the same name gets none, since its command is the user's). */
+  /** For a program acp-tui knows (src/agent/hints.ts): how to install it, for the launch error. */
   readonly installHint?: string;
-  /** For a built-in harness with a login command: what an authentication-required error adds. */
+  /** For a program with a login command: what an authentication-required error adds. */
   readonly loginHint?: string;
   /** Seconds a starting harness may stay silent before it is stopped (catalogue.ts); 30 when absent. */
   readonly startupTimeoutSeconds?: number;
@@ -90,7 +91,7 @@ export interface LaunchDescription {
   readonly directoryNotices?: readonly string[];
 }
 
-/** The install and login hints of a built-in catalogue entry, as spreadable properties. */
+/** The install and login hints, timeout and directory template of a catalogue entry, as spreadable properties. */
 export function hintOf(entry: Pick<AgentEntry, "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs">): { installHint?: string; loginHint?: string; startupTimeoutSeconds?: number; additionalDirectoryArgs?: readonly string[] } {
   return {
     ...(entry.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: entry.additionalDirectoryArgs } : {}),
@@ -252,7 +253,8 @@ function resolveAgentLaunch(options: Pick<CliOptions, "agentName" | "agentComman
     const [command, ...args] = options.agentCommand;
     // The user's timeout setting applies to a command given after `--` too.
     const setting = (context.catalogue ?? (() => loadAgentCatalogue()))().startupTimeoutSetting;
-    return { agentName: AD_HOC_AGENT, agentSource: "command", command: command!, args, env: {}, ...(typeof setting === "number" ? { startupTimeoutSeconds: setting } : {}), ...base, ...fromIndex(AD_HOC_AGENT), problems: [] };
+    // The hints follow the program, so `acp-tui -- auggie --acp` without Auggie says how to install it.
+    return { agentName: AD_HOC_AGENT, agentSource: "command", command: command!, args, env: {}, ...hintsFor(command!, args), ...(typeof setting === "number" ? { startupTimeoutSeconds: setting } : {}), ...base, ...fromIndex(AD_HOC_AGENT), problems: [] };
   }
   const catalogue = (context.catalogue ?? (() => loadAgentCatalogue()))();
   if (session.kind === "resume" && options.agentName === null) {
@@ -279,7 +281,7 @@ function resolveAgentLaunch(options: Pick<CliOptions, "agentName" | "agentComman
       };
     }
   }
-  const entry = findAgent(catalogue, options.agentName ?? catalogue.defaultAgent);
+  const entry = options.agentName !== null ? findAgent(catalogue, options.agentName) : findDefaultAgent(catalogue);
   return {
     agentName: entry.name,
     agentSource: options.agentName !== null ? "option" : "default",

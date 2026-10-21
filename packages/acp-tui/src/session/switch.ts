@@ -107,9 +107,6 @@ export interface SessionSwitcherOptions {
   readonly onHarnessActivity?: (activity: HarnessActivity) => void;
   /** Reads the agent catalogue (each time the list asks); default `loadAgentCatalogue()`. */
   readonly catalogue?: () => AgentCatalogue;
-  /** Whether a built-in harness's program is on the PATH, looked up once when the list opens
-   *  (spec tui-sessions "Agent selector"); default `resolveProgram` over `process.env`. */
-  readonly isInstalled?: (entry: AgentEntry) => boolean;
   /** The configuration's additional directories now (a change applies to the next session
    *  started); default reads the configuration files for the session directory. */
   readonly configDirectories?: (directory: string) => readonly string[];
@@ -137,7 +134,7 @@ export interface SessionSwitcher {
   /** Esc in the list at start-up: a new session with the agent in use in the session directory,
    *  once the agent is up. Throws the agent's error. */
   startNew(): Promise<void>;
-  /** The names of the agents the "New session with" rows offer (built-in and configured). */
+  /** The names of the agents the "New session with" rows offer: the valid configured entries. */
   agents(): readonly string[];
   /** The agent in use. */
   currentAgent(): CurrentAgent;
@@ -378,10 +375,9 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     },
 
     agents: () => {
-      // The harness in use, every configured entry, and each built-in found on the PATH (one lookup each, now).
-      const using = (state?.launch ?? launch).agentName;
-      const installed = options.isInstalled ?? ((entry: AgentEntry) => resolveProgram(entry.command) !== null);
-      return [...readCatalogue().agents.values()].filter((entry) => entry.source !== "built-in" || entry.name === using || installed(entry)).map((entry) => entry.name);
+      // Exactly the valid configured entries, with no PATH lookup (configured-harnesses, design D5):
+      // an entry whose program is missing says so when it is chosen.
+      return [...readCatalogue().agents.keys()];
     },
 
     currentAgent: () => {
