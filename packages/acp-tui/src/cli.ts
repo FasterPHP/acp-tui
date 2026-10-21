@@ -103,7 +103,7 @@ export const HELP_TEXT = `acp-tui: a full-screen terminal client for the Agent C
 Usage:
   acp-tui [harness] [directory] [options]
   acp-tui [harness] [directory] [options] -- <command> [args...]
-  acp-tui config --check | --print-default | --print-schema | --path
+  acp-tui config --check|--print-default|--print-schema|--path|--diff-default
   acp-tui glyphs --test [set]
 
 Harnesses:

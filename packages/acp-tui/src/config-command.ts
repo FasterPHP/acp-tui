@@ -17,16 +17,19 @@
 // - `--print-schema`: the configuration's JSON Schema.
 // - `--path`: the user's file, the themes directory and the project file that
 //   applies for the current directory, each present or absent.
+// - `--diff-default`: a unified diff (three lines of context, no colour) from the user's file,
+//   read as text so an invalid file still diffs, to the commented default (interface-feedback D4).
 //
 // Like the glyphs subcommand, nothing here loads Solid (the import graph test
 // checks the modules it imports).
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { unifiedDiff } from "./conversation/diff.ts";
 import { resolveGlyphs } from "./conversation/glyphs.ts";
 import { commentedDefault } from "./config/default-file.ts";
 import { configJsonSchemaText } from "./config/json-schema.ts";
 import { formatProblemWithSeverity, hasErrors, type ConfigProblem } from "./config/problems.ts";
 import { readConfiguration, type ConfigurationRead } from "./config/read.ts";
-import { type Env } from "./config/sources.ts";
+import { type Env, userConfigFile } from "./config/sources.ts";
 import { keyCheckProblems } from "./keys/from-config.ts";
 import { checkTheme } from "./theme/configured.ts";
 
@@ -45,19 +48,23 @@ export interface ConfigCommandContext {
 }
 
 export const CONFIG_HELP = `Usage: acp-tui config --check | --print-default | --print-schema | --path
+                       | --diff-default
 
   --check          Check the configuration: the user's file, the project file
-                   for this directory, the theme files the theme names, the key
-                   bindings and the glyph overrides. Prints each problem with
-                   its file, line and column; exits 1 if any is an error, 0
-                   with warnings only.
+                   for this directory, the theme files the theme names, the
+                   key bindings and the glyph overrides. Prints each problem
+                   with its file, line and column; exits 1 if any is an
+                   error, 0 with warnings only.
   --print-default  Print a complete configuration file with every setting at
                    its default and a comment saying what it does.
   --print-schema   Print the configuration file's JSON Schema, for an editor.
   --path           Print where the configuration is read from.
+  --diff-default   Print what differs between your configuration file and the
+                   default: a unified diff from your file to the default, so
+                   the + lines are settings you lack or that changed.
 `;
 
-const ACTIONS = ["--check", "--print-default", "--print-schema", "--path"] as const;
+const ACTIONS = ["--check", "--print-default", "--print-schema", "--path", "--diff-default"] as const;
 type Action = (typeof ACTIONS)[number];
 
 /** Every problem `--check` reports for a configuration read: the loader's, then the theme's, the
@@ -101,6 +108,41 @@ function runPath(io: ConfigCommandIo, read: ConfigurationRead, cwd: string): num
   return 0;
 }
 
+/** A character a terminal would act on (the user's file is shown as it is, not interpreted). */
+const CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
+
+function runDiffDefault(io: ConfigCommandIo, env: Env, platform: NodeJS.Platform | undefined): number {
+  const file = userConfigFile(env, platform);
+  let user: string;
+  try {
+    user = readFileSync(file, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      io.stderr.write(`acp-tui: config: no configuration file at ${file}; acp-tui config --print-default prints the default\n`);
+      return 1;
+    }
+    io.stderr.write(`acp-tui: config: could not read ${file}: ${error instanceof Error ? error.message : String(error)}\n`);
+    return 1;
+  }
+  // A file saved with CRLF endings (git on Windows) is the same file.
+  user = user.replaceAll("\r\n", "\n");
+  const defaults = commentedDefault();
+  if (user === defaults) {
+    io.stdout.write("config.jsonc is the same as the default.\n");
+    return 0;
+  }
+  let secondHeader = false;
+  const lines = unifiedDiff("config.jsonc", user, defaults).map((line) => {
+    if (line.kind === "file" && line.text.startsWith("+++ ") && !secondHeader) {
+      secondHeader = true;
+      return "+++ default";
+    }
+    return line.text.replace(CONTROL, "\uFFFD");
+  });
+  io.stdout.write(`${lines.join("\n")}\n`);
+  return 0;
+}
+
 /** Runs `acp-tui config ...`; returns the exit status. */
 export async function runConfigCommand(args: readonly string[], io: ConfigCommandIo, context: ConfigCommandContext = {}): Promise<number> {
   const actions: Action[] = [];
@@ -129,6 +171,7 @@ export async function runConfigCommand(args: readonly string[], io: ConfigComman
     io.stdout.write(configJsonSchemaText());
     return 0;
   }
+  if (action === "--diff-default") return runDiffDefault(io, context.env ?? process.env, context.platform);
   // A glyph override is measured with OpenTUI's own width function (conversation/glyphs.ts
   // `openTuiCells`, design D9), which loads @opentui/core with `require` when first used; that
   // works only once the module (which has a top-level await) has been evaluated, as it has in the
