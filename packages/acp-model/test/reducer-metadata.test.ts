@@ -128,6 +128,11 @@ describe("legacy model state (spec model-session, \"Legacy model state is record
     expect(session.models).toEqual({ currentModelId: "a", availableModels: [{ modelId: "a", name: "A", description: null }] });
   });
 
+  test("an empty current model ID is kept as sent (Auggie right after a login) with the list", () => {
+    const session = created({ models: { currentModelId: "", availableModels: [{ modelId: "a", name: "A" }] } });
+    expect(session.models).toEqual({ currentModelId: "", availableModels: [{ modelId: "a", name: "A", description: null }] });
+  });
+
   test("Wrong shape ignored", () => {
     const wrong: unknown[] = [
       { currentModelId: "a", availableModels: "nope" },

@@ -323,6 +323,24 @@ describe("legacy models (session-models, spec tui-palette \"Config option picker
     await run.s.waitFor(() => run.s.screenText().some((row) => row.includes("Current model: fake-large")), 5000);
   }, 30000);
 
+  test("No current model (currentModelId empty): the pill reads default and opens the picker with no choice marked; choosing Fake Large names it", async () => {
+    const run = start({ scenario: "config-options-models-unset" });
+    await run.s.waitFor(READY, 10000);
+    await run.s.waitFor(() => bottomBorder(run.s).includes("Model default"), 5000);
+    run.s.sendKeys("Ctrl+P");
+    await run.s.waitFor(/Choose the model +default/, 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(/Model 3/, 3000);
+    await run.s.flush();
+    const rows = boxRows(run.s, /Model 3/).slice(1, -1).map(inner);
+    expect(rows).toHaveLength(3);
+    expect(rows.some((row) => row.startsWith("●"))).toBe(false);
+    expect(rows[0]).toStartWith("  Fake Small");
+    run.s.sendKeys("Down", "Enter");
+    await run.s.waitFor(() => bottomBorder(run.s).includes("Model Fake Large"), 5000);
+    expect(params(run, "session/set_model")).toEqual([expect.objectContaining({ modelId: "fake-large" })]);
+  }, 30000);
+
   test("Legacy model refused: the agent's error leaves the pill at its value and a notice shows the message", async () => {
     const s = startPty(["bun", CLI, "--", "--", "bun", PALETTE_AGENT], { cols: 63, rows: 21, cwd: tempDir(), env: { PALETTE_AGENT_LEGACY: "1" } });
     session = s;

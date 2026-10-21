@@ -26,6 +26,11 @@ export function legacyModelOption(models: {
   };
 }
 
+/** What the pill, the status row's model module, the splash and the picker's entry call the model
+ *  when the harness names none (an empty current value, as Auggie sends right after a login): the
+ *  harness's own default. */
+export const DEFAULT_MODEL_LABEL = "default";
+
 /** The settings of the `models` section the grouping reads. */
 export interface ModelListSettings {
   readonly groupByProvider: boolean;

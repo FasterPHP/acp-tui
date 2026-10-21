@@ -3,7 +3,7 @@
 // the acp-model Session plus agent and UI state, so the session store adapter
 // can recompute it on every change and tests can build one directly.
 import { sanitise, type ConnectionState, type Session, type SessionOpenMode, type TurnState } from "acp-model";
-import { legacyModelOption, modelDisplayName, type ModelListSettings } from "./provider-groups.ts";
+import { DEFAULT_MODEL_LABEL, legacyModelOption, modelDisplayName, type ModelListSettings } from "./provider-groups.ts";
 import type { MousePolicy } from "../renderer/options.ts";
 import type { HintRule } from "./modules.ts";
 
@@ -151,6 +151,7 @@ function selectedName(session: Session, category: string, models?: ModelListSett
   const option = session.configOptions.find((o) => o.category === category);
   if (!option) return undefined;
   if (option.type !== "select") return null;
+  if (category === "model" && option.currentValue === "") return option.options.length > 0 ? DEFAULT_MODEL_LABEL : null;
   for (const entry of option.options) {
     if ("group" in entry) {
       const found = entry.options.find((o) => o.value === option.currentValue);
@@ -167,6 +168,7 @@ function selectedName(session: Session, category: string, models?: ModelListSett
 function legacyModelName(session: Session, settings?: ModelListSettings): string | undefined {
   const models = session.models;
   if (!models) return undefined;
+  if (models.currentModelId === "") return models.availableModels.length > 0 ? DEFAULT_MODEL_LABEL : undefined;
   const found = models.availableModels.find((m) => m.modelId === models.currentModelId);
   if (!found) return models.currentModelId;
   const option = legacyModelOption(models);

@@ -133,6 +133,11 @@ describe("display names", () => {
     expect(currentName(OPENCODE)).toBe("openrouter / Qwen: Qwen3 Coder");
   });
 
+  test("No current model: the entry reads default, and a value not among the choices reads as sent", () => {
+    expect(currentName({ ...OPENCODE, currentValue: "" })).toBe("default");
+    expect(currentName({ ...OPENCODE, currentValue: "zz" })).toBe("zz");
+  });
+
   test("Name as sent", () => {
     const plain = model([{ value: "opus", name: "Opus 5.5" }, { value: "sonnet", name: "Sonnet" }], "opus");
     expect(configPills(sessionWith(plain)).find((p) => p.category === "model")?.value).toBe("Opus 5.5");

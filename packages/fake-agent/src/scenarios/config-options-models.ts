@@ -15,6 +15,9 @@ export const LEGACY_MODELS = [
 ] as const;
 
 const INITIAL_MODEL = "fake-small";
+/** The `config-options-models-unset` scenario starts with no current model, as Auggie does right
+ *  after a login: `currentModelId` is `""` until `session/set_model` names one. */
+const UNSET_MODEL = "";
 
 const MODES: SessionModeState = {
   currentModeId: "default",
@@ -27,37 +30,42 @@ const MODES: SessionModeState = {
 /** Current model per session (the agent process serves one scenario, so module state is enough). */
 const currentModels = new Map<string, string>();
 
-function currentModel(sessionId: string): string {
-  return currentModels.get(sessionId) ?? INITIAL_MODEL;
+function makeScenario(name: string, initialModel: string): Scenario {
+  const currentModel = (sessionId: string): string => currentModels.get(sessionId) ?? initialModel;
+  return {
+    name,
+
+    newSession(_request, sessionId) {
+      // `models` is not in the SDK's NewSessionResponse any more; it travels as an extra field.
+      return {
+        modes: { ...MODES, availableModes: [...MODES.availableModes] },
+        models: {
+          currentModelId: currentModel(sessionId),
+          availableModels: LEGACY_MODELS.map((model) => ({ ...model })),
+        },
+      } as ReturnType<NonNullable<Scenario["newSession"]>>;
+    },
+
+    setModel(request: SetSessionModelRequest): void {
+      if (!LEGACY_MODELS.some((model) => model.modelId === request.modelId)) {
+        throw RequestError.invalidParams({ modelId: request.modelId }, "unknown model");
+      }
+      currentModels.set(request.sessionId, request.modelId);
+    },
+
+    async prompt(ctx: ScenarioContext): Promise<PromptResponse> {
+      const current = currentModel(ctx.sessionId);
+      await ctx.send({
+        sessionUpdate: "agent_message_chunk",
+        messageId: `${name}-msg`,
+        content: { type: "text", text: `Current model: ${current === "" ? "(none)" : current}\n` },
+      });
+      return { stopReason: "end_turn" };
+    },
+  };
 }
 
-export const configOptionsModelsScenario: Scenario = {
-  name: "config-options-models",
+export const configOptionsModelsScenario: Scenario = makeScenario("config-options-models", INITIAL_MODEL);
 
-  newSession(_request, sessionId) {
-    // `models` is not in the SDK's NewSessionResponse any more; it travels as an extra field.
-    return {
-      modes: { ...MODES, availableModes: [...MODES.availableModes] },
-      models: {
-        currentModelId: currentModel(sessionId),
-        availableModels: LEGACY_MODELS.map((model) => ({ ...model })),
-      },
-    } as ReturnType<NonNullable<Scenario["newSession"]>>;
-  },
-
-  setModel(request: SetSessionModelRequest): void {
-    if (!LEGACY_MODELS.some((model) => model.modelId === request.modelId)) {
-      throw RequestError.invalidParams({ modelId: request.modelId }, "unknown model");
-    }
-    currentModels.set(request.sessionId, request.modelId);
-  },
-
-  async prompt(ctx: ScenarioContext): Promise<PromptResponse> {
-    await ctx.send({
-      sessionUpdate: "agent_message_chunk",
-      messageId: "config-options-models-msg",
-      content: { type: "text", text: `Current model: ${currentModel(ctx.sessionId)}\n` },
-    });
-    return { stopReason: "end_turn" };
-  },
-};
+/** As `config-options-models`, but `currentModelId` is `""` until a model is chosen. */
+export const configOptionsModelsUnsetScenario: Scenario = makeScenario("config-options-models-unset", UNSET_MODEL);

@@ -5,7 +5,7 @@ import { bidiPermissionScenario } from "./bidi-permission.ts";
 import { bigOutputScenario } from "./big-output.ts";
 import { configOptionsScenario } from "./config-options.ts";
 import { configOptionsLegacyScenario } from "./config-options-legacy.ts";
-import { configOptionsModelsScenario } from "./config-options-models.ts";
+import { configOptionsModelsScenario, configOptionsModelsUnsetScenario } from "./config-options-models.ts";
 import { configOptionsProvidersScenario } from "./config-options-providers.ts";
 import { commandResultsScenario } from "./command-results.ts";
 import { copyFixturesScenario } from "./copy-fixtures.ts";
@@ -51,6 +51,7 @@ export const SCENARIOS: Readonly<Record<string, Scenario>> = {
   [configOptionsScenario.name]: configOptionsScenario,
   [configOptionsLegacyScenario.name]: configOptionsLegacyScenario,
   [configOptionsModelsScenario.name]: configOptionsModelsScenario,
+  [configOptionsModelsUnsetScenario.name]: configOptionsModelsUnsetScenario,
   [configOptionsProvidersScenario.name]: configOptionsProvidersScenario,
   [permissionWithdrawScenario.name]: permissionWithdrawScenario,
   [permissionConcurrentScenario.name]: permissionConcurrentScenario,

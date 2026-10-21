@@ -47,6 +47,11 @@ describe("model", () => {
 });
 
 describe("model module follows the model pill (session-models)", () => {
+  test("No current model: the status row says default", () => {
+    const v = deriveSessionView({ ...createSession(), models: { currentModelId: "", availableModels: [{ modelId: "sonnet", name: "Claude Sonnet", description: null }] } });
+    expect(text("model", v)).toBe("default");
+  });
+
   test("Legacy model in the status row", () => {
     const v = deriveSessionView({ ...createSession(), models: { currentModelId: "sonnet", availableModels: [{ modelId: "sonnet", name: "Claude Sonnet", description: null }] } });
     expect(text("model", v)).toBe("Claude Sonnet");

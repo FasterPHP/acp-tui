@@ -141,6 +141,42 @@ describe("model pill from the legacy model state (spec tui-layout, \"Config opti
     expect(configPills(session)).toEqual([{ category: "model", name: "Model", value: "custom-1" }]);
   });
 
+  test("No current model (empty ID): the pill reads default and the view's model too; choosing a model names it", () => {
+    const unset: Session = { ...createSession(), modes, models: { ...models, currentModelId: "" } };
+    expect(configPills(unset)).toEqual([
+      { category: "mode", name: "Mode", value: "Default" },
+      { category: "model", name: "Model", value: "default" },
+    ]);
+    expect(deriveSessionView(unset).model).toBe("default");
+    const chosen: Session = { ...unset, models: { ...models, currentModelId: "opus" } };
+    expect(configPills(chosen)[1]).toEqual({ category: "model", name: "Model", value: "Claude Opus" });
+  });
+
+  test("No current model and no list: no pill, as before (the picker has nothing to offer)", () => {
+    const none: Session = { ...createSession(), models: { currentModelId: "", availableModels: [] } };
+    expect(configPills(none)).toEqual([]);
+    expect(deriveSessionView(none).model).toBeNull();
+  });
+
+  test("A model option with an empty current value reads default; with no choices it has no value", () => {
+    const empty = (options: { value: string; name: string }[]): Session => ({
+      ...createSession(),
+      configOptions: [{ id: "model", name: "Model", category: "model", type: "select", currentValue: "", options }],
+    });
+    const session = empty([{ value: "a", name: "A" }]);
+    expect(configPills(session)).toEqual([{ category: "model", name: "Model", value: "default" }]);
+    expect(deriveSessionView(session).model).toBe("default");
+    expect(configPills(empty([]))).toEqual([]);
+  });
+
+  test("A model option whose current value is not among its options reads the value", () => {
+    const session: Session = {
+      ...createSession(),
+      configOptions: [{ id: "model", name: "Model", category: "model", type: "select", currentValue: "zz", options: [{ value: "a", name: "A" }] }],
+    };
+    expect(configPills(session)).toEqual([{ category: "model", name: "Model", value: "zz" }]);
+  });
+
   test("Model option wins: one model pill, from the option", () => {
     const session: Session = { ...createSession(), configOptions: [modelOption("o", "Opus 5.5")], models: { ...models, currentModelId: "opus" } };
     expect(configPills(session)).toEqual([{ category: "model", name: "Model", value: "Opus 5.5" }]);

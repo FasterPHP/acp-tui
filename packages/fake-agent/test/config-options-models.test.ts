@@ -76,6 +76,25 @@ describe("fake-agent config-options-models scenario", () => {
     }
   });
 
+  test("config-options-models-unset: currentModelId is empty until session/set_model names a model", async () => {
+    const texts: string[] = [];
+    const handle = open("config-options-models-unset", texts);
+    try {
+      await handle.conn.initialize({ protocolVersion: 1 });
+      const session = (await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] })) as LegacyNewResponse;
+      expect(session.models?.currentModelId).toBe("");
+      expect(session.models?.availableModels.map((model) => model.modelId)).toEqual(["fake-small", "fake-large", "fake-hostile"]);
+      await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "one" }] });
+      expect(texts.join("")).toContain("Current model: (none)");
+      await handle.conn.extMethod("session/set_model", { sessionId: session.sessionId, modelId: "fake-large" });
+      texts.length = 0;
+      await handle.conn.prompt({ sessionId: session.sessionId, prompt: [{ type: "text", text: "two" }] });
+      expect(texts.join("")).toContain("Current model: fake-large");
+    } finally {
+      handle.stop();
+    }
+  });
+
   test("an unknown model ID is invalid params and changes nothing", async () => {
     const texts: string[] = [];
     const handle = open("config-options-models", texts);

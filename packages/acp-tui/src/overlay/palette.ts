@@ -21,7 +21,7 @@ import { approvalText } from "../app/permission.ts";
 import type { CatalogueEntry } from "../keys/register.ts";
 import { actionLabel, KEY_SCOPES, type KeyContext, type KeyMap } from "../keys/keymap.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
-import { LEGACY_MODEL_ID, legacyModelOption, modelDisplayName, providerGroups, DEFAULT_MODEL_LIST_SETTINGS, type ModelListSettings } from "../layout/provider-groups.ts";
+import { DEFAULT_MODEL_LABEL, LEGACY_MODEL_ID, legacyModelOption, modelDisplayName, providerGroups, DEFAULT_MODEL_LIST_SETTINGS, type ModelListSettings } from "../layout/provider-groups.ts";
 import type { ListItem } from "./list.ts";
 
 /** The group each context's commands are listed under, in the palette's order. */
@@ -269,6 +269,7 @@ export function currentName(option: SessionConfigOption, models?: ModelListSetti
   if (option.type === "boolean") return option.currentValue ? "on" : "off";
   if (option.type !== "select") return "";
   const found = selectChoices(option).find((c) => c.value === option.currentValue);
+  if (!found && option.category === "model" && option.currentValue === "" && selectChoices(option).length > 0) return DEFAULT_MODEL_LABEL;
   if (found && option.category === "model") return approvalText(modelDisplayName(option, found.value, found.name, models));
   return approvalText(found?.name ?? String(option.currentValue ?? ""));
 }
