@@ -159,6 +159,10 @@ const ROWS: readonly Row[] = [
   // set otherwise, and exempt from the marker's uniqueness rule: the title is never drawn in screen
   // cells.
   row("title.marker", 1, UNICODE_MARKER, "!"),
+  // Marks the terminal's title while attention is pending (a long turn ended, or a request was
+  // answered or withdrawn, while the pane was unfocused). Like the title marker it never reaches a
+  // screen cell; it may not be the permission marker.
+  row("title.attention", 1, "\u25cf", "*", "\uf0f3"),
 ];
 
 export type GlyphName = string;
@@ -234,7 +238,7 @@ export function checkGlyph(name: GlyphName, value: string, measure: (text: strin
   const width = WIDTH_OF.get(name);
   if (width === undefined) return "is not a glyph name";
   if (NOT_PRINTABLE.test(value)) return "is not printable (it holds a control or format character)";
-  if (/^frame\./.test(name) || name === "permission.marker" || name === "title.marker") {
+  if (/^frame\./.test(name) || name === "permission.marker" || name === "title.marker" || name === "title.attention") {
     if (BLANK.test(value)) return "cannot be blank";
   }
   if (width === "digits") {
@@ -345,6 +349,8 @@ export interface ResolvedGlyphs {
   readonly permission: PermissionGlyphs;
   /** Marks the terminal's title while the session waits for the user. */
   readonly titleMarker: string;
+  /** Marks the terminal's title while attention is pending. */
+  readonly titleAttention: string;
   /** Changes whenever `values` do; "" for the plain `unicode` set. */
   readonly key: string;
 }
@@ -501,6 +507,7 @@ function buildResolved(values: Record<string, string>): ResolvedGlyphs {
     chrome: buildChrome(frozen),
     permission: buildPermission(frozen),
     titleMarker: frozen["title.marker"]!,
+    titleAttention: frozen["title.attention"]!,
     key,
   };
 }

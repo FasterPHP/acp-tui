@@ -476,3 +476,74 @@ describe("Windows: paths, the commented default and the byte order mark (windows
     expect(direct.problems.map((p) => [p.line, p.column])).toEqual(parseConfigText(`{ "mouse": 3 }`, "/x/config.jsonc").problems.map((p) => [p.line, p.column]));
   });
 });
+
+describe("config --diff-default (interface-feedback 5.3)", () => {
+  test("New setting shown: a default of an earlier version without one setting gives a hunk whose + lines hold it", async () => {
+    const text = commentedDefault();
+    const at = text.indexOf("markdown");
+    expect(at).toBeGreaterThan(0);
+    // Remove one whole line (and the lines of its comment block before it that start with //).
+    const lines = text.split("\n");
+    const index = lines.findIndex((l) => l.includes("table_row_rules"));
+    expect(index).toBeGreaterThan(0);
+    const without = lines.filter((_, i) => i !== index).join("\n");
+    const w = world({ config: without });
+    const r = await w.run(["--diff-default"]);
+    expect(r.code).toBe(0);
+    expect(r.stderr).toBe("");
+    const out = r.stdout.split("\n");
+    expect(out.slice(0, 2)).toEqual(["--- config.jsonc", "+++ default"]);
+    expect(out[2]).toMatch(/^@@ -\d+(,\d+)? \+\d+(,\d+)? @@$/);
+    expect(out).toContain(`+${lines[index]}`);
+    expect(out.filter((l) => l.startsWith("+") && !l.startsWith("+++"))).toEqual([`+${lines[index]}`]);
+    expect(out.filter((l) => l.startsWith("-") && !l.startsWith("---"))).toEqual([]);
+    // Three lines of context each side of the one change.
+    expect(out.filter((l) => l.startsWith(" ")).length).toBe(6);
+    expect(r.stdout.endsWith("\n")).toBe(true);
+  });
+
+  test("Identical: a file just written by the install says it is the same, in one line", async () => {
+    const w = world({ config: commentedDefault() });
+    const r = await w.run(["--diff-default"]);
+    expect(r).toEqual({ code: 0, stdout: "config.jsonc is the same as the default.\n", stderr: "" });
+  });
+
+  test("Identical apart from CRLF line endings (git on Windows)", async () => {
+    const w = world({ config: commentedDefault().replaceAll("\n", "\r\n") });
+    expect((await w.run(["--diff-default"])).stdout).toBe("config.jsonc is the same as the default.\n");
+  });
+
+  test("No file: says so, names --print-default and exits 1", async () => {
+    const w = world();
+    const r = await w.run(["--diff-default"]);
+    expect(r.code).toBe(1);
+    expect(r.stdout).toBe("");
+    expect(r.stderr).toBe(`acp-tui: config: no configuration file at ${w.configFile}; acp-tui config --print-default prints the default\n`);
+  });
+
+  test("An invalid file still diffs (it is read as text), and exits 0", async () => {
+    const w = world({ config: `{ "mouse": "nonsense", oops` });
+    const r = await w.run(["--diff-default"]);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toContain('-{ "mouse": "nonsense", oops');
+    expect(r.stdout).toContain("--- config.jsonc\n+++ default\n");
+  });
+
+  test("No colour and no escape sequences: control characters in the user's file are shown as U+FFFD", async () => {
+    const w = world({ config: `{ "mouse": "off" } // \u001b[31mred\u001b]52;c;eA==\u0007\n` });
+    const r = await w.run(["--diff-default"]);
+    expect(r.code).toBe(0);
+    // eslint-disable-next-line no-control-regex
+    expect(r.stdout).not.toMatch(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/);
+    expect(r.stdout).toContain("\uFFFD[31mred");
+  });
+
+  test("The help lists it within 78 columns, and it is the only action with it", async () => {
+    const w = world();
+    const r = await w.run(["--help"]);
+    expect(r.stdout).toContain("--diff-default");
+    for (const line of r.stdout.split("\n")) expect(line.length).toBeLessThanOrEqual(78);
+    const twice = await w.run(["--diff-default", "--path"]);
+    expect(twice.code).toBe(1);
+  });
+});

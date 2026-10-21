@@ -53,15 +53,17 @@ in a pane 100 columns wide (98 behind the agent gutter):
     «markdown.table.border ~»│ «text»1001«text ~»      «markdown.table.border ~» │ «text»Alice«text ~»     «markdown.table.border ~» │ «markdown.link ->mailto:alice.smith@example.com»alice.smith@«markdown.table.border ~» │ «text»2026-10-04«markdown.table.border ~» │ «text»active«text ~»   «markdown.table.border ~» │ «text ~»  «text»1,234.56«markdown.table.border ~» │ «text»First order,«text ~»   «markdown.table.border ~» │
   8 ││            │ Smith      │ example.com  │ 09:15      │           │            │ paid by card    ││
     «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text»Smith«text ~»     «markdown.table.border ~» │ «markdown.link ->mailto:alice.smith@example.com»example.com«text ~» «markdown.table.border ~» │ «text»09:15«text ~»     «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»paid by card«text ~»   «markdown.table.border ~» │
-  9 ││ 1002       │ Bob Jones  │ bob.jones@ex │ 2026-10-04 │ suspended │      78.90 │ Awaiting a      ││
+  9 │├────────────┼────────────┼──────────────┼────────────┼───────────┼────────────┼─────────────────┤│ (decorative)
+    «markdown.table.border ~»├────────────┼────────────┼──────────────┼────────────┼───────────┼────────────┼─────────────────┤
+ 10 ││ 1002       │ Bob Jones  │ bob.jones@ex │ 2026-10-04 │ suspended │      78.90 │ Awaiting a      ││
     «markdown.table.border ~»│ «text»1002«text ~»      «markdown.table.border ~» │ «text»Bob Jones«text ~» «markdown.table.border ~» │ «markdown.link ->mailto:bob.jones@example.org»bob.jones@ex«markdown.table.border ~» │ «text»2026-10-04«markdown.table.border ~» │ «text»suspended«markdown.table.border ~» │ «text ~»     «text»78.90«markdown.table.border ~» │ «text»Awaiting a«text ~»     «markdown.table.border ~» │
- 10 ││            │            │ ample.org    │ 10:30      │           │            │ reply from the  ││
+ 11 ││            │            │ ample.org    │ 10:30      │           │            │ reply from the  ││
     «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «markdown.link ->mailto:bob.jones@example.org»ample.org«text ~»   «markdown.table.border ~» │ «text»10:30«text ~»     «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»reply from the«text ~» «markdown.table.border ~» │
- 11 ││            │            │              │            │           │            │ customer about  ││
+ 12 ││            │            │              │            │           │            │ customer about  ││
     «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»            «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»customer about«text ~» «markdown.table.border ~» │
- 12 ││            │            │              │            │           │            │ the refund they ││
+ 13 ││            │            │              │            │           │            │ the refund they ││
     «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»            «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»the refund they«markdown.table.border ~» │
- 13 ││            │            │              │            │           │            │ asked for       ││
+ 14 ││            │            │              │            │           │            │ asked for       ││
     «markdown.table.border ~»│ «text ~»          «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»            «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text ~»         «markdown.table.border ~» │ «text ~»          «markdown.table.border ~» │ «text»asked for«text ~»      «markdown.table.border ~» │
- 14 │╰────────────┴────────────┴──────────────┴────────────┴───────────┴────────────┴─────────────────╯│ (decorative)
+ 15 │╰────────────┴────────────┴──────────────┴────────────┴───────────┴────────────┴─────────────────╯│ (decorative)
     «markdown.table.border ~»╰────────────┴────────────┴──────────────┴────────────┴───────────┴────────────┴─────────────────╯

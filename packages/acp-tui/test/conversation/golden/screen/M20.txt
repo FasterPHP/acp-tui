@@ -92,19 +92,21 @@ at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
     «default»  «bright-black»│            │ «default»Smith      «bright-black»│ «blue +u»@example.co«default» «bright-black»│ «default»09:15      «bright-black»│           │            │ «default»paid by card  «bright-black»│
   9 │  │            │            │ m           │            │           │            │               ││
     «default»  «bright-black»│            │            │ «blue +u»m«default»           «bright-black»│            │           │            │               │
- 10 │  │ 1002       │ Bob Jones  │ bob.jones@e │ 2026-10-04 │ suspended │      78.90 │ Awaiting a    ││
+ 10 │  ├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤│
+    «default»  «bright-black»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
+ 11 │  │ 1002       │ Bob Jones  │ bob.jones@e │ 2026-10-04 │ suspended │      78.90 │ Awaiting a    ││
     «default»  «bright-black»│ «default»1002       «bright-black»│ «default»Bob Jones  «bright-black»│ «blue +u»bob.jones@e«default» «bright-black»│ «default»2026-10-04 «bright-black»│ «default»suspended «bright-black»│      «default»78.90 «bright-black»│ «default»Awaiting a    «bright-black»│
- 11 │  │            │            │ xample.org  │ 10:30      │           │            │ reply from    ││
+ 12 │  │            │            │ xample.org  │ 10:30      │           │            │ reply from    ││
     «default»  «bright-black»│            │            │ «blue +u»xample.org«default»  «bright-black»│ «default»10:30      «bright-black»│           │            │ «default»reply from    «bright-black»│
- 12 │  │            │            │             │            │           │            │ the customer  ││
+ 13 │  │            │            │             │            │           │            │ the customer  ││
     «default»  «bright-black»│            │            │             │            │           │            │ «default»the customer  «bright-black»│
- 13 │  │            │            │             │            │           │            │ about the     ││
+ 14 │  │            │            │             │            │           │            │ about the     ││
     «default»  «bright-black»│            │            │             │            │           │            │ «default»about the     «bright-black»│
- 14 │  │            │            │             │            │           │            │ refund they   ││
+ 15 │  │            │            │             │            │           │            │ refund they   ││
     «default»  «bright-black»│            │            │             │            │           │            │ «default»refund they   «bright-black»│
- 15 │  │            │            │             │            │           │            │ asked for     ││
+ 16 │  │            │            │             │            │           │            │ asked for     ││
     «default»  «bright-black»│            │            │             │            │           │            │ «default»asked for     «bright-black»│
- 16 │  ╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯│
+ 17 │  ╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯│
     «default»  «bright-black»╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯
 
 at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
@@ -125,17 +127,19 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  «default +d»│            │ «default»Smith      «default +d»│ «blue +u»@example.co«default» «default +d»│ «default»09:15      «default +d»│           │            │ «default»paid by card  «default +d»│
   9 │  │            │            │ m           │            │           │            │               ││
     «default»  «default +d»│            │            │ «blue +u»m«default»           «default +d»│            │           │            │               │
- 10 │  │ 1002       │ Bob Jones  │ bob.jones@e │ 2026-10-04 │ suspended │      78.90 │ Awaiting a    ││
+ 10 │  ├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤│
+    «default»  «default +d»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
+ 11 │  │ 1002       │ Bob Jones  │ bob.jones@e │ 2026-10-04 │ suspended │      78.90 │ Awaiting a    ││
     «default»  «default +d»│ «default»1002       «default +d»│ «default»Bob Jones  «default +d»│ «blue +u»bob.jones@e«default» «default +d»│ «default»2026-10-04 «default +d»│ «default»suspended «default +d»│      «default»78.90 «default +d»│ «default»Awaiting a    «default +d»│
- 11 │  │            │            │ xample.org  │ 10:30      │           │            │ reply from    ││
+ 12 │  │            │            │ xample.org  │ 10:30      │           │            │ reply from    ││
     «default»  «default +d»│            │            │ «blue +u»xample.org«default»  «default +d»│ «default»10:30      «default +d»│           │            │ «default»reply from    «default +d»│
- 12 │  │            │            │             │            │           │            │ the customer  ││
+ 13 │  │            │            │             │            │           │            │ the customer  ││
     «default»  «default +d»│            │            │             │            │           │            │ «default»the customer  «default +d»│
- 13 │  │            │            │             │            │           │            │ about the     ││
+ 14 │  │            │            │             │            │           │            │ about the     ││
     «default»  «default +d»│            │            │             │            │           │            │ «default»about the     «default +d»│
- 14 │  │            │            │             │            │           │            │ refund they   ││
+ 15 │  │            │            │             │            │           │            │ refund they   ││
     «default»  «default +d»│            │            │             │            │           │            │ «default»refund they   «default +d»│
- 15 │  │            │            │             │            │           │            │ asked for     ││
+ 16 │  │            │            │             │            │           │            │ asked for     ││
     «default»  «default +d»│            │            │             │            │           │            │ «default»asked for     «default +d»│
- 16 │  ╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯│
+ 17 │  ╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯│
     «default»  «default +d»╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯

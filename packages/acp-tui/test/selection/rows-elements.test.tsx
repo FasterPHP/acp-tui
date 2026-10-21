@@ -57,12 +57,16 @@ interface Drawn {
 
 /** Mounts the App over `session` at `width` columns, tall enough for every item, and waits for
  *  `last` to be drawn. */
-async function draw(session: Session, width: number, last: string): Promise<Drawn> {
+async function draw(session: Session, width: number, last: string, expand: (item: Item) => boolean = () => false): Promise<Drawn> {
   store = createSessionStore({ home: "/w" });
   const actions: AppActions = { prompt: () => null, cancel() {}, answerPermission: () => false, exit() {} };
   const context: AppContextValue = { store, actions, theme: resolveTheme(DEFAULT_THEME), config: compactConfig() };
   setup = await testRender(() => <App context={context} layout={resolveLayout(DEFAULT_LAYOUT)} />, { width, height: 500, screenMode: "alternate-screen" });
   store.attach({ getSession: () => session, subscribe: () => () => {} });
+  for (const id of session.order) {
+    const item = session.items.get(id)!;
+    if (expand(item)) store.conversation.setExpanded(item, true);
+  }
   let rows: string[] = [];
   let stable = 0;
   for (let i = 0; i < 400 && stable < 5; i++) {
@@ -320,5 +324,59 @@ describe("row maps per element: wrapped list items, deep quotes, tabs (task 5.5)
     for (let k = 4; k < CODE_TAB_WIDTH; k++) expect(d.at(code.x + k, code.y, 1)).toBe("\t");
     expect(d.at(code.x + CODE_TAB_WIDTH, code.y, 4)).toBe("col2");
     expect(d.at(code.x + CODE_TAB_WIDTH, code.y + 1, 8)).toBe("indented");
+  }, 30000);
+});
+
+describe("row maps: a header repeated by its expanded card is decoration (interface-feedback)", () => {
+  const COMMAND = "cd /work/app && composer install --no-interaction --prefer-dist --optimize-autoloader && vendor/bin/phpunit --testdox --filter InvoiceTotals";
+
+  test("Title repeated in the card: the header maps nothing, the press resolves to the start or the end of the title", async () => {
+    const d = await draw(await runScenario("tool-content", "go"), 63, "Edit README.md", (i) => i.kind === "tool_call" && i.id.endsWith("command"));
+    const header = d.row("execute");
+    // The card repeats the whole title below the header.
+    expect(d.rows.slice(header + 1).some((l) => l.includes("--optimize-autoloader"))).toBe(true);
+    // Left of the header's text and on it: the start of the title, so a drag down from the header
+    // takes the whole title; right of it: its end (a title is a tool call's whole first line, so
+    // `summaryEnd` is its length).
+    for (const x of [1, 2, 20]) expect(d.hit(x, header)).toMatchObject({ from: 0, to: 0 });
+    expect(d.hit(200, header)).toMatchObject({ from: COMMAND.length, to: COMMAND.length });
+    // No cell of the header resolves to a character: every hit is a position between characters.
+    for (let x = 0; x < 63; x++) {
+      const h = d.hit(x, header);
+      expect(h.to).toBe(h.from);
+    }
+    // The card's title rows still map.
+    const first = d.row("cd /work/app", header + 1);
+    expect(d.at(d.find("cd /work/app", header + 1).x, first, 2)).toBe("cd");
+  }, 30000);
+
+  test("A short title is still mapped on a collapsed item and on a card without a title part", async () => {
+    const collapsed = await draw(await runScenario("tool-content", "go"), 63, "Edit README.md");
+    const header = collapsed.row("cd /work/app");
+    const at = collapsed.find("cd /work/app");
+    expect(collapsed.at(at.x, header, 2)).toBe("cd");
+    await setup?.dispose();
+    store?.dispose();
+    const expanded = await draw(await runScenario("tool-content", "go"), 63, "Edit README.md", (i) => i.kind === "tool_call" && i.id.endsWith("read"));
+    const read = expanded.row("Read src/Billing/Receipt.php");
+    const x = expanded.find("Read src/Billing/Receipt.php").x;
+    expect(expanded.at(x, read, 4)).toBe("Read");
+  }, 30000);
+
+  test("Expanded thought: the header maps nothing; a press resolves to the start or the end of the first line", async () => {
+    const thought: SessionUpdate = { sessionUpdate: "agent_thought_chunk", messageId: "t", content: { type: "text", text: "Thinking about the pool first\n\nThen the second line of the thought, and a third." } };
+    const answer: SessionUpdate = { sessionUpdate: "agent_message_chunk", messageId: "m", content: { type: "text", text: "Done." } };
+    const d = await draw(runUpdates([thought, answer], "go"), 63, "Done.", (i) => i.kind === "thought");
+    const header = d.row("Thought ·");
+    for (let x = 0; x < 63; x++) {
+      const h = d.hit(x, header);
+      expect(h.to).toBe(h.from);
+    }
+    expect(d.hit(1, header).from).toBe(0);
+    expect(d.hit(2, header).from).toBe(0);
+    expect(d.hit(62, header).from).toBe("Thinking about the pool first".length);
+    // The body below still maps.
+    const body = d.find("Thinking about the pool first", header + 1);
+    expect(d.at(body.x, body.y, 8)).toBe("Thinking");
   }, 30000);
 });

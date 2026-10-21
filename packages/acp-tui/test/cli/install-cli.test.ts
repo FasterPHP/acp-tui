@@ -19,6 +19,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { startPty, type PtySession } from "../pty/harness.ts";
@@ -27,6 +28,9 @@ import {
   classify,
   CMD_MARKER,
   defaultDirectory,
+  distConfigurationFile,
+  distContent,
+  DIST_FILE_NAME,
   main as installMain,
   MARKER,
   onPath,
@@ -379,6 +383,114 @@ describe("install-cli", () => {
     expect(classify(readFileSync(join(bin, "acp-tui"), "utf8"))).toBe("stub");
   }, 30000);
 
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Dist file beside an existing configuration: config.jsonc unchanged, the header and the default written, owner-only, the path printed", async () => {
+    const home = scratch();
+    const file = configIn(home);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, '{ "mouse": "off" }\n');
+    const result = await install(["--dir", join(home, "bin")], home);
+    expect(result.code).toBe(0);
+    expect(readFileSync(file, "utf8")).toBe('{ "mouse": "off" }\n');
+    const dist = join(dirname(file), DIST_FILE_NAME);
+    const version = (JSON.parse(readFileSync(join(ROOT, "packages/acp-tui/package.json"), "utf8")) as { version: string }).version;
+    expect(readFileSync(dist, "utf8")).toBe(
+      `// The default configuration of acp-tui ${version}, written by install-cli on every install.\n` +
+        "// It is never read. Compare it with config.jsonc to see new and changed settings\n" +
+        "// (or run acp-tui config --diff-default).\n" +
+        commentedDefault(),
+    );
+    expect(statSync(dist).mode & 0o777).toBe(0o600);
+    expect(result.stdout).toContain(`install-cli: wrote ${dist}, the default configuration of this version, for comparison with your configuration\n`);
+  }, 30000);
+
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Dist file on a first install: both files are written; the dist part after the default text is what --print-default prints", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const result = await install(["--dir", bin], home);
+    expect(result.code).toBe(0);
+    const dist = readFileSync(join(home, ".config/acp-tui", DIST_FILE_NAME), "utf8");
+    expect(readFileSync(configIn(home), "utf8")).toBe(commentedDefault());
+    const printed = await run([join(bin, "acp-tui"), "config", "--print-default"], { env: { HOME: home } });
+    expect(dist.split("\n").slice(3).join("\n")).toBe(printed.stdout);
+    // The comparison it exists for: a fresh install differs from nothing.
+    const diff = await run([join(bin, "acp-tui"), "config", "--diff-default"], { env: { HOME: home } });
+    expect(diff.stdout).toBe("config.jsonc is the same as the default.\n");
+    // The dist file is never read: acp-tui checks the configuration clean with it in place.
+    expect((await run([join(bin, "acp-tui"), "config", "--check"], { cwd: home, env: { HOME: home } })).stdout).toBe("no configuration problems\n");
+  }, 30000);
+
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Dist file replaced on the next install, with no temporary file left", async () => {
+    const home = scratch();
+    const dir = dirname(configIn(home));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, DIST_FILE_NAME), "// The default configuration of acp-tui 0.0.1, written by install-cli on every install.\n{}\n");
+    const before = readdirSync(dir).sort();
+    const result = await install(["--dir", join(home, "bin")], home);
+    expect(result.code).toBe(0);
+    const text = readFileSync(join(dir, DIST_FILE_NAME), "utf8");
+    expect(text).not.toContain("0.0.1");
+    expect(text.endsWith(commentedDefault())).toBe(true);
+    expect(readdirSync(dir).sort()).toEqual([...before, "config.jsonc"].sort());
+    // A second run changes nothing and leaves nothing behind either.
+    expect((await install(["--dir", join(home, "bin")], home)).code).toBe(0);
+    expect(readdirSync(dir).sort()).toEqual(["config.dist.jsonc", "config.jsonc"]);
+    expect(readFileSync(join(dir, DIST_FILE_NAME), "utf8")).toBe(text);
+  }, 30000);
+
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Dist file that cannot be written: a directory at its path is left alone, a warning names it, the install exits 0", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const dist = join(home, ".config/acp-tui", DIST_FILE_NAME);
+    mkdirSync(dist, { recursive: true });
+    writeFileSync(join(dist, "keep"), "mine\n");
+    const result = await install(["--dir", bin], home);
+    expect(result.code).toBe(0);
+    expect(result.stderr).toContain(`install-cli: warning: could not write ${dist}: `);
+    expect(result.stdout).not.toContain("wrote");
+    expect(lstatSync(dist).isDirectory()).toBe(true);
+    expect(readFileSync(join(dist, "keep"), "utf8")).toBe("mine\n");
+    expect(classify(readFileSync(join(bin, "acp-tui"), "utf8"))).toBe("stub");
+    expect(readdirSync(dirname(dist)).filter((n) => n.endsWith(".tmp"))).toEqual([]);
+  }, 30000);
+
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Dist file that is a symlink is left alone too, with a warning", async () => {
+    const home = scratch();
+    const dir = dirname(configIn(home));
+    mkdirSync(dir, { recursive: true });
+    const destination = join(home, "elsewhere.jsonc");
+    writeFileSync(destination, "mine\n");
+    symlinkSync(destination, join(dir, DIST_FILE_NAME));
+    const result = await install(["--dir", join(home, "bin")], home);
+    expect(result.code).toBe(0);
+    expect(result.stderr).toContain("could not write");
+    expect(lstatSync(join(dir, DIST_FILE_NAME)).isSymbolicLink()).toBe(true);
+    expect(readFileSync(destination, "utf8")).toBe("mine\n");
+  }, 30000);
+
+  // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
+  test.skipIf(WINDOWS)("Uninstall removes the dist file and keeps the configuration; a dist file of the user's own is kept", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const dist = join(dirname(configIn(home)), DIST_FILE_NAME);
+    expect((await install(["--dir", bin], home)).code).toBe(0);
+    writeFileSync(configIn(home), '{ "mouse": "wheel" }\n');
+    const removed = await install(["--uninstall", "--dir", bin], home);
+    expect(removed.code).toBe(0);
+    expect(existsSync(dist)).toBe(false);
+    expect(readFileSync(configIn(home), "utf8")).toBe('{ "mouse": "wheel" }\n');
+
+    expect((await install(["--dir", bin], home)).code).toBe(0);
+    writeFileSync(dist, "// my own notes\n{}\n");
+    expect((await install(["--uninstall", "--dir", bin], home)).code).toBe(0);
+    expect(readFileSync(dist, "utf8")).toBe("// my own notes\n{}\n");
+    expect(existsSync(join(bin, "acp-tui"))).toBe(false);
+  }, 30000);
+
   test("the stub text: a regular sh script that quotes the root and keeps the marker on line 2", () => {
     const stub = renderStub("/a b/it's");
     expect(stub.split("\n").slice(0, 2)).toEqual(["#!/bin/sh", MARKER]);
@@ -537,5 +649,32 @@ describe("install-cli on Windows (platform injected)", () => {
     expect(await installMain(["--uninstall", "--dir", bin], kept.io, winEnv(home), "win32")).toBe(1);
     expect(kept.err.join("")).toContain("was not written by install-cli");
     expect(readFileSync(join(bin, "acp-tui.cmd"), "utf8")).toBe("@echo off\r\necho mine\r\n");
+  });
+
+  test("the dist file's path is config.dist.jsonc beside config.jsonc, under %APPDATA%\\acp-tui on win32", () => {
+    expect(distConfigurationFile({ APPDATA: "C:\\Users\\Ann\\AppData\\Roaming", USERPROFILE: "C:\\Users\\Ann" }, "win32")).toBe(
+      "C:\\Users\\Ann\\AppData\\Roaming\\acp-tui\\config.dist.jsonc",
+    );
+    expect(distConfigurationFile({ XDG_CONFIG_HOME: "/tmp/cfg" }, "linux")).toBe("/tmp/cfg/acp-tui/config.dist.jsonc");
+    expect(distContent("1.2.3", "{}\n").split("\n").slice(0, 3)).toEqual([
+      "// The default configuration of acp-tui 1.2.3, written by install-cli on every install.",
+      "// It is never read. Compare it with config.jsonc to see new and changed settings",
+      "// (or run acp-tui config --diff-default).",
+    ]);
+  });
+
+  test("an install with win32 injected writes the dist file beside the configuration, and --uninstall removes it", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const env = winEnv(home, { Path: bin });
+    const first = collect();
+    expect(await installMain(["--dir", bin], first.io, env, "win32")).toBe(0);
+    const dist = join(home, "config/acp-tui", DIST_FILE_NAME);
+    expect(readFileSync(dist, "utf8").endsWith(commentedDefault())).toBe(true);
+    expect(first.out.join("")).toContain(`install-cli: wrote ${dist}, the default configuration of this version`);
+    const removed = collect();
+    expect(await installMain(["--uninstall", "--dir", bin], removed.io, winEnv(home), "win32")).toBe(0);
+    expect(existsSync(dist)).toBe(false);
+    expect(readFileSync(join(home, "config/acp-tui/config.jsonc"), "utf8")).toBe(commentedDefault());
   });
 });

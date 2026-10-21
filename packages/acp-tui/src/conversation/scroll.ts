@@ -11,8 +11,10 @@
 //   positioned, so the correction lands in the same frame): while following,
 //   the bottom is kept; otherwise the recorded anchor (the top visible item
 //   and the row of it at the top) is put back; a toggled item keeps its first
-//   row on the same screen row; a requested item is revealed. Then the anchor
-//   is recorded again from the result.
+//   row on the same screen row (while following, the bottom is kept instead and
+//   following goes on, unless the item's first row would then be above the
+//   viewport: the item goes to the top and following stops); a requested item
+//   is revealed. Then the anchor is recorded again from the result.
 // - Key scrolling (`page`, `toBottom`, `reveal`) acts on the last layout at
 //   once and records the anchor, so the next layout keeps it.
 // - Any other scroll (the wheel) arrives as `scrolled()`. The wheel itself is
@@ -152,7 +154,11 @@ export class ScrollController {
     const toggle = this.pendingToggle;
     const box = toggle ? this.geometry.box(toggle.id) : null;
     if (toggle && box) {
-      top = box.top - toggle.row;
+      // Following: the bottom stays in view and following goes on, as long as the toggled
+      // item's first row is in view once it is (a taller expansion puts that row at the top
+      // and `record()` stops following); otherwise the item keeps its screen row.
+      if (this.state.following) top = box.top >= this.max() ? this.max() : box.top;
+      else top = box.top - toggle.row;
     } else if (this.state.following) {
       top = this.max();
     } else if (this.state.anchor) {
@@ -213,7 +219,9 @@ export class ScrollController {
 
   /**
    * Call before toggling `id`. When its first row is on screen, the next layout keeps that row on
-   * the same screen row (spec tui-conversation "Reading position kept"); with `reveal` it then
+   * the same screen row (spec tui-conversation "Reading position kept"), except while following,
+   * when it keeps the bottom and goes on following if that row stays in view, and otherwise puts
+   * the row at the top and stops following; with `reveal` it then
    * scrolls, if it must, to show as much of the item as fits with that row still in view (Ctrl+O:
    * "expands and is scrolled into view"). An item off screen is brought into view.
    */

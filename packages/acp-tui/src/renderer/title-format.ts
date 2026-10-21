@@ -1,10 +1,10 @@
 // The terminal title's format (day-one-feedback design D8; spec tui-config "Terminal title setting"):
-// a template over four placeholders. Pure and free of Solid and OpenTUI, since the configuration
+// a template over five placeholders. Pure and free of Solid and OpenTUI, since the configuration
 // schema validates the setting with it (config/schema.ts).
 import { parseTemplate, templateFields } from "../layout/template.ts";
 
 /** What `title.format` may name. */
-export const TITLE_PLACEHOLDERS = ["dir", "counter", "agent", "title"] as const;
+export const TITLE_PLACEHOLDERS = ["dir", "counter", "agent", "title", "attention"] as const;
 export type TitlePlaceholder = (typeof TITLE_PLACEHOLDERS)[number];
 
 /** The default: the session directory's name, with the instance number after it from the second
@@ -17,7 +17,7 @@ export function titlePlaceholderList(): string {
 }
 
 /** What is wrong with `format` as a title format (an unparsable template, a placeholder that is not
- *  one of the four), or null. */
+ *  one of the five), or null. */
 export function titleFormatIssue(format: string): string | null {
   let parts;
   try {
@@ -30,13 +30,23 @@ export function titleFormatIssue(format: string): string | null {
   return `names ${unknown.map((f) => `{${f}}`).join(", ")}, which the title does not have; the placeholders are ${titlePlaceholderList()}`;
 }
 
-/** Whether `format` shows the instance counter, so that the instance needs a slot. */
-export function titleFormatUsesCounter(format: string): boolean {
+/** Whether `format` names the placeholder `name`. */
+function titleFormatUses(format: string, name: TitlePlaceholder): boolean {
   try {
-    return templateFields(format).includes("counter");
+    return templateFields(format).includes(name);
   } catch {
     return false;
   }
+}
+
+/** Whether `format` shows the instance counter, so that the instance needs a slot. */
+export function titleFormatUsesCounter(format: string): boolean {
+  return titleFormatUses(format, "counter");
+}
+
+/** Whether `format` places the attention marker itself (otherwise the marker leads the title). */
+export function titleFormatUsesAttention(format: string): boolean {
+  return titleFormatUses(format, "attention");
 }
 
 /** The values of the placeholders: `counter` is empty or a space and the instance number, the
@@ -47,7 +57,7 @@ export type TitleValues = Readonly<Record<TitlePlaceholder, string>>;
  * `format` filled in: literal text directly before an empty placeholder is dropped with it (so
  * `{dir}{counter} · {title}` is just the directory while the agent has sent no title), runs of
  * white space become one space and the ends are trimmed. A placeholder `format` names that is not
- * one of the four is empty. A format that cannot be parsed gives an empty string.
+ * one of the five is empty. A format that cannot be parsed gives an empty string.
  */
 export function expandTitleFormat(format: string, values: TitleValues): string {
   let parts;

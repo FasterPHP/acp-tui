@@ -27,6 +27,8 @@ export interface FakeAgentCliOptions {
   readonly chunk: number | undefined;
   /** `--long-gap`: `slow-turn` waits 45 s between its tool calls instead of 3 s. */
   readonly longGap: boolean;
+  /** `--tools <n>`: `fast-tools` sends `n` tool calls (default 6), cycling its six kinds. */
+  readonly tools: number;
   /** `--start-delay <ms>`: wait this long before answering `initialize` (a harness's start-up). Absolute, never scaled. */
   readonly startDelayMs: number;
   /** `--list-delay <ms>`: wait this long before answering `session/list`. Absolute, never scaled. */
@@ -71,6 +73,7 @@ function parseAgentInfo(raw: string): { name: string; version: string } {
 const DEFAULT_SCENARIO = "basic";
 const DEFAULT_DELAY_SCALE = 1;
 const DEFAULT_ITEMS = 200;
+const DEFAULT_TOOLS = 6;
 
 function parseDelayScale(raw: string | undefined): number {
   if (raw === undefined) {
@@ -129,6 +132,7 @@ export function parseArgs(
   let history = false;
   let chunk: number | undefined;
   let longGap = false;
+  let tools = DEFAULT_TOOLS;
   let startDelayMs = 0;
   let listDelayMs = 0;
   let authRequired: AuthRequiredMode | undefined;
@@ -158,6 +162,10 @@ export function parseArgs(
         break;
       case "--items":
         items = parsePositiveInteger(arg, requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--tools":
+        tools = parsePositiveInteger(arg, requireValue(arg, argv, i));
         i += 1;
         break;
       case "--load":
@@ -270,6 +278,7 @@ export function parseArgs(
     history,
     chunk,
     longGap,
+    tools,
     startDelayMs,
     listDelayMs,
     authRequired,

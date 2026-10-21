@@ -2,7 +2,10 @@
 // tables as records").
 //
 // A table is drawn in a rounded border (`markdown.table.border`) with one column of padding each
-// side of a cell, no padding rows, a rule under the header only, the header in
+// side of a cell, no padding rows, a rule under the header and rules between body rows only as
+// `markdown.table_row_rules` says (`auto`: when some body row takes more than one line at the drawn
+// width; `always`; `never`; the rules are decoration, so projection, copy and find do not see
+// them), the header in
 // `markdown.table.header`, and each column aligned as its delimiter row says. Columns take their
 // natural width (their widest cell) when the table fits; otherwise they shrink towards the
 // smaller of their natural width and the minimum column width (`flags.tableMinColumnWidth`, the
@@ -148,9 +151,13 @@ function gridRows(grid: Grid, widths: readonly number[], ctx: MarkdownContext): 
     decorative: true,
   });
   const rows: Row[] = [line(g.topLeft, g.topTee, g.topRight)];
-  grid.rows.forEach((cells, r) => {
-    const wrapped = cells.map((cell, c) => cellRows(cell, grid.at[r]![c]!, widths[c]!));
-    const height = Math.max(...wrapped.map((w) => w.length));
+  const laid = grid.rows.map((cells, r) => cells.map((cell, c) => cellRows(cell, grid.at[r]![c]!, widths[c]!)));
+  const heights = laid.map((wrapped) => Math.max(...wrapped.map((w) => w.length)));
+  const rule = ctx.flags.tableRowRules;
+  const ruled = rule === "always" || (rule === "auto" && heights.slice(1).some((h) => h > 1));
+  grid.rows.forEach((_, r) => {
+    const wrapped = laid[r]!;
+    const height = heights[r]!;
     for (let k = 0; k < height; k++) {
       const spans: Span[] = [decoration(`${g.vertical} `, border)];
       wrapped.forEach((cell, c) => {
@@ -160,7 +167,7 @@ function gridRows(grid: Grid, widths: readonly number[], ctx: MarkdownContext): 
       spans.push(decoration(` ${g.vertical}`, border));
       rows.push({ spans: mergeSpans(spans) });
     }
-    if (r === 0) rows.push(line(g.leftTee, g.cross, g.rightTee));
+    if (r === 0 || (ruled && r < grid.rows.length - 1)) rows.push(line(g.leftTee, g.cross, g.rightTee));
   });
   rows.push(line(g.bottomLeft, g.bottomTee, g.bottomRight));
   return rows;

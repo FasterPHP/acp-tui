@@ -16,6 +16,7 @@ import { DEFAULT_GLYPHS } from "../../../src/conversation/glyphs.ts";
 import { createSpinner, ItemView, type ItemContext } from "../../../src/conversation/items.tsx";
 import { createSessionStore, type SessionStore } from "../../../src/session/store.ts";
 import { DEFAULT_THEME, markdownStyles, resolveTheme } from "../../../src/theme/index.ts";
+import { setRenderSettings } from "../../../src/conversation/markdown/context.ts";
 import { estimateHeight } from "../../../src/conversation/window/heights.ts";
 import { collapsible } from "../../../src/conversation/view-model.ts";
 import { longSessionEvents } from "./session.ts";
@@ -145,6 +146,33 @@ describe("Gallery estimates (markdown-gallery, copy-fixtures and long-session it
         expect(Math.abs(s.estimate - s.real) / s.real).toBeLessThanOrEqual(0.02);
         expect((rows.length - wrong.length) / rows.length).toBeGreaterThanOrEqual(0.95);
       }, 60000);
+    }
+  }
+});
+
+// interface-feedback 4.3, tui-rendering "Rules between table rows" and "Heights computable without
+// mounting": a table's estimated height equals its mounted height under each value of
+// `markdown.table_row_rules`, with cells that wrap and with cells that do not.
+describe("table heights under markdown.table_row_rules", () => {
+  const WRAPPING = "| key | description |\n| --- | --- |\n| a | a long description that has to wrap in a narrow pane |\n| b | short |\n| c | another description that is long enough to wrap twice over in this pane |";
+  const FLAT = "| a | b |\n| - | - |\n| 1 | 2 |\n| 3 | 4 |\n| 5 | 6 |";
+  const item = (text: string): Item => {
+    let session: Session = createSession();
+    session = reduce(session, { type: "session_created", at: 0, cwd: "/w", agentInfo: { name: "fake-agent", version: "1" }, response: { sessionId: "s" } } as never);
+    session = reduce(session, { type: "session_update", at: 1, update: { sessionUpdate: "agent_message_chunk", messageId: "m", content: { type: "text", text } } } as never);
+    return itemsOf(session)[0]!;
+  };
+  afterEach(() => setRenderSettings(null));
+  for (const rule of ["auto", "always", "never"] as const) {
+    for (const [name, source] of [["wrapping", WRAPPING], ["one-line", FLAT]] as const) {
+      for (const width of [40, 63, 100]) {
+        test(`${rule}, ${name} cells, ${width} columns: estimate equals mounted height`, async () => {
+          setRenderSettings({ tableRowRules: rule });
+          const rows = await measure(width, false, [item(source)]);
+          expect(rows.length).toBe(1);
+          expect(rows[0]!.estimate).toBe(rows[0]!.real);
+        });
+      }
     }
   }
 });

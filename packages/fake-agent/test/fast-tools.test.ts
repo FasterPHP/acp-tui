@@ -5,7 +5,7 @@
 //
 // The timing tests of this file are in fast-tools.timing.test.ts (parallel-tests: they run in the serial pass).
 import { describe, expect, test } from "bun:test";
-import { FAST_TOOLS_ANSWER, FAST_TOOLS_CALLS } from "../src/scenarios/fast-tools.ts";
+import { FAST_TOOLS_ANSWER, FAST_TOOLS_CALLS, fastToolsCalls } from "../src/scenarios/fast-tools.ts";
 import { run } from "./fast-tools-helpers.ts";
 
 describe("fake-agent fast-tools scenario (day-two-feedback task 1.2)", () => {
@@ -25,5 +25,18 @@ describe("fake-agent fast-tools scenario (day-two-feedback task 1.2)", () => {
     const last = updates.at(-1)!;
     expect(last.sessionUpdate === "agent_message_chunk" && last.content).toEqual({ type: "text", text: FAST_TOOLS_ANSWER });
     expect(FAST_TOOLS_ANSWER.trim().split("\n")).toHaveLength(1);
+  });
+
+  test("--tools 20 sends twenty calls cycling the six kinds, then the answer and end_turn", async () => {
+    const { stopReason, updates } = await run(0, undefined, ["--tools", "20"]);
+    expect(stopReason).toBe("end_turn");
+    const started = updates.filter((update) => update.sessionUpdate === "tool_call") as { toolCallId: string; kind: string; title: string }[];
+    expect(started).toHaveLength(20);
+    expect(started.map((update) => update.toolCallId)).toEqual(Array.from({ length: 20 }, (_, i) => `ft-${i + 1}`));
+    expect(started.map((update) => update.kind)).toEqual(fastToolsCalls(20).map((call) => call.kind));
+    expect(started[6]!.title).toBe(FAST_TOOLS_CALLS[0]!.title);
+    expect(updates.filter((update) => update.sessionUpdate === "tool_call_update")).toHaveLength(20);
+    const last = updates.at(-1)!;
+    expect(last.sessionUpdate === "agent_message_chunk" && last.content).toEqual({ type: "text", text: FAST_TOOLS_ANSWER });
   });
 });

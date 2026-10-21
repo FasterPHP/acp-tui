@@ -50,6 +50,7 @@ describe("Glyph registry (task 7.1)", () => {
     expect(GLYPH_NAMES).toContain("scrollbar.thumb");
     expect(GLYPH_NAMES).toContain("list.bullet.4");
     expect(GLYPH_NAMES).toContain("title.marker");
+    expect(GLYPH_NAMES).toContain("title.attention");
   });
 
   test("every glyph of every set passes the validation an override does", () => {
@@ -79,7 +80,7 @@ describe("Glyph registry (task 7.1)", () => {
     const different = GLYPH_NAMES.filter((name) => nerd[name] !== GLYPH_SETS.unicode[name]);
     expect(different.length).toBeGreaterThan(8);
     for (const name of different) {
-      expect([name, /^tool\.(kind|status)\./.test(name)]).toEqual([name, true]);
+      expect([name, /^(tool\.(kind|status)\.|title\.attention$)/.test(name)]).toEqual([name, true]);
       expect([name, /^[-]$/u.test(nerd[name]!)]).toEqual([name, true]);
     }
     expect(nerd["tool.status.stopped"]).toBe("stop");
@@ -98,6 +99,23 @@ describe("Glyph registry (task 7.1)", () => {
       }
       expect(values["title.marker"]).toBe(marker);
     }
+  });
+
+  test("title.attention is defined by every set", () => {
+    expect(GLYPH_SETS.unicode["title.attention"]).toBe("\u25cf");
+    expect(GLYPH_SETS.ascii["title.attention"]).toBe("*");
+    expect(GLYPH_SETS["nerd-font"]["title.attention"]).toBe("\uf0f3");
+    expect(resolveGlyphs({ set: "unicode", overrides: {} }).glyphs.titleAttention).toBe("\u25cf");
+  });
+
+  test("title.attention may be overridden, but not blank or the permission marker", () => {
+    expect(unicode({ "title.attention": "!" }).glyphs.titleAttention).toBe("!");
+    const blank = unicode({ "title.attention": " " });
+    expect(blank.problems).toEqual([{ name: "title.attention", message: expect.stringContaining("cannot be blank") }]);
+    expect(blank.glyphs.titleAttention).toBe("\u25cf");
+    const marker = unicode({ "title.attention": MARKER });
+    expect(marker.problems).toEqual([{ name: "title.attention", message: expect.stringContaining("permission marker, which may not be used elsewhere") }]);
+    expect(unicode({ "title.attention": "ab" }).problems).toHaveLength(1);
   });
 
   test("the unicode set's marker is not the ◈ that Lilex lacks", () => {
@@ -267,7 +285,7 @@ describe("The active set (task 7.2, live reload)", () => {
     expect(LIVE_CHROME_GLYPHS.busy).toEqual({ track: "-", segment: "=", segmentLead: "", segmentTrail: "", gapLead: "", gapTrail: "" });
     expect(LIVE_PERMISSION_GLYPHS.marker).toBe("!");
     expect(activeGlyphs().titleMarker).toBe("!");
-    expect(terminalTitle({ title: "t", agent: null, cwd: null, waiting: true, format: "{title}" })).toBe("! t");
+    expect(terminalTitle({ title: "t", agent: null, cwd: null, waiting: true, attention: false, format: "{title}" })).toBe("! t");
     const ascii = glyphsKey(LIVE_GLYPHS);
     expect(ascii).not.toBe("");
     applyGlyphs({ set: "unicode", overrides: { "list.bullet.1": "▸" } });
