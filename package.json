@@ -1,8 +1,16 @@
 {
   "name": "acp-tui-workspace",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FasterPHP/acp-tui"
+  },
+  "engines": {
+    "bun": ">=1.3.14"
+  },
   "workspaces": [
     "packages/*"
   ],
@@ -13,7 +21,8 @@
     "bench:find": "bun packages/acp-tui/bench/find.ts",
     "test:windows": "bun scripts/test-windows.ts",
     "install-cli": "bun packages/acp-tui/scripts/install-cli.ts",
-    "typecheck": "tsc --noEmit -p packages/acp-model/tsconfig.json && tsc --noEmit -p packages/acp-tui/tsconfig.json && tsc --noEmit -p packages/fake-agent/tsconfig.json"
+    "typecheck": "tsc --noEmit -p packages/acp-model/tsconfig.json && tsc --noEmit -p packages/acp-tui/tsconfig.json && tsc --noEmit -p packages/fake-agent/tsconfig.json",
+    "update": "bun scripts/update.ts"
   },
   "devDependencies": {
     "typescript": "7.0.2",
