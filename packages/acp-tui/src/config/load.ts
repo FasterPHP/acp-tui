@@ -23,7 +23,6 @@
 // Pure: no file is read here (see sources.ts and store.ts).
 import { findNodeAtLocation, parseTree, printParseErrorCode, type Node, type ParseError } from "jsonc-parser";
 import type { z } from "zod";
-import { DEFAULT_HARNESS } from "../agent/command.ts";
 import { defaultHarnessSections } from "../agent/examples.ts";
 import { checkOverrides, type GlyphSetName } from "../conversation/glyphs.ts";
 import { resolveDirectories } from "./directories.ts";
@@ -681,12 +680,6 @@ export function parseConfigText(source: string | null, file: string, options: Pa
 
     if (loader.validate(schema, node, [written], value)) sections[section] = section === "glyphs" ? checkGlyphSection(loader, normalise(section, value)) : normalise(section, value);
     else rejected.push(section);
-  }
-
-  // The default by the schema, `auggie`, with no entry of that name: `config --check` says so.
-  const defaultWritten = props.some((p) => p.key === "default_agent_server" || p.key === "default_agent");
-  if (kind === "user" && options.knownAgents && !options.agentsRefused && !defaultWritten && !options.knownAgents.includes(DEFAULT_HARNESS) && !validAgents.has(DEFAULT_HARNESS) && invalidAgents[DEFAULT_HARNESS] === undefined) {
-    loader.notice(undefined, ["default_agent_server"], `is not set, so the default harness is ${JSON.stringify(DEFAULT_HARNESS)}, which has no agent_servers entry; acp-tui without a harness name fails until default_agent_server names an entry`);
   }
 
   return { file, kind, status: "ok", sections, rejected, invalidAgents, notices: loader.notices, problems: loader.problems };
