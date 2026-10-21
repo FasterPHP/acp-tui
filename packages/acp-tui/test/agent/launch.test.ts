@@ -22,6 +22,37 @@ describe("agent/launch (task 5.2)", () => {
     }
   });
 
+  test("a built-in's install hint ends the message when the program is not found", () => {
+    const hint = "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login";
+    try {
+      launchAgent(["acp-tui-no-such-auggie", "--acp"], { harness: "auggie", installHint: hint, env: { PATH: "/usr/bin:/bin" } });
+      throw new Error("expected launchAgent to throw");
+    } catch (error) {
+      const failure = error as AgentLaunchError;
+      expect(failure).toBeInstanceOf(AgentLaunchError);
+      expect(failure.notFound).toBe(true);
+      expect(failure.message).toContain("harness 'auggie' (command 'acp-tui-no-such-auggie --acp')");
+      expect(failure.message).toEndWith(`; auggie is not installed: install it with ${hint}`);
+    }
+  });
+
+  test("without a hint (a configured entry) the message is the plain one", () => {
+    try {
+      launchAgent(["acp-tui-no-such-auggie"], { harness: "auggie", env: { PATH: "/usr/bin:/bin" } });
+      throw new Error("expected launchAgent to throw");
+    } catch (error) {
+      expect((error as Error).message).not.toContain("install");
+    }
+  });
+
+  test("launch_error is logged with its kind and no text", () => {
+    const events: Record<string, unknown>[] = [];
+    const logger = { enabled: true, log: (e: Record<string, unknown>) => events.push(e) } as never;
+    expect(() => launchAgent(["acp-tui-no-such-auggie"], { logger, env: { PATH: "/usr/bin:/bin" } })).toThrow(AgentLaunchError);
+    expect(() => launchAgent([], { logger })).toThrow(AgentLaunchError);
+    expect(events).toEqual([{ event: "launch_error", kind: "not_found" }]);
+  });
+
   test("an empty command throws AgentLaunchError without calling Bun.spawn", () => {
     expect(() => launchAgent([])).toThrow(AgentLaunchError);
   });

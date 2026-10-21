@@ -239,6 +239,20 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
     expect(catalogue.problems).toEqual(["/c.jsonc:1:45: agent_servers.claude.command takes a non-empty string, not an array"]);
   });
 
+  test("an auggie entry replaces the built-in and carries no install hint", () => {
+    const catalogue = buildAgentCatalogue(`{ "agent_servers": { "auggie": { "command": "my-auggie", "args": ["--acp", "--reasoning-effort", "high"] } } }`, "/c.jsonc");
+    expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["my-auggie", "--acp", "--reasoning-effort", "high"]);
+    expect(findAgent(catalogue, "auggie")).toMatchObject({ source: "config" });
+    expect(findAgent(catalogue, "auggie").installHint).toBeUndefined();
+  });
+
+  test("an invalid auggie override leaves the built-in launchable, with its install hint", () => {
+    const catalogue = buildAgentCatalogue(`{ "agent_servers": { "auggie": { "command": [] } } }`, "/c.jsonc");
+    expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["auggie", "--acp"]);
+    expect(findAgent(catalogue, "auggie").installHint).toContain("npm install -g @augmentcode/auggie@0.36.0");
+    expect(catalogue.problems).toHaveLength(1);
+  });
+
   test("a default_agent naming an invalid entry is a problem; auggie is the default", () => {
     const catalogue = buildAgentCatalogue(`{ "agent_servers": { "broken": { "command": 1 } }, "default_agent": "broken" }`, "/c.jsonc");
     expect(catalogue.defaultAgent).toBe("auggie");
