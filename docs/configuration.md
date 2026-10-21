@@ -314,6 +314,9 @@ With `interrupt` `single`, the Esc that would arm an interrupt cancels the turn 
 | --- | --- | --- | --- |
 | `attention.signal` | `"bell"`, `"osc9"`, `"osc777"`, `"none"` | `"bell"` | How acp-tui asks for attention, while the pane is unfocused, when a permission request opens or a long turn ends: `"bell"` - the terminal bell; `"osc9"` - a desktop notification, in terminals that support OSC 9; `"osc777"` - a desktop notification, in terminals that support OSC 777; `"none"` - nothing. |
 | `attention.long_turn_seconds` | whole number from 1 | `30` | A turn longer than this many seconds is signalled when it ends. |
+| `attention.title_marker` | `true`, `false` | `true` | Mark the terminal title with the attention glyph (`title.attention`) while attention is pending: a permission request opened, or a turn longer than `long_turn_seconds` ended, while the pane was unfocused. Independent of `signal`: with `"none"` the title is still marked. |
+
+**The marker in the tab.** Attention is pending from the moment acp-tui would signal, whatever `attention.signal` is, until you come back: it clears when the pane gains focus (in terminals that report focus, such as Zed) and, in every terminal, on the next key press, click, scroll or paste in acp-tui (pointer movement does not count). While the session waits for a permission or a question, only the permission marker (`title.marker`) leads the title; if the request ends without you touching acp-tui, the attention marker takes over. Only a terminal that shows the program's title in its tab can show the marker: PhpStorm's reworked terminal does (and updates it live); PhpStorm's classic terminal keeps "Local" and Zed shows its own label for the terminal, so neither shows it. The JetBrains terminals never report focus, so there the marker also appears when you were looking at the pane, and clears on your next key press or click, not when you bring the tab forward. See "The terminal title" for `{attention}`.
 
 **The bell in JetBrains terminals.** PhpStorm's and IntelliJ's terminals never report whether they have focus, so acp-tui cannot tell that you are looking at it and the bell rings even then. If that bothers you, switch the signal off:
 
@@ -382,17 +385,25 @@ A project file may set it. A change applies the next time a call finishes.
 
 ### The terminal title
 
-The title of the terminal tab (PhpStorm's tab, Zed's sidebar) is the name of the session directory, so a row of tabs reads as the repositories they work in. When several acp-tui instances run in the same directory name, the second shows ` 2`, the third ` 3`, and so on; each keeps its number for its whole run. While a permission request waits, the glyph set's title marker leads the title. The title is held on one line and cut to 60 columns.
+The title of the terminal tab (PhpStorm's tab, Zed's sidebar) is the name of the session directory, so a row of tabs reads as the repositories they work in. When several acp-tui instances run in the same directory name, the second shows ` 2`, the third ` 3`, and so on; each keeps its number for its whole run. While a permission request waits, the glyph set's title marker leads the title; while attention is pending (see "Attention") the attention marker (`title.attention`) takes its place, at `{attention}` if the format has it and otherwise leading the title, followed by a space. The title is held on one line and cut to 60 columns, the marker included.
 
 | Setting | Values | Default | What it does |
 | --- | --- | --- | --- |
-| `title.format` | format | `"{dir}{counter}"` | The terminal title, a template over `{dir}` (the session directory's name), `{counter}` (empty for the first instance showing that name, ` 2`, ` 3` for the next ones), `{agent}` (the agent's name) and `{title}` (the agent's session title, empty until it sends one). Literal text directly before an empty placeholder is dropped with it, spaces are collapsed and the ends trimmed. |
+| `title.format` | format | `"{dir}{counter}"` | The terminal title, a template over `{dir}` (the session directory's name), `{counter}` (empty for the first instance showing that name, ` 2`, ` 3` for the next ones), `{agent}` (the agent's name), `{title}` (the agent's session title, empty until it sends one) and `{attention}` (the attention marker while it is shown, otherwise empty). Literal text directly before an empty placeholder is dropped with it, spaces are collapsed and the ends trimmed. |
 
 The title no longer carries the agent's own session title by default (`claude-agent-acp` sends one; Auggie never does). To bring it back:
 
 ```jsonc config
 {
   "title": { "format": "{dir}{counter} · {title}" },
+}
+```
+
+To place the attention marker yourself, name `{attention}`; the literal text before it goes when it is empty:
+
+```jsonc config
+{
+  "title": { "format": "{dir}{counter} {attention}" },
 }
 ```
 
@@ -562,7 +573,7 @@ Pinning two surfaces to the same colour is not: the pinned code fill is replaced
 | --- | --- |
 | `unicode` | The default: glyphs present in JetBrains Mono and Lilex (the fonts of PhpStorm and Zed), apart from `◦` and `✗`, which Zed draws from a fallback font. |
 | `ascii` | The fallback: a form for every glyph, for a terminal or font that draws too little. |
-| `nerd-font` | Opt-in: Nerd Font icons for the tool kinds and for `ok`, `fail` and `running`; `unicode` for everything else. |
+| `nerd-font` | Opt-in: Nerd Font icons for the tool kinds, for `ok`, `fail` and `running` and a bell for `title.attention`; `unicode` for everything else. |
 
 A bare name works for the set alone:
 
@@ -591,7 +602,7 @@ An invalid override is reported at its own line and column as a warning and left
 
 - printable: no control, format, surrogate or line-separator character (private-use characters are allowed, since Nerd Font icons live there);
 - the width its name requires, one cell for most, measured as OpenTUI draws it and as the layout counts it, which must agree (so `✅` for `tool.status.ok` is refused: two cells where one is required, and `❤` is refused because OpenTUI draws it two cells wide and the layout counts one);
-- for the permission marker, used by no other glyph of the set, so agent text drawn with the set's other glyphs never shows it in a list or gutter. The title marker (the terminal title) follows the permission marker and is exempt, because the title is never drawn in screen cells. The frame glyphs and the marker cannot be blank.
+- for the permission marker, used by no other glyph of the set, so agent text drawn with the set's other glyphs never shows it in a list or gutter. The title marker (the terminal title) follows the permission marker and is exempt, because the title is never drawn in screen cells. `title.attention`, the attention marker of the tab (`●` in `unicode`, `*` in `ascii`, a bell in `nerd-font`), is one cell wide, cannot be blank and cannot hold the permission marker; like the title marker it is drawn in the tab, in the IDE's interface font and not the terminal's, so check it there with `acp-tui glyphs --test`. The frame glyphs and the marker cannot be blank.
 
 ```sh
 acp-tui glyphs --test          # all three sets

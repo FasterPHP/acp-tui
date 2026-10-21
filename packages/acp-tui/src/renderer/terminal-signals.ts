@@ -8,7 +8,7 @@ import type { HarnessActivity } from "../agent/harness-activity.ts";
 import type { DebugLogger } from "../log.ts";
 import type { ConsoleTitleReader } from "../platform/windows-console-title.ts";
 import type { SessionStore } from "../session/store.ts";
-import { DEFAULT_ATTENTION, installAttention, type AttentionSettings } from "./attention.ts";
+import { DEFAULT_ATTENTION, wireAttention, type AttentionRenderer, type AttentionSettings } from "./attention.ts";
 import { ALTERNATE_SCROLL_QUERY, createAlternateScroll, installNotchFilter, type AlternateScroll } from "./mouse-off.ts";
 import { installTerminalTitle, type TerminalTitle } from "./title.ts";
 import { createTitleSlots, titleSlotDir, type TitleSlots } from "./title-slot.ts";
@@ -124,10 +124,16 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
   return {
     install(renderer) {
       const write = rendererWrite(renderer, options.logger);
+      const given = options.attention ?? DEFAULT_ATTENTION;
+      const attentionSettings = typeof given === "function" ? given : () => given;
+      const wired = wireAttention(renderer as unknown as AttentionRenderer, store, { settings: given, write, ...(options.now ? { now: options.now } : {}) });
+      removers.push(wired.remove);
+      const markerOn = (): boolean => attentionSettings().titleMarker !== false;
       const installed = installTerminalTitle(renderer, store, write, {
         ...(options.titleFormat ? { format: options.titleFormat } : {}),
         ...(options.directory !== undefined ? { directory: options.directory } : {}),
         slots: options.titleSlots ?? createTitleSlots({ dir: titleSlotDir(env) }),
+        attention: { pending: () => wired.attention.pending, onPending: (listener) => wired.attention.onPending(listener), enabled: markerOn },
       });
       title = installed;
       if (reassertAfterInstall) {
@@ -163,8 +169,12 @@ export function createTerminalSignals(options: TerminalSignalsOptions): Terminal
           }),
         );
       }
+      // A reload of `attention.title_marker` sets the title again.
       removers.push(
-        installAttention(renderer, store, { settings: options.attention ?? DEFAULT_ATTENTION, write, ...(options.now ? { now: options.now } : {}) }),
+        createRoot((dispose) => {
+          createEffect(on(markerOn, () => installed.refresh(), { defer: true }));
+          return dispose;
+        }),
       );
       removers.push(installNotchFilter(renderer, () => store.ui.mouse));
       if (env["TERM_PROGRAM"] === "zed") {

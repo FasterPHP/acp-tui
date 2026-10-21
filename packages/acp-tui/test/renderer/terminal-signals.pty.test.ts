@@ -314,6 +314,69 @@ describe("Long turn against fake-agent's slow-turn (task 7.2)", () => {
   }, TIMEOUT);
 });
 
+describe("Attention marker in the title (interface-feedback task 6.4)", () => {
+  const slowTurn = ["bun", FAKE_AGENT, "--scenario", "slow-turn", "--long-gap", "--delay-scale", "0.05"];
+  const DOT = "\u25cf";
+  const long = configEnv({ attention: { long_turn_seconds: 1 } });
+
+  // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
+  test.skipIf(WINDOWS)("Unfocused pane: the title gains the marker when the turn ends and loses it after one key press", async () => {
+    const cwd = tempDir();
+    const name = basename(cwd);
+    const s = start({ cwd, agent: slowTurn, env: long });
+    await s.waitFor(READY, 15000);
+    s.write(FOCUS_OUT);
+    await Bun.sleep(100);
+    s.sendKeys({ text: "read both" }, "Enter");
+    await s.waitFor(/Both files read/, 20000);
+    await s.waitFor((p) => titles(p.rawOutput()).at(-1) === `${DOT} ${name}`, 10000);
+    expect(titles(s.rawOutput())).toEqual([name, `${DOT} ${name}`]);
+    s.sendKeys({ text: "x" });
+    await s.waitFor((p) => titles(p.rawOutput()).at(-1) === name, 5000);
+  }, TIMEOUT);
+
+  test.skipIf(WINDOWS)("Focused pane: no marker", async () => {
+    const cwd = tempDir();
+    const name = basename(cwd);
+    const s = start({ cwd, agent: slowTurn, env: long });
+    await s.waitFor(READY, 15000);
+    s.write(FOCUS_IN);
+    await Bun.sleep(100);
+    s.sendKeys({ text: "read both" }, "Enter");
+    await s.waitFor(/Both files read/, 20000);
+    await s.waitFor(READY, 10000);
+    await Bun.sleep(300);
+    expect(titles(s.rawOutput())).toEqual([name]);
+  }, TIMEOUT);
+
+  test.skipIf(WINDOWS)("Focus in clears the marker where the terminal reports focus", async () => {
+    const cwd = tempDir();
+    const name = basename(cwd);
+    const s = start({ cwd, agent: slowTurn, env: long });
+    await s.waitFor(READY, 15000);
+    s.write(FOCUS_OUT);
+    await Bun.sleep(100);
+    s.sendKeys({ text: "read both" }, "Enter");
+    await s.waitFor((p) => titles(p.rawOutput()).at(-1) === `${DOT} ${name}`, 20000);
+    s.write(FOCUS_IN);
+    await s.waitFor((p) => titles(p.rawOutput()).at(-1) === name, 5000);
+  }, TIMEOUT);
+
+  test.skipIf(WINDOWS)("attention.title_marker false: the turn signals but the title keeps its text", async () => {
+    const cwd = tempDir();
+    const name = basename(cwd);
+    const s = start({ cwd, agent: slowTurn, env: configEnv({ attention: { long_turn_seconds: 1, title_marker: false } }) });
+    await s.waitFor(READY, 15000);
+    s.write(FOCUS_OUT);
+    await Bun.sleep(100);
+    s.sendKeys({ text: "read both" }, "Enter");
+    await s.waitFor(/Both files read/, 20000);
+    await s.waitFor((p) => bells(p.rawOutput()) === 1, 10000);
+    await Bun.sleep(300);
+    expect(titles(s.rawOutput())).toEqual([name]);
+  }, TIMEOUT);
+});
+
 describe("Mouse off in Zed (task 7.3)", () => {
   // Skipped on Windows: ConPTY answers or swallows the terminal queries (CSI 6n, DECRQM) itself, so the harness never sees them.
   test.skipIf(WINDOWS)("Zed mode 1007: l at the first F2, h at the second, set after exit", async () => {
