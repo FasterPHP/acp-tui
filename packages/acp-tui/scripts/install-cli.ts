@@ -22,6 +22,14 @@
 // symlink is written through), and `--force` does not change that: it is about the stub only.
 // `--uninstall` leaves the configuration alone.
 //
+// Every install also writes `config.dist.jsonc` beside the configuration (interface-feedback D4;
+// tui-config "Default configuration beside the user's file"): three `//` header lines naming the
+// version (from the package's package.json), then the commented default. acp-tui never reads or
+// watches it; it is there to compare with `config.jsonc` (or `acp-tui config --diff-default`). It is
+// written through a temporary file and `renameOver`; anything at the path that is not a regular
+// file is left alone; a failure is a warning and the install still exits 0. `--uninstall` removes
+// it only when its first line starts with the header's first words, and leaves `config.jsonc`.
+//
 // On Windows (design D1 of windows-support; tui-config "Installed command on Windows") the stub is
 // `acp-tui.cmd`, written to `%USERPROFILE%\.bun\bin` (which Bun's installer puts on the PATH): cmd
 // and PowerShell cannot run an `sh` script. It runs `src/cli.ts` with the absolute path of the Bun
@@ -45,8 +53,9 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { pathsFor, pathWithin, windowsProfile, type Platform } from "../src/platform/paths.ts";
+import { configDirectory, pathsFor, pathWithin, windowsProfile, type Platform } from "../src/platform/paths.ts";
 import { envValue } from "../src/agent/which.ts";
+import { renameOver } from "../src/platform/replace-file.ts";
 
 const MARKER_TEXT = "acp-tui-install-cli: written by `bun run install-cli`; rerun it to repoint, do not edit.";
 
@@ -175,6 +184,11 @@ It also creates your configuration file, $XDG_CONFIG_HOME/acp-tui/config.jsonc (
 ~/.config/acp-tui/config.jsonc; on Windows %APPDATA%\\acp-tui\\config.jsonc), with every setting
 commented at its default, when there is none. An existing configuration is never replaced, not
 even with --force, and --uninstall leaves it alone.
+
+Every install also writes config.dist.jsonc beside it: the default configuration of this
+version, never read by acp-tui, for comparison with your config.jsonc (or run
+\`acp-tui config --diff-default\`). --uninstall removes it, unless it is not the one this
+script wrote.
 `;
 
 function lstatOrNull(path: string): ReturnType<typeof lstatSync> | null {
@@ -251,6 +265,64 @@ export async function createConfiguration(env: Record<string, string | undefined
   return { created: true, file };
 }
 
+export const DIST_FILE_NAME = "config.dist.jsonc";
+
+/** The first words of the dist file's first line; what makes the file this script's own. */
+export const DIST_HEADER_START = "// The default configuration of acp-tui ";
+
+/** The dist file's path: beside the user's configuration file. */
+export function distConfigurationFile(env: Record<string, string | undefined>, platform: Platform = process.platform): string {
+  return pathsFor(platform).join(configDirectory(env, platform), DIST_FILE_NAME);
+}
+
+function packageVersion(): string {
+  const text = readFileSync(join(import.meta.dir, "../package.json"), "utf8");
+  return (JSON.parse(text) as { version: string }).version;
+}
+
+/** The dist file's whole text: three comment lines naming the version, then the commented default. */
+export function distContent(version: string, commentedDefault: string): string {
+  return [
+    `${DIST_HEADER_START}${version}, written by install-cli on every install.`,
+    "// It is never read. Compare it with config.jsonc to see new and changed settings",
+    "// (or run acp-tui config --diff-default).",
+    "",
+  ].join("\n") + commentedDefault;
+}
+
+/**
+ * Writes the dist file at `file` (design D4): a temporary file beside it (0600), then a rename over
+ * the old one. Returns the line to print; anything wrong is a warning line instead, never a throw.
+ */
+export async function writeDistConfiguration(file: string): Promise<{ stdout?: string; stderr?: string }> {
+  const warn = (reason: string) => ({ stderr: `install-cli: warning: could not write ${file}: ${reason}\n` });
+  const temporary = join(dirname(file), `.${DIST_FILE_NAME}.${process.pid}.tmp`);
+  try {
+    const existing = lstatOrNull(file);
+    if (existing && !existing.isFile()) return warn("it is not a regular file; left alone");
+    const { commentedDefault } = await configModules();
+    writeFileSync(temporary, distContent(packageVersion(), commentedDefault()), { flag: "w", mode: 0o600 });
+    renameOver(temporary, file);
+  } catch (error) {
+    rmSync(temporary, { force: true });
+    return warn(error instanceof Error ? error.message : String(error));
+  }
+  return { stdout: `install-cli: wrote ${file}, the default configuration of this version, for comparison with your configuration\n` };
+}
+
+/** Removes the dist file when it is the one this script wrote (its first line starts as the header does). */
+function removeDistConfiguration(file: string, io: Io): void {
+  try {
+    const existing = lstatOrNull(file);
+    if (!existing || !existing.isFile()) return;
+    if (!readFileSync(file, "utf8").split(/\r?\n/, 1)[0]!.startsWith(DIST_HEADER_START)) return;
+    rmSync(file);
+    io.stdout(`install-cli: removed ${file}\n`);
+  } catch (error) {
+    io.stderr(`install-cli: warning: could not remove ${file}: ${error instanceof Error ? error.message : String(error)}\n`);
+  }
+}
+
 export interface Io {
   stdout: (text: string) => void;
   stderr: (text: string) => void;
@@ -283,7 +355,9 @@ export async function main(
 
   if (parsed.uninstall) {
     // The configuration is the user's and stays (tui-config "Installed command"); nothing here
-    // reads or names it.
+    // reads or names it. The dist file is this script's own, and goes whatever the command's state.
+    // (Like createConfiguration, it follows the running platform: `platform` is for the stub only.)
+    removeDistConfiguration(distConfigurationFile(env), io);
     if (!existing) {
       io.stdout(`install-cli: nothing to remove: ${target} does not exist\n`);
       return 0;
@@ -349,6 +423,9 @@ export async function main(
       ? `install-cli: created ${outcome.file}, every setting commented at its default; edit it to add agents (acp-tui config --check checks it)\n`
       : `install-cli: kept the existing configuration ${outcome.file}\n`,
   );
+  const dist = await writeDistConfiguration(join(dirname(outcome.file), DIST_FILE_NAME));
+  if (dist.stdout) io.stdout(dist.stdout);
+  if (dist.stderr) io.stderr(dist.stderr);
   return 0;
 }
 

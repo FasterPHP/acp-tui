@@ -42,6 +42,23 @@ describe("Configuration file (task 2.1)", () => {
     expect(store.problems()).toEqual([]);
   });
 
+  test("config.dist.jsonc beside the file is never read: invalid, it changes nothing and reports nothing (interface-feedback 5.2)", () => {
+    const xdg = temp("acp-tui-xdg-");
+    mkdirSync(join(xdg, "acp-tui"));
+    writeFileSync(join(xdg, "acp-tui", "config.jsonc"), `{ "mouse": "off" }`);
+    writeFileSync(join(xdg, "acp-tui", "config.dist.jsonc"), `{ "mouse": "nonsense", "density": 7, oops`);
+    const store = createConfigStore({ env: { XDG_CONFIG_HOME: xdg, HOME: xdg }, sessionDirectory: null });
+    expect(store.config().mouse).toBe("off");
+    expect(store.config().density).toBe(defaultConfig().density);
+    expect(store.problems()).toEqual([]);
+    expect(Object.values(store.files()).filter((f) => typeof f === "string" && f.includes("dist"))).toEqual([]);
+    // And with no config.jsonc at all, a valid dist file is no configuration either.
+    const other = temp("acp-tui-xdg-");
+    mkdirSync(join(other, "acp-tui"));
+    writeFileSync(join(other, "acp-tui", "config.dist.jsonc"), `{ "mouse": "off" }`);
+    expect(createConfigStore({ env: { XDG_CONFIG_HOME: other, HOME: other }, sessionDirectory: null }).config()).toEqual(defaultConfig());
+  });
+
   test("No file: every setting has its default and there is no problem", () => {
     const xdg = temp("acp-tui-xdg-");
     const store = createConfigStore({ env: { XDG_CONFIG_HOME: xdg, HOME: xdg }, sessionDirectory: null });
