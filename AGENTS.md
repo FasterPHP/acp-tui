@@ -1,12 +1,12 @@
 # acp-tui
 
-A full-screen terminal client for the Agent Client Protocol (ACP), in TypeScript on Bun, built on OpenTUI (pinned exactly) with Solid. It runs in IDE integrated terminals (PhpStorm, IntelliJ IDEA, Zed) and ordinary terminals, against any ACP agent ("harness"): Auggie and Claude Code are built in.
+A full-screen terminal client for the Agent Client Protocol (ACP), in TypeScript on Bun, built on OpenTUI (pinned exactly) with Solid. It runs in IDE integrated terminals (PhpStorm, IntelliJ IDEA, Zed) and ordinary terminals, against any ACP agent ("harness"): every harness is an `agent_servers` entry, and the default configuration has `auggie`.
 
 ## Workspace
 
 A Bun workspace with three packages:
 
-- `packages/acp-tui`: the client. `src/cli.ts` and `src/agent/` (command line, harness table, launch), `src/session/`, `src/conversation/` (the windowed list and the Markdown renderers), `src/renderer/`, `src/layout/`, `src/config/` (schema, loader, store, watcher, subcommands), `src/keys/`, `assets/grammars/` (bundled tree-sitter grammars), `scripts/` (generators, `install-cli`, `update`), `test/`.
+- `packages/acp-tui`: the client. `src/cli.ts` and `src/agent/` (command line, harness catalogue and examples, hints by program, launch), `src/session/`, `src/conversation/` (the windowed list and the Markdown renderers), `src/renderer/`, `src/layout/`, `src/config/` (schema, loader, store, watcher, subcommands), `src/keys/`, `assets/grammars/` (bundled tree-sitter grammars), `scripts/` (generators, `install-cli`, `update`), `test/`.
 - `packages/acp-model`: the renderer-independent session model, the ACP update reducer and the sanitiser for all agent text.
 - `packages/fake-agent`: a scriptable ACP agent for tests, including hostile-output fixtures.
 
