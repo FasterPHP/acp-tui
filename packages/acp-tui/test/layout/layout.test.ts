@@ -43,7 +43,7 @@ describe("validation", () => {
     expect(regions.map((r) => (r.kind === "block" ? r.name : r.kind))).toEqual(["conversation", "activity", "card", "prompt", "spacer", "find", "bar"]);
     expect(regions[4]).toEqual({ kind: "spacer", rows: 1 });
     const status = regions[6] as ResolvedBar;
-    expect(status.left.map((m) => m.id)).toEqual(["cwd", "turn-state", "hints"]);
+    expect(status.left.map((m) => m.id)).toEqual(["cwd", "dirs", "turn-state", "hints"]);
     // mvp-configuration task 3.4: the `config` module, hidden while the configuration has no problem.
     expect(status.right.map((m) => m.id)).toEqual(["config", "mouse", "density", "position", "connection", "usage", "cost"]);
   });
@@ -344,6 +344,16 @@ describe("bar composition", () => {
     const narrow = layoutBar(STATUS, FULL_VIEW, 60);
     expect(narrow.dropped).toEqual(["usage", "cwd", "mode"]);
     expect(barText(narrow)).toBe(" Claude Code  sonnet-4.5" + " ".repeat(13) + "idle  connected  $0.41 ");
+  });
+
+  test("additional directories: +2 dirs sits after cwd, and in a 63-column status row is dropped before cwd (spec tui-layout \"Additional directories module\")", () => {
+    const status = resolveLayout(DEFAULT_LAYOUT).regions.find((region): region is ResolvedBar => region.kind === "bar")!;
+    const v = view({ cwd: "/home/user/Projects/a-rather-long-project-directory-name", additionalDirectories: ["/home/user/Projects/lib", "/home/user/Projects/docs"] });
+    expect(barText(layoutBar(status, v, 140))).toContain("oject-directory-name  +2 dirs");
+    const narrow = layoutBar(status, v, 63);
+    expect(narrow.dropped).toContain("dirs");
+    expect(narrow.dropped.indexOf("dirs")).toBeLessThan(narrow.dropped.indexOf("cwd") < 0 ? Infinity : narrow.dropped.indexOf("cwd"));
+    expect(barText(narrow)).not.toContain("+2 dirs");
   });
 
   test("narrow pane with a permission open: turn state still reads requires_action", () => {

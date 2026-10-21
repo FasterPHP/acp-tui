@@ -25,9 +25,10 @@ import { findNodeAtLocation, parseTree, printParseErrorCode, type Node, type Par
 import type { z } from "zod";
 import { DEFAULT_HARNESS } from "../agent/command.ts";
 import { checkOverrides, type GlyphSetName } from "../conversation/glyphs.ts";
+import { resolveDirectories } from "./directories.ts";
 import { formatProblem, suggest, type ConfigProblem, type ProblemSeverity } from "./problems.ts";
 import { AgentServerSchema, projectRule, SECTION_NAMES, SECTIONS, unwrap, type SectionName } from "./schema.ts";
-import { withoutBom } from "./sources.ts";
+import { homeDirectory, withoutBom } from "./sources.ts";
 
 export type ConfigSourceKind = "user" | "project";
 
@@ -64,6 +65,9 @@ export interface ParseOptions {
   /** The platform the file is read on, for the checks that depend on it (the arguments the Windows
    *  command interpreter reads); default `process.platform`. */
   readonly platform?: NodeJS.Platform;
+  /** The user's home directory, for `~` in `additional_directories` and the project-file limit;
+   *  default the one `process.env` gives. */
+  readonly home?: string;
 }
 
 /** The characters that Bun 1.4 refuses in the command or an argument when it starts a `.cmd` or
@@ -658,6 +662,17 @@ export function parseConfigText(source: string | null, file: string, options: Pa
         rejected.push(section);
         continue;
       }
+    }
+
+    if (section === "additional_directories") {
+      if (!loader.validate(schema, node, [written], value)) {
+        rejected.push(section);
+        continue;
+      }
+      const resolution = resolveDirectories(value as string[], { file, kind, home: options.home ?? homeDirectory(), platform });
+      for (const p of resolution.problems) loader.problem(node?.children?.[p.index] ?? node, [written, p.index], p.severity, p.message);
+      sections[section] = resolution.directories;
+      continue;
     }
 
     if (loader.validate(schema, node, [written], value)) sections[section] = section === "glyphs" ? checkGlyphSection(loader, normalise(section, value)) : normalise(section, value);

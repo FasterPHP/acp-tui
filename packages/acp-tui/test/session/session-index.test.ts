@@ -372,3 +372,42 @@ describe("an unwritable state directory (task 4.3)", () => {
     }
   });
 });
+
+// harness-feedback task group 6 (spec tui-sessions "Additional directories kept with the session").
+describe("addedDirectories", () => {
+  test("Written with the entry and read back; absent when none were added", () => {
+    const home = stateHome();
+    const index = open(home, { now: () => T0 });
+    index.record({ agent: "fake", sessionId: "with", directory: "/work/app", addedDirectories: ["/work/lib", "/work/docs"] });
+    index.record({ agent: "fake", sessionId: "without", directory: "/work/app", addedDirectories: [] });
+    const records = open(home).listAll();
+    expect(records.find((r) => r.sessionId === "with")?.addedDirectories).toEqual(["/work/lib", "/work/docs"]);
+    expect(records.find((r) => r.sessionId === "without")).not.toHaveProperty("addedDirectories");
+  });
+
+  test("Old entries without the field still read, and a malformed field is ignored rather than dropping the entry", () => {
+    const home = stateHome();
+    const dir = join(home, "acp-tui");
+    mkdirSync(dir, { recursive: true });
+    const record = { sessionId: "old", agent: "fake", directory: "/work/app", title: null, createdAt: "2026-10-04T09:00:00.000Z", updatedAt: "2026-10-04T09:00:00.000Z" };
+    const lines = [
+      { v: 1, kind: "recorded", record },
+      { v: 1, kind: "recorded", record: { ...record, sessionId: "odd", addedDirectories: "/work/lib" } },
+      { v: 1, kind: "recorded", record: { ...record, sessionId: "mixed", addedDirectories: ["/work/lib", 7] } },
+    ];
+    writeFileSync(join(dir, INDEX_FILE_NAME), lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
+    const records = open(home).listAll();
+    expect(records.map((r) => r.sessionId).sort()).toEqual(["mixed", "odd", "old"]);
+    expect(records.every((r) => r.addedDirectories === undefined)).toBe(true);
+  });
+
+  test("Recording the session again replaces the list (the latest write wins) and keeps its title", () => {
+    const home = stateHome();
+    const index = open(home, { now: () => T0 });
+    index.record({ agent: "fake", sessionId: "s", directory: "/work/app", title: "T", addedDirectories: ["/work/lib"] });
+    index.record({ agent: "fake", sessionId: "s", directory: "/work/app", addedDirectories: ["/work/lib", "/work/docs"] });
+    const found = open(home).find("s").record!;
+    expect(found.addedDirectories).toEqual(["/work/lib", "/work/docs"]);
+    expect(found.title).toBe("T");
+  });
+});

@@ -52,13 +52,26 @@ export class CannotReopenError extends Error {
   }
 }
 
+/** The additional directories a session is started or opened with. The model records the list
+ *  (`additionalDirectories`) as the client delivered it; the request carries it as the ACP field
+ *  only when `send` is true (the harness advertises the capability and has no argument template),
+ *  and an empty list is never sent. */
+export interface SessionDirectories {
+  readonly additionalDirectories?: readonly string[];
+  readonly send?: boolean;
+}
+
+const sentField = (directories: SessionDirectories): { additionalDirectories?: readonly string[] } =>
+  directories.send === true && (directories.additionalDirectories?.length ?? 0) > 0 ? { additionalDirectories: directories.additionalDirectories! } : {};
+
 export interface SessionController {
   /** What the agent offers for earlier sessions (from `initialize`). */
   readonly support: SessionSupport;
   /** `agentInfo` from the `initialize` response, if any. */
   readonly agentInfo: Implementation | null;
-  /** Sends `session/new` with `cwd` (once per controller, instead of `openSession`). */
-  newSession(cwd: string): Promise<void>;
+  /** Sends `session/new` with `cwd` (once per controller, instead of `openSession`), and
+   *  `options.additionalDirectories` when given and non-empty (the caller checks `support`). */
+  newSession(cwd: string, options?: SessionDirectories): Promise<void>;
   /**
    * Reopens session `sessionId` in `cwd`: `session/load` when the agent advertises
    * `loadSession`, else `session/resume` when it advertises `sessionCapabilities.resume`, else
@@ -68,7 +81,7 @@ export interface SessionController {
    * `session_opened` have reached the listeners. Rejects with the agent's error (a
    * `RequestError` with its `code`) or a start-up error.
    */
-  openSession(sessionId: string, cwd: string): Promise<SessionOpenMode>;
+  openSession(sessionId: string, cwd: string, options?: SessionDirectories): Promise<SessionOpenMode>;
   /** Appends acp-tui's own notice to the conversation as a marker item (`client_notice`; the
    *  session directory marker, mvp-sessions task 12.3). Nothing is sent to the agent. */
   notice(text: string): void;
@@ -422,11 +435,11 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
 
       activate: () => activate(core),
 
-      async newSession(cwd: string): Promise<void> {
+      async newSession(cwd: string, directories: SessionDirectories = {}): Promise<void> {
         claim();
         let response;
         try {
-          response = await createNewSession(conn, agent, options.command, cwd, { logger });
+          response = await createNewSession(conn, agent, options.command, cwd, { logger, ...sentField(directories) });
         } catch (error) {
           if (isAuthRequired(error)) {
             logger.log({ event: "auth_required", phase: "new" });
@@ -434,26 +447,27 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
           }
           throw error;
         }
-        dispatch({ type: "session_created", response, cwd, agentInfo, at: now() });
+        dispatch({ type: "session_created", response, cwd, additionalDirectories: directories.additionalDirectories ?? [], agentInfo, at: now() });
       },
 
-      async openSession(sessionId: string, cwd: string): Promise<SessionOpenMode> {
+      async openSession(sessionId: string, cwd: string, directories: SessionDirectories = {}): Promise<SessionOpenMode> {
         const mode: SessionOpenMode | null = support.load ? "load" : support.resume ? "resume" : null;
         if (mode === null) throw new CannotReopenError(sessionId);
         claim();
         // A session switched away from earlier in this run may be opened again.
         if (core === active) retired.delete(sessionId);
         // Before the request, so the replayed updates find the session identified.
-        dispatch({ type: "session_opening", mode, sessionId, cwd, agentInfo, at: now() });
+        dispatch({ type: "session_opening", mode, sessionId, cwd, additionalDirectories: directories.additionalDirectories ?? [], agentInfo, at: now() });
+        const sent = sentField(directories);
         if (mode === "resume") {
-          const response = await resumeSession(conn, agent, options.command, sessionId, cwd, { logger });
+          const response = await resumeSession(conn, agent, options.command, sessionId, cwd, { logger, ...sent });
           dispatch({ type: "session_opened", response, at: now() });
           return mode;
         }
         handler.beginReplay();
         let response;
         try {
-          response = await loadSession(conn, agent, options.command, sessionId, cwd, { logger });
+          response = await loadSession(conn, agent, options.command, sessionId, cwd, { logger, ...sent });
         } catch (error) {
           handler.abortReplay();
           throw error;

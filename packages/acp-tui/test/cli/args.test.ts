@@ -7,7 +7,7 @@
 // `--mouse`, `--wheel-lines` and `--exit-print`. mvp-configuration task 9.3:
 // `--spike` is obsolete, accepted with or without a value and ignored with a notice.
 import { describe, expect, mock, test } from "bun:test";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
@@ -33,6 +33,7 @@ describe("cli parseArgs (task 5.1)", () => {
       agentCommand: null,
       directory: null,
       session: { kind: "new" },
+      addDirs: [],
       subcommand: null,
       help: false,
       version: false,
@@ -373,4 +374,43 @@ describe("cli main() (task 5.1)", () => {
 // writes; imported here just to confirm the export exists for other tests to reuse.
 test("log.ts exports a disabled NULL_LOGGER", () => {
   expect(NULL_LOGGER.enabled).toBe(false);
+});
+
+// harness-feedback task group 6 (spec tui-sessions "Additional directories on the command line").
+describe("--add-dir", () => {
+  test("Two directories: resolved against the current directory, in order, given as a separate value or with =", () => {
+    const root = realpathSync(tempDir());
+    const app = join(root, "app");
+    for (const name of ["app", "lib", "docs"]) mkdirSync(join(root, name));
+    expect(parseArgs(["--add-dir", "../lib", "--add-dir=" + join(root, "docs")], { cwd: app, harnesses: [] }).addDirs).toEqual([join(root, "lib"), join(root, "docs")]);
+  });
+
+  test("The same directory twice is listed once; none given is an empty list", () => {
+    const root = realpathSync(tempDir());
+    mkdirSync(join(root, "lib"));
+    expect(parseArgs(["--add-dir", "lib", "--add-dir", "./lib"], { cwd: root }).addDirs).toEqual([join(root, "lib")]);
+    expect(parseArgs([], { cwd: root }).addDirs).toEqual([]);
+  });
+
+  test("Missing directory: an error saying it is not a directory, before anything is launched", async () => {
+    const root = realpathSync(tempDir());
+    expect(() => parseArgs(["--add-dir", "../nosuch"], { cwd: root })).toThrow("--add-dir '../nosuch' is not a directory");
+    expect(() => parseArgs(["--add-dir"], { cwd: root })).toThrow("--add-dir requires a value");
+    // Through main(): exit 1, nothing launched.
+    const stderr: string[] = [];
+    const startApp = mock(async (_options: StartAppOptions) => 0);
+    const handle = { stdout: { isTTY: true, write: (_t: string) => true }, stderr: { write: (t: string) => stderr.push(t) } };
+    const code = await main(["--add-dir", "../nosuch"], handle as never, startApp, { ...NO_CONFIG, cwd: root });
+    expect(code).toBe(1);
+    expect(startApp).not.toHaveBeenCalled();
+    expect(stderr.join("")).toContain("../nosuch");
+    expect(stderr.join("")).toContain("is not a directory");
+  });
+
+  test("A file is not a directory, and the help line names the option", () => {
+    const root = realpathSync(tempDir());
+    writeFileSync(join(root, "file"), "x");
+    expect(() => parseArgs(["--add-dir", "file"], { cwd: root })).toThrow("is not a directory");
+    expect(HELP_TEXT).toContain("--add-dir <path>");
+  });
 });

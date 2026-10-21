@@ -43,6 +43,9 @@ export interface SessionIdentity {
   readonly agent: string;
   /** The agent command, recorded for an `ad hoc` agent only (never run from the index). */
   readonly command?: readonly string[];
+  /** The directories added for this session (`--add-dir`, the ones recorded earlier), written
+   *  with its index entry; the configuration's are not recorded. */
+  readonly addedDirectories?: readonly string[];
 }
 
 export interface SessionRecorder {
@@ -84,6 +87,7 @@ export function createSessionRecorder(index: SessionIndex, identity: SessionIden
       ...(identity.command ? { command: identity.command } : {}),
       directory: session.cwd ?? "",
       title: recordTitle,
+      ...(identity.addedDirectories && identity.addedDirectories.length > 0 ? { addedDirectories: identity.addedDirectories } : {}),
       at: now(),
     });
   }

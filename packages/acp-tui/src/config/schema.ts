@@ -183,6 +183,11 @@ const AgentServer = z
     // across from Zed's settings), so the key is accepted and ignored rather than reported.
     type: z.literal("custom").optional().describe("Ignored; Zed's entry type, so entries copied from Zed's settings load unchanged."),
     startup_timeout_seconds: whole(5, 600).optional().describe("Seconds this harness may stay silent while it starts (a whole number from 5 to 600) before acp-tui stops it; wins over agent_startup_timeout_seconds for this harness."),
+    additional_directory_args: z
+      .array(z.string())
+      .refine((args) => args.some((arg) => arg.includes("{dir}")), { message: "needs {dir}, which stands for each added directory" })
+      .optional()
+      .describe("For a harness that takes extra directories as arguments, not through ACP: the arguments added after args for each directory, {dir} standing for its absolute path (Auggie: [\"--add-workspace\", \"{dir}\"]). At least one argument must hold {dir}."),
   })
   .describe("A harness in Zed's shape (Zed calls it an agent server): command, args and env.");
 
@@ -261,6 +266,7 @@ const MODULE_PURPOSES: Readonly<Record<ModuleId, string>> = {
   model: "The model in use.",
   mode: "The agent's mode.",
   cwd: "The session directory: {cwd} and {path} with ~ for home, {basename} its last component.",
+  dirs: "The session's additional directories: +2 dirs ({count}, {noun}, and {list} with ~ for home); hidden when there are none.",
   connection: "The connection to the harness.",
   "turn-state": "The turn's state: idle, running with the time, requires_action, loading or an armed key; its format must keep {state}.",
   usage: "The context window used and its size.",
@@ -372,6 +378,10 @@ export const SECTIONS = {
     .describe("Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file."),
   default_agent_server: z.string().min(1).default(DEFAULT_HARNESS).describe("The harness launched without a harness name or command: \"auggie\" or \"claude\" (both built in) or the name of an agent_servers entry. The older name default_agent is still accepted."),
   agent_startup_timeout_seconds: whole(5, 600).default(DEFAULT_STARTUP_TIMEOUT_SECONDS).describe("Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. A built-in harness has its own default when this is not set (120 for claude, 30 for the others), and an agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file."),
+  additional_directories: z
+    .array(z.string().min(1))
+    .default([])
+    .describe("Directories added to every session, beside the session directory, for harnesses that can take them (ACP additionalDirectories, or the harness's own arguments: additional_directory_args). `~` stands for your home directory and a relative path is taken from the directory of the file that names it (use absolute or ~ paths in your own file). A directory that does not exist is a warning and left out. The one setting merged as a union: your file's directories, then the project file's, without repeats and without the session directory. A project file may add only directories inside the parent of its own directory, never the home directory or one of its ancestors, and none below a component starting with a dot. A change applies to the next session started. An agent such as Auggie indexes every directory added to it."),
   mouse: listed(z.enum(MOUSE_POLICIES).default("full"), {
     heading: "Mouse policy",
     values: [
@@ -604,6 +614,8 @@ export const PROJECT_FILE_RULES: { readonly [K in SectionName | "$schema"]: Proj
   agent_servers: { denied: AGENTS_DENIED },
   default_agent_server: { denied: AGENTS_DENIED },
   agent_startup_timeout_seconds: { denied: "a project file cannot decide how long a harness it did not choose is waited for" },
+  // Limited entry by entry when the file is loaded (config/directories.ts), not denied as a whole.
+  additional_directories: "allowed",
   mouse: "allowed",
   wheel_lines: "allowed",
   terminals: { denied: "a project file cannot change what the terminal is trusted to draw (OSC 8 links, strikethrough)" },

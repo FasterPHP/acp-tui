@@ -82,6 +82,7 @@ import { attentionFromConfig, type AttentionSettings } from "../renderer/attenti
 import type { KeyMap } from "../keys/keymap.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
 import { sessionExitState } from "../session/exit-state.ts";
+import { readConfigDirectories } from "../agent/resolve.ts";
 import { openSessionIndex } from "../session/session-index.ts";
 import { SessionOpenFailure } from "../session/start.ts";
 import { createSessionStore, type SessionStore } from "../session/store.ts";
@@ -295,6 +296,9 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     index: openSessionIndex({ onWarning: notice }),
     store,
     notify: notice,
+    // The launch directory's project file is already in the store (a failed edit keeps its last
+    // good value); another directory's sessions read their own files.
+    configDirectories: (directory) => (directory === launch.directory ? config.config().additional_directories : readConfigDirectories(directory).directories),
     cancelled: () => lifecycleRef?.shuttingDown ?? false,
     elicitation: cards.elicitation,
     pace,

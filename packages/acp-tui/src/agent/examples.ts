@@ -1,13 +1,19 @@
 // The commented agent examples of `acp-tui config --print-default` (mvp-configuration task 12.7),
 // kept apart from the default file's builder so the command line and the catalogue can name them
 // without loading the layout and rendering modules ("Example harnesses are not run as commands").
-import { AUGGIE_INSTALL_HINT, DEFAULT_AGENT_EXAMPLE_COMMAND, OPENCODE_INSTALL_HINT } from "./command.ts";
+import { AUGGIE_INSTALL_HINT, BUILT_IN_HARNESSES, DEFAULT_AGENT_EXAMPLE_COMMAND, OPENCODE_INSTALL_HINT } from "./command.ts";
 
 /** One commented agent example: what it is and where its command is documented, and its entry. */
 export interface AgentExample {
   readonly name: string;
   readonly about: string;
-  readonly entry: { readonly command: string; readonly args: readonly string[]; readonly env?: Readonly<Record<string, string>> };
+  readonly entry: {
+    readonly command: string;
+    readonly args: readonly string[];
+    readonly env?: Readonly<Record<string, string>>;
+    /** For a harness that takes extra directories as arguments (`additional_directory_args`). */
+    readonly additionalDirectoryArgs?: readonly string[];
+  };
 }
 
 /**
@@ -21,8 +27,8 @@ export interface AgentExample {
 export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
     name: "auggie",
-    about: `the built-in auggie as acp-tui runs it without an entry (the default harness), installed with ${AUGGIE_INSTALL_HINT}. Add "--reasoning-effort", "high" to args to choose how hard it thinks (none, low, medium, high, xhigh, max or dynamic). Source: docs.augmentcode.com/cli/acp.`,
-    entry: { command: "auggie", args: ["--acp"] },
+    about: `the built-in auggie as acp-tui runs it without an entry (the default harness), installed with ${AUGGIE_INSTALL_HINT}. Add "--reasoning-effort", "high" to args to choose how hard it thinks (none, low, medium, high, xhigh, max or dynamic). Its additional_directory_args pass each additional directory (--add-dir, additional_directories) as --add-workspace. Source: docs.augmentcode.com/cli/acp.`,
+    entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: BUILT_IN_HARNESSES.find((h) => h.name === "auggie")!.additionalDirectoryArgs! },
   },
   {
     name: "claude",

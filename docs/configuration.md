@@ -96,7 +96,7 @@ It has the same format as your file and the same checks, and it overrides yours 
 | `terminals` | It could turn OSC 8 links on for a terminal whose behaviour has not been checked |
 | `keys` in the `card` and `elicitation` contexts | It could otherwise bind a common key to `allow always` |
 
-A theme is named, never given as a path, so a project file cannot make acp-tui read a file outside your `themes/` directory. Each denied key is reported as not allowed in a project file and ignored; the rest of the file applies. There is no trust prompt: with these limits a project file cannot run, send or copy anything.
+`additional_directories` is allowed but limited to the project's own directory and its siblings (see [Additional directories](#additional-directories)). A theme is named, never given as a path, so a project file cannot make acp-tui read a file outside your `themes/` directory. Each denied key is reported as not allowed in a project file and ignored; the rest of the file applies. There is no trust prompt: with these limits a project file cannot run, send or copy anything.
 
 ```jsonc project
 {
@@ -108,7 +108,7 @@ A theme is named, never given as a path, so a project file cannot make acp-tui r
 
 ## Precedence and the command line
 
-From lowest to highest: the built-in default, your file, the project file (for the settings it may set), then a command-line option of the same name for that run. Objects merge key by key (so a project file that sets `attention.long_turn_seconds` keeps your `attention.signal`); arrays and other values are replaced whole.
+From lowest to highest: the built-in default, your file, the project file (for the settings it may set), then a command-line option of the same name for that run. Objects merge key by key (so a project file that sets `attention.long_turn_seconds` keeps your `attention.signal`); arrays and other values are replaced whole, except `additional_directories`, which is the union of both files' lists.
 
 Four command-line options are per-run overrides of settings, with the same names:
 
@@ -119,7 +119,7 @@ Four command-line options are per-run overrides of settings, with the same names
 | `--exit-print summary\|none\|last-answer\|transcript` | `exit.print` |
 | `--clipboard auto\|host\|osc52\|none` | `clipboard` |
 
-A setting given on the command line is pinned for the run: editing the file never changes it. `--spike` no longer exists; an old launcher that still passes it is accepted, the value is ignored and a notice tells you to reinstall the command (see [Installing](#installing-the-acp-tui-command)).
+`--add-dir <path>` (repeatable) is not an override: it adds directories to those of `additional_directories` for the run (see [Additional directories](#additional-directories)). A setting given on the command line is pinned for the run: editing the file never changes it. `--spike` no longer exists; an old launcher that still passes it is accepted, the value is ignored and a notice tells you to reinstall the command (see [Installing](#installing-the-acp-tui-command)).
 
 ## Mistakes: what acp-tui does and what it tells you
 
@@ -151,7 +151,7 @@ Exceptions and rules:
 
 - **`terminals.<id>.hyperlinks` applies from the next start.** The renderer fixes whether OSC 8 links are written when it starts. A reload that changes it for your terminal changes nothing on screen and shows the notice `hyperlinks applies from the next start`. Every other setting, `wheel_lines` and `strikethrough` in the same table included, reloads live.
 - **A `mouse` change can be refused while the terminal is busy** (start-up or a suspend). It is tried once more on the next frame; if the terminal still refuses, the policy in use is kept and a notice says so. Saving the file again retries.
-- **The running harness is never touched.** Changes to `agent_servers`, `default_agent_server` and `agent_startup_timeout_seconds` apply to the next session you start; the harness list in the session list shows the new set at once.
+- **The running harness is never touched.** Changes to `agent_servers`, `default_agent_server`, `agent_startup_timeout_seconds` and `additional_directories` apply to the next session you start; the harness list in the session list shows the new set at once.
 - **`density` switches only when the setting itself changed**, so editing the theme does not undo a `v` you pressed.
 - **No call expands itself.** A failed tool call keeps its own line with `✗` in every density but `verbose` (which expands every call), and you expand it with Enter, a click or Ctrl+O. The status row marks the density only when it differs from your `density` setting, so with the default `focus` it marks `compact` and `verbose`, and with `"density": "compact"` it marks `focus` and `verbose`.
 - **A setting given on the command line stays as given** (see above).
@@ -170,7 +170,7 @@ acp-tui calls the program it launches and talks to over ACP a **harness**: Claud
 | `default_agent_server` | string | `"auggie"` | The harness launched without a harness name or command: `"auggie"` or `"claude"` (both built in) or the name of an `agent_servers` entry. The older name default_agent is still accepted. |
 | `agent_startup_timeout_seconds` | whole number from 5 to 600 | `30` | Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. A built-in harness has its own default when this is not set (120 for claude, 30 for the others), and an agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file. |
 
-Each `agent_servers` entry takes `command` (the program: a name is looked up on the `PATH` only, the entry's own `PATH` when its `env` sets one, and never in the session directory, so a repository cannot slip in a program of the same name; a path, with a slash or on Windows a backslash or a drive letter, is used as written), `args` (an array of strings) and `env` (strings added to acp-tui's own environment for the harness); `startup_timeout_seconds` (a whole number from 5 to 600: how long this harness may stay silent while it starts, see below); a `"type": "custom"` key, which Zed writes, is accepted and ignored. The harness runs in the session directory, so use absolute paths in `args`. An entry of a built-in name replaces the built-in one.
+Each `agent_servers` entry takes `command` (the program: a name is looked up on the `PATH` only, the entry's own `PATH` when its `env` sets one, and never in the session directory, so a repository cannot slip in a program of the same name; a path, with a slash or on Windows a backslash or a drive letter, is used as written), `args` (an array of strings) and `env` (strings added to acp-tui's own environment for the harness); `startup_timeout_seconds` (a whole number from 5 to 600: how long this harness may stay silent while it starts, see below); `additional_directory_args` (the arguments that pass an additional directory to a harness that takes them as arguments, see [Additional directories](#additional-directories)); a `"type": "custom"` key, which Zed writes, is accepted and ignored. The harness runs in the session directory, so use absolute paths in `args`. An entry of a built-in name replaces the built-in one.
 
 **Telling a harness from a directory and a command.** The first argument is the harness when it names one (a built-in harness, `auggie` or `claude`, or an `agent_servers` entry), even when a directory of that name exists: write `./name` for the directory. Then at most one argument, the directory. A command after `--` is launched as given (an "ad hoc" harness) and wins over a harness name. A lone word that names no harness, no directory and no command on the `PATH` is an error before anything starts. The subcommands `config` and `glyphs` come first: a harness named like one is reached with `--harness config`, and `acp-tui config --check` warns about such a name, and about one that starts with `-`. `-r` is `--resume` and `-c` is `--continue`, as in Claude Code; they are not combined (`-rc` is an unknown option).
 
@@ -244,6 +244,50 @@ To run your own Claude Code instead of the one the adapter ships with, point the
 ```
 
 Replace the path with the output of `command -v claude`.
+
+### Additional directories
+
+A session can include directories beside its own: a library the project depends on, shared documentation. `additional_directories` lists them for every session, `--add-dir <path>` adds one for a run, and the `dirs` status module shows how many (`+2 dirs`, `+1 dir`).
+
+| Setting | Values | Default | What it does |
+| --- | --- | --- | --- |
+| `additional_directories` | array of paths | `[]` | Directories added to every session, beside the session directory. `~` stands for your home directory and a relative path is taken from the directory of the file that names it, so in your own file use absolute or `~` paths. A directory that does not exist is a warning and left out. The one setting merged as a union: your file's directories, then the project file's, without repeats and without the session directory. A change applies to the next session started. |
+
+```jsonc config warns
+{
+  // "~/shared-docs" does not exist here, so `acp-tui config --check` warns at it and leaves it out.
+  "additional_directories": ["~/shared-docs"],
+}
+```
+
+**On the command line.** `acp-tui --add-dir ../lib --add-dir /work/docs` adds directories for this run, after the configuration's. A path is resolved against the directory you launched from and must exist, otherwise acp-tui stops before launching anything. The directories of a session are the configuration's, then the ones recorded with the session, then `--add-dir`'s, without repeats and never the session directory.
+
+**How the harness gets them.** By the harness, decided before it starts:
+
+1. A harness whose `agent_servers` entry has `additional_directory_args` (the built-in `auggie` has `["--add-workspace", "{dir}"]`) gets the template added after its `args` once per directory, `{dir}` replaced by the absolute path: `auggie --acp --add-workspace /work/lib --add-workspace /work/docs`. The entry needs `{dir}` in at least one argument. ACP's own field is then not sent. An entry named `auggie` replaces the built-in one, template included, so repeat `additional_directory_args` in it. Because the directories are part of the command, a session with another list gets its own harness process.
+2. Otherwise, a harness that advertises ACP's `additionalDirectories` capability is sent the complete list on `session/new`, `session/load` and `session/resume`, and nothing when the list is empty.
+3. Otherwise the harness ignores them, and a notice says so once for that harness process.
+
+```jsonc config
+{
+  "agent_servers": {
+    "my-auggie": { "command": "auggie", "args": ["--acp", "--reasoning-effort", "high"], "additional_directory_args": ["--add-workspace", "{dir}"] },
+  },
+}
+```
+
+Auggie indexes every directory added to it, which sends their files to Augment's service for its context engine; it does not read its `indexingAllowDirs` setting under `--acp`, so only the directories you add are the ones to consider. A directory added to a session is part of what the agent reads, so add only directories you want it to see.
+
+**Kept with the session.** The directories you add with `--add-dir` are recorded in acp-tui's session index with the session. `acp-tui --resume <id>`, `--continue` and the session list send the configuration's directories, then the recorded ones, then this run's `--add-dir`, so a reopened session keeps the directory its conversation relies on. A recorded directory that has since been removed is left out and a notice names it. The configuration's directories are not recorded: removing one from the file removes it from every session.
+
+**In a project file.** A repository you have just cloned can name directories too, so a project file's `additional_directories` are limited: each entry must lie inside the parent of the project's own directory (the project itself and its siblings, such as `../shared-lib`; not the parent itself), must not be your home directory or one of its ancestors, and must have no path component starting with `.` below that parent (so not `../.ssh`). The limits apply to the path as written and to its real path, so a symlink cannot lead out of them. Any other entry is reported as not allowed in a project file and ignored, and the rest of the file applies. The first session started with directories from a project file shows a notice naming them and the file.
+
+```jsonc project warns
+{
+  // The project's sibling; "../shared-lib" does not exist here, so this example warns.
+  "additional_directories": ["../shared-lib"],
+}
+```
 
 ### Screen and terminals
 
@@ -759,7 +803,7 @@ The screen is composed from a layout, never hard-coded. `layout` follows the des
 | `conversation_min_rows` | Rows (4 to 30, default 12) the conversation keeps when the prompt box's resting height is chosen. |
 | `scrollbar` | `true` (default) draws the conversation's scroll bar; `false` leaves its column blank to the text. Live. |
 
-The default layout is a one-row top margin; `conversation`, `activity`, `card`, `prompt`; a one-row spacer; `find`; the status row, with `cwd`, `turn-state` and `hints` on the left and `config`, `mouse`, `density`, `position`, `connection`, `usage` and `cost` on the right; a one-row bottom margin. The prompt box's bottom border holds the pills `mode`, `model` and `thought_level` and, on the right, `usage`.
+The default layout is a one-row top margin; `conversation`, `activity`, `card`, `prompt`; a one-row spacer; `find`; the status row, with `cwd`, `dirs`, `turn-state` and `hints` on the left and `config`, `mouse`, `density`, `position`, `connection`, `usage` and `cost` on the right; a one-row bottom margin. The prompt box's bottom border holds the pills `mode`, `model` and `thought_level` and, on the right, `usage`.
 
 A header bar, no hints:
 
@@ -798,6 +842,7 @@ A bar holds modules. A module is a pure function of the session and its settings
 | `model` | The model in use: the `model` option's value, else the agent's older model state's current model. | `{model}` | `{model}` | 60 |
 | `mode` | The agent's mode. | `{mode}` | `mode:{mode}` | 50 |
 | `cwd` | The session directory: `{cwd}` and `{path}` with `~` for home, `{basename}` its last component. | `{cwd}` `{path}` `{basename}` | `{cwd}` | 30 |
+| `dirs` | The session's additional directories: `+2 dirs` (`+1 dir`), hidden when there are none; `{list}` has the paths with `~` for home, comma-separated. | `{count}` `{noun}` `{list}` | `+{count} {noun}` | 20 |
 | `connection` | The connection to the harness. | `{state}` | `{state}` | 90 |
 | `turn-state` | The turn's state: idle, running with the time, `requires_action`, loading or an armed key; its format must keep `{state}`. | `{state}` `{elapsed}` | `{state}` | 100 |
 | `usage` | The context window used and its size. | `{used}` `{size}` `{percent}` | `ctx {used}/{size}` | 22 |

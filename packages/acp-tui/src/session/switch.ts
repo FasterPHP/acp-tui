@@ -36,7 +36,7 @@ import type { HarnessActivity } from "../agent/harness-activity.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue, type AgentEntry } from "../agent/catalogue.ts";
 import { resolveProgram } from "../agent/which.ts";
 import { commandDisplayName } from "../agent/harness-name.ts";
-import { AD_HOC_AGENT, adHocSessionMessage, hintOf, launchArgv, unconfiguredAgentMessage, type LaunchDescription } from "../agent/resolve.ts";
+import { AD_HOC_AGENT, adHocSessionMessage, deriveDirectories, hintOf, launchArgv, readConfigDirectories, unconfiguredAgentMessage, withDirectories, type LaunchDescription } from "../agent/resolve.ts";
 import type { DebugLogger } from "../log.ts";
 import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
 import type { ConnectedController, LaunchedHarness } from "./controller.ts";
@@ -63,7 +63,7 @@ export const SWITCH_REFUSED_PERMISSION = "a permission request is open: answer i
 export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it before you switch sessions";
 
 /** What names the agent of a launch: the fields `launchFor` copies. */
-type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds">;
+type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs">;
 
 export interface SessionSwitcherOptions {
   /** The launch the command line asked for. */
@@ -87,6 +87,9 @@ export interface SessionSwitcherOptions {
   /** Whether a built-in harness's program is on the PATH, looked up once when the list opens
    *  (spec tui-sessions "Agent selector"); default `resolveProgram` over `process.env`. */
   readonly isInstalled?: (entry: AgentEntry) => boolean;
+  /** The configuration's additional directories now (a change applies to the next session
+   *  started); default reads the configuration files for the session directory. */
+  readonly configDirectories?: (directory: string) => readonly string[];
   readonly now?: () => number;
 }
 
@@ -142,7 +145,7 @@ function harnessOf(launch: Pick<LaunchDescription, "agentName" | "command">): st
 }
 
 /** The command and environment a launch runs, to tell whether two launches share an agent. */
-function commandKey(launch: Pick<LaunchDescription, "command" | "args" | "env">): string {
+function commandKey(launch: Pick<LaunchDescription, "command" | "args" | "env" | "additionalDirectoryArgs" | "additionalDirectories">): string {
   return JSON.stringify([launchArgv(launch), Object.entries(launch.env).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))]);
 }
 
@@ -224,12 +227,19 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     return state?.controller.getSession().cwd ?? state?.launch.directory ?? launch.directory;
   }
 
-  /** The launch for a session of `base`'s agent in `dir`. */
+  /** The index's record of a session, for the directories added to it. */
+  const recordedDirectories = (agent: string, sessionId: string): readonly string[] =>
+    index.listAll().find((r) => r.agent === agent && r.sessionId === sessionId)?.addedDirectories ?? [];
+
+  /** The launch for a session of `base`'s agent in `dir`; `recorded` are the directories the index
+   *  records for the session (the configuration's are read now, this run's `--add-dir` always apply). */
   function launchFor(
     base: AgentBase,
     dir: string,
     session: LaunchDescription["session"],
+    recorded: readonly string[] = [],
   ): LaunchDescription {
+    const config = (options.configDirectories ?? ((d: string) => readConfigDirectories(d).directories))(dir);
     return {
       agentName: base.agentName,
       agentSource: base.agentSource,
@@ -244,6 +254,9 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       indexed: null,
       indexMatches: 0,
       problems: [],
+      configDirectories: config,
+      addDirs: launch.addDirs ?? [],
+      ...deriveDirectories({ config, recorded, addDirs: launch.addDirs ?? [], directory: dir }),
     };
   }
 
@@ -314,7 +327,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     async startNew() {
       await (connection ?? Promise.resolve());
       if (!state) throw new Error(`${harnessOf(launch)} has not started`);
-      const target: LaunchDescription = { ...state.launch, directory: directory(), session: { kind: "new" } };
+      const target: LaunchDescription = withDirectories({ ...state.launch, session: { kind: "new" } }, { directory: directory() });
       // The agent has no session yet unless one was started on it since.
       const controller = state.recorder === null ? state.controller : state.controller.reuse();
       await startOn(controller, {
@@ -376,8 +389,9 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
           return `cannot start a new session: ${message(error)}`;
         }
       }
-      const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }) : launchFor(base, directory(), { kind: "new" });
-      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title } : null;
+      const recorded = entry.kind === "session" ? recordedDirectories(entry.agent, entry.sessionId) : [];
+      const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }, recorded) : launchFor(base, directory(), { kind: "new" });
+      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title, ...(recorded.length > 0 ? { addedDirectories: recorded } : {}) } : null;
       // The same command (and environment) on a live connection: the agent process is kept.
       const shared = commandKey(target) === commandKey(previous.launch) && previous.controller.getSession().connection !== "disconnected";
 

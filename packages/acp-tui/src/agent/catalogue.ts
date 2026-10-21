@@ -48,7 +48,7 @@ export interface AgentEntry {
   /** Seconds of silence a starting harness is allowed: the entry's `startup_timeout_seconds`, else the
    *  user's `agent_startup_timeout_seconds` when the file sets it, else the built-in's own default, else 30. */
   readonly startupTimeoutSeconds?: number;
-  /** For a built-in that takes directories as arguments: the template with `{dir}` (data until used). */
+  /** For a built-in that takes directories as arguments: the template with `{dir}` (used when additional directories are delivered). */
   readonly additionalDirectoryArgs?: readonly string[];
 }
 
@@ -124,7 +124,7 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
     const entry = AgentServerSchema.parse(raw);
     // An entry of a built-in name replaces the built-in one but keeps its default timeout.
     const timeout = entry.startup_timeout_seconds ?? setting ?? BUILT_IN_AGENTS.find((a) => a.name === name)?.startupTimeoutSeconds ?? DEFAULT_STARTUP_TIMEOUT_SECONDS;
-    agents.set(name, { name, command: entry.command, args: entry.args, env: { ...entry.env }, source: "config", startupTimeoutSeconds: timeout });
+    agents.set(name, { name, command: entry.command, args: entry.args, env: { ...entry.env }, source: "config", startupTimeoutSeconds: timeout, ...(entry.additional_directory_args !== undefined ? { additionalDirectoryArgs: entry.additional_directory_args } : {}) });
   }
   const invalid = new Map(Object.entries(source.invalidAgents));
   const chosen = source.sections.default_agent_server;

@@ -43,6 +43,9 @@ export interface SessionView {
   /** Current mode name from the `mode` config option, else legacy session modes. */
   mode: string | null;
   cwd: string | null;
+  /** The session's additional directories (absolute), as the `dirs` module shows them; absent in
+   *  fixtures built by hand. */
+  additionalDirectories?: readonly string[];
   /** Home directory, so the `cwd` module can shorten paths to `~`. */
   home: string | null;
   /** The platform whose path rules the `cwd` module applies (tests inject `win32`); absent = this one. */
@@ -212,6 +215,7 @@ export function deriveSessionView(session: Session, input: ViewInput = {}): Sess
     model: clean(selectedName(session, "model", input.models) ?? legacyModelName(session, input.models)),
     mode: clean(mode),
     cwd: clean(session.cwd),
+    additionalDirectories: session.additionalDirectories,
     home: input.home ?? null,
     connection: input.connecting && input.harnessReady !== true ? (input.initialized === true ? "opening" : "starting") : session.connection,
     turnState: session.state,

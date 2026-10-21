@@ -47,6 +47,7 @@ describe("defaults (design D2)", () => {
       agent_servers: {},
       default_agent_server: "auggie",
       agent_startup_timeout_seconds: 30,
+      additional_directories: [],
       mouse: "full",
       wheel_lines: null,
       terminals: {},

@@ -23,9 +23,13 @@
 // The description carries what later work needs: the agent's name (or
 // `ad hoc`) for the session index and the resume line, which session option
 // was given, and how the agent and directory were chosen.
-import { realpathSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import type { CliOptions, SessionOption } from "../cli.ts";
 import type { Platform } from "../platform/paths.ts";
+import { readConfiguration } from "../config/read.ts";
+import { withoutSessionDirectory } from "../config/directories.ts";
+import { shortenHome } from "../layout/segments.ts";
+import { homeDirectory } from "../config/sources.ts";
 import { shellWordFor } from "../platform/shell-quote.ts";
 import { AD_HOC_AGENT, openSessionIndex, type SessionIndex, type SessionRecord } from "../session/session-index.ts";
 import { AgentNameError, findAgent, loadAgentCatalogue, type AgentCatalogue, type AgentEntry } from "./catalogue.ts";
@@ -65,20 +69,102 @@ export interface LaunchDescription {
   readonly indexMatches: number;
   /** Problems found in the user's configuration file, for the app to show as notices. */
   readonly problems: readonly string[];
+  /** For a harness that takes extra directories as arguments: the template, `{dir}` standing for
+   *  each directory; then `launchArgv` appends it per directory and ACP's field is not sent. */
+  readonly additionalDirectoryArgs?: readonly string[];
+  /** The additional directories of this launch, in order and without repeats: the configuration's,
+   *  then the ones recorded with the session being reopened, then this run's `--add-dir`; never the
+   *  session directory. Absent: none. */
+  readonly additionalDirectories?: readonly string[];
+  /** The directories kept with the session in the index: the recorded ones that still exist, then
+   *  this run's `--add-dir` (not the configuration's). Absent: none. */
+  readonly addedDirectories?: readonly string[];
+  /** The configuration's directories (user's file, then the project file's), as last read. */
+  readonly configDirectories?: readonly string[];
+  /** The directories only the project file adds, and the file, for the notice naming them. */
+  readonly projectDirectories?: readonly string[];
+  readonly projectFile?: string | null;
+  /** This run's `--add-dir` directories, absolute. */
+  readonly addDirs?: readonly string[];
+  /** Notices for the session that starts with this launch (a recorded directory that has gone). */
+  readonly directoryNotices?: readonly string[];
 }
 
 /** The install and login hints of a built-in catalogue entry, as spreadable properties. */
-export function hintOf(entry: Pick<AgentEntry, "installHint" | "loginHint" | "startupTimeoutSeconds">): { installHint?: string; loginHint?: string; startupTimeoutSeconds?: number } {
+export function hintOf(entry: Pick<AgentEntry, "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs">): { installHint?: string; loginHint?: string; startupTimeoutSeconds?: number; additionalDirectoryArgs?: readonly string[] } {
   return {
+    ...(entry.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: entry.additionalDirectoryArgs } : {}),
     ...(entry.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: entry.startupTimeoutSeconds } : {}),
     ...(entry.installHint !== undefined ? { installHint: entry.installHint } : {}),
     ...(entry.loginHint !== undefined ? { loginHint: entry.loginHint } : {}),
   };
 }
 
-/** The agent process's argument vector: the command, then its arguments. */
-export function launchArgv(launch: Pick<LaunchDescription, "command" | "args">): readonly string[] {
-  return [launch.command, ...launch.args];
+/** The agent process's argument vector: the command, then its arguments, then (for a harness with
+ *  an `additional_directory_args` template) the template once per additional directory with `{dir}`
+ *  replaced by its absolute path. */
+export function launchArgv(launch: Pick<LaunchDescription, "command" | "args" | "additionalDirectoryArgs" | "additionalDirectories">): readonly string[] {
+  const template = launch.additionalDirectoryArgs;
+  const extra = template === undefined ? [] : (launch.additionalDirectories ?? []).flatMap((dir) => template.map((arg) => arg.replaceAll("{dir}", dir)));
+  return [launch.command, ...launch.args, ...extra];
+}
+
+function isDirectory(path: string): boolean {
+  try {
+    return existsSync(path) && statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/** The directories of a launch (design: configuration, then recorded, then `--add-dir`): the
+ *  effective list, the ones to record with the session, and a notice for each recorded directory
+ *  that has gone. */
+export interface DerivedDirectories {
+  readonly additionalDirectories: readonly string[];
+  readonly addedDirectories: readonly string[];
+  readonly directoryNotices: readonly string[];
+}
+
+export function deriveDirectories(input: {
+  readonly config: readonly string[];
+  readonly recorded: readonly string[];
+  readonly addDirs: readonly string[];
+  /** The session directory, left out of the list. */
+  readonly directory: string;
+  readonly home?: string | null;
+}): DerivedDirectories {
+  const home = input.home === undefined ? homeDirectory() : input.home;
+  const notices: string[] = [];
+  const recorded: string[] = [];
+  for (const dir of input.recorded) {
+    if (isDirectory(dir)) recorded.push(dir);
+    else notices.push(`additional directory ${shortenHome(dir, home)} is no longer there and was left out`);
+  }
+  const added = withoutSessionDirectory([...recorded, ...input.addDirs], input.directory);
+  return {
+    additionalDirectories: withoutSessionDirectory([...input.config, ...recorded, ...input.addDirs], input.directory),
+    addedDirectories: added,
+    directoryNotices: notices,
+  };
+}
+
+/** `launch` with its directories derived again for another session directory and recorded list
+ *  (a session chosen from the list, a `--continue` that found a recorded session). */
+export function withDirectories(launch: LaunchDescription, input: { readonly directory?: string; readonly recorded?: readonly string[]; readonly config?: readonly string[] }): LaunchDescription {
+  const derived = deriveDirectories({
+    config: input.config ?? launch.configDirectories ?? [],
+    recorded: input.recorded ?? [],
+    addDirs: launch.addDirs ?? [],
+    directory: input.directory ?? launch.directory,
+  });
+  return { ...launch, ...(input.config ? { configDirectories: input.config } : {}), ...derived };
+}
+
+/** The notice naming the directories a project file adds, shown once at start-up. */
+export function projectDirectoriesNotice(file: string, directories: readonly string[], home: string | null = homeDirectory()): string {
+  const list = directories.map((d) => shortenHome(d, home)).join(", ");
+  return `${shortenHome(file, home)} adds ${directories.length === 1 ? "an additional directory" : `${directories.length} additional directories`}: ${list}`;
 }
 
 export interface ResolveContext {
@@ -88,6 +174,24 @@ export interface ResolveContext {
   readonly catalogue?: () => AgentCatalogue;
   /** Opens the session index (read for `--resume <id>` only); default `openSessionIndex()`. */
   readonly index?: () => SessionIndex;
+  /** Reads the configuration's additional directories for a session directory; default reads the
+   *  user's file and the project file (`readConfiguration`). */
+  readonly configDirectories?: (directory: string) => ConfigDirectories;
+}
+
+/** What the configuration says about additional directories. */
+export interface ConfigDirectories {
+  /** The union of the user's file and the project file, resolved. */
+  readonly directories: readonly string[];
+  /** The ones only the project file adds. */
+  readonly projectDirectories: readonly string[];
+  readonly projectFile: string | null;
+}
+
+/** Reads the configuration files for a session directory and returns their additional directories. */
+export function readConfigDirectories(directory: string): ConfigDirectories {
+  const read = readConfiguration({ sessionDirectory: directory });
+  return { directories: read.config.additional_directories, projectDirectories: read.projectDirectories, projectFile: read.files.project };
 }
 
 /** One word for the user's shell: as is when it is plain, else single-quoted (for PowerShell on
@@ -108,7 +212,23 @@ export class SessionAgentError extends Error {
  *  `-a` name, and `SessionAgentError` (or `AgentNameError`) when `--resume <id>` names a session the
  *  index records with an `ad hoc` command or an agent that is no longer configured; all before
  *  anything is launched. */
-export function resolveLaunch(options: Pick<CliOptions, "agentName" | "agentCommand" | "directory" | "session">, context: ResolveContext = {}): LaunchDescription {
+export function resolveLaunch(options: Pick<CliOptions, "agentName" | "agentCommand" | "directory" | "session"> & { readonly addDirs?: readonly string[] }, context: ResolveContext = {}): LaunchDescription {
+  const launch = resolveAgentLaunch(options, context);
+  // The directories are derived last: the session directory (the index's, for `--resume <id>`) and
+  // the session's recorded directories are known only now.
+  const configured = (context.configDirectories ?? readConfigDirectories)(launch.directory);
+  const addDirs = options.addDirs ?? [];
+  return {
+    ...launch,
+    configDirectories: configured.directories,
+    projectDirectories: configured.projectDirectories,
+    projectFile: configured.projectFile,
+    addDirs,
+    ...deriveDirectories({ config: configured.directories, recorded: launch.indexed?.addedDirectories ?? [], addDirs, directory: launch.directory }),
+  };
+}
+
+function resolveAgentLaunch(options: Pick<CliOptions, "agentName" | "agentCommand" | "directory" | "session">, context: ResolveContext): LaunchDescription {
   const launchDirectory = realpathSync(context.cwd ?? process.cwd());
   const session = options.session;
   const openIndex = context.index ?? (() => openSessionIndex());

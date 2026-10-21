@@ -717,6 +717,7 @@ export function reduce(
         ...session,
         id: event.response.sessionId,
         cwd: event.cwd,
+        additionalDirectories: [...(event.additionalDirectories ?? [])],
         agent: agentInfoFrom(event.agentInfo),
         connection: "connected",
         configOptions: (event.response.configOptions ?? []).map(sanitiseConfigOption),
@@ -729,6 +730,7 @@ export function reduce(
         ...session,
         id: event.sessionId,
         cwd: event.cwd,
+        additionalDirectories: [...(event.additionalDirectories ?? [])],
         agent: agentInfoFrom(event.agentInfo),
         connection: "connected",
         opening: event.mode,
@@ -737,6 +739,9 @@ export function reduce(
 
     case "session_opened":
       return handleSessionOpened(session, event.response, onDebug);
+
+    case "additional_directories_replaced":
+      return { ...session, additionalDirectories: [...event.additionalDirectories] };
 
     case "session_update":
       return handleSessionUpdate(session, event.update, event.at, onDebug);

@@ -50,6 +50,13 @@
             "type": "integer",
             "minimum": 5,
             "maximum": 600
+          },
+          "additional_directory_args": {
+            "description": "For a harness that takes extra directories as arguments, not through ACP: the arguments added after args for each directory, {dir} standing for its absolute path (Auggie: [\"--add-workspace\", \"{dir}\"]). At least one argument must hold {dir}.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -70,6 +77,15 @@
       "type": "integer",
       "minimum": 5,
       "maximum": 600
+    },
+    "additional_directories": {
+      "default": [],
+      "description": "Directories added to every session, beside the session directory, for harnesses that can take them (ACP additionalDirectories, or the harness's own arguments: additional_directory_args). `~` stands for your home directory and a relative path is taken from the directory of the file that names it (use absolute or ~ paths in your own file). A directory that does not exist is a warning and left out. The one setting merged as a union: your file's directories, then the project file's, without repeats and without the session directory. A project file may add only directories inside the parent of its own directory, never the home directory or one of its ancestors, and none below a component starting with a dot. A change applies to the next session started. An agent such as Auggie indexes every directory added to it.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "mouse": {
       "default": "full",
@@ -1032,6 +1048,7 @@
                         "model",
                         "mode",
                         "cwd",
+                        "dirs",
                         "connection",
                         "turn-state",
                         "usage",
@@ -1055,6 +1072,7 @@
                         "model",
                         "mode",
                         "cwd",
+                        "dirs",
                         "connection",
                         "turn-state",
                         "usage",
@@ -1078,6 +1096,7 @@
                         "model",
                         "mode",
                         "cwd",
+                        "dirs",
                         "connection",
                         "turn-state",
                         "usage",
@@ -1125,6 +1144,7 @@
                   "model",
                   "mode",
                   "cwd",
+                  "dirs",
                   "connection",
                   "turn-state",
                   "usage",
@@ -1209,6 +1229,27 @@
             },
             "cwd": {
               "description": "The session directory: {cwd} and {path} with ~ for home, {basename} its last component. Fields: {cwd}, {path}, {basename}. Default format \"{cwd}\", priority 30.",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "description": "A template of the module's fields in braces, such as \"dir {basename}\".",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Higher numbers are kept longer when a bar does not fit.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hide_when_empty": {
+                  "description": "Hide the module while its fields are empty.",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "dirs": {
+              "description": "The session's additional directories: +2 dirs ({count}, {noun}, and {list} with ~ for home); hidden when there are none. Fields: {count}, {noun}, {list}. Default format \"+{count} {noun}\", priority 20.",
               "type": "object",
               "properties": {
                 "format": {

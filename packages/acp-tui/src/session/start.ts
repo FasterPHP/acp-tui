@@ -47,7 +47,8 @@ import { uncheckedAuggieNotice } from "../agent/harness-version.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
-import { AD_HOC_AGENT, launchArgv, type LaunchDescription } from "../agent/resolve.ts";
+import { commandDisplayName } from "../agent/harness-name.ts";
+import { AD_HOC_AGENT, launchArgv, withDirectories, type LaunchDescription } from "../agent/resolve.ts";
 import { shortenHome } from "../layout/segments.ts";
 import type { DebugLogger } from "../log.ts";
 import { AgentNotAcpError, AgentStartupTimeoutError } from "../agent/startup-watch.ts";
@@ -145,6 +146,8 @@ export interface SessionTarget {
   /** A marker for the conversation, after the history and before the directory marker (`--continue`
    *  when the default agent could not be asked for its sessions, task 12.11). */
   readonly note?: string;
+  /** The directories the index records as added for the session (absent: none). */
+  readonly addedDirectories?: readonly string[];
 }
 
 /** What `prepareLaunch` found: the launch to use (for `--continue`, possibly another agent's),
@@ -308,6 +311,8 @@ async function latestCandidate(
   const directory = launch.directory;
   const argv = launchArgv(launch);
   let best: Candidate | null = null;
+  // The index's record of a session, for the directories added to it.
+  const recordedFor = (agent: string, sessionId: string): readonly string[] | undefined => index.list({ agent, directory }).find((r) => r.sessionId === sessionId)?.addedDirectories;
   const consider = (candidate: Candidate): void => {
     if (best === null || candidate.at > best.at) best = candidate;
   };
@@ -316,7 +321,8 @@ async function latestCandidate(
     await scanList(controller, directory, logger, (info) => {
       // An agent that ignores the filter must not hand over another directory's session.
       if (info.cwd === directory) {
-        consider({ sessionId: info.sessionId, agent: launch.agentName, directory, title: typeof info.title === "string" ? oneLine(info.title) || null : null, at: instant(info.updatedAt) });
+        const added = recordedFor(launch.agentName, info.sessionId);
+        consider({ sessionId: info.sessionId, agent: launch.agentName, directory, title: typeof info.title === "string" ? oneLine(info.title) || null : null, ...(added ? { addedDirectories: added } : {}), at: instant(info.updatedAt) });
       }
       return false;
     }, onListError);
@@ -331,7 +337,7 @@ async function latestCandidate(
       // A session of an agent no longer configured could not be opened.
       continue;
     }
-    consider({ sessionId: record.sessionId, agent: record.agent, directory, title: record.title, at: instant(record.updatedAt) });
+    consider({ sessionId: record.sessionId, agent: record.agent, directory, title: record.title, ...(record.addedDirectories ? { addedDirectories: record.addedDirectories } : {}), at: instant(record.updatedAt) });
   }
   return best;
 }
@@ -404,25 +410,31 @@ async function prepareContinue(options: StartLaunchOptions): Promise<PreparedLau
       sessionId: best.sessionId,
       directory: best.directory,
       title: best.title,
+      ...(best.addedDirectories ? { addedDirectories: best.addedDirectories } : {}),
       ...(asked.skipped !== null ? { note: `could not ask ${oneLine(launch.agentName)} for its sessions; continued from acp-tui's record` } : {}),
     };
-    if (best.agent === launch.agentName) {
+    // The session's own directories (configuration, recorded, --add-dir): a harness that takes them as
+    // arguments is launched with them, so a launch whose command now differs is launched again.
+    const reopening = withDirectories(launch, { directory: target.directory, recorded: target.addedDirectories ?? [] });
+    if (best.agent === launch.agentName && launchArgv(reopening).join("\0") === launchArgv(launch).join("\0")) {
       // The agent that was launched (or, when it could not be, launched again: its start-up error).
       const using = controller ?? (controller = await connectLaunch(options));
-      requireReopen(using, target.sessionId, launch);
-      return { launch, controller: using, target };
+      requireReopen(using, target.sessionId, reopening);
+      return { launch: reopening, controller: using, target };
     }
-    // Another agent's session (from the index): that agent is launched, and the one launched to
-    // list is closed as on exit (it has no session).
+    // Another agent's session (from the index), or one needing other arguments: that agent is
+    // launched, and the one launched to list is closed as on exit (it has no session).
     const entry = findAgent(catalogue(), best.agent);
+    const { additionalDirectoryArgs: _previousTemplate, ...launched } = reopening;
     const other: LaunchDescription = {
-      ...launch,
+      ...launched,
       agentName: entry.name,
       agentSource: "index",
       command: entry.command,
       args: entry.args,
       env: entry.env,
       ...(entry.startupTimeoutSeconds !== undefined ? { startupTimeoutSeconds: entry.startupTimeoutSeconds } : {}),
+      ...(entry.additionalDirectoryArgs !== undefined ? { additionalDirectoryArgs: entry.additionalDirectoryArgs } : {}),
       directory: target.directory,
       directorySource: "index",
     };
@@ -463,6 +475,16 @@ export async function startLaunch(options: StartLaunchOptions): Promise<StartedS
 /** The `agentInfo` objects whose version notice has been considered (one per harness process). */
 const versionNoticed = new WeakSet<object>();
 
+/** The harness processes (by their `support` object, which every controller on a process shares)
+ *  already told that their harness ignores additional directories. */
+const ignoresNoticed = new WeakSet<object>();
+
+/** The notice for a harness that can take additional directories neither as arguments nor through ACP. */
+export function ignoresDirectoriesNotice(launch: Pick<LaunchDescription, "agentName" | "command">): string {
+  const name = launch.agentName === AD_HOC_AGENT ? commandDisplayName(launch.command) : launch.agentName;
+  return `${oneLine(name)} ignores additional directories (it does not support them); see additional_directories in docs/configuration.md`;
+}
+
 /**
  * Starts a session on an initialised agent (`connectLaunch` or `prepareLaunch`, or a controller
  * `reuse` gave): the session `options.target` names (found by `prepareLaunch`, or a row of the
@@ -477,7 +499,7 @@ export async function startOn(controller: ConnectedController, options: StartLau
   const command = launchArgv(launch);
   const recorder = createSessionRecorder(
     index,
-    { agent: launch.agentName, ...(launch.agentName === AD_HOC_AGENT ? { command } : {}) },
+    { agent: launch.agentName, ...(launch.agentName === AD_HOC_AGENT ? { command } : {}), ...(launch.addedDirectories ? { addedDirectories: launch.addedDirectories } : {}) },
     options.now ? { now: options.now } : {},
   );
   controller.subscribe((session) => recorder.observe(session));
@@ -495,10 +517,24 @@ export async function startOn(controller: ConnectedController, options: StartLau
     if (unchecked !== null) notify(unchecked);
   }
 
+  // Delivery (spec tui-sessions "Additional directories sent to the harness"): the template, when
+  // the harness has one, already put them on the command; else the ACP field when the harness
+  // advertises it; else the harness ignores them (told once per process). The model records what
+  // was delivered.
+  const wanted = launch.additionalDirectories ?? [];
+  const byArguments = launch.additionalDirectoryArgs !== undefined;
+  const byAcp = !byArguments && controller.support.additionalDirectories;
+  if (wanted.length > 0 && !byArguments && !byAcp && !ignoresNoticed.has(controller.support)) {
+    ignoresNoticed.add(controller.support);
+    notify(ignoresDirectoriesNotice(launch));
+  }
+  for (const text of launch.directoryNotices ?? []) notify(text);
+  const directories = { additionalDirectories: byArguments || byAcp ? wanted : [], send: byAcp };
+
   const target: SessionTarget | null = options.target ?? null;
   if (target === null) {
     try {
-      await controller.newSession(launch.directory);
+      await controller.newSession(launch.directory, directories);
     } catch (error) {
       // The login message is the whole text; shown as any session failure (below the command line, or in the list's footer).
       if (error instanceof LoginRequiredError) throw new SessionOpenFailure(error.message);
@@ -515,7 +551,7 @@ export async function startOn(controller: ConnectedController, options: StartLau
   options.attach?.(controller, "open");
   let mode: SessionOpenMode;
   try {
-    mode = await controller.openSession(target.sessionId, target.directory);
+    mode = await controller.openSession(target.sessionId, target.directory, directories);
   } catch (error) {
     if (cancelled()) return null;
     throw openFailure(error, target.sessionId, launch, options.openHint);

@@ -35,7 +35,7 @@ import { CLAUDE_AGENT_PACKAGE } from "./agent/command.ts";
 import { hasWindowsCommandExtension, isPathCommand, resolveProgram, type WhichFunction } from "./agent/which.ts";
 import { loadAgentCatalogue, type AgentCatalogue } from "./agent/catalogue.ts";
 import { exampleHarnesses, exampleRefusal, type ExampleHarness } from "./agent/examples.ts";
-import { resolveLaunch, type LaunchDescription, type ResolveContext } from "./agent/resolve.ts";
+import { projectDirectoriesNotice, resolveLaunch, type LaunchDescription, type ResolveContext } from "./agent/resolve.ts";
 import type { ConfigOverrides } from "./config/effective.ts";
 import { createDebugLogger, type DebugLogger } from "./log.ts";
 import {
@@ -74,6 +74,9 @@ export interface CliOptions {
   /** The explicit directory argument, absolute and symlink-resolved, else null. */
   readonly directory: string | null;
   readonly session: SessionOption;
+  /** The directories `--add-dir` named, absolute and symlink-resolved, in order and without
+   *  repeats (empty when none were given). */
+  readonly addDirs: readonly string[];
   /** `config` or `glyphs` as the first argument, with the arguments after it; nothing else is
    *  parsed then. */
   readonly subcommand: { readonly name: ReservedSubcommand; readonly args: readonly string[] } | null;
@@ -129,6 +132,7 @@ Options:
   -c, --continue          Open the latest session in the session directory
                           (only the named harness's, when one is named).
                           At most one of --resume and --continue.
+  --add-dir <path>        Add a directory to the session; repeatable.
   --help, -h, --version, -v  Show this help, or the version, and exit.
 
 Settings for this run (each overrides the configuration setting of the
@@ -152,9 +156,8 @@ Configuration:
   $XDG_CONFIG_HOME/acp-tui/config.jsonc (default ${process.platform === "win32" ? "%APPDATA%\\acp-tui\\" : "~/.config/acp-tui/"}), and
   the nearest .acp-tui.jsonc up to the repository's root, both JSONC. Edits
   apply while acp-tui runs. "acp-tui config --print-default" lists every
-  setting; "acp-tui config --check" checks the files; "acp-tui config
-  --help" lists the rest. How the harness, the directory and "--" are told
-  apart is in the user guide, docs/configuration.md.
+  setting, "--check" checks the files, "--help" lists the rest. How the
+  harness, directory and "--" are told apart: docs/configuration.md.
 
 Environment:
   ACP_TUI_LOG=<path>      Append a JSON-lines debug log (method names, ids,
@@ -191,7 +194,7 @@ function existingDirectory(arg: string, cwd: string): string | null {
 }
 
 /** Options that take a value, as `--name value` or `--name=value`. */
-const VALUE_OPTIONS = new Set(["--mouse", "--wheel-lines", "--exit-print", "--clipboard", "-a", "--agent", "--harness"]);
+const VALUE_OPTIONS = new Set(["--add-dir", "--mouse", "--wheel-lines", "--exit-print", "--clipboard", "-a", "--agent", "--harness"]);
 
 export interface ParseContext {
   /** The directory a relative directory argument is resolved against; default `process.cwd()`. */
@@ -258,6 +261,7 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
   let agentCommand: string[] | null = null;
   let directoryArg: string | null = null;
   let directory: string | null = null;
+  const addDirs: string[] = [];
   const sessionOptions: SessionOption[] = [];
   const overrides: { -readonly [K in keyof ConfigOverrides]: ConfigOverrides[K] } = {};
   let mouse: MousePolicy = DEFAULT_SCREEN_OPTIONS.mouse;
@@ -274,6 +278,7 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
       agentCommand,
       directory,
       session: { kind: "new" },
+      addDirs,
       subcommand: { name: first as ReservedSubcommand, args: argv.slice(1) },
       help,
       version,
@@ -413,7 +418,11 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
         i += 1;
       }
       if (value === undefined) throw new CliArgumentError(`${name} requires a value`);
-      if (name === "--mouse") mouse = overrides.mouse = oneOf(name, value, MOUSE_POLICIES);
+      if (name === "--add-dir") {
+        const added = existingDirectory(value, cwd);
+        if (added === null) throw new CliArgumentError(`--add-dir '${value}' is not a directory`);
+        if (!addDirs.includes(added)) addDirs.push(added);
+      } else if (name === "--mouse") mouse = overrides.mouse = oneOf(name, value, MOUSE_POLICIES);
       else if (name === "--wheel-lines") wheelLines = overrides.wheel_lines = positiveInteger(name, value);
       else if (name === "--exit-print") exitPrint = overrides.exit_print = oneOf(name, value, EXIT_PRINTS);
       else if (name === "--clipboard") clipboard = overrides.clipboard = oneOf(name, value, CLIPBOARD_MODES);
@@ -441,6 +450,7 @@ export function parseArgs(argv: readonly string[], context: ParseContext = {}): 
     agentCommand,
     directory,
     session,
+    addDirs,
     subcommand: null,
     help,
     version,
@@ -638,7 +648,10 @@ export async function main(
     session: launch.session.kind,
     problems: launch.problems.length,
   });
-  return startApp({ launch, logger, screen, overrides: options.overrides, ...(options.notices.length > 0 ? { notices: options.notices } : {}) });
+  // A project file that adds directories says so once, at start-up.
+  const adopted = (launch.projectDirectories ?? []).filter((d) => (launch.additionalDirectories ?? []).includes(d));
+  const notices = [...options.notices, ...(adopted.length > 0 && launch.projectFile ? [projectDirectoriesNotice(launch.projectFile, adopted)] : [])];
+  return startApp({ launch, logger, screen, overrides: options.overrides, ...(notices.length > 0 ? { notices } : {}) });
 }
 
 if (import.meta.main) {

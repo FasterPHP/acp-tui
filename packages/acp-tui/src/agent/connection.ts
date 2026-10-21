@@ -307,6 +307,15 @@ export async function initializeAgent(
 
 export interface NewSessionOptions {
   readonly logger?: DebugLogger;
+  /** The session's complete list of additional directories, sent as `additionalDirectories` only
+   *  when non-empty (the caller sends it only to a harness that advertises the capability). */
+  readonly additionalDirectories?: readonly string[];
+}
+
+/** The `additionalDirectories` field of a request, present only for a non-empty list. */
+function directoriesField(options: NewSessionOptions): { additionalDirectories?: string[] } {
+  const list = options.additionalDirectories ?? [];
+  return list.length > 0 ? { additionalDirectories: [...list] } : {};
 }
 
 /** Sends `session/new` with the given `cwd` and an empty `mcpServers` list (design 5.2). */
@@ -317,7 +326,7 @@ export async function createNewSession(
   cwd: string,
   options: NewSessionOptions = {},
 ): Promise<NewSessionResponse> {
-  const request: NewSessionRequest = { cwd, mcpServers: [] };
+  const request: NewSessionRequest = { cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_new_request", cwd });
   const response = await raceWithExit(conn, agent, command, conn.newSession(request), "session/new");
   options.logger?.log({ event: "session_new_response", sessionId: response.sessionId });
@@ -330,6 +339,8 @@ export interface SessionSupport {
   readonly load: boolean;
   readonly resume: boolean;
   readonly list: boolean;
+  /** `sessionCapabilities.additionalDirectories`: the session requests take a list of directories. */
+  readonly additionalDirectories: boolean;
 }
 
 export function sessionSupport(response: Pick<InitializeResponse, "agentCapabilities">): SessionSupport {
@@ -338,6 +349,7 @@ export function sessionSupport(response: Pick<InitializeResponse, "agentCapabili
     load: caps?.loadSession === true,
     resume: caps?.sessionCapabilities?.resume != null,
     list: caps?.sessionCapabilities?.list != null,
+    additionalDirectories: caps?.sessionCapabilities?.additionalDirectories != null,
   };
 }
 
@@ -352,7 +364,7 @@ export async function loadSession(
   cwd: string,
   options: NewSessionOptions = {},
 ): Promise<LoadSessionResponse> {
-  const request: LoadSessionRequest = { sessionId, cwd, mcpServers: [] };
+  const request: LoadSessionRequest = { sessionId, cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_load_request", sessionId, cwd });
   const response = await raceWithExit(conn, agent, command, conn.loadSession(request), "session/load");
   options.logger?.log({ event: "session_load_response", sessionId });
@@ -369,7 +381,7 @@ export async function resumeSession(
   cwd: string,
   options: NewSessionOptions = {},
 ): Promise<ResumeSessionResponse> {
-  const request: ResumeSessionRequest = { sessionId, cwd, mcpServers: [] };
+  const request: ResumeSessionRequest = { sessionId, cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_resume_request", sessionId, cwd });
   const response = await raceWithExit(conn, agent, command, conn.resumeSession(request), "session/resume");
   options.logger?.log({ event: "session_resume_response", sessionId });

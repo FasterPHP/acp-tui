@@ -179,7 +179,8 @@ export { AGENT_EXAMPLES };
 /** An agent example's entry as one JSONC line. */
 function agentLine({ name, entry }: AgentExample): string {
   const env = entry.env ? `, "env": ${json(entry.env)}` : "";
-  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${JSON.stringify(entry.args).replace(/","/g, '", "')}${env} },`;
+  const directories = entry.additionalDirectoryArgs ? `, "additional_directory_args": ${JSON.stringify(entry.additionalDirectoryArgs).replace(/","/g, '", "')}` : "";
+  return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${JSON.stringify(entry.args).replace(/","/g, '", "')}${env}${directories} },`;
 }
 
 type Special = (key: string, schema: AnySchema, indent: string) => string[];
@@ -191,7 +192,7 @@ const SPECIALS: Readonly<Record<string, Special>> = {
     return [
       ...comment(describeOf(schema) ?? "", indent),
       ...comment("Each entry takes:", indent),
-      ...(["command", "args", "env"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
+      ...(["command", "args", "env", "additional_directory_args"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
       ...comment('The harness runs in the session directory, so give paths in "command" and "args" as absolute paths.', indent),
       ...comment(
         `With no entry, the built-in ${BUILT_IN_HARNESSES.map((h) => `"${h.name}"`).join(" and ")} are the only harnesses. Every entry below is an example, not active: install the harness, then remove the // in front of its line to add it.`,
@@ -365,7 +366,7 @@ export function defaultFileHeader(platform: NodeJS.Platform = process.platform):
     {
       heading: "Project files",
       paragraphs: [
-        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent_server, agent_startup_timeout_seconds, clipboard, terminals, and the keys of the card and elicitation contexts.",
+        "A project may have its own .acp-tui.jsonc, which applies over this file for sessions in that project. acp-tui reads the nearest one, from the session directory up to the root of its git work tree. It takes the same settings, except agent_servers, default_agent_server, agent_startup_timeout_seconds, clipboard, terminals, and the keys of the card and elicitation contexts. Its additional_directories are limited to directories inside the parent of the project's own directory, and never the home directory or a directory below a name starting with a dot.",
       ],
     },
     {
