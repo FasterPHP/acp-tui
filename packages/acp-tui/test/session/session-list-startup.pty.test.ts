@@ -177,7 +177,10 @@ describe("the columns stay where they are (task 12.5)", () => {
     /** The columns at which the harness name, the time and the directory start in a row. */
     const columns = (title: string): number[] => {
       const row = rowText(title);
-      return [row.search(/ fake /) + 1, row.search(/ (\d+ minutes? ago|just now)/) + 1, row.search(/ ~|\/\S/)].filter((c) => c > 0);
+      // The directory column starts with `~`, a `/` path or, on Windows, a drive letter (a
+      // directory outside the profile, or one under a profile written in its short 8.3 form,
+      // `C:\Users\RUNNER~1\...`, is not shortened to `~`).
+      return [row.search(/ fake /) + 1, row.search(/ (\d+ minutes? ago|just now)/) + 1, row.search(/ (~|\/\S|[A-Za-z]:[\\/])/) + 1].filter((c) => c > 0);
     };
     // A row is read once all three columns are on it: on a slow machine a frame can reach the
     // terminal in parts (through ConPTY in particular), the title before the rest of the row.
