@@ -350,11 +350,11 @@ describe("palette and picker entries", () => {
     ];
     const first = agentItems(commands);
     expect(first.map((i) => [i.group, i.title, i.description])).toEqual([
-      ["Agent commands", "/review", "Review a pull request"],
       ["Agent commands", "/compact", "Compact the conversation"],
+      ["Agent commands", "/review", "Review a pull request"],
     ]);
-    expect(first[0]).toMatchObject({ action: { kind: "agent", name: "review", inputHint: "PR number" } });
-    expect(first[1]).toMatchObject({ action: { kind: "agent", name: "compact", inputHint: null } });
+    expect(first[1]).toMatchObject({ action: { kind: "agent", name: "review", inputHint: "PR number" } });
+    expect(first[0]).toMatchObject({ action: { kind: "agent", name: "compact", inputHint: null } });
     // The palette (`?`, Ctrl+P) lists none of them.
     expect(paletteItems(catalogue, { configOptions: [], mouse: "full", permissionOptions: [] }).some((i) => i.action.kind === "agent")).toBe(false);
     // The description is drawn muted after the title, and the filter matches it.
@@ -362,7 +362,7 @@ describe("palette and picker entries", () => {
       title: "Commands",
       filter: "",
       placeholder: "",
-      items: [first[0]!],
+      items: [first[1]!],
       grouped: true,
       selected: 0,
       offset: 0,

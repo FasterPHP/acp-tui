@@ -3,8 +3,8 @@
 // slash command" and "Slash prompts sent without trailing white space"): fake-agent's log keeps
 // only a prompt's block count, so a test that must see the exact text sent (a trailing space, an
 // argument after a completed command) needs an agent that records it. `session/new` reports a
-// `model` option; the agent then advertises `compact` and `openspec-apply-change` with no `input`,
-// and `review` with the hint `PR number`, and no `exit`. Every prompt's text is appended as one
+// `model` and a `mode` option; the agent then advertises `compact`, `openspec-apply-change`, `diagnose-crash` and `Bootstrap` with no
+// `input`, and `review` with the hint `PR number`, in an order that is not alphabetical, and no `exit`. Every prompt's text is appended as one
 // JSON string per line to the file named by `SLASH_AGENT_PROMPTS`; a prompt whose text is `wait`
 // stays running until it is cancelled (a turn in progress); any other is answered `done`.
 import { appendFileSync } from "node:fs";
@@ -20,6 +20,18 @@ const MODEL: SessionConfigOption = {
   options: [
     { value: "alpha", name: "Alpha" },
     { value: "beta", name: "Beta" },
+  ],
+};
+
+const MODE: SessionConfigOption = {
+  type: "select",
+  id: "mode",
+  name: "Mode",
+  category: "mode",
+  currentValue: "ask",
+  options: [
+    { value: "ask", name: "Ask" },
+    { value: "plan", name: "Plan" },
   ],
 };
 
@@ -39,15 +51,19 @@ if (import.meta.main) {
             sessionId,
             update: {
               sessionUpdate: "available_commands_update",
+              // Not in alphabetical order, so a test sees the menu put them in order; `diagnose-crash`
+              // names "application" in its description and `compact` names "model" in its.
               availableCommands: [
-                { name: "compact", description: "Compact the conversation" },
-                { name: "openspec-apply-change", description: "Implement tasks from a change" },
                 { name: "review", description: "Review a pull request", input: { hint: "PR number" } },
+                { name: "openspec-apply-change", description: "Implement tasks from a change" },
+                { name: "diagnose-crash", description: "Diagnose a crash in the application" },
+                { name: "compact", description: "Compact the conversation and its model context" },
+                { name: "Bootstrap", description: "Set up the project" },
               ],
             },
           });
         }, 50);
-        return { sessionId, configOptions: [MODEL] };
+        return { sessionId, configOptions: [MODEL, MODE] };
       },
       async authenticate() {
         return {};

@@ -177,8 +177,8 @@ describe("agent commands in the slash menu (tasks 6.4 and 12.1)", () => {
     await run.s.waitFor(() => listRows(run.s, "Slash commands").length >= 2, 3000);
     // Opened by `/`: the agent's commands first, with no group header, then acp-tui's under theirs.
     const rows = listRows(run.s, "Slash commands");
-    expect(rows[0]).toMatch(/^\/review {2}Review a pull request$/);
-    expect(rows[1]).toMatch(/^\/compact {2}Compact the conversation$/);
+    expect(rows[0]).toMatch(/^\/compact {2}Compact the conversation$/);
+    expect(rows[1]).toMatch(/^\/review {2}Review a pull request$/);
     expect(rows).toContain("acp-tui");
     run.s.sendKeys({ text: "rev" });
     await run.s.waitFor(/Slash commands 1 /, 3000);
