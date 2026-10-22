@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { crashFileStamp, crashReportText, writeCrashReport } from "../src/crash-report.ts";
 import { clearRecentEvents, createDebugLogger } from "../src/log.ts";
+import pkg from "../package.json" with { type: "json" };
 
 beforeEach(clearRecentEvents);
 const tmp = (): string => mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-crash-"));
@@ -30,7 +31,7 @@ describe("crash report", () => {
     const path = writeCrashReport(new Error("boom"), { env, now });
     expect(path).toBe(join(state, "acp-tui", "crashes", "20261021T093015Z.txt"));
     const text = readFileSync(path!, "utf8");
-    expect(text).toMatch(/^acp-tui 0\.1\.0/);
+    expect(text.startsWith(`acp-tui ${pkg.version}`)).toBe(true);
     expect(text).toContain("error: boom");
     expect(text).toContain('"event":"launch"');
     if (process.platform !== "win32") {

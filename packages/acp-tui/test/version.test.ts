@@ -5,6 +5,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "../src/cli.ts";
 import { versionLines, type VersionInfo } from "../src/version.ts";
+import pkg from "../package.json" with { type: "json" };
+
+/** The package's version as a pattern, so a release needs no test change. */
+const VERSION = pkg.version.replaceAll(".", "\\.");
 
 const INFO: VersionInfo = { version: "0.1.0", commit: "4fea8f9", modified: false, bun: "1.4.0", platform: "linux", arch: "x64", terminal: "jetbrains" };
 const CLI = resolve(import.meta.dir, "../src/cli.ts");
@@ -39,7 +43,7 @@ describe("--version", () => {
     expect(code).toBe(0);
     const lines = out.trimEnd().split("\n");
     expect(lines).toHaveLength(4);
-    expect(lines[0]).toMatch(/^acp-tui 0\.1\.0( \([0-9a-f]{7,}(, modified)?\))?$/);
+    expect(lines[0]).toMatch(new RegExp(`^acp-tui ${VERSION}( \\([0-9a-f]{7,}(, modified)?\\))?$`));
     expect(lines[1]).toBe(`bun ${Bun.version}`);
     expect(lines[2]).toBe(`${process.platform} ${process.arch}`);
     expect(lines[3]).toMatch(/^terminal \S+$/);
@@ -51,7 +55,7 @@ describe("--version", () => {
     const { code, out } = run(["--version"], { PATH: empty, HOME: empty });
     expect(code).toBe(0);
     const lines = out.trimEnd().split("\n");
-    expect(lines[0]).toBe("acp-tui 0.1.0");
+    expect(lines[0]).toBe(`acp-tui ${pkg.version}`);
     expect(lines).toHaveLength(4);
   });
 });
