@@ -6,8 +6,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
-import { sendPrompt, settle, startCli, type CliRun } from "./cli.ts";
-import { withoutBar } from "../pty/regions.ts";
+import { sendPrompt, startCli, type CliRun } from "./cli.ts";
+import { lineWithoutBar, withoutBar } from "../pty/regions.ts";
 
 // Imported by a computed path: acp-tui does not depend on the fake-agent package.
 const FAKE_AGENT = join(import.meta.dir, "../../../fake-agent/src");
@@ -35,10 +35,32 @@ function conversationRows(s: PtySession): string[] {
 // The card's rule and its two columns of padding (`cards.padding.columns`, day-one-feedback).
 const cardText = (row: string) => row.replace(/^ {2}┃(?: {2})?/, "");
 
-async function press(s: PtySession, ...keys: Parameters<PtySession["sendKeys"]>): Promise<void> {
-  s.sendKeys(...keys);
-  await settle(s, 60);
+/** The row of the cursor under the flat theme (its gutter in inverse video), or -1. */
+function cursorRow(s: PtySession): number {
+  return conversationRows(s).findIndex((_, y) => s.cell(y, 0)!.isInverse() !== 0);
 }
+
+/** The cursor's row and the text on it: what a cursor key changes. */
+function cursorAt(s: PtySession): string {
+  const y = cursorRow(s);
+  return y < 0 ? "" : `${y}:${lineWithoutBar(s, y)}`;
+}
+
+/** A key that moves the cursor (Tab into the conversation, `[` to the previous tool call), then
+ *  the cursor drawn somewhere else: each key's outcome is waited for before the next is sent. */
+async function move(s: PtySession, key: Parameters<PtySession["sendKeys"]>[0]): Promise<void> {
+  const before = cursorAt(s);
+  s.sendKeys(key);
+  await s.waitFor((p) => cursorAt(p) !== "" && cursorAt(p) !== before, 5000);
+}
+
+/** A key, then `outcome` on screen. */
+async function press(s: PtySession, key: Parameters<PtySession["sendKeys"]>[0], outcome: (s: PtySession) => boolean): Promise<void> {
+  s.sendKeys(key);
+  await s.waitFor(outcome, 5000);
+}
+
+const screen = (s: PtySession): string => s.screenText().join("\n");
 
 async function toolContent(): Promise<PtySession> {
   // 66 columns: a 63-column conversation once the right margin and the scroll bar have their three
@@ -47,7 +69,6 @@ async function toolContent(): Promise<PtySession> {
   const s = run.session;
   await sendPrompt(s, "go");
   await s.waitFor(/end turn/, 20000);
-  await settle(s);
   return s;
 }
 
@@ -56,17 +77,20 @@ describe("tool cards (tasks 9.1 to 9.3)", () => {
     const s = await toolContent();
     // The refused call failed and stays collapsed (no call expands itself); Ctrl+O expands the
     // latest call, which it is: its text without backticks. Ctrl+O again collapses it.
-    expect(s.screenText().join("\n")).not.toContain(TOOL_CONTENT_REFUSAL);
-    await press(s, "Ctrl+O");
-    expect(s.screenText().join("\n")).toContain(TOOL_CONTENT_REFUSAL);
-    expect(s.screenText().join("\n")).not.toContain("```");
-    await press(s, "Ctrl+O");
+    expect(screen(s)).not.toContain(TOOL_CONTENT_REFUSAL);
+    await press(s, "Ctrl+O", (p) => screen(p).includes(TOOL_CONTENT_REFUSAL));
+    expect(screen(s)).not.toContain("```");
+    await press(s, "Ctrl+O", (p) => !screen(p).includes(TOOL_CONTENT_REFUSAL));
     // The cursor onto #1 (from the turn end: four tool calls back) and Enter.
-    await press(s, "Tab");
-    for (let i = 0; i < 4; i++) await press(s, { text: "[" });
-    await press(s, "Enter");
+    await move(s, "Tab");
+    for (let i = 0; i < 4; i++) await move(s, { text: "[" });
+    expect(lineWithoutBar(s, cursorRow(s))).toMatch(/#1$/);
+    const headerOf = (p: PtySession) => conversationRows(p).findIndex((r) => /\$ ✓ execute .*#1$/.test(r));
+    // Expanded: the fence's last line in the card below the header.
+    const last = TOOL_CONTENT_OUTPUT_LINES.at(-1)!;
+    await press(s, "Enter", (p) => headerOf(p) >= 0 && conversationRows(p).slice(headerOf(p) + 1).some((r) => cardText(r).trimEnd() === last));
     const rows = conversationRows(s);
-    const header = rows.findIndex((r) => /\$ ✓ execute .*#1$/.test(r));
+    const header = headerOf(s);
     expect(header).toBeGreaterThanOrEqual(0);
     // The collapsed line cuts the command; the card shows all of it, wrapped, no ellipsis, after its
     // top padding row (review C13 and C14).
@@ -86,14 +110,17 @@ describe("tool cards (tasks 9.1 to 9.3)", () => {
 
   test("Large output, Show all and Collapse restores the snippet: the marker names 4990 hidden rows and the key; `a` shows all 5000 lines and back; a click on the marker too", async () => {
     const s = await toolContent();
-    await press(s, "Tab");
-    await press(s, { text: "[" });
-    await press(s, { text: "[" });
-    await press(s, "Enter");
+    await move(s, "Tab");
+    await move(s, { text: "[" });
+    await move(s, { text: "[" });
+    expect(lineWithoutBar(s, cursorRow(s))).toMatch(/#3$/);
     const header = () => conversationRows(s).findIndex((r) => /Run the full test suite .*#3$/.test(r));
+    const marker = () => conversationRows(s).findIndex((r) => r.includes("4990 rows hidden"));
+    // Expanded: the snippet's marker, then its last line, below the header.
+    const snippet = () => header() >= 0 && marker() > header() && screen(s).includes("test 5000 ... ok");
+    await press(s, "Enter", snippet);
     let rows = conversationRows(s);
     expect(header()).toBeGreaterThanOrEqual(0);
-    const marker = () => conversationRows(s).findIndex((r) => r.includes("4990 rows hidden"));
     expect(marker()).toBeGreaterThan(header());
     expect(cardText(rows[marker()]!)).toBe("4990 rows hidden · a or click here to show all");
     // Only `here` is underlined (review C18).
@@ -106,7 +133,7 @@ describe("tool cards (tasks 9.1 to 9.3)", () => {
     expect(shown).toEqual(Array.from({ length: 10 }, (_, i) => `test ${4991 + i} ... ok`));
 
     // Show all: the marker is gone and the output starts at its first line, under the header.
-    await press(s, { text: "a" });
+    await press(s, { text: "a" }, (p) => marker() === -1 && screen(p).includes("test 1 ... ok"));
     rows = conversationRows(s);
     expect(marker()).toBe(-1);
     const first = rows.findIndex((r) => r.includes("test 1 ... ok"));
@@ -114,25 +141,26 @@ describe("tool cards (tasks 9.1 to 9.3)", () => {
     // The first row also carries the fence's label at its right.
     expect(rows.slice(first, first + 3).map((r) => cardText(r).trim())).toEqual([expect.stringMatching(/^test 1 \.\.\. ok +console$/), "test 2 ... ok", "test 3 ... ok"]);
     // Again: the snippet.
-    await press(s, { text: "a" });
+    await press(s, { text: "a" }, snippet);
     expect(marker()).toBeGreaterThan(header());
     expect(s.screenText().join("\n")).not.toContain("test 1 ... ok");
 
     // A click on the marker row shows it all too; nothing was sent to the agent.
     s.mouseClick(10, marker());
-    await settle(s, 60);
+    await s.waitFor((p) => marker() === -1 && screen(p).includes("test 1 ... ok"), 5000);
     expect(marker()).toBe(-1);
     expect(s.screenText().join("\n")).toContain("test 1 ... ok");
     expect(run!.agentMethods().filter((m) => m === "session/prompt")).toHaveLength(1);
 
     // Collapse restores the snippet (review C19): collapsed and expanded again, the card shows the
     // snippet and its marker row.
-    await press(s, "Enter");
+    // Collapsed: the card and all its output gone, the header kept.
+    await press(s, "Enter", (p) => !screen(p).includes("test 1 ... ok") && !screen(p).includes("test 5000 ... ok"));
     expect(header()).toBeGreaterThanOrEqual(0);
-    expect(s.screenText().join("\n")).not.toContain("test 4991 ... ok");
-    await press(s, "Enter");
+    expect(screen(s)).not.toContain("test 4991 ... ok");
+    await press(s, "Enter", snippet);
     expect(marker()).toBeGreaterThan(header());
-    expect(s.screenText().join("\n")).not.toContain("test 1 ... ok");
+    expect(screen(s)).not.toContain("test 1 ... ok");
   }, 40000);
 });
 
@@ -142,7 +170,6 @@ describe("thoughts (task 9.4)", () => {
     const s = run.session;
     await sendPrompt(s, "go");
     await s.waitFor(/end turn/, 20000);
-    await settle(s);
     const plan = ["1. Read README.md and summarise it", "2. Record a three-step plan with TodoWrite", "3. Run touch s7-probe.txt"];
     let text = s.screenText().join("\n");
     // Collapsed (review C16): none of the plan is shown, the one-sentence answer is.
@@ -164,8 +191,11 @@ describe("thoughts (task 9.4)", () => {
     expect(text).not.toMatch(/\*\*|`/);
 
     // Expanded by the user, it stays expanded across a resize.
+    // The frame at the new width: the prompt box's top border reaches further.
+    const border = () => s.screenText().find((l) => l.startsWith("╭"))?.length ?? 0;
+    const narrow = border();
     s.resize(80, 40);
-    await settle(s);
+    await s.waitFor(() => border() > narrow, 5000);
     text = s.screenText().join("\n");
     expect(text).toContain("Thought: Planning the S7 steps");
     expect(text).toContain(plan[0]!);
