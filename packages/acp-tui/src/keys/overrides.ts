@@ -40,7 +40,7 @@ export interface KeyProblem {
 export type KeysSection = { readonly [C in KeyContext]?: Readonly<Record<string, string | null>> | undefined };
 
 /** Contexts where a printable key types text. */
-export const TEXT_INPUT_CONTEXTS: readonly KeyContext[] = ["prompt", "find", "overlay"];
+export const TEXT_INPUT_CONTEXTS: readonly KeyContext[] = ["prompt", "find", "overlay", "slash"];
 
 /** `prompt` actions that act only at the start of an empty prompt box and leave their character
  *  as text in a draft, so a printable key may open them (Marcus, 11 October 2026). */
@@ -113,7 +113,7 @@ export function resolveKeyOverrides(section: KeysSection | undefined, base: KeyM
         continue;
       }
       if (action !== null && TEXT_INPUT_CONTEXTS.includes(context) && isPrintableKey(key) && !(context === "prompt" && PROMPT_OPENERS.includes(action))) {
-        const where = context === "prompt" ? "the prompt box" : context === "find" ? "the find bar" : "a list's filter";
+        const where = context === "prompt" ? "the prompt box" : context === "find" ? "the find bar" : context === "slash" ? "the slash menu's filter" : "a list's filter";
         problems.push({
           path,
           severity: "error",

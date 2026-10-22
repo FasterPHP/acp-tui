@@ -41,6 +41,15 @@ describe("Key overrides from the configuration (task 8.1)", () => {
     expect(keysFor(map, "conversation", "cycleDensity")).toEqual([]);
   });
 
+  test("Completion key rebound: ctrl+l added to the slash context completes beside tab; tab removed leaves only ctrl+l, and the overlay's tab (toggleScope) is untouched", () => {
+    const both = resolveKeyOverrides({ slash: { "ctrl+l": "complete" } });
+    expect(both.problems).toEqual([]);
+    expect(keysFor(both.map, "slash", "complete")).toEqual(["tab", "ctrl+l"]);
+    const moved = resolveKeyOverrides({ slash: { tab: null, "ctrl+l": "complete" } });
+    expect(keysFor(moved.map, "slash", "complete")).toEqual(["ctrl+l"]);
+    expect(keysFor(moved.map, "overlay", "toggleScope")).toEqual(["tab"]);
+  });
+
   test("Default removed and rebound: ctrl+d unbound, ctrl+q detaches, and the armed label is ctrl+q", () => {
     const { map, problems } = resolveKeyOverrides(keysOf(`{ "keys": { "global": { "ctrl+d": null, "ctrl+q": "detach" } } }`));
     expect(problems).toEqual([]);
@@ -89,6 +98,15 @@ describe("Key override validation (task 8.2)", () => {
     expect(resolveKeyOverrides({ overlay: { space: "choose" } }).problems[0]!.message).toContain("space would no longer type in a list's filter");
     // With Ctrl or Alt it is fine, and so is a printable key outside the text-input contexts.
     expect(resolveKeyOverrides({ prompt: { "ctrl+q": "paste", "alt+q": "paste" }, conversation: { c: "copyItem" } }).problems).toEqual([]);
+  });
+
+  test("Untypeable letter in the slash menu: a problem says c would no longer type in the slash menu's filter, and c is not bound; a ctrl key is fine", () => {
+    const { map, problems } = resolveKeyOverrides({ slash: { c: "complete" } });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]!.message).toContain("c would no longer type in the slash menu's filter");
+    expect(map.slash["c"]).toBeUndefined();
+    expect(map.slash["tab"]).toBe("complete");
+    expect(resolveKeyOverrides({ slash: { "ctrl+l": "complete" } }).problems).toEqual([]);
   });
 
   test("Opener on another character: ? unbound and ; opening the palette is no problem", () => {

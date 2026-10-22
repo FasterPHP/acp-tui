@@ -1708,6 +1708,26 @@
           },
           "description": "Keys of the overlay context, each mapped to one of its actions or to null to remove the binding. Its actions: up, down, pageUp, pageDown, first, last, choose, close, clear, toggleScope."
         },
+        "slash": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "complete"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Keys of the slash context, each mapped to one of its actions or to null to remove the binding. Its actions: complete."
+        },
         "elicitation": {
           "type": "object",
           "propertyNames": {

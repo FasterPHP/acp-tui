@@ -89,7 +89,7 @@ describe("conflict detection", () => {
       prompt: { return: "explode", "bogus+x": "submit" },
     } as never);
     expect(error.problems).toEqual([
-      "unknown context 'picker' (expected one of global, prompt, conversation, card, overlay, elicitation, selection, find)",
+      "unknown context 'picker' (expected one of global, prompt, conversation, card, overlay, slash, elicitation, selection, find)",
       `prompt: unknown action 'explode' for return (expected one of ${KEY_ACTIONS.prompt.join(", ")})`,
       "prompt: 'bogus+x': 'bogus' is not a modifier",
     ]);
@@ -261,6 +261,7 @@ const D16_CATALOGUE: readonly { context: (typeof KEY_CONTEXTS)[number]; action: 
   { context: "conversation", action: "openLink", keys: ["o"] },
   { context: "conversation", action: "expandOutput", keys: ["a"] },
   { context: "overlay", action: "toggleScope", keys: ["tab"] },
+  { context: "slash", action: "complete", keys: ["tab"] },
 ];
 
 describe("the action catalogue (mvp-chrome-and-keys task 3.7, design D16)", () => {

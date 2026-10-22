@@ -16,6 +16,7 @@ export const KEYSTROKE_ONLY: { readonly [C in KeyContext]?: readonly string[] | 
   conversation: ["back"],
   card: ["back", "scrollUp", "scrollDown", "pageUp", "pageDown", "top", "bottom"],
   overlay: "all",
+  slash: "all",
   find: "all",
   elicitation: "all",
 };
