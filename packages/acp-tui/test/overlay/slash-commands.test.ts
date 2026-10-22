@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { COMMAND_TITLES, DEFAULT_KEY_MAP, KEY_ACTIONS, KEY_CONTEXTS, keyLabel, keysFor } from "../../src/keys/keymap.ts";
 import type { CatalogueEntry } from "../../src/keys/register.ts";
-import { ACP_TUI_GROUP, paletteItems, SLASH_COMMANDS, slashItems, typedAddDirectory, typedSlashCommand } from "../../src/overlay/palette.ts";
+import { ACP_TUI_GROUP, agentItems, completionOf, enterCompletes, paletteItems, SLASH_COMMANDS, slashItems, typedAddDirectory, typedSlashCommand } from "../../src/overlay/palette.ts";
 
 function fullCatalogue(): CatalogueEntry[] {
   return KEY_CONTEXTS.flatMap((context) =>
@@ -118,5 +118,39 @@ describe("/add-dir (harness-feedback task 7.1; spec tui-palette \"Directory type
     expect(entry(0)?.value ?? null).toBeNull();
     expect(entry(2)?.value).toBe("2");
     expect(entry(2)?.keys).toEqual([]);
+  });
+});
+
+describe("completing a slash menu entry (slash-command-completion)", () => {
+  test("an agent command completes to `/<name> ` with its input hint, and Enter completes it", () => {
+    const [review, compact] = agentItems([
+      { name: "review", description: "Review a pull request", inputHint: "PR number" },
+      { name: "compact", description: "Compact the conversation", inputHint: null },
+    ]);
+    expect(completionOf(review!)).toEqual({ text: "/review ", hint: "PR number" });
+    expect(completionOf(compact!)).toEqual({ text: "/compact ", hint: null });
+    expect(enterCompletes(review!)).toBe(true);
+    expect(enterCompletes(compact!)).toBe(true);
+  });
+
+  test("an acp-tui command completes to its slash name, never its title, with no hint; Enter completes only /add-dir", () => {
+    const items = slashItems(fullCatalogue(), state({ configOptions: [select("model")] }));
+    const byTitle = new Map(items.map((i) => [i.title, i]));
+    expect(completionOf(byTitle.get("/model")!)).toEqual({ text: "/model ", hint: null });
+    expect(completionOf(byTitle.get("/add-dir")!)).toEqual({ text: "/add-dir ", hint: null });
+    expect(completionOf(byTitle.get("/exit")!)).toEqual({ text: "/exit ", hint: null });
+    expect(items.filter(enterCompletes).map((i) => i.title)).toEqual(["/add-dir"]);
+  });
+
+  test("a palette entry is not a slash command", () => {
+    const [entry] = paletteItems(fullCatalogue(), { configOptions: [], mouse: "full", permissionOptions: [] });
+    expect(completionOf(entry!)).toBeNull();
+    expect(enterCompletes(entry!)).toBe(false);
+  });
+
+  test("a completed command is still a typed command: `/exit ` and `/model ` match with the space left", () => {
+    const catalogue = fullCatalogue();
+    expect(typedSlashCommand("/exit ", catalogue, state())?.name).toBe("exit");
+    expect(typedSlashCommand("/model \n", catalogue, state({ configOptions: [select("model")] }))?.name).toBe("model");
   });
 });

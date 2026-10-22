@@ -306,6 +306,23 @@ export function agentItems(commands: readonly AgentCommand[]): PaletteItem[] {
   });
 }
 
+const SLASH_ID_PREFIX = "slash:";
+
+/** What completing a slash menu entry puts in the prompt box: `/<name> ` and, for an agent
+ *  command, its input hint as the placeholder; null for an entry that is not a slash command.
+ *  acp-tui's own entries use their slash name, never the catalogue title. */
+export function completionOf(item: PaletteItem): { readonly text: string; readonly hint: string | null } | null {
+  if (item.action.kind === "agent") return { text: `/${item.action.name} `, hint: item.action.inputHint };
+  if (item.id.startsWith(SLASH_ID_PREFIX)) return { text: `/${item.id.slice(SLASH_ID_PREFIX.length)} `, hint: null };
+  return null;
+}
+
+/** Whether Enter completes the entry into the prompt box (an agent command, and `/add-dir`, which
+ *  takes a path) instead of running it. */
+export function enterCompletes(item: PaletteItem): boolean {
+  return item.action.kind === "agent" || item.id === `${SLASH_ID_PREFIX}add-dir`;
+}
+
 /** One of acp-tui's slash commands: `/<name>` runs the catalogue command `command`. */
 export interface SlashCommand {
   readonly name: string;
@@ -363,7 +380,7 @@ function availableSlash(catalogue: readonly CatalogueEntry[], state: SlashState)
  *  title as its description and its keys (or route) in the key column. */
 export function slashItems(catalogue: readonly CatalogueEntry[], state: SlashState): PaletteItem[] {
   return availableSlash(catalogue, state).map(({ command, entry }) => ({
-    id: `slash:${command.name}`,
+    id: `${SLASH_ID_PREFIX}${command.name}`,
     group: ACP_TUI_GROUP,
     title: `/${command.name}`,
     description: entry.title,
@@ -376,7 +393,8 @@ export function slashItems(catalogue: readonly CatalogueEntry[], state: SlashSta
 }
 
 /** The slash command a sent prompt is exactly, ignoring white space around it, while it can run
- *  (design D10; spec tui-palette "Typed acp-tui commands"); null for anything else, such as a
+ *  (design D10; spec tui-palette "Typed acp-tui commands": "with white space before and after it
+ *  ignored", so a completed `/exit ` runs); null for anything else, such as a
  *  command with arguments or a name the agent advertises. */
 export function typedSlashCommand(text: string, catalogue: readonly CatalogueEntry[], state: SlashState): SlashCommand | null {
   const typed = text.trim();
