@@ -7,8 +7,10 @@
 // `conversation` and `card` are scoped to the region that has focus and outrank `global`.
 // `overlay` (the command palette, pickers, key help and the session list) and `elicitation` (the
 // elicitation card) are scoped to their component; `selection` (a global layer above the others
-// while text is selected) and `find` (the find bar) are always mounted.
-export const KEY_CONTEXTS = ["global", "prompt", "conversation", "card", "overlay", "elicitation", "selection", "find"] as const;
+// while text is selected) and `find` (the find bar) are always mounted. `slash` (the slash menu's
+// completion key) is a layer above `overlay` on the same box, acting only while the slash menu is
+// open, so one key (Tab) can mean one thing there and another in the other lists.
+export const KEY_CONTEXTS = ["global", "prompt", "conversation", "card", "overlay", "slash", "elicitation", "selection", "find"] as const;
 export type KeyContext = (typeof KEY_CONTEXTS)[number];
 
 /**
@@ -25,6 +27,7 @@ export const KEY_SCOPES: { readonly [C in KeyContext]: string | null } = {
   conversation: "shortcuts apply while selected",
   card: "shortcuts apply while it is open",
   overlay: "shortcuts apply while one is open",
+  slash: "shortcuts apply while it is open",
   elicitation: "shortcuts apply while it is open",
   selection: null,
   find: "shortcuts apply while it is open",
@@ -171,6 +174,10 @@ export const KEY_ACTIONS = {
   // mvp-sessions (task 7.1): `toggleScope` (Tab) switches the session list between the session
   // directory and all directories; the palette and pickers have no handler for it.
   overlay: ["up", "down", "pageUp", "pageDown", "first", "last", "choose", "close", "clear", "toggleScope"],
+  // slash-command-completion: `complete` (Tab) puts the selected slash command in the prompt box
+  // as `/<name> `, for arguments to follow (src/overlay/Overlay.tsx); it acts only in the slash menu
+  // and leaves Tab to `overlay.toggleScope` everywhere else.
+  slash: ["complete"],
   // The elicitation card (src/card/elicitation.tsx). Up and Down move
   // between choices, a digit picks one, Space ticks one of several, Enter goes to the next
   // question (or submits the review), Esc skips an optional question or declines.
@@ -312,6 +319,9 @@ export const COMMAND_TITLES: { readonly [C in KeyContext]: Readonly<Record<KeyAc
     close: "Close",
     clear: "Clear the filter",
     toggleScope: "Sessions of this directory or of all directories",
+  },
+  slash: {
+    complete: "Complete the slash command in the prompt box",
   },
   elicitation: {
     up: "Previous choice",
@@ -470,6 +480,9 @@ export const DEFAULT_KEY_MAP_INPUT = {
     escape: "close",
     "ctrl+u": "clear",
     tab: "toggleScope",
+  },
+  slash: {
+    tab: "complete",
   },
   elicitation: {
     up: "up",

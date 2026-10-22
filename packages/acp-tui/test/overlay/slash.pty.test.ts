@@ -12,9 +12,16 @@
 // `--spike`: `config-options` (the agent's `review` and `compact`) and `basic`
 // (no commands).
 import { afterEach, describe, expect, test } from "bun:test";
-import type { PtySession } from "../pty/harness.ts";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { configEnv } from "../pty/config-home.ts";
+import { startPty, type PtySession } from "../pty/harness.ts";
 import { promptBox, promptText, READY, statusRow } from "../pty/regions.ts";
+import { tempDir } from "../keys/cli-pty.ts";
 import { boxRows, inner, startChrome, type ChromeRun } from "./cli.ts";
+
+const CLI = join(import.meta.dir, "../../src/cli.ts");
+const SLASH_AGENT = join(import.meta.dir, "slash-agent.ts");
 
 let session: PtySession | undefined;
 afterEach(async () => {
@@ -23,7 +30,7 @@ afterEach(async () => {
   session = undefined;
 });
 
-function start(scenario = "config-options", opts: { cols?: number } = {}): ChromeRun {
+function start(scenario = "config-options", opts: { cols?: number; env?: Record<string, string | undefined> } = {}): ChromeRun {
   const run = startChrome({ scenario, ...opts });
   session = run.s;
   return run;
@@ -47,7 +54,8 @@ const sentPrompts = (run: ChromeRun) => run.agent().filter((e) => e.method === "
 
 describe("`/` opens the slash menu (task 12.1; day-one-feedback task 10)", () => {
   test("Slash in an empty prompt box: the agent's commands first, then acp-tui's, with an empty filter; Agent slash command typed as text: Esc leaves `/`, then `s7` and Enter send `/s7`", async () => {
-    const run = start();
+    // 90 columns: at 63 the border has no room left for the `esc types /` hint after the completion hints.
+    const run = start("config-options", { cols: 90 });
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "/" });
     await run.s.waitFor(() => listRows(agentList(run.s)).some((r) => r.startsWith("/compact")), 3000);
@@ -318,5 +326,250 @@ describe("acp-tui commands in the slash menu (day-one-feedback task 10)", () => 
     // The user card shows the text that was sent, and no picker opened.
     await run.s.waitFor(() => run.s.screenText().some((r) => r.includes("/model sonnet")), 3000);
     expect(boxRows(run.s, "Model")).toEqual([]);
+  }, 30000);
+});
+
+/** The bottom border of the open slash menu. */
+const hintsOf = (s: PtySession): string => boxRows(s, "Slash commands").at(-1) ?? "";
+
+describe("Completing a slash command (slash-command-completion)", () => {
+  test("Tab on an agent command: `/`, `rev`, Tab closes the menu, sends nothing and leaves `/review ` with `PR number` as its placeholder; what is typed next follows the space", async () => {
+    const run = start();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => listRows(agentList(run.s)).some((r) => r.startsWith("/review")), 3000);
+    run.s.sendKeys({ text: "rev" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => !agentOpen(run.s) && (promptText(run.s)[0] ?? "").startsWith("/review PR number"), 3000);
+    expect(sentPrompts(run)).toHaveLength(0);
+    // The prompt box has focus: the next keys type after the completed name.
+    run.s.sendKeys({ text: "12" });
+    await run.s.waitFor(() => draft(run.s) === "/review 12", 3000);
+    expect(sentPrompts(run)).toHaveLength(0);
+  }, 30000);
+
+  test("Tab on an acp-tui command: `/`, `mod`, Tab leaves `/model ` in the prompt box and opens no picker; Enter then opens the model picker, with no prompt sent", async () => {
+    const run = start();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => agentOpen(run.s), 3000);
+    run.s.sendKeys({ text: "mod" });
+    await run.s.waitFor(/Slash commands 2 /, 3000);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => !agentOpen(run.s) && draft(run.s).startsWith("/model"), 3000);
+    await run.s.flush();
+    expect(boxRows(run.s, "Model")).toEqual([]);
+    // The space after the name is there: the next characters follow it, no hint is drawn.
+    run.s.sendKeys({ text: "x" });
+    await run.s.waitFor(() => draft(run.s) === "/model x", 3000);
+    run.s.sendKeys("Backspace");
+    await run.s.waitFor(() => draft(run.s) === "/model", 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => boxRows(run.s, "Model").length > 0, 5000);
+    expect(sentPrompts(run)).toHaveLength(0);
+  }, 30000);
+
+  test("Nothing selected: a filter that matches no entry and Tab leave the menu open with its filter unchanged and the prompt box empty", async () => {
+    const run = start();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => agentOpen(run.s), 3000);
+    run.s.sendKeys({ text: "zzzq" });
+    await run.s.waitFor(() => inner(agentList(run.s)[1] ?? "").includes("zzzq"), 3000);
+    run.s.sendKeys("Tab");
+    await run.s.flush();
+    await Bun.sleep(300);
+    expect(agentOpen(run.s)).toBe(true);
+    expect(inner(agentList(run.s)[1]!)).toContain("zzzq");
+    expect(sentPrompts(run)).toHaveLength(0);
+    // Nothing was put in the prompt box: Esc leaves only the `/` that opened the menu.
+    run.s.sendKeys("Esc");
+    await run.s.waitFor(() => !agentOpen(run.s) && draft(run.s) === "/", 3000);
+  }, 30000);
+
+  test("Rebound key: with keys.slash setting tab to null and ctrl+l to complete, Tab in the slash menu completes nothing and Ctrl+L completes `/review `", async () => {
+    const run = start("config-options", { env: configEnv({ keys: { slash: { tab: null, "ctrl+l": "complete" } } }) });
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => listRows(agentList(run.s)).some((r) => r.startsWith("/review")), 3000);
+    run.s.sendKeys({ text: "rev" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    // The hint names the configured key and not Tab.
+    expect(hintsOf(run.s)).toContain("ctrl+l complete");
+    expect(hintsOf(run.s)).not.toContain("tab complete");
+    run.s.sendKeys("Tab");
+    await Bun.sleep(300);
+    expect(agentOpen(run.s)).toBe(true);
+    expect(inner(agentList(run.s)[1]!)).toContain("rev");
+    run.s.sendKeys("Ctrl+L");
+    await run.s.waitFor(() => !agentOpen(run.s) && (promptText(run.s)[0] ?? "").startsWith("/review PR number"), 3000);
+    expect(sentPrompts(run)).toHaveLength(0);
+  }, 30000);
+
+  test("Session list keeps Tab: the list opened with `/sessions` switches to all directories on Tab", async () => {
+    const run = start();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => agentOpen(run.s), 3000);
+    run.s.sendKeys({ text: "sessions" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => boxRows(run.s, /Sessions in /).length > 0 && !agentOpen(run.s), 5000);
+    expect(boxRows(run.s, /Sessions in /)[0]).not.toContain("all directories");
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => (boxRows(run.s, /Sessions in /)[0] ?? "").includes("all directories"), 3000);
+    // The prompt box was not completed into.
+    run.s.sendKeys("Esc");
+    await run.s.waitFor(() => boxRows(run.s, /Sessions in /).length === 0, 3000);
+    expect(draft(run.s)).toBe("");
+  }, 30000);
+
+  test("Undo: Tab on `/review` and Ctrl+Z leave the prompt box empty (the completion is one undo step)", async () => {
+    const run = start();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => listRows(agentList(run.s)).some((r) => r.startsWith("/review")), 3000);
+    run.s.sendKeys({ text: "rev" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => !agentOpen(run.s) && (promptText(run.s)[0] ?? "").startsWith("/review"), 3000);
+    run.s.sendKeys({ text: "\x1a" });
+    await run.s.waitFor(() => draft(run.s) === "", 3000);
+    expect(sentPrompts(run)).toHaveLength(0);
+  }, 30000);
+});
+
+describe("The slash menu names its keys (slash-command-completion)", () => {
+  test("Default hints: with an agent command selected the border reads `enter complete` and `tab complete`; with /help selected `enter run`; with /add-dir `enter complete`", async () => {
+    const run = start("config-options", { cols: 90 });
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => listRows(agentList(run.s)).some((r) => r.startsWith("/review")), 3000);
+    await run.s.waitFor(() => hintsOf(run.s).includes("enter complete") && hintsOf(run.s).includes("tab complete"), 3000);
+    // The hints keep their order: select, enter, tab, clear, then the bypass.
+    expect(hintsOf(run.s)).toMatch(/select · enter complete · tab complete · ctrl\+u clear · esc types \//);
+    run.s.sendKeys({ text: "help" });
+    await run.s.waitFor(() => hintsOf(run.s).includes("enter run"), 3000);
+    expect(hintsOf(run.s)).toContain("tab complete");
+    run.s.sendKeys({ text: "\x15" });
+    run.s.sendKeys({ text: "add-dir" });
+    await run.s.waitFor(() => hintsOf(run.s).includes("enter complete"), 3000);
+  }, 30000);
+
+  test("Narrow border: at 63 columns the bypass hint `esc types /` goes first and `tab complete` stays", async () => {
+    const run = start();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => listRows(agentList(run.s)).some((r) => r.startsWith("/review")), 3000);
+    await run.s.waitFor(() => hintsOf(run.s).includes("tab complete"), 3000);
+    expect(hintsOf(run.s)).toContain("enter complete");
+    expect(hintsOf(run.s)).not.toContain("esc types /");
+  }, 30000);
+
+  test("Key unbound: with keys.slash setting tab to null no `complete` key is named, and Enter's hint stays", async () => {
+    const run = start("config-options", { cols: 90, env: configEnv({ keys: { slash: { tab: null } } }) });
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => hintsOf(run.s).includes("enter complete"), 3000);
+    expect(hintsOf(run.s)).not.toContain("tab complete");
+  }, 30000);
+});
+
+/** acp-tui against slash-agent.ts, which records the exact text of every prompt it receives. */
+function startSlashAgent(): { s: PtySession; prompts(): string[] } {
+  const file = join(tempDir(), "prompts.jsonl");
+  const s = startPty(["bun", CLI, "--", "--", "bun", SLASH_AGENT], { cols: 90, rows: 21, cwd: tempDir(), env: { SLASH_AGENT_PROMPTS: file } });
+  session = s;
+  return { s, prompts: () => (existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as string) : []) };
+}
+const slashMenu = (s: PtySession) => boxRows(s, "Slash commands");
+const menuHas = (s: PtySession, name: string) => listRows(slashMenu(s)).some((r) => r.startsWith(name));
+
+describe("Slash prompts as sent (slash-command-completion)", () => {
+  test("Arguments for a command without input: `/`, `apply`, Enter, an argument, Enter sends one prompt, `/openspec-apply-change slash-command-completion`", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/openspec-apply-change"), 5000);
+    run.s.sendKeys({ text: "apply" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/openspec-apply-change", 3000);
+    expect(run.prompts()).toEqual([]);
+    run.s.sendKeys({ text: "slash-command-completion" });
+    await run.s.waitFor(() => draft(run.s) === "/openspec-apply-change slash-command-completion", 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => run.prompts().length === 1, 5000);
+    expect(run.prompts()).toEqual(["/openspec-apply-change slash-command-completion"]);
+  }, 30000);
+
+  test("Completed and sent: `/compact` chosen with Enter, then Enter again, reaches the agent as `/compact` with no trailing space", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/compact"), 5000);
+    run.s.sendKeys({ text: "compact" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/compact", 3000);
+    // Nothing was sent by the first Enter (this holds the whole window for it).
+    await Bun.sleep(300);
+    expect(run.prompts()).toEqual([]);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => run.prompts().length === 1, 5000);
+    expect(run.prompts()).toEqual(["/compact"]);
+  }, 30000);
+
+  test("Tab then Enter sends the same: `/compact` completed with Tab and sent is `/compact`", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/compact"), 5000);
+    run.s.sendKeys({ text: "compact" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/compact", 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => run.prompts().length === 1, 5000);
+    expect(run.prompts()).toEqual(["/compact"]);
+  }, 30000);
+
+  test("Other prompts untouched: `see the diff ` is sent with its trailing space", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "see the diff " }, "Enter");
+    await run.s.waitFor(() => run.prompts().length === 1, 5000);
+    expect(run.prompts()).toEqual(["see the diff "]);
+  }, 30000);
+
+  test("Completed command run: Tab on `/exit` and Enter detaches as Ctrl+D does (the agent advertises no `exit`), and sends no prompt", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/compact"), 5000);
+    run.s.sendKeys({ text: "exit" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/exit", 3000);
+    run.s.sendKeys("Enter");
+    expect(await run.s.wait(10000)).toBe(0);
+    expect(run.prompts()).toEqual([]);
+  }, 30000);
+
+  test("During a turn: Enter on `/compact` while a turn runs leaves `/compact ` in the prompt box and sends nothing", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "wait" }, "Enter");
+    await run.s.waitFor(() => run.prompts().length === 1, 5000);
+    await run.s.waitFor(/\brunning\b/, 5000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/compact"), 5000);
+    run.s.sendKeys({ text: "compact" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/compact", 3000);
+    await Bun.sleep(300);
+    expect(run.prompts()).toEqual(["wait"]);
   }, 30000);
 });

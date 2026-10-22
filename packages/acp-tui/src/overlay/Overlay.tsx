@@ -46,9 +46,12 @@
 // Pasted text never opens a list. The layer is registered without a target,
 // guarded by `store.ui.focus` and the prompt box's draft read at the key
 // (`controller.composer().empty()`, since `store.ui.promptEmpty` can lag the
-// keys of one read). An agent command with an input hint is put in the prompt
-// box as `/<name> ` with the hint as its placeholder; one without is sent while
-// idle and put in the prompt box while a turn runs.
+// keys of one read). Enter on an agent command always puts it in the prompt box
+// as `/<name> `, with the input hint as its placeholder when the harness sent one,
+// and sends nothing, since a missing hint does not mean the command takes no
+// arguments (Marcus, 22 October 2026); acp-tui's own entries keep their actions.
+// The `slash` context's `complete` (Tab) does the same for any entry of the slash
+// menu, acp-tui's own included (`completionOf`).
 //
 // Shift+Tab (`cycleMode`) and Ctrl+T (`cycleThoughtLevel`) step the mode and
 // the thinking level to the next value and apply it as the picker would, with a
@@ -90,6 +93,8 @@ import {
   PICKER_CATEGORIES,
   pickerItems,
   pickerOptions,
+  completionOf,
+  enterCompletes,
   slashItems,
   typedAddDirectory,
   typedSlashCommand,
@@ -509,20 +514,12 @@ export function PaletteOverlay(): JSX.Element {
     return true;
   };
 
-  /** An agent command chosen: put in the prompt box with its input hint, or sent while idle. */
+  /** An agent command chosen: put in the prompt box as `/<name> ` (the input hint as its
+   *  placeholder when there is one), never sent from here: a harness that sends no hint may still
+   *  take arguments, so a second Enter in the prompt box sends it. */
   const runAgentCommand = (name: string, inputHint: string | null) => {
     close("prompt");
-    const text = `/${name}`;
-    const composer = controller.composer();
-    if (inputHint === null && store.session.state === "idle") {
-      const result = actions.prompt(text);
-      if (result?.accepted) {
-        controller.conversation()?.toBottom();
-        return;
-      }
-    }
-    if (inputHint === null) composer?.insertCommand?.(text, null);
-    else composer?.insertCommand?.(`${text} `, inputHint);
+    controller.composer()?.insertCommand?.(`/${name} `, inputHint);
   };
 
   /** Asks whether to restart the harness for `/add-dir`: the overlay's two entries; resolves false
@@ -638,15 +635,21 @@ export function PaletteOverlay(): JSX.Element {
     const m = mode();
     const src = source();
     const enter = actionLabel(keyMap, "overlay", "choose");
+    const complete = m?.kind === "agent" ? actionLabel(keyMap, "slash", "complete") : null;
     const clear = actionLabel(keyMap, "overlay", "clear");
     const esc = actionLabel(keyMap, "overlay", "close");
     // Opened by `?` or `/`: Esc leaves that character as text (an agent command the list does not
     // know, a question), last, so a narrow border drops it first.
     const typed = m?.kind === "palette" || m?.kind === "agent" ? m.typed : null;
+    // The slash menu's Enter word follows the selected entry: it completes an agent command and
+    // `/add-dir`, and runs the rest of acp-tui's.
+    const selectedItem = shown()[selected()];
+    const enterWord = m?.kind === "agent" && selectedItem && enterCompletes(selectedItem as PaletteItem) ? "complete" : src?.enter;
     const bypass = esc && typed ? `${esc} types ${typed}` : null;
     const hints: Segment[] = [
       { text: src?.enter === null ? "↑↓ scroll" : "↑↓ select", token: "muted" },
-      ...(enter && src?.enter ? [{ text: " · ", token: "muted" as const, breakBefore: true }, { text: `${enter} ${src.enter}`, token: "muted" as const }] : []),
+      ...(enter && src?.enter ? [{ text: " · ", token: "muted" as const, breakBefore: true }, { text: `${enter} ${enterWord}`, token: "muted" as const }] : []),
+      ...(complete ? [{ text: " · ", token: "muted" as const, breakBefore: true }, { text: `${complete} complete`, token: "muted" as const }] : []),
       ...(clear && filterable() ? [{ text: " · ", token: "muted" as const, breakBefore: true }, { text: `${clear} clear`, token: "muted" as const }] : []),
       ...(bypass ? [{ text: " · ", token: "muted" as const, breakBefore: true }, { text: bypass, token: "muted" as const }] : []),
     ];
@@ -677,6 +680,20 @@ export function PaletteOverlay(): JSX.Element {
     lastOffset = result.offset;
     return { ...result, bottom: place?.bottom ?? OVERLAY_BOTTOM };
   });
+
+  /** The slash context's `complete` (Tab): the selected entry of the slash menu into the prompt box.
+   *  False outside the slash menu, so Tab reaches the `overlay` context (the session list's scope),
+   *  and with no entry to complete. */
+  const completeSelected = (): boolean => {
+    if (mode()?.kind !== "agent") return false;
+    const item = shown()[selected()];
+    const completion = item && !item.muted ? completionOf(item as PaletteItem) : null;
+    if (!completion) return false;
+    close("prompt");
+    store.setFocus("prompt");
+    controller.composer()?.insertCommand?.(completion.text, completion.hint);
+    return true;
+  };
 
   const moveBy = (move: number | "first" | "last") => void setSelected((s) => moveSelection(shown().length, s, move, isMuted));
   const handlers: ContextHandlers<"overlay"> = {
@@ -732,7 +749,11 @@ export function PaletteOverlay(): JSX.Element {
   function Panel(): JSX.Element {
     let box: BoxRenderable | undefined;
     onMount(() => {
-      if (box) onCleanup(registerContext(keymap, keyMap, "overlay", handlers, { target: box }));
+      if (!box) return;
+      onCleanup(registerContext(keymap, keyMap, "overlay", handlers, { target: box }));
+      // Above `overlay` on the same box, so Tab completes in the slash menu and falls through to
+      // `overlay.toggleScope` anywhere else.
+      onCleanup(registerContext(keymap, keyMap, "slash", { complete: completeSelected }, { target: box, priority: CONTEXT_PRIORITY + 1 }));
     });
     return (
       <box

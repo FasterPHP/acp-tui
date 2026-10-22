@@ -142,6 +142,10 @@ describe("Key help (task 6.8)", () => {
         expect(items.some((i) => i.title === title && (i.keys ?? []).includes(keyLabel(key)))).toBe(true);
       }
     }
+    // The slash menu's completion key (slash-command-completion): its own group, after the lists'.
+    const slash = items.filter((i) => i.group === "Slash menu");
+    expect(slash.map((i) => [i.title, i.keys])).toEqual([["Complete the slash command in the prompt box", ["tab"]]]);
+    expect(groups.indexOf("Slash menu")).toBe(groups.indexOf("Lists") + 1);
     // An action without a key (the pickers) is not.
     expect(items.some((i) => i.title === "Choose the model")).toBe(false);
   });

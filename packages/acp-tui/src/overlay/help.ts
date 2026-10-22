@@ -20,6 +20,7 @@ export const HELP_GROUPS: readonly { readonly context: KeyContext; readonly labe
   { context: "card", label: "Permission card" },
   { context: "find", label: "Find bar" },
   { context: "overlay", label: "Lists" },
+  { context: "slash", label: "Slash menu" },
   { context: "elicitation", label: "Question card" },
 ];
 

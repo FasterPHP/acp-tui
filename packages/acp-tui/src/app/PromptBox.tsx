@@ -134,7 +134,13 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
     setLines(Math.max(1, input.editorView.getTotalVirtualLineCount()));
     store.setPromptEmpty(input.plainText === "");
     syncCursor();
-    if (commandHint() !== null && input.plainText !== commandHint()!.text) setCommandHint(null);
+    dropStaleHint();
+  };
+  // A completed command's placeholder goes once the text is no longer exactly the command (typing
+  // does it through `measure`; undo and redo, which the textarea may not report as a content change
+  // in time, call it too).
+  const dropStaleHint = () => {
+    if (input && commandHint() !== null && input.plainText !== commandHint()!.text) setCommandHint(null);
   };
   // At rest the row budget's height; a taller draft grows the box, taking rows from the
   // conversation (spec tui-layout "Margins and row budget").
@@ -249,7 +255,12 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
       undo.reset();
       return true;
     }
-    const result = actions.prompt(text, mentions.links(text));
+    // A prompt that starts with `/` loses the white space at its end, so a completed command sent
+    // with nothing after it reaches the agent as its bare name (`/compact `); other prompts are
+    // sent as typed (tui-palette "Slash prompts sent without trailing white space"). The mentions'
+    // ranges lie before the trimmed tail.
+    const sent = text.startsWith("/") ? text.trimEnd() : text;
+    const result = actions.prompt(sent, mentions.links(sent));
     if (result === null || (!result.accepted && result.reason === "no_session")) controller.notify(`${launch?.().harness ?? "the harness"} is still starting`, "muted");
     else if (result.accepted) {
       input.clear();
@@ -322,8 +333,8 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
         selectAll: () => (store.ui.focus !== "prompt" ? false : (input?.selectAll(), true)),
         // Undo and redo (tui-keymap "Undo and redo in the prompt box"): always consumed, so Ctrl+Z
         // is never anything else (acp-tui runs in raw mode and never suspends).
-        undo: () => (undo.undo(), true),
-        redo: () => (undo.redo(), true),
+        undo: () => (undo.undo(), dropStaleHint(), true),
+        redo: () => (undo.redo(), dropStaleHint(), true),
       },
       { target: input },
     );

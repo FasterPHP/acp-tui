@@ -196,13 +196,19 @@ describe("agent commands in the slash menu (tasks 6.4 and 12.1)", () => {
     await run.s.waitFor(() => sent(run, "/review 12"), 5000);
   }, 20000);
 
-  test("Command without input: while idle, /compact chosen from the slash menu sends the prompt `/compact`", async () => {
+  test("Command without input: while idle, /compact chosen from the slash menu with Enter is completed into the prompt box with no placeholder and nothing is sent; a second Enter sends the prompt `/compact`", async () => {
     const run = start({ scenario: "config-options" });
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "/" });
     await run.s.waitFor(/Slash commands \d+/, 3000);
     run.s.sendKeys({ text: "/compact" });
     await run.s.waitFor(/Slash commands 1 /, 3000);
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => boxRows(run.s, "Slash commands").length === 0 && (promptText(run.s)[0] ?? "").startsWith("/compact"), 3000);
+    // No placeholder after the name, and no prompt sent.
+    expect((promptText(run.s)[0] ?? "").trim()).toBe("/compact");
+    await Bun.sleep(300);
+    expect(run.agent().some((e) => e.method === "session/prompt")).toBe(false);
     run.s.sendKeys("Enter");
     await run.s.waitFor(() => sent(run, "/compact"), 5000);
     expect(promptText(run.s).join("").trim()).toBe("");
