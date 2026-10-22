@@ -17,7 +17,7 @@ permissions:
 jobs:
   unit:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,12 +37,14 @@ jobs:
       # wide margin (the file picker's first matches, the busy indicator's steps), which says
       # nothing about Windows support. The hosted runner has 4 slow vCPUs: with 4 workers PTY tests
       # starved each other (timeouts, screens read before they were drawn) where an 8-vCPU machine
-      # passed them all, so it runs 2 workers and gives each test 20 s instead of Bun's 5 s. Skips for
+      # passed them all; even 2 workers left PTY tests reading screens before acp-tui had drawn them,
+      # so it runs 1 worker (each PTY test gets the whole machine; the run takes longer, which is
+      # fine for an on-demand check) and gives each test 20 s instead of Bun's 5 s. Skips for
       # Windows are in the tests (`test.skipIf(WINDOWS)`) and show in the summary counts.
       - name: Test
         shell: bash
         env:
-          ACP_TUI_TEST_WORKERS: "2"
+          ACP_TUI_TEST_WORKERS: "1"
         run: bun run test --parallel-only --timeout 20000
 
       - name: Typecheck
