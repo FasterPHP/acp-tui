@@ -2,7 +2,9 @@
 // the answer to `session/list`, by absolute times that `--delay-scale 0` (the test default) does not shrink.
 //
 // The timing tests of this file are in delays.timing.test.ts (parallel-tests: they run in the serial pass).
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { recordingClient, spawnFakeAgent } from "./helpers.ts";
 import { SLACK_MS, timed } from "./delays-helpers.ts";
@@ -28,6 +30,25 @@ describe("fake-agent delays", () => {
       const list = await timed(() => handle.conn.listSessions({ cwd: tmpdir() }));
       expect(list.value.sessions).toEqual([]);
       expect(list.ms).toBeGreaterThanOrEqual(400 - SLACK_MS);
+    } finally {
+      handle.stop();
+    }
+  });
+});
+
+describe("fake-agent --list-gate", () => {
+  test("session/list is held until the gate file exists, while other requests are answered", async () => {
+    const gate = join(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "fake-agent-gate-")), "open");
+    const handle = spawnFakeAgent({ scenario: "basic", args: ["--list", "--list-gate", gate], client: recordingClient().client });
+    try {
+      await handle.conn.initialize({ protocolVersion: 1 });
+      let answered = false;
+      const list = handle.conn.listSessions({ cwd: tmpdir() }).then((r) => ((answered = true), r));
+      // A later request is answered, so the agent is alive; the list is still held after it.
+      await handle.conn.newSession({ cwd: tmpdir(), mcpServers: [] });
+      expect(answered).toBe(false);
+      writeFileSync(gate, "");
+      expect((await list).sessions.length).toBe(1);
     } finally {
       handle.stop();
     }

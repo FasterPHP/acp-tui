@@ -27,6 +27,7 @@ import {
   type SetSessionModeRequest,
   type SetSessionModeResponse,
 } from "@agentclientprotocol/sdk";
+import { existsSync } from "node:fs";
 import type { AuthRequiredMode } from "./cli.ts";
 import type { ScenarioLogger } from "./logger.ts";
 import { redactPromptParams } from "./redact.ts";
@@ -61,6 +62,8 @@ export interface FakeAgentSessionOptions {
   readonly history?: boolean;
   /** `--list-delay`: milliseconds `session/list` waits before answering (absolute, not scaled). */
   readonly listDelayMs?: number;
+  /** `--list-gate`: `session/list` waits until a file exists at this path before answering. */
+  readonly listGate?: string;
   readonly store: SessionStore;
 }
 
@@ -356,6 +359,9 @@ export function createFakeAgent(
       }
       if (sessions.listDelayMs !== undefined && sessions.listDelayMs > 0) {
         await new Promise<void>((resolve) => setTimeout(resolve, sessions.listDelayMs));
+      }
+      if (sessions.listGate !== undefined) {
+        while (!existsSync(sessions.listGate)) await new Promise<void>((resolve) => setTimeout(resolve, 20));
       }
       return store.list(request.cwd, request.cursor, sessions.pageSize);
     },
