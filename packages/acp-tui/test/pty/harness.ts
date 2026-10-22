@@ -67,6 +67,17 @@ export interface PtyStartOptions {
 const CONPTY_PAINT_MS = 50;
 
 /**
+ * How much longer a `waitFor` may last while the child has written nothing yet: on Windows a Bun
+ * process on a loaded machine (a CI runner) was seen to write nothing for more than 10 s after it
+ * was started, so a wait's time only starts to run at the child's first output, up to this much
+ * later. 0 elsewhere, where waits are as they were. A wait still ends on its outcome.
+ */
+export const START_GRACE_MS = WINDOWS ? 30000 : 0;
+
+/** ConPTY's own first bytes (`CSI ? 9001 h`, `CSI ? 1004 h`), written before the child writes anything. */
+const MODES_ONLY = /^(?:\x1b\[\?\d+[hl])*$/;
+
+/**
  * The `ACP_TUI_TEST_HOOKS` value for a PTY child: what the test named, plus `no-host-clipboard`, so
  * no PTY test reaches the real clipboard on any platform (renderer/test-hooks.ts). A test that puts
  * stub clipboard programs on `PATH` names `no-native-clipboard` instead, which keeps the stubs
@@ -407,9 +418,12 @@ export class PtySession {
       const all = this.scrollbackText().join("\n");
       return typeof cond === "string" ? all.includes(cond) : cond.test(all);
     };
-    const deadline = Date.now() + timeoutMs;
+    const begun = Date.now();
+    let deadline = begun + timeoutMs;
     for (;;) {
       await this.flush();
+      // Until the child's first output the wait does not run down (START_GRACE_MS).
+      if (START_GRACE_MS > 0 && MODES_ONLY.test(this.raw)) deadline = Math.min(begun + timeoutMs + START_GRACE_MS, Date.now() + timeoutMs);
       if (test()) {
         // ConPTY paints its own copy of the screen on a timer, so the frame that met the condition
         // may have arrived in parts (a header drawn, the rows below it still the old ones): one
