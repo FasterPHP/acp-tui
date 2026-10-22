@@ -68,6 +68,62 @@ describe("list model", () => {
     expect(listRows(items, false).every((r) => r.kind === "item")).toBe(true);
   });
 
+  test("a subheading above an item (slash-command-completion 7.4): a row of its own, not an item, between the tiers; the window and paging count it", () => {
+    const tiered = [
+      item("one", "A"),
+      item("two", "A", { subheadingAbove: "matched in the description" }),
+      item("three", "A"),
+      item("four", "B", { subheadingAbove: "matched in the description" }),
+    ];
+    const rows = listRows(tiered, true);
+    expect(rows).toEqual([
+      { kind: "header", label: "A" },
+      { kind: "item", index: 0 },
+      { kind: "subheading", label: "matched in the description" },
+      { kind: "item", index: 1 },
+      { kind: "item", index: 2 },
+      { kind: "gap" },
+      { kind: "header", label: "B" },
+      { kind: "subheading", label: "matched in the description" },
+      { kind: "item", index: 3 },
+    ]);
+    // Items are indexed without the subheading: Down from `one` is `two`, and the keys skip nothing.
+    expect(moveSelection(4, 0, 1)).toBe(1);
+    expect(moveSelection(4, 0, "last")).toBe(3);
+    // The window keeps the subheading (and the header above it) in view with the item under it.
+    expect(scrollOffset(rows, 1, 3, 4)).toBe(2);
+    expect(scrollOffset(rows, 3, 3, 0)).toBe(6);
+    // A page counts the subheading as a row: from `one` (row 1) a page of 4 rows reaches row 4,
+    // `three`; from `two` (row 3) it reaches row 6, so the page ends at `three` (row 4), and from
+    // `three` the next item beyond the page is `four`.
+    expect(pageSelection(rows, 0, 4, 1)).toBe(2);
+    expect(pageSelection(rows, 1, 4, 1)).toBe(2);
+    expect(pageSelection(rows, 2, 4, 1)).toBe(3);
+    expect(pageSelection(rows, 3, 4, -1)).toBe(2);
+    // The filter never matches it.
+    expect(filterItems(tiered, "matched").map((i) => i.id)).toEqual([]);
+    // Drawn muted, on a line that shows no item.
+    const layout = overlayLayout({
+      title: "Slash commands",
+      filter: "x",
+      placeholder: "",
+      items: tiered,
+      grouped: true,
+      selected: 0,
+      offset: 0,
+      width: 63,
+      rows: 21,
+      closeLabel: "esc",
+      hints: [],
+      marks: false,
+    });
+    const line = layout.lines.findIndex((l) => text(l).includes("matched in the description"));
+    expect(line).toBeGreaterThan(0);
+    expect(layout.lines[line]!.find((seg) => seg.text.includes("matched in the description"))).toMatchObject({ token: "muted" });
+    expect(layout.itemAt[line]).toBeNull();
+    expect(layout.itemAt[line + 1]).toBe(1);
+  });
+
   test("the window keeps the selection in view, with its group's header when it is the group's first item", () => {
     const rows = listRows(items, true);
     expect(scrollOffset(rows, 0, 3, 0)).toBe(0);

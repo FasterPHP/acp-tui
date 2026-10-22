@@ -3,7 +3,7 @@
 // slash command" and "Slash prompts sent without trailing white space"): fake-agent's log keeps
 // only a prompt's block count, so a test that must see the exact text sent (a trailing space, an
 // argument after a completed command) needs an agent that records it. `session/new` reports a
-// `model` and a `mode` option; the agent then advertises `compact`, `openspec-apply-change`, `diagnose-crash` and `Bootstrap` with no
+// `model` and a `mode` option; the agent then advertises `compact`, `openspec-apply-change`, `diagnose-crash`, `Bootstrap`, `heapdump` and `claude-api` with no
 // `input`, and `review` with the hint `PR number`, in an order that is not alphabetical, and no `exit`. Every prompt's text is appended as one
 // JSON string per line to the file named by `SLASH_AGENT_PROMPTS`; a prompt whose text is `wait`
 // stays running until it is cancelled (a turn in progress); any other is answered `done`.
@@ -59,6 +59,8 @@ if (import.meta.main) {
                 { name: "diagnose-crash", description: "Diagnose a crash in the application" },
                 { name: "compact", description: "Compact the conversation and its model context" },
                 { name: "Bootstrap", description: "Set up the project" },
+                { name: "heapdump", description: "Write a heap snapshot to a file" },
+                { name: "claude-api", description: "Build with the Anthropic interface" },
               ],
             },
           });

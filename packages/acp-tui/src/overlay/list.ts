@@ -41,6 +41,11 @@ export interface ListItem {
    *  otherwise (`esc esc` for interrupting the turn, `click the pill` for the model; spec
    *  tui-palette "Command palette overlay"). The filter matches it. */
   readonly route?: string | null;
+  /** A muted line above this item that is not an item itself (the slash menu's `matched in the
+   *  description`, above a group's first entry matched only through its description): drawn in the
+   *  list's rows and counted by its window and paging, passed over by the selection and the
+   *  pointer, and never matched by the filter. */
+  readonly subheadingAbove?: string | null;
   /** A picker's current value: marked with `●`. */
   readonly current?: boolean;
   /** More text the filter matches (an option's id or description). */
@@ -54,7 +59,12 @@ export interface ListItem {
 
 /** A row of the list: a group header, the blank row before every header but the first, or an item
  *  (by index into the shown items). */
-export type ListRow = { readonly kind: "header"; readonly label: string } | { readonly kind: "gap" } | { readonly kind: "item"; readonly index: number };
+export type ListRow =
+  | { readonly kind: "header"; readonly label: string }
+  // A muted line that is not an item (`ListItem.subheadingAbove`): selection, keys and the pointer pass over it.
+  | { readonly kind: "subheading"; readonly label: string }
+  | { readonly kind: "gap" }
+  | { readonly kind: "item"; readonly index: number };
 
 /** A segment of an overlay row; `selected` rows are highlighted, `cursor` is the filter's caret. */
 export interface OverlaySegment extends Segment {
@@ -94,6 +104,7 @@ export function listRows(items: readonly ListItem[], grouped: boolean): ListRow[
       rows.push({ kind: "header", label: item.groupNote ? `${item.group} (${item.groupNote})` : item.group });
     }
     group = item.group;
+    if (item.subheadingAbove) rows.push({ kind: "subheading", label: item.subheadingAbove });
     rows.push({ kind: "item", index });
   });
   return rows;
@@ -109,7 +120,9 @@ export function scrollOffset(rows: readonly ListRow[], selected: number, height:
   const at = rows.findIndex((r) => r.kind === "item" && r.index === selected);
   let next = Math.max(0, Math.min(offset, max));
   if (at < 0 || height <= 0) return next;
-  const top = at > 0 && rows[at - 1]!.kind === "header" ? at - 1 : at;
+  // The group's header, and the subheading above the item, stay in view with its first item.
+  let top = at;
+  while (top > 0 && (rows[top - 1]!.kind === "header" || rows[top - 1]!.kind === "subheading")) top--;
   if (top < next) next = top;
   if (at >= next + height) next = at - height + 1;
   return Math.max(0, Math.min(next, max));
@@ -482,6 +495,10 @@ export function overlayLayout(view: OverlayView): OverlayLayout {
     }
     if (row.kind === "gap") {
       lines.push(framed([], inner));
+      continue;
+    }
+    if (row.kind === "subheading") {
+      lines.push(framed([{ text: truncateEnd(row.label, inner), token: "muted" }], inner));
       continue;
     }
     if (row.kind === "header") {
