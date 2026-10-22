@@ -37,15 +37,15 @@ jobs:
       # wide margin (the file picker's first matches, the busy indicator's steps), which says
       # nothing about Windows support. The hosted runner has 4 slow vCPUs: with 4 workers PTY tests
       # starved each other (timeouts, screens read before they were drawn) where an 8-vCPU machine
-      # passed them all; even 2 workers left PTY tests reading screens before acp-tui had drawn them,
-      # so it runs 1 worker (each PTY test gets the whole machine; the run takes longer, which is
-      # fine for an on-demand check) and gives each test 20 s instead of Bun's 5 s. Skips for
+      # passed them all; on it PTY tests can still read a screen before acp-tui has drawn it. So it runs
+      # 2 workers, gives each test 20 s instead of Bun's 5 s, and re-runs the files with a failing
+      # test once, on their own (`--retry-failed`): a failure that repeats still fails the run. Skips for
       # Windows are in the tests (`test.skipIf(WINDOWS)`) and show in the summary counts.
       - name: Test
         shell: bash
         env:
-          ACP_TUI_TEST_WORKERS: "1"
-        run: bun run test --parallel-only --timeout 20000
+          ACP_TUI_TEST_WORKERS: "2"
+        run: bun run test --parallel-only --retry-failed --timeout 20000
 
       - name: Typecheck
         run: bun run typecheck

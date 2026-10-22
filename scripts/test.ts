@@ -6,14 +6,22 @@
 //      first pass has exited, so their wall-clock and frame budgets run on a quiet machine. It runs
 //      even if the first pass failed, so one run shows every failure.
 //
-//   bun run test [paths...] [-t <pattern>] [--parallel-only | --timing-only] [other bun test flags]
+//   bun run test [paths...] [-t <pattern>] [--parallel-only | --timing-only] [--retry-failed]
+//                [other bun test flags]
+//
+// `--retry-failed` (for a slow, shared machine such as a hosted CI runner, where screen-reading PTY
+// tests can lose a race they never lose elsewhere): when the parallel pass fails, the test files
+// with a failing test (read from Bun's JUnit report) run once more, on their own and serially, and
+// the pass counts as passed only if that retry passes. A failure that repeats still fails the run.
 //
 // Paths and every other argument go to both passes; for the serial pass the paths are narrowed to
 // the timing files they select, and a pass with no files left is skipped with a line saying so.
 // The worker count is ACP_TUI_TEST_WORKERS (default 12, the largest count with no failure on
 // Marcus's 32-thread desktop; see docs/mvp-notes/parallel-tests.md). The exit status is non-zero
 // if either pass failed. Plain `bun test` still runs everything serially, as before.
-import { existsSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { relative, resolve } from "node:path";
 
 const DEFAULT_WORKERS = 12;
@@ -25,7 +33,7 @@ type Result = { name: string; code: number; seconds: number; summary: string[] }
 
 function usage(): never {
   console.log(
-    "usage: bun run test [paths...] [-t <pattern>] [--parallel-only | --timing-only] [bun test flags]\n" +
+    "usage: bun run test [paths...] [-t <pattern>] [--parallel-only | --timing-only] [--retry-failed] [bun test flags]\n" +
       "  ACP_TUI_TEST_WORKERS=<n> sets the parallel pass's workers (default 12)",
   );
   process.exit(0);
@@ -61,12 +69,14 @@ const VALUE_FLAGS = new Set([
 function parseArgs(argv: string[]) {
   let parallelOnly = false;
   let timingOnly = false;
+  let retryFailed = false;
   const paths: string[] = [];
   const flags: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
     if (arg === "--parallel-only") parallelOnly = true;
     else if (arg === "--timing-only") timingOnly = true;
+    else if (arg === "--retry-failed") retryFailed = true;
     else if (arg === "-h" || arg === "--help") usage();
     else if (arg === "--parallel" || arg.startsWith("--parallel=")) {
       console.error("set the worker count with ACP_TUI_TEST_WORKERS, not --parallel");
@@ -80,7 +90,7 @@ function parseArgs(argv: string[]) {
     console.error("--parallel-only and --timing-only exclude each other");
     process.exit(2);
   }
-  return { parallelOnly, timingOnly, paths, flags };
+  return { parallelOnly, timingOnly, retryFailed, paths, flags };
 }
 
 // A path with `/` for its separator on every platform (Bun takes it on Windows), so a path
@@ -146,7 +156,17 @@ async function run(pass: Pass): Promise<Result> {
   return { name: pass.name, code, seconds: (performance.now() - started) / 1000, summary };
 }
 
-const { parallelOnly, timingOnly, paths, flags } = parseArgs(process.argv.slice(2));
+// The files of a JUnit report (Bun's `--reporter=junit`) with a failing test: the top-level
+// `<testsuite>` of each file carries the file as both its name and its `file` attribute.
+function failedFiles(xml: string): string[] {
+  const files = new Set<string>();
+  for (const m of xml.matchAll(/<testsuite name="([^"]+)" file="([^"]+)"[^>]*\bfailures="(\d+)"/g)) {
+    if (m[1] === m[2] && Number(m[3]) > 0) files.add(m[2]!);
+  }
+  return [...files].sort();
+}
+
+const { parallelOnly, timingOnly, retryFailed, paths, flags } = parseArgs(process.argv.slice(2));
 const chosen = await selected(paths);
 const timing = chosen.filter((file) => file.endsWith(TIMING_SUFFIX));
 const others = chosen.filter((file) => !file.endsWith(TIMING_SUFFIX));
@@ -158,10 +178,25 @@ const report: (Result | string)[] = [];
 if (!timingOnly) {
   if (others.length === 0) report.push("parallel pass: no test files outside *.timing.test.ts, skipped");
   else {
-    const args = ["test", `--parallel=${workers()}`, `--path-ignore-patterns=**/*${TIMING_SUFFIX}`, ...flags, ...paths];
+    const junitDir = retryFailed ? mkdtempSync(join(tmpdir(), "acp-tui-junit-")) : null;
+    const junit = junitDir === null ? [] : ["--reporter=junit", `--reporter-outfile=${join(junitDir, "parallel.xml")}`];
+    const args = ["test", `--parallel=${workers()}`, `--path-ignore-patterns=**/*${TIMING_SUFFIX}`, ...junit, ...flags, ...paths];
     const result = await run({ name: "parallel pass", args });
-    results.push(result);
     report.push(result);
+    if (result.code !== 0 && junitDir !== null) {
+      const xmlPath = join(junitDir, "parallel.xml");
+      const failed = existsSync(xmlPath) ? failedFiles(readFileSync(xmlPath, "utf8")) : [];
+      if (failed.length === 0) report.push("retry: no failing file named in the report, so nothing to retry");
+      else {
+        const files = failed.map((f) => (f.startsWith("..") ? f : `./${f}`));
+        const retry = await run({ name: `retry of ${failed.length} failed file(s)`, args: ["test", ...flags, ...files] });
+        report.push(retry);
+        // The parallel pass stands or falls with its retry; the report keeps both lines.
+        results.push({ ...result, code: retry.code });
+      }
+    }
+    if (junitDir !== null) rmSync(junitDir, { recursive: true, force: true });
+    if (results.length === 0) results.push(result);
   }
 }
 if (!parallelOnly) {
