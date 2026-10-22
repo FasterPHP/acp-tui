@@ -61,7 +61,7 @@ Everything else is in [configuration.md](configuration.md).
 ## Known limitations
 
 - Auggie sends no usage or cost, so the cost and context gauges show nothing with it.
-- There is no Effort pill with Auggie: it takes `--reasoning-effort` only at start-up, so set it in the harness's `args` in `agent_servers`.
+- There is no Effort pill with Auggie: it offers no reasoning effort setting over ACP.
 - Auggie's built-in slash commands such as `/mcp` are not offered over ACP.
 - After an IDE theme change, press Ctrl+L: the IDEs do not tell terminal programs about it.
 - The attention bell rings while a JetBrains IDE has focus, because its terminal never reports focus. Set `attention.signal` to `"none"` to stop it.

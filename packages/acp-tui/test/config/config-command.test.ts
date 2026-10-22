@@ -552,7 +552,7 @@ describe("Harnesses come only from agent_servers (configured-harnesses, tui-conf
   test("Default configuration: the printed file holds the active auggie line, the commented alternative with additional_directories /path/to/projects and the commented claude line with 120", () => {
     const text = commentedDefault();
     expect(text).toMatch(/^ {4}"auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\] \},$/m);
-    expect(text).toMatch(/^ {4}\/\/ "auggie": \{ "command": "auggie", "args": \["--acp", "--reasoning-effort", "dynamic"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\], "additional_directories": \["\/path\/to\/projects"\] \},$/m);
+    expect(text).toMatch(/^ {4}\/\/ "auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\], "additional_directories": \["\/path\/to\/projects"\] \},$/m);
     // The comments say what the template is for and why --add-workspace in args bypasses acp-tui.
     expect(text).toContain("additional_directory_args is the template acp-tui");
     expect(text.replace(/\n\s*\/\/ /g, " ")).toContain("Writing --add-workspace <dir> in args also works, but bypasses acp-tui");

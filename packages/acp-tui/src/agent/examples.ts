@@ -49,8 +49,8 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
     entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
     suggestion: {
       about:
-        "the same with a start-up option and a directory; to use it, put // in front of the auggie line above and remove it from this one. --reasoning-effort chooses how hard it thinks (none, low, medium, high, xhigh, max or dynamic). additional_directories gives Auggie's context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours (a directory that does not exist is a warning and left out). Auggie indexes that folder in the background, so start-up is not delayed. Writing --add-workspace <dir> in args also works, but bypasses acp-tui: that directory is not shown in the dirs module of the status row (+N dirs) and is not deduplicated with the others.",
-      entry: { command: "auggie", args: ["--acp", "--reasoning-effort", "dynamic"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS, additionalDirectories: ["/path/to/projects"] },
+        "the same with a directory; to use it, put // in front of the auggie line above and remove it from this one. additional_directories gives Auggie's context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours (a directory that does not exist is a warning and left out). Auggie indexes that folder in the background, so start-up is not delayed. Writing --add-workspace <dir> in args also works, but bypasses acp-tui: that directory is not shown in the dirs module of the status row (+N dirs) and is not deduplicated with the others.",
+      entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS, additionalDirectories: ["/path/to/projects"] },
     },
   },
   {
