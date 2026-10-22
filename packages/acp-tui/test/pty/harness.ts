@@ -138,6 +138,8 @@ export class PtySession {
   private pending: Promise<void> = Promise.resolve();
   private eof: Promise<void>;
   private exitCodeValue: number | null = null;
+  /** When the child was started (`Date.now()`), for the timeout message. */
+  private readonly startedAt = Date.now();
   private colours: OscColours | undefined;
   private readonly before: Promise<ScreenSnapshot>;
   /** OSC numbers (4, 10, 11) the child has queried with `?`, in order. */
@@ -421,11 +423,18 @@ export class PtySession {
       }
       if (Date.now() > deadline) {
         throw new Error(
-          `waitFor timed out after ${timeoutMs} ms: ${String(cond)}\n--- screen ---\n${this.screenText().join("\n")}`,
+          `waitFor timed out after ${timeoutMs} ms: ${String(cond)}\n${this.progress()}\n--- screen ---\n${this.screenText().join("\n")}`,
         );
       }
       await Bun.sleep(15);
     }
+  }
+
+  /** How far the child got, for a timeout: the time since its start, how much it has written and
+   *  whether it has exited (a start that wrote nothing at all reads differently from a slow frame). */
+  private progress(): string {
+    const exit = this.exitCodeValue === null ? "running" : `exited with ${this.exitCodeValue}`;
+    return `(${Date.now() - this.startedAt} ms after the start; ${this.raw.length} characters received; ${exit})`;
   }
 
   get exitCode(): number | null {
