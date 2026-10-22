@@ -93,6 +93,8 @@ import {
   PICKER_CATEGORIES,
   pickerItems,
   pickerOptions,
+  rankSlashMatches,
+  slashStart,
   completionOf,
   enterCompletes,
   slashItems,
@@ -126,6 +128,12 @@ export interface ListSource {
   note?(): string | null;
   /** The entry selected when the list opens (by index into `items()`). */
   initial?(items: readonly ListItem[]): number;
+  /** Puts the entries that match the filter in the order shown (the slash menu's name matches
+   *  first); omitted, they stay in the order of `items()`. */
+  rank?(matches: readonly ListItem[], query: string): ListItem[];
+  /** Where the selection starts after each change of the filter, over the entries shown; omitted,
+   *  the first entry that can run. */
+  start?(shown: readonly ListItem[], query: string, skip: (index: number) => boolean): number;
   /** Enter on an entry. */
   choose(item: ListItem): void;
   /** The line shown while the list has no entries at all (before any filter), instead of
@@ -249,6 +257,8 @@ export function PaletteOverlay(): JSX.Element {
     marks: false,
     enter: "run",
     choose: (item) => choosePaletteItem(item as PaletteItem),
+    rank: rankSlashMatches,
+    start: slashStart,
     note: () => (store.session.commands.length === 0 ? noAgentCommands() : null),
     empty: noAgentCommands,
   };
@@ -343,12 +353,19 @@ export function PaletteOverlay(): JSX.Element {
   });
   const items = createMemo((): readonly ListItem[] => source()?.items() ?? []);
   const filterable = () => source()?.filter() ?? false;
-  const shown = createMemo(() => filterItems(items(), filterable() ? filter() : ""));
+  const shown = createMemo(() => {
+    const query = filterable() ? filter() : "";
+    const matches = filterItems(items(), query);
+    return source()?.rank?.(matches, query) ?? matches;
+  });
 
   /** Item `index` of the shown list is muted: not available now (`ListItem.muted`). */
   const isMuted = (index: number): boolean => shown()[index]?.muted === true;
   /** The selection a list starts at, or returns to when its filter changes: the first entry that can run. */
-  const resetSelection = () => setSelected(firstActive(shown().length, isMuted));
+  const resetSelection = () => {
+    const start = source()?.start;
+    setSelected(start ? start(shown(), filterable() ? filter() : "", isMuted) : firstActive(shown().length, isMuted));
+  };
 
   const open = (next: Mode) => {
     if (store.ui.focus !== "overlay") returnFocus = store.ui.focus;

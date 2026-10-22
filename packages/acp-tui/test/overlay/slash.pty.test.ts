@@ -66,13 +66,14 @@ describe("`/` opens the slash menu (task 12.1; day-one-feedback task 10)", () =>
     // The agent's commands under no header, then a blank row and acp-tui's under their group.
     const list = listRows(rows);
     expect(list.slice(0, 5)).toEqual([
-      expect.stringMatching(/^\/review {2}Review a pull request$/),
       expect.stringMatching(/^\/compact {2}Compact the conversation$/),
+      expect.stringMatching(/^\/review {2}Review a pull request$/),
       "",
       "acp-tui",
-      expect.stringMatching(/^\/model {2}Choose the model/),
+      expect.stringMatching(/^\/add-dir {2}Add a directory/),
     ]);
-    expect(list.filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0])).toEqual(["/review", "/compact", "/model", "/mode", "/effort", "/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
+    // Each group in alphabetical order of name (slash-command-completion, Marcus, 22 October 2026).
+    expect(list.filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0])).toEqual(["/compact", "/review", "/add-dir", "/effort", "/exit", "/export", "/find", "/help", "/mode", "/model", "/sessions"]);
     expect(rows[0]).toMatch(/Slash commands 11 /);
     expect(paletteOpen(run.s)).toBe(false);
     // The border names what Esc does.
@@ -109,10 +110,10 @@ describe("`/` opens the slash menu (task 12.1; day-one-feedback task 10)", () =>
     expect(inner(rows[2]!)).toBe("the harness offers no commands; ? opens acp-tui's commands");
     const list = listRows(rows).slice(1);
     expect(list[0]).toBe("acp-tui");
-    expect(list.slice(1).map((r) => r.split(/\s/)[0])).toEqual(["/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
+    expect(list.slice(1).map((r) => r.split(/\s/)[0])).toEqual(["/add-dir", "/exit", "/export", "/find", "/help", "/sessions"]);
     expect(rows.join("\n")).not.toContain("no matches");
     expect(rows.join("\n")).not.toContain("/review");
-    // Enter on the first entry runs it: /sessions opens the session list, and no prompt is sent.
+    // Esc closes the list and leaves the `/` as text; no prompt is sent.
     run.s.sendKeys("Esc");
     await run.s.waitFor(() => !agentOpen(run.s) && draft(run.s) === "/", 3000);
     expect(sentPrompts(run)).toHaveLength(0);
@@ -289,7 +290,9 @@ describe("acp-tui commands in the slash menu (day-one-feedback task 10)", () => 
     run.s.sendKeys({ text: "mod" });
     // Only the entries that match: /model and /mode.
     await run.s.waitFor(/Slash commands 2 /, 3000);
-    expect(listRows(agentList(run.s)).filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0])).toEqual(["/model", "/mode"]);
+    expect(listRows(agentList(run.s)).filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0])).toEqual(["/mode", "/model"]);
+    // Alphabetical, so /mode is selected first; Down selects /model.
+    run.s.sendKeys("Down");
     run.s.sendKeys("Enter");
     await run.s.waitFor(() => !agentOpen(run.s) && boxRows(run.s, "Model").length > 0, 5000);
     expect(sentPrompts(run)).toHaveLength(0);
@@ -356,6 +359,8 @@ describe("Completing a slash command (slash-command-completion)", () => {
     await run.s.waitFor(() => agentOpen(run.s), 3000);
     run.s.sendKeys({ text: "mod" });
     await run.s.waitFor(/Slash commands 2 /, 3000);
+    // Both names match; /mode comes first, so Down selects /model.
+    run.s.sendKeys("Down");
     run.s.sendKeys("Tab");
     await run.s.waitFor(() => !agentOpen(run.s) && draft(run.s).startsWith("/model"), 3000);
     await run.s.flush();
@@ -571,5 +576,70 @@ describe("Slash prompts as sent (slash-command-completion)", () => {
     await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/compact", 3000);
     await Bun.sleep(300);
     expect(run.prompts()).toEqual(["wait"]);
+  }, 30000);
+});
+
+describe("Order and ranking in the slash menu (slash-command-completion D6)", () => {
+  const names = (s: PtySession) => listRows(slashMenu(s)).filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0]);
+
+  test("Agent's order replaced: commands sent as review, openspec-apply-change, diagnose-crash, compact, Bootstrap are listed Bootstrap, compact, diagnose-crash, openspec-apply-change, review, before acp-tui's", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/review"), 5000);
+    expect(names(run.s).slice(0, 6)).toEqual(["/Bootstrap", "/compact", "/diagnose-crash", "/openspec-apply-change", "/review", "/add-dir"]);
+  }, 30000);
+
+  test("Name before description: `appl` lists /openspec-apply-change before /diagnose-crash (whose description mentions the application) and selects it", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/review"), 5000);
+    run.s.sendKeys({ text: "appl" });
+    await run.s.waitFor(/Slash commands 2 /, 3000);
+    expect(names(run.s)).toEqual(["/openspec-apply-change", "/diagnose-crash"]);
+    // The selection is on the first: Tab completes it.
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/openspec-apply-change", 3000);
+  }, 30000);
+
+  test("Name match in the acp-tui group: `mode` lists /compact (description) under the agent's commands, /mode and /model under acp-tui, and selects /mode", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/review"), 5000);
+    run.s.sendKeys({ text: "mode" });
+    await run.s.waitFor(() => names(run.s).length === 3, 3000);
+    expect(names(run.s)).toEqual(["/compact", "/mode", "/model"]);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/mode", 3000);
+  }, 30000);
+
+  test("Description only: `conversation` matches no name; the entries whose text holds it are listed alphabetically and the first, /compact, is selected", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/review"), 5000);
+    run.s.sendKeys({ text: "conversation" });
+    await run.s.waitFor(() => names(run.s).includes("/compact") && !names(run.s).includes("/Bootstrap"), 3000);
+    const listed = names(run.s);
+    expect(listed[0]).toBe("/compact");
+    expect(listed.slice(1)).toEqual([...listed.slice(1)].sort());
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/compact", 3000);
+  }, 30000);
+
+  test("The selection restarts on a name match with each change of the filter: after `appl`, a Down and then Backspace, the first name match is selected again", async () => {
+    const run = startSlashAgent();
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/review"), 5000);
+    run.s.sendKeys({ text: "appl" });
+    await run.s.waitFor(/Slash commands 2 /, 3000);
+    run.s.sendKeys("Down");
+    run.s.sendKeys("Backspace");
+    await run.s.waitFor(() => /Slash commands 2 /.test(run.s.screenText().join("\n")), 3000);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/openspec-apply-change", 3000);
   }, 30000);
 });

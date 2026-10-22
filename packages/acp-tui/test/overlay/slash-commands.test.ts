@@ -2,9 +2,10 @@
 // "Typed acp-tui commands"; design D10): the slash table, which entries are listed, and which typed
 // prompt runs a command. Pure, over the full command catalogue as palette.test.ts builds it.
 import { describe, expect, test } from "bun:test";
+import { filterItems } from "../../src/overlay/list.ts";
 import { COMMAND_TITLES, DEFAULT_KEY_MAP, KEY_ACTIONS, KEY_CONTEXTS, keyLabel, keysFor } from "../../src/keys/keymap.ts";
 import type { CatalogueEntry } from "../../src/keys/register.ts";
-import { ACP_TUI_GROUP, agentItems, completionOf, enterCompletes, paletteItems, SLASH_COMMANDS, slashItems, typedAddDirectory, typedSlashCommand } from "../../src/overlay/palette.ts";
+import { ACP_TUI_GROUP, agentItems, completionOf, enterCompletes, paletteItems, rankSlashMatches, SLASH_COMMANDS, slashItems, slashStart, typedAddDirectory, typedSlashCommand } from "../../src/overlay/palette.ts";
 
 function fullCatalogue(): CatalogueEntry[] {
   return KEY_CONTEXTS.flatMap((context) =>
@@ -20,10 +21,10 @@ function fullCatalogue(): CatalogueEntry[] {
 
 const select = (id: string, category = id) => ({ type: "select" as const, id, name: id, category, currentValue: "a", options: [{ value: "a", name: "A" }] });
 const state = (over: Partial<Parameters<typeof slashItems>[1]> = {}) => ({ configOptions: [], agentCommands: [] as string[], ...over });
-const names = (items: ReturnType<typeof slashItems>) => items.map((i) => i.title);
+const names = (items: readonly { readonly title: string }[]) => items.map((i) => i.title);
 
 describe("the slash table", () => {
-  test("lists /model, /mode, /effort, /sessions, /find, /export, /add-dir, /help and /exit, each running a catalogue action", () => {
+  test("lists /model, /mode, /effort, /sessions, /find, /export, /add-dir, /help and /exit (in this order, for matching typed text), each running a catalogue action", () => {
     expect(SLASH_COMMANDS.map((c) => c.name)).toEqual(["model", "mode", "effort", "sessions", "find", "export", "add-dir", "help", "exit"]);
     const catalogue = new Set(fullCatalogue().map((e) => e.name));
     for (const command of SLASH_COMMANDS) expect(catalogue.has(command.command)).toBe(true);
@@ -33,7 +34,7 @@ describe("the slash table", () => {
 describe("acp-tui commands in the slash menu (task 10.1)", () => {
   test("Auggie without built-ins: a model and a mode but no effort option leaves out /effort", () => {
     const items = slashItems(fullCatalogue(), state({ configOptions: [select("model"), select("mode")], agentCommands: ["review"] }));
-    expect(names(items)).toEqual(["/model", "/mode", "/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
+    expect(names(items)).toEqual(["/add-dir", "/exit", "/export", "/find", "/help", "/mode", "/model", "/sessions"]);
     for (const item of items) {
       expect(item.group).toBe(ACP_TUI_GROUP);
       expect(item.action.kind).toBe("command");
@@ -44,11 +45,11 @@ describe("acp-tui commands in the slash menu (task 10.1)", () => {
   });
 
   test("an entry is listed only while its action is available: no option, no picker; an unregistered command is left out", () => {
-    expect(names(slashItems(fullCatalogue(), state()))).toEqual(["/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
+    expect(names(slashItems(fullCatalogue(), state()))).toEqual(["/add-dir", "/exit", "/export", "/find", "/help", "/sessions"]);
     const noSessions = fullCatalogue().filter((e) => e.name !== "global.sessions");
     expect(names(slashItems(noSessions, state()))).not.toContain("/sessions");
     const all = slashItems(fullCatalogue(), state({ configOptions: [select("model"), select("mode"), select("effort", "thought_level")] }));
-    expect(names(all)).toEqual(["/model", "/mode", "/effort", "/sessions", "/find", "/export", "/add-dir", "/help", "/exit"]);
+    expect(names(all)).toEqual(["/add-dir", "/effort", "/exit", "/export", "/find", "/help", "/mode", "/model", "/sessions"]);
   });
 
   test("The agent's name wins: an advertised command of the same name leaves acp-tui's out", () => {
@@ -123,7 +124,7 @@ describe("/add-dir (harness-feedback task 7.1; spec tui-palette \"Directory type
 
 describe("completing a slash menu entry (slash-command-completion)", () => {
   test("an agent command completes to `/<name> ` with its input hint, and Enter completes it", () => {
-    const [review, compact] = agentItems([
+    const [compact, review] = agentItems([
       { name: "review", description: "Review a pull request", inputHint: "PR number" },
       { name: "compact", description: "Compact the conversation", inputHint: null },
     ]);
@@ -152,5 +153,61 @@ describe("completing a slash menu entry (slash-command-completion)", () => {
     const catalogue = fullCatalogue();
     expect(typedSlashCommand("/exit ", catalogue, state())?.name).toBe("exit");
     expect(typedSlashCommand("/model \n", catalogue, state({ configOptions: [select("model")] }))?.name).toBe("model");
+  });
+});
+
+describe("order and ranking in the slash menu (slash-command-completion D6)", () => {
+  const agent = (name: string, description: string) => ({ name, description, inputHint: null });
+  const menu = (commands: ReturnType<typeof agent>[], over: Partial<Parameters<typeof slashItems>[1]> = {}) => [
+    ...agentItems(commands).map((item) => ({ ...item, group: null })),
+    ...slashItems(fullCatalogue(), state({ configOptions: [select("model"), select("mode")], ...over })),
+  ];
+  const shownFor = (items: ReturnType<typeof menu>, query: string) => rankSlashMatches(filterItems(items, query), query);
+
+  test("Agent's order replaced: commands sent as review, compact, Bootstrap read Bootstrap, compact, review", () => {
+    const items = agentItems([agent("review", "r"), agent("compact", "c"), agent("Bootstrap", "b")]);
+    expect(names(items)).toEqual(["/Bootstrap", "/compact", "/review"]);
+  });
+
+  test("acp-tui's group is alphabetical: /add-dir, /exit, /export, /find, /help, /mode, /model, /sessions", () => {
+    expect(names(slashItems(fullCatalogue(), state({ configOptions: [select("model"), select("mode")] })))).toEqual(["/add-dir", "/exit", "/export", "/find", "/help", "/mode", "/model", "/sessions"]);
+  });
+
+  test("Name before description: /appl lists /openspec-apply-change before /diagnose-crash, whose description mentions an application", () => {
+    const items = menu([agent("diagnose-crash", "Diagnose a crash in the application"), agent("openspec-apply-change", "Implement tasks from an OpenSpec change")]);
+    const shown = shownFor(items, "appl");
+    expect(names(shown)).toEqual(["/openspec-apply-change", "/diagnose-crash"]);
+    expect(slashStart(shown, "appl", () => false)).toBe(0);
+    // The shared filter alone would have kept the harness's (here alphabetical) order.
+    expect(names(filterItems(items, "appl"))).toEqual(["/diagnose-crash", "/openspec-apply-change"]);
+  });
+
+  test("every word must be in the name for the first tier: `apply change` ranks the name that holds both ahead of a description that does", () => {
+    const items = menu([agent("apply-patch", "Apply a change"), agent("change-apply", "x"), agent("zeta", "apply every change")]);
+    expect(names(shownFor(items, "apply change"))).toEqual(["/change-apply", "/apply-patch", "/zeta"]);
+  });
+
+  test("Name match in the acp-tui group: /compact (description) stays first in its group, /mode and /model follow, and the selection starts on /mode", () => {
+    const items = menu([agent("compact", "Compact the conversation and its model context")]);
+    const shown = shownFor(items, "mode");
+    expect(names(shown)).toEqual(["/compact", "/mode", "/model"]);
+    expect(shown.map((i) => i.group)).toEqual([null, ACP_TUI_GROUP, ACP_TUI_GROUP]);
+    expect(slashStart(shown, "mode", () => false)).toBe(1);
+  });
+
+  test("Description only: no name matches, the order is each group's alphabetical order and the selection starts on the first entry", () => {
+    const items = menu([agent("zed", "the conversation"), agent("alpha", "also the conversation")]);
+    const shown = shownFor(items, "conversation");
+    expect(names(shown)[0]).toBe("/alpha");
+    expect(names(shown).slice(0, 2)).toEqual(["/alpha", "/zed"]);
+    expect(slashStart(shown, "conversation", () => false)).toBe(0);
+  });
+
+  test("an empty filter keeps the menu's order and starts on the first entry; muted entries are skipped", () => {
+    const items = menu([agent("b", "x"), agent("a", "y")]);
+    expect(names(rankSlashMatches(items, ""))).toEqual(names(items));
+    expect(slashStart(items, "", () => false)).toBe(0);
+    expect(slashStart(items, "", (i) => i === 0)).toBe(1);
+    expect(slashStart(shownFor(items, "a"), "a", (i) => i === 0)).toBeGreaterThan(0);
   });
 });

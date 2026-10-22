@@ -292,7 +292,16 @@ export function agentCommandNames(commands: readonly AgentCommand[]): string[] {
   return commands.map((command) => approvalText(command.name));
 }
 
-/** The agent's commands as the list `/` opens: `/<name>` and the description, in the agent group. */
+/** Alphabetical order of an entry's name, ignoring case (the slash menu's order; the raw title breaks a tie). */
+const byName = (a: ListItem, b: ListItem): number => {
+  const x = a.title.toLowerCase();
+  const y = b.title.toLowerCase();
+  return x < y ? -1 : x > y ? 1 : a.title < b.title ? -1 : a.title > b.title ? 1 : 0;
+};
+
+/** The agent's commands as the list `/` opens: `/<name>` and the description, in the agent group,
+ *  in alphabetical order of name whatever order the agent sent them in (spec tui-palette "Slash
+ *  menu order"). */
 export function agentItems(commands: readonly AgentCommand[]): PaletteItem[] {
   return commands.map((command) => {
     const name = approvalText(command.name);
@@ -302,8 +311,53 @@ export function agentItems(commands: readonly AgentCommand[]): PaletteItem[] {
       title: `/${name}`,
       description: approvalText(command.description) || null,
       action: { kind: "agent", name, inputHint: command.inputHint === null ? null : approvalText(command.inputHint) },
-    };
-  });
+    } satisfies PaletteItem;
+  }).sort(byName);
+}
+
+/** The filter's words, lower case. */
+const wordsOf = (query: string): string[] => query.toLowerCase().split(/\s+/).filter(Boolean);
+
+/** Whether an entry's name (its title, `/<name>`) holds every word of the filter. */
+const nameHolds = (item: ListItem, words: readonly string[]): boolean => {
+  const name = item.title.toLowerCase();
+  return words.every((word) => name.includes(word));
+};
+
+/**
+ * The slash menu's matches in rank order (spec tui-palette "Name matches first in the slash
+ * menu"): given the items that match the filter, in the menu's order, each group's entries whose
+ * name holds every word of the filter come first, then those matched only through their
+ * description or other text, each tier keeping its alphabetical order. The groups stay in their
+ * places, so no heading repeats. An empty filter leaves the order as it is.
+ */
+export function rankSlashMatches(matches: readonly ListItem[], query: string): ListItem[] {
+  const words = wordsOf(query);
+  if (words.length === 0) return [...matches];
+  const out: ListItem[] = [];
+  for (let start = 0; start < matches.length; ) {
+    let end = start;
+    while (end < matches.length && matches[end]!.group === matches[start]!.group) end++;
+    const run = matches.slice(start, end);
+    out.push(...run.filter((item) => nameHolds(item, words)), ...run.filter((item) => !nameHolds(item, words)));
+    start = end;
+  }
+  return out;
+}
+
+/**
+ * Where the slash menu's selection starts after each change of the filter: the first entry (not
+ * `skip`) whose name holds every word of the filter, in either group, else the first entry not
+ * skipped (0 when none).
+ */
+export function slashStart(shown: readonly ListItem[], query: string, skip: (index: number) => boolean): number {
+  const words = wordsOf(query);
+  if (words.length > 0) {
+    const named = shown.findIndex((item, index) => !skip(index) && nameHolds(item, words));
+    if (named >= 0) return named;
+  }
+  for (let i = 0; i < shown.length; i++) if (!skip(i)) return i;
+  return 0;
 }
 
 const SLASH_ID_PREFIX = "slash:";
@@ -376,10 +430,11 @@ function availableSlash(catalogue: readonly CatalogueEntry[], state: SlashState)
   return out;
 }
 
-/** The menu's items for acp-tui's slash commands, under `ACP_TUI_GROUP`: `/<name>`, the action's
+/** The menu's items for acp-tui's slash commands, under `ACP_TUI_GROUP`, in alphabetical order of
+ *  name (`SLASH_COMMANDS` keeps its own order for matching typed text): `/<name>`, the action's
  *  title as its description and its keys (or route) in the key column. */
 export function slashItems(catalogue: readonly CatalogueEntry[], state: SlashState): PaletteItem[] {
-  return availableSlash(catalogue, state).map(({ command, entry }) => ({
+  return availableSlash(catalogue, state).map(({ command, entry }): PaletteItem => ({
     id: `${SLASH_ID_PREFIX}${command.name}`,
     group: ACP_TUI_GROUP,
     title: `/${command.name}`,
@@ -389,7 +444,7 @@ export function slashItems(catalogue: readonly CatalogueEntry[], state: SlashSta
     keys: KEY_SCOPES[entry.context] === null ? entry.keys : [],
     route: entry.keys.length === 0 ? (state.routes?.[entry.name] ?? null) : null,
     action: { kind: "command", name: command.command, context: command.context },
-  }));
+  })).sort(byName);
 }
 
 /** The slash command a sent prompt is exactly, ignoring white space around it, while it can run
