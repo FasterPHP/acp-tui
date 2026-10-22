@@ -608,12 +608,15 @@ describe("Honest errors in the list (task 7.5)", () => {
     const adHoc = w.fake("adhoc", ["--scenario", "basic", "--load"]);
     w.record({ agent: "ad hoc", command: adHoc, sessionId: "s-adhoc", directory: repo, title: "Started ad hoc", at: Date.now() - MINUTE });
     const s = start(w, ["--resume"], { cwd: repo, cols: 160 });
-    await s.waitFor(() => listBody(s).some((r) => r.startsWith("Started ad hoc")), 15000);
-    expect(listBody(s).find((r) => r.startsWith("Started ad hoc"))).toContain("ad hoc");
+    // The row's harness column (after the title, which holds the words too) reads `ad hoc`.
+    const harnessColumn = () => (listBody(s).find((r) => r.startsWith("Started ad hoc")) ?? "").slice("Started ad hoc".length);
+    await s.waitFor(() => harnessColumn().includes("ad hoc"), 15000);
+    // The harness's page too, so the choice below cancels no request still in flight.
+    await s.waitFor(() => methods(w, "fake").includes("session/list") && listBody(s).some((r) => r.startsWith("Fix the router")), 15000);
     s.sendKeys({ text: "started ad hoc" }, "Enter");
-    await s.waitFor(() => footerText(s).includes("ad hoc harness command"), 5000);
-    const footer = footerText(s);
-    expect(footer).toContain("session s-adhoc was started with an ad hoc harness command, which acp-tui never runs from its index; reopen it with: acp-tui --resume s-adhoc -- bun");
+    // The whole message: it wraps over several rows, which a slow machine may draw in parts.
+    const message = "session s-adhoc was started with an ad hoc harness command, which acp-tui never runs from its index; reopen it with: acp-tui --resume s-adhoc -- bun";
+    await s.waitFor(() => footerText(s).includes(message), 5000);
     expect(listOpen(s)).toBe(true);
     // Nothing run: the ad hoc command's log was never written.
     expect(methods(w, "adhoc")).toEqual([]);

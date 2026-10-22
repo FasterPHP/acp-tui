@@ -132,8 +132,10 @@ describe("the session list opens before the harness has started (tasks 3.1 to 3.
     await s.waitFor(() => !listOpen(s), 2000);
     // Nothing has started yet: the splash waits for the harness.
     expect(w.received("fake").some((e) => e.method === "session/new")).toBe(false);
+    // The status row reads `idle` and `connected` from `initialize` on (task 12.7), before the
+    // session is asked for, so the wait is for the request itself.
+    await s.waitFor(() => methods(w).includes("session/new"), 15000);
     await s.waitFor(READY, 15000);
-    expect(methods(w)).toContain("session/new");
   }, 40000);
 
   test("A start-up failure shows in the footer with the list open; Esc then ends acp-tui as a start-up failure", async () => {
@@ -162,7 +164,7 @@ describe("the columns stay where they are (task 12.5)", () => {
       { id: "h-1", title: "Add the appointment model for the clinic booking flow", minutes: 59 },
       { id: "h-2", title: "Split the portal views into smaller templates for the clinic", minutes: 58 },
     ];
-    w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--sessions", harnessSessions(w, repo, arriving), "--start-delay", "300", "--list-delay", "1500"] });
+    w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--sessions", harnessSessions(w, repo, arriving), "--start-delay", "300", "--list-delay", "3000"] });
     const s = (session = w.start(["-a", "fake", "--resume"], { cwd: repo }));
     const rowText = (title: string) => (listBody(s).find((r) => r.startsWith(title)) ?? "");
     /** The columns at which the harness name, the time and the directory start in a row. */
@@ -170,11 +172,14 @@ describe("the columns stay where they are (task 12.5)", () => {
       const row = rowText(title);
       return [row.search(/ fake /) + 1, row.search(/ (\d+ minutes? ago|just now)/) + 1, row.search(/ ~|\/\S/)].filter((c) => c > 0);
     };
-    await s.waitFor(() => listOpen(s) && listBody(s).some((r) => r.startsWith("Session 00")), 15000);
+    // A row is read once all three columns are on it: on a slow machine a frame can reach the
+    // terminal in parts (through ConPTY in particular), the title before the rest of the row.
+    await s.waitFor(() => listOpen(s) && columns("Session 00").length === 3, 15000);
     const before = columns("Session 00");
     expect(before).toHaveLength(3);
-    await s.waitFor(() => listBody(s).some((r) => r.startsWith("Add the appointment")), 15000);
-    await s.flush();
+    // The columns above are the index's alone: the harness's page has not been drawn yet.
+    expect(listBody(s).some((r) => r.startsWith("Add the appointment"))).toBe(false);
+    await s.waitFor(() => columns("Add the appointment").length === 3, 15000);
     expect(columns("Session 00")).toEqual(before);
     expect(columns("Add the appointment")).toEqual(before);
   }, 40000);
