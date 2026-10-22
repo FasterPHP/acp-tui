@@ -7,6 +7,8 @@
 //
 // The timing tests of this file are in session-list-startup.pty.timing.test.ts (parallel-tests: they run in the serial pass).
 import { afterEach, describe, expect, test } from "bun:test";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
 import { READY, statusRow } from "../pty/regions.ts";
 import { listBody, listRows, listWorld, type ListWorld } from "./list-world.ts";
@@ -83,16 +85,18 @@ describe("the session list opens before the harness has started (tasks 3.1 to 3.
       ...Array.from({ length: 30 }, (_, i) => ({ id: `s-${i}`, title: `Session ${String(i).padStart(2, "0")}`, minutes: i + 1 })),
       ...[0, 1, 2].map((i) => ({ id: `h-${i}`, title: `Harness only ${i}`, minutes: 0.1 + i * 0.01 })),
     ];
-    w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--sessions", harnessSessions(w, repo, harness), "--list-delay", "2500"] });
+    // The page is held until the user has moved (fake-agent's `--list-gate`).
+    const gate = join(w.dir("gate"), "open");
+    w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--sessions", harnessSessions(w, repo, harness), "--list-gate", gate] });
     const s = (session = w.start(["-a", "fake", "--resume"], { cwd: repo }));
     await s.waitFor(() => listOpen(s) && listBody(s).some((r) => r.startsWith("Session 00")), 15000);
     s.sendKeys("End");
     await s.waitFor(() => rowOf(s, "Session 29") >= 0, 5000);
     const before = rowOf(s, "Session 29");
     expect(w.events("session_list_response")).toEqual([]);
-    await s.waitFor(() => w.events("session_list_response").length > 0, 10000);
-    await Bun.sleep(300);
-    await s.flush();
+    writeFileSync(gate, "");
+    // The page merged: the footer that read the sessions is empty again.
+    await s.waitFor(() => w.events("session_list_response").length > 0 && footerLine(s) === "", 10000);
     // The three harness-only rows are above it now; it is selected where it was.
     expect(rowOf(s, "Session 29")).toBe(before);
     s.sendKeys("Enter");
@@ -164,7 +168,10 @@ describe("the columns stay where they are (task 12.5)", () => {
       { id: "h-1", title: "Add the appointment model for the clinic booking flow", minutes: 59 },
       { id: "h-2", title: "Split the portal views into smaller templates for the clinic", minutes: 58 },
     ];
-    w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--sessions", harnessSessions(w, repo, arriving), "--start-delay", "300", "--list-delay", "3000"] });
+    // The harness's page is held until the test has read the index's rows (fake-agent's
+    // `--list-gate`): the columns read first are the index's alone, however slow the machine.
+    const gate = join(w.dir("gate"), "open");
+    w.configure({ fake: ["--scenario", "basic", "--load", "--list", "--sessions", harnessSessions(w, repo, arriving), "--start-delay", "300", "--list-gate", gate] });
     const s = (session = w.start(["-a", "fake", "--resume"], { cwd: repo }));
     const rowText = (title: string) => (listBody(s).find((r) => r.startsWith(title)) ?? "");
     /** The columns at which the harness name, the time and the directory start in a row. */
@@ -177,8 +184,8 @@ describe("the columns stay where they are (task 12.5)", () => {
     await s.waitFor(() => listOpen(s) && columns("Session 00").length === 3, 15000);
     const before = columns("Session 00");
     expect(before).toHaveLength(3);
-    // The columns above are the index's alone: the harness's page has not been drawn yet.
     expect(listBody(s).some((r) => r.startsWith("Add the appointment"))).toBe(false);
+    writeFileSync(gate, "");
     await s.waitFor(() => columns("Add the appointment").length === 3, 15000);
     expect(columns("Session 00")).toEqual(before);
     expect(columns("Add the appointment")).toEqual(before);

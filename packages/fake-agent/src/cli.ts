@@ -33,6 +33,9 @@ export interface FakeAgentCliOptions {
   readonly startDelayMs: number;
   /** `--list-delay <ms>`: wait this long before answering `session/list`. Absolute, never scaled. */
   readonly listDelayMs: number;
+  /** `--list-gate <path>`: `session/list` is not answered until a file exists at `path` (after `--list-delay`),
+   *  so a test can hold the page for exactly as long as it needs. */
+  readonly listGate: string | undefined;
   /** `--config-delay <ms>`: wait this long before answering `session/set_config_option`. Absolute, never scaled. */
   readonly configDelayMs: number;
   /** `--config-never`: `session/set_config_option` is never answered (as when a harness's child process
@@ -140,6 +143,7 @@ export function parseArgs(
   let tools = DEFAULT_TOOLS;
   let startDelayMs = 0;
   let listDelayMs = 0;
+  let listGate: string | undefined;
   let configDelayMs = 0;
   let configNever = false;
   let authRequired: AuthRequiredMode | undefined;
@@ -202,6 +206,10 @@ export function parseArgs(
         break;
       case "--list-delay":
         listDelayMs = parseDelayMs(arg, requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--list-gate":
+        listGate = requireValue(arg, argv, i);
         i += 1;
         break;
       case "--config-delay":
@@ -295,6 +303,7 @@ export function parseArgs(
     tools,
     startDelayMs,
     listDelayMs,
+    listGate,
     configDelayMs,
     configNever,
     authRequired,

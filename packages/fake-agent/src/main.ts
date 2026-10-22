@@ -80,6 +80,7 @@ function main(): void {
           titleUpdate: options.titleUpdate,
           history: options.history,
           listDelayMs: options.listDelayMs,
+          ...(options.listGate === undefined ? {} : { listGate: options.listGate }),
           store,
         },
       }),

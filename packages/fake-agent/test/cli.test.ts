@@ -69,6 +69,14 @@ describe("fake-agent CLI --start-delay and --list-delay", () => {
   });
 });
 
+describe("fake-agent CLI --list-gate", () => {
+  test("takes a path; absent by default", () => {
+    expect(parseArgs([], {}).listGate).toBeUndefined();
+    expect(parseArgs(["--list-gate", "/tmp/gate"], {}).listGate).toBe("/tmp/gate");
+    expect(() => parseArgs(["--list-gate"], {})).toThrow("--list-gate requires a value");
+  });
+});
+
 describe("fake-agent CLI --tools", () => {
   test("defaults to 6 and takes a positive integer", () => {
     expect(parseArgs([], {}).tools).toBe(6);

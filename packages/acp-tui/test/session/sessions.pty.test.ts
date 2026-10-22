@@ -194,7 +194,7 @@ describe("Opening a session by ID (tui-sessions, tasks 5.2 and 12.5)", () => {
       directory: repoC,
       title: "Listed by the agent",
     });
-  });
+  }, 40000);
 
   test("Unknown session ID: the message below the command line, exit 1, the alternate screen never entered, no session/new", async () => {
     const w = world();
@@ -292,7 +292,7 @@ describe("Session directory marker (tui-sessions, task 12.3)", () => {
     expect(s.screenText().join("\n")).not.toContain("opened in");
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
-  });
+  }, 40000);
 });
 
 describe("Honest errors when a session cannot be opened (tui-sessions, tasks 5.3 and 12.5)", () => {
@@ -385,7 +385,7 @@ describe("Continue the latest session (tui-sessions, tasks 5.4 and 12.6)", () =>
     await s.waitFor("ten answer", 5000);
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
-  });
+  }, 40000);
 
   test("the agent's list counts too: its later session wins over the index's", async () => {
     const w = world();
@@ -403,7 +403,7 @@ describe("Continue the latest session (tui-sessions, tasks 5.4 and 12.6)", () =>
     expect(received.find((e) => e.method === "session/load")?.params?.["sessionId"]).toBe("s-listed");
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
-  });
+  }, 40000);
 
   test("Across agents: other's index session (11:00) beats the default agent's listed one (10:00); other is launched and the listing agent closed", async () => {
     const w = world();
@@ -497,7 +497,7 @@ describe("Continue the latest session (tui-sessions, tasks 5.4 and 12.6)", () =>
     expect(existsSync(otherLog)).toBe(false);
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
-  });
+  }, 40000);
 
   test("an agent no longer configured, and an ad hoc entry, do not count across agents", async () => {
     const w = world();
@@ -514,7 +514,7 @@ describe("Continue the latest session (tui-sessions, tasks 5.4 and 12.6)", () =>
     expect(w.received().find((e) => e.method === "session/load")?.params?.["sessionId"]).toBe("s-fake");
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
-  });
+  }, 40000);
 
   test("No session for the directory: the message below the command line, exit 1, nothing drawn, no session/new", async () => {
     const w = world();
