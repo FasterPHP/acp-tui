@@ -41,6 +41,7 @@ import { captureConsole } from "../agent/console-capture.ts";
 import { AgentStartupError } from "../agent/connection.ts";
 import type { StartAppOptions } from "../cli.ts";
 import { showFinding } from "./finding-line.ts";
+import { allowCtrlC } from "../platform/ctrl-c.ts";
 import { resolveLayout, type Layout } from "../layout/layout.ts";
 import { layoutFromConfig } from "../layout/from-config.ts";
 import { createConfigStore, type ConfigStore } from "../config/store.ts";
@@ -581,6 +582,9 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
         resolve(130);
       });
     };
+    // On Windows a process started with Ctrl+C ignored passes that on, and then no SIGINT listener
+    // runs; turned back on before the harness is launched, which inherits it (platform/ctrl-c.ts).
+    allowCtrlC();
     process.on("SIGINT", onInterrupt);
     switcher.prepare().then(
       () => {
