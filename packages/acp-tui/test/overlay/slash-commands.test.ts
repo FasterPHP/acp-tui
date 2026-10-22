@@ -187,6 +187,42 @@ describe("order and ranking in the slash menu (slash-command-completion D6)", ()
     expect(names(shownFor(items, "apply change"))).toEqual(["/change-apply", "/apply-patch", "/zeta"]);
   });
 
+  test("Word starts before the middle of a word: `ap` lists /claude-api and /openspec-apply-change before /heapdump", () => {
+    const items = menu([agent("heapdump", "Write a heap dump"), agent("openspec-apply-change", "Implement tasks"), agent("claude-api", "Build with the API")]);
+    const shown = shownFor(items, "ap");
+    expect(names(shown).slice(0, 3)).toEqual(["/claude-api", "/openspec-apply-change", "/heapdump"]);
+    expect(slashStart(shown, "ap", () => false)).toBe(0);
+  });
+
+  test("a word starts the name or a word of it after `-`, `_`, `:`, `.` or a space, and the `/` counts as a start", () => {
+    const items = menu([agent("a-pi", "x"), agent("a_pi", "x"), agent("a:pi", "x"), agent("a.pi", "x"), agent("a pi", "x"), agent("api", "x"), agent("zapi", "x")]);
+    // Five start a word of the name; `api` and `zapi` hold `pi` only in the middle of a word.
+    expect(names(shownFor(items, "pi")).slice(0, 7)).toEqual(["/a pi", "/a-pi", "/a.pi", "/a:pi", "/a_pi", "/api", "/zapi"]);
+    expect(names(shownFor(items, "/api")).slice(0, 1)).toEqual(["/api"]);
+    // The leading slash is a start: `ap` finds /api in the first tier though it begins the name.
+    expect(names(shownFor(items, "ap"))[0]).toBe("/api");
+  });
+
+  test("a filter of two words: both at word starts ranks first, one in the middle of a word second, and a description match last", () => {
+    const items = menu([agent("map-change", "x"), agent("apply-change", "x"), agent("zeta", "apply every change"), agent("change-apply", "x")]);
+    expect(names(shownFor(items, "ap ch")).slice(0, 4)).toEqual(["/apply-change", "/change-apply", "/map-change", "/zeta"]);
+  });
+
+  test("the subheading stands above the first description-only entry of each group, and only while filtering", () => {
+    const items = menu([agent("diagnose-crash", "Diagnose a crash in the application"), agent("openspec-apply-change", "Implement tasks from an OpenSpec change"), agent("zed", "the model application")]);
+    const shown = shownFor(items, "appl");
+    expect(names(shown)).toEqual(["/openspec-apply-change", "/diagnose-crash", "/zed"]);
+    expect(shown.map((i) => i.subheadingAbove ?? null)).toEqual([null, "matched in the description", null]);
+    // The acp-tui group gets its own when it has such entries: `/model`'s description.
+    const second = shownFor(menu([agent("compact", "model context")]), "model");
+    expect(second.map((i) => [i.title, i.subheadingAbove ?? null])).toEqual([["/compact", "matched in the description"], ["/model", null]]);
+    // No filter, no subheading; and no description-only entry, no subheading.
+    expect(rankSlashMatches(items, "").some((i) => i.subheadingAbove)).toBe(false);
+    expect(shownFor(items, "openspec").some((i) => i.subheadingAbove)).toBe(false);
+    // The subheading is not an item, so the filter never matches it.
+    expect(shownFor(items, "matched")).toEqual([]);
+  });
+
   test("Name match in the acp-tui group: /compact (description) stays first in its group, /mode and /model follow, and the selection starts on /mode", () => {
     const items = menu([agent("compact", "Compact the conversation and its model context")]);
     const shown = shownFor(items, "mode");

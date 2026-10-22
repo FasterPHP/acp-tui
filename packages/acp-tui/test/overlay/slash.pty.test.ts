@@ -18,7 +18,7 @@ import { configEnv } from "../pty/config-home.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { promptBox, promptText, READY, statusRow } from "../pty/regions.ts";
 import { tempDir } from "../keys/cli-pty.ts";
-import { boxRows, inner, startChrome, type ChromeRun } from "./cli.ts";
+import { boxRows, inner, rowOf, startChrome, type ChromeRun } from "./cli.ts";
 
 const CLI = join(import.meta.dir, "../../src/cli.ts");
 const SLASH_AGENT = join(import.meta.dir, "slash-agent.ts");
@@ -482,9 +482,9 @@ describe("The slash menu names its keys (slash-command-completion)", () => {
 });
 
 /** acp-tui against slash-agent.ts, which records the exact text of every prompt it receives. */
-function startSlashAgent(): { s: PtySession; prompts(): string[] } {
+function startSlashAgent(args: string[] = []): { s: PtySession; prompts(): string[] } {
   const file = join(tempDir(), "prompts.jsonl");
-  const s = startPty(["bun", CLI, "--", "--", "bun", SLASH_AGENT], { cols: 90, rows: 21, cwd: tempDir(), env: { SLASH_AGENT_PROMPTS: file } });
+  const s = startPty(["bun", CLI, "--", ...args, "--", "bun", SLASH_AGENT], { cols: 90, rows: 21, cwd: tempDir(), env: { SLASH_AGENT_PROMPTS: file } });
   session = s;
   return { s, prompts: () => (existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as string) : []) };
 }
@@ -582,12 +582,12 @@ describe("Slash prompts as sent (slash-command-completion)", () => {
 describe("Order and ranking in the slash menu (slash-command-completion D6)", () => {
   const names = (s: PtySession) => listRows(slashMenu(s)).filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0]);
 
-  test("Agent's order replaced: commands sent as review, openspec-apply-change, diagnose-crash, compact, Bootstrap are listed Bootstrap, compact, diagnose-crash, openspec-apply-change, review, before acp-tui's", async () => {
+  test("Agent's order replaced: commands sent as review, openspec-apply-change, diagnose-crash, compact, Bootstrap, heapdump, claude-api are listed alphabetically, before acp-tui's", async () => {
     const run = startSlashAgent();
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "/" });
     await run.s.waitFor(() => menuHas(run.s, "/review"), 5000);
-    expect(names(run.s).slice(0, 6)).toEqual(["/Bootstrap", "/compact", "/diagnose-crash", "/openspec-apply-change", "/review", "/add-dir"]);
+    expect(names(run.s).slice(0, 8)).toEqual(["/Bootstrap", "/claude-api", "/compact", "/diagnose-crash", "/heapdump", "/openspec-apply-change", "/review", "/add-dir"]);
   }, 30000);
 
   test("Name before description: `appl` lists /openspec-apply-change before /diagnose-crash (whose description mentions the application) and selects it", async () => {
@@ -639,6 +639,80 @@ describe("Order and ranking in the slash menu (slash-command-completion D6)", ()
     run.s.sendKeys("Down");
     run.s.sendKeys("Backspace");
     await run.s.waitFor(() => /Slash commands 2 /.test(run.s.screenText().join("\n")), 3000);
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/openspec-apply-change", 3000);
+  }, 30000);
+});
+
+describe("Tiers and the description subheading in the slash menu (slash-command-completion D6)", () => {
+  const names = (s: PtySession) => listRows(slashMenu(s)).filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0]);
+  const SUBHEADING = "matched in the description";
+  const open = async (filter: string, args: string[] = []) => {
+    const run = startSlashAgent(args);
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "/" });
+    await run.s.waitFor(() => menuHas(run.s, "/review"), 5000);
+    if (filter) run.s.sendKeys({ text: filter });
+    return run;
+  };
+
+  test("Word starts before the middle of a word: `ap` lists /claude-api and /openspec-apply-change before /heapdump", async () => {
+    const run = await open("ap");
+    await run.s.waitFor(() => names(run.s)[0] === "/claude-api", 3000);
+    // `Bootstrap` holds `ap` at its end, so it joins `/heapdump` in the second tier, ahead of it alphabetically.
+    expect(names(run.s).slice(0, 4)).toEqual(["/claude-api", "/openspec-apply-change", "/Bootstrap", "/heapdump"]);
+    // The first name match is selected: Tab completes it.
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/claude-api", 3000);
+  }, 30000);
+
+  test("Subheading between the tiers: `appl` reads /openspec-apply-change, the muted line `matched in the description`, then /diagnose-crash", async () => {
+    const run = await open("appl");
+    await run.s.waitFor(() => listRows(slashMenu(run.s)).includes(SUBHEADING), 3000);
+    const rows = listRows(slashMenu(run.s));
+    const at = rows.indexOf(SUBHEADING);
+    expect(rows[at - 1]).toMatch(/^\/openspec-apply-change /);
+    expect(rows[at + 1]).toMatch(/^\/diagnose-crash /);
+    // Muted, not bold like the group headings.
+    const y = rowOf(run.s, SUBHEADING);
+    const cell = run.s.cell(run.s.term.buffer.active.baseY + y, 3)!;
+    expect(cell.isBold()).toBeFalsy();
+  }, 30000);
+
+  test("Passed over by the keys: Down from /openspec-apply-change selects /diagnose-crash, Up returns, and End and Home land on items", async () => {
+    const run = await open("appl");
+    await run.s.waitFor(() => listRows(slashMenu(run.s)).includes(SUBHEADING), 3000);
+    run.s.sendKeys("Down");
+    run.s.sendKeys("Up");
+    run.s.sendKeys("Down");
+    run.s.sendKeys("End");
+    run.s.sendKeys("Home");
+    run.s.sendKeys("End");
+    run.s.sendKeys("PageUp");
+    run.s.sendKeys("PageDown");
+    // The selection ends on the last item, /diagnose-crash (the only one below the line).
+    run.s.sendKeys("Tab");
+    await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/diagnose-crash", 3000);
+  }, 30000);
+
+  test("No filter, no subheading; and a filter with no description-only entry has none either", async () => {
+    const run = await open("");
+    await run.s.flush();
+    expect(listRows(slashMenu(run.s))).not.toContain(SUBHEADING);
+    run.s.sendKeys({ text: "openspec" });
+    await run.s.waitFor(/Slash commands 1 /, 3000);
+    expect(listRows(slashMenu(run.s))).not.toContain(SUBHEADING);
+  }, 30000);
+
+  test("Clicking the line selects and runs nothing: under --mouse full a click on `matched in the description` leaves the selection on /openspec-apply-change and the menu open", async () => {
+    const run = await open("appl", ["--mouse", "full"]);
+    await run.s.waitFor(() => listRows(slashMenu(run.s)).includes(SUBHEADING), 3000);
+    const y = rowOf(run.s, SUBHEADING);
+    run.s.mouseClick(6, y);
+    await Bun.sleep(300);
+    expect(slashMenu(run.s).length).toBeGreaterThan(0);
+    expect(listRows(slashMenu(run.s))).toContain(SUBHEADING);
+    expect(run.prompts()).toEqual([]);
     run.s.sendKeys("Tab");
     await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/openspec-apply-change", 3000);
   }, 30000);

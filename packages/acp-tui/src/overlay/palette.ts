@@ -324,12 +324,35 @@ const nameHolds = (item: ListItem, words: readonly string[]): boolean => {
   return words.every((word) => name.includes(word));
 };
 
+/** The characters after which a word of a command's name starts (`-`, `_`, `:`, `.`, a space), and
+ *  the `/` that begins every title, so the first word of a name starts after it. */
+const WORD_BREAKS = "-_:. /";
+
+/** Whether `word` appears in `name` at the start of it or of a word in it. */
+const startsAWord = (name: string, word: string): boolean => {
+  for (let at = name.indexOf(word); at >= 0; at = name.indexOf(word, at + 1)) if (at === 0 || WORD_BREAKS.includes(name[at - 1]!)) return true;
+  return false;
+};
+
+/** The tier of a match for the filter's `words`: 0 when every word starts the name or a word of it,
+ *  1 when the name holds every word, 2 for a match through the description or other text only. */
+const tierOf = (item: ListItem, words: readonly string[]): 0 | 1 | 2 => {
+  const name = item.title.toLowerCase();
+  if (!words.every((word) => name.includes(word))) return 2;
+  return words.every((word) => startsAWord(name, word)) ? 0 : 1;
+};
+
+/** The line above a group's description-only tier (`ListItem.subheadingAbove`). */
+export const DESCRIPTION_SUBHEADING = "matched in the description";
+
 /**
- * The slash menu's matches in rank order (spec tui-palette "Name matches first in the slash
- * menu"): given the items that match the filter, in the menu's order, each group's entries whose
- * name holds every word of the filter come first, then those matched only through their
- * description or other text, each tier keeping its alphabetical order. The groups stay in their
- * places, so no heading repeats. An empty filter leaves the order as it is.
+ * The slash menu's matches in rank order (spec tui-palette "Name matches first in the slash menu"
+ * and "Description matches set apart"): given the items that match the filter, in the menu's order,
+ * each group's entries in three tiers, each keeping its alphabetical order: every word of the
+ * filter starts the name or a word of it, then the name holds every word elsewhere, then the entries
+ * matched only through their description or other text, the first of which carries the muted
+ * subheading. The groups stay in their places, so no heading repeats. An empty filter leaves the
+ * order as it is and adds no subheading.
  */
 export function rankSlashMatches(matches: readonly ListItem[], query: string): ListItem[] {
   const words = wordsOf(query);
@@ -338,8 +361,11 @@ export function rankSlashMatches(matches: readonly ListItem[], query: string): L
   for (let start = 0; start < matches.length; ) {
     let end = start;
     while (end < matches.length && matches[end]!.group === matches[start]!.group) end++;
-    const run = matches.slice(start, end);
-    out.push(...run.filter((item) => nameHolds(item, words)), ...run.filter((item) => !nameHolds(item, words)));
+    const run = matches.slice(start, end).map((item) => [item, tierOf(item, words)] as const);
+    for (const tier of [0, 1, 2] as const) {
+      const members = run.filter(([, t]) => t === tier).map(([item]) => item);
+      out.push(...(tier === 2 && members.length > 0 ? [{ ...members[0]!, subheadingAbove: DESCRIPTION_SUBHEADING }, ...members.slice(1)] : members));
+    }
     start = end;
   }
   return out;
