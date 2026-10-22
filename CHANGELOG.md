@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Tab completes the selected entry of the slash menu into the prompt box as `/<name> `, so arguments can follow it. The key is the new `slash` key context's `complete` action (`keys.slash`), and the menu's border names it.
+- Enter on an agent command in the slash menu now always completes it into the prompt box and sends nothing, whether or not the harness sent an argument hint, since a missing hint does not mean the command takes no arguments (`/openspec-apply-change` could not be given a change name before). A second Enter sends it, so a command that takes none, such as `/compact`, takes two presses of Enter from the menu. acp-tui's own commands keep their actions on Enter.
+- A prompt that starts with `/` is sent without trailing spaces, so a completed `/compact ` reaches the harness as `/compact`.
+- Undoing a completed command in the prompt box no longer leaves its argument hint behind.
 - A harness works only if it has an `agent_servers` entry. The default configuration has one, `auggie`, in effect; `claude`, `opencode` and the others are commented examples: remove the `//` to add one. With no configuration file acp-tui behaves as if it held that default, so a fresh checkout starts Auggie without `install-cli`. A file that exists is taken as written.
 - What a harness needs is in its entry: Auggie's `additional_directory_args`, Claude's `startup_timeout_seconds` of 120. Install and login hints follow the program an entry runs, whatever the entry is called.
 - A `default_agent_server` (or `default_agent`) naming a harness without an entry is reported by `acp-tui config --check`, and plain `acp-tui` then stops with `default harness '<name>' is not configured` and where to copy the entry from. Nothing changes your file.
