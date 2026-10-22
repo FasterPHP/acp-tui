@@ -71,20 +71,20 @@ describe("list model", () => {
   test("a subheading above an item (slash-command-completion 7.4): a row of its own, not an item, between the tiers; the window and paging count it", () => {
     const tiered = [
       item("one", "A"),
-      item("two", "A", { subheadingAbove: "matched in the description" }),
+      item("two", "A", { subheadingAbove: "-- matching descriptions --" }),
       item("three", "A"),
-      item("four", "B", { subheadingAbove: "matched in the description" }),
+      item("four", "B", { subheadingAbove: "-- matching descriptions --" }),
     ];
     const rows = listRows(tiered, true);
     expect(rows).toEqual([
       { kind: "header", label: "A" },
       { kind: "item", index: 0 },
-      { kind: "subheading", label: "matched in the description" },
+      { kind: "subheading", label: "-- matching descriptions --" },
       { kind: "item", index: 1 },
       { kind: "item", index: 2 },
       { kind: "gap" },
       { kind: "header", label: "B" },
-      { kind: "subheading", label: "matched in the description" },
+      { kind: "subheading", label: "-- matching descriptions --" },
       { kind: "item", index: 3 },
     ]);
     // Items are indexed without the subheading: Down from `one` is `two`, and the keys skip nothing.
@@ -117,9 +117,9 @@ describe("list model", () => {
       hints: [],
       marks: false,
     });
-    const line = layout.lines.findIndex((l) => text(l).includes("matched in the description"));
+    const line = layout.lines.findIndex((l) => text(l).includes("-- matching descriptions --"));
     expect(line).toBeGreaterThan(0);
-    expect(layout.lines[line]!.find((seg) => seg.text.includes("matched in the description"))).toMatchObject({ token: "muted" });
+    expect(layout.lines[line]!.find((seg) => seg.text.includes("-- matching descriptions --"))).toMatchObject({ token: "muted" });
     expect(layout.itemAt[line]).toBeNull();
     expect(layout.itemAt[line + 1]).toBe(1);
   });

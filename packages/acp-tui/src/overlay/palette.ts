@@ -343,7 +343,7 @@ const tierOf = (item: ListItem, words: readonly string[]): 0 | 1 | 2 => {
 };
 
 /** The line above a group's description-only tier (`ListItem.subheadingAbove`). */
-export const DESCRIPTION_SUBHEADING = "matched in the description";
+export const DESCRIPTION_SUBHEADING = "-- matching descriptions --";
 
 /**
  * The slash menu's matches in rank order (spec tui-palette "Name matches first in the slash menu"

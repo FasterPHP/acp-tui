@@ -646,7 +646,7 @@ describe("Order and ranking in the slash menu (slash-command-completion D6)", ()
 
 describe("Tiers and the description subheading in the slash menu (slash-command-completion D6)", () => {
   const names = (s: PtySession) => listRows(slashMenu(s)).filter((r) => r.startsWith("/")).map((r) => r.split(/\s/)[0]);
-  const SUBHEADING = "matched in the description";
+  const SUBHEADING = "-- matching descriptions --";
   const open = async (filter: string, args: string[] = []) => {
     const run = startSlashAgent(args);
     await run.s.waitFor(READY, 10000);
@@ -666,7 +666,7 @@ describe("Tiers and the description subheading in the slash menu (slash-command-
     await run.s.waitFor(() => slashMenu(run.s).length === 0 && draft(run.s) === "/claude-api", 3000);
   }, 30000);
 
-  test("Subheading between the tiers: `appl` reads /openspec-apply-change, the muted line `matched in the description`, then /diagnose-crash", async () => {
+  test("Subheading between the tiers: `appl` reads /openspec-apply-change, the muted line `-- matching descriptions --`, then /diagnose-crash", async () => {
     const run = await open("appl");
     await run.s.waitFor(() => listRows(slashMenu(run.s)).includes(SUBHEADING), 3000);
     const rows = listRows(slashMenu(run.s));
@@ -704,7 +704,7 @@ describe("Tiers and the description subheading in the slash menu (slash-command-
     expect(listRows(slashMenu(run.s))).not.toContain(SUBHEADING);
   }, 30000);
 
-  test("Clicking the line selects and runs nothing: under --mouse full a click on `matched in the description` leaves the selection on /openspec-apply-change and the menu open", async () => {
+  test("Clicking the line selects and runs nothing: under --mouse full a click on `-- matching descriptions --` leaves the selection on /openspec-apply-change and the menu open", async () => {
     const run = await open("appl", ["--mouse", "full"]);
     await run.s.waitFor(() => listRows(slashMenu(run.s)).includes(SUBHEADING), 3000);
     const y = rowOf(run.s, SUBHEADING);

@@ -212,10 +212,10 @@ describe("order and ranking in the slash menu (slash-command-completion D6)", ()
     const items = menu([agent("diagnose-crash", "Diagnose a crash in the application"), agent("openspec-apply-change", "Implement tasks from an OpenSpec change"), agent("zed", "the model application")]);
     const shown = shownFor(items, "appl");
     expect(names(shown)).toEqual(["/openspec-apply-change", "/diagnose-crash", "/zed"]);
-    expect(shown.map((i) => i.subheadingAbove ?? null)).toEqual([null, "matched in the description", null]);
+    expect(shown.map((i) => i.subheadingAbove ?? null)).toEqual([null, "-- matching descriptions --", null]);
     // The acp-tui group gets its own when it has such entries: `/model`'s description.
     const second = shownFor(menu([agent("compact", "model context")]), "model");
-    expect(second.map((i) => [i.title, i.subheadingAbove ?? null])).toEqual([["/compact", "matched in the description"], ["/model", null]]);
+    expect(second.map((i) => [i.title, i.subheadingAbove ?? null])).toEqual([["/compact", "-- matching descriptions --"], ["/model", null]]);
     // No filter, no subheading; and no description-only entry, no subheading.
     expect(rankSlashMatches(items, "").some((i) => i.subheadingAbove)).toBe(false);
     expect(shownFor(items, "openspec").some((i) => i.subheadingAbove)).toBe(false);
