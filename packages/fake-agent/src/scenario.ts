@@ -74,9 +74,25 @@ export interface ScenarioContext {
   readonly cancelled: AbortSignal;
 }
 
+/** What a scenario that mimics a whole harness (Auggie 1.x) switches on in the agent itself. */
+export interface HarnessBehaviour {
+  /**
+   * `session/load`, `session/resume`, `session/list` and `session/close` always answer (no `--load`,
+   * `--resume` or `--list`); a new session is stored at its first prompt, titled with it (cut to 50
+   * characters plus `...`), and not listed or loadable before; an unknown or closed session, and a
+   * method the harness lacks, answer as Auggie 1.2.2 does (`-32603` with the reason in `data.details`,
+   * `"Method not found": <method>` with `data.method`).
+   */
+  readonly sessions?: boolean;
+  /** The indexing line after `session/new` and `session/load`, and the `--allow-indexing` family of options. */
+  readonly indexing?: boolean;
+}
+
 /** A scriptable ACP agent scenario (design D12). */
 export interface Scenario {
   readonly name: string;
+  /** Harness-wide behaviour beyond the prompt; see `HarnessBehaviour`. */
+  readonly harness?: HarnessBehaviour;
   /** Overrides fields of the default initialize response. */
   initialize?(request: InitializeRequest): Partial<InitializeResponse> | void;
   /** Overrides fields of the default session/new response. */

@@ -109,6 +109,33 @@ describe("fake-agent CLI --auth-required and --agent-info", () => {
     expect(parseArgs(["--agent-info", "@scope/x@2"], {}).agentInfo).toEqual({ name: "@scope/x", version: "2" });
   });
 
+  test("--agent-info keeps a version with spaces", () => {
+    expect(parseArgs(["--agent-info", "auggie@0.37.1 (commit 1a2b3c4d)"], {}).agentInfo).toEqual({
+      name: "auggie",
+      version: "0.37.1 (commit 1a2b3c4d)",
+    });
+  });
+
+  test("--agent-title is a separate value, absent by default", () => {
+    expect(parseArgs([], {}).agentTitle).toBeUndefined();
+    expect(parseArgs(["--agent-title", "Auggie Agent"], {}).agentTitle).toBe("Auggie Agent");
+    expect(() => parseArgs(["--agent-title"], {})).toThrow("--agent-title requires a value");
+  });
+
+  test("the indexing options are parsed", () => {
+    const options = parseArgs(
+      ["--allow-indexing", "--indexing-store", "s.json", "--indexing-deny", "/a", "--indexing-deny", "/b", "--indexing-limited", "/c", "--offer-models"],
+      {},
+    );
+    expect(options.allowIndexing).toBe(true);
+    expect(options.indexingStore).toBe("s.json");
+    expect(options.indexingDeny).toEqual(["/a", "/b"]);
+    expect(options.indexingLimited).toEqual(["/c"]);
+    expect(options.offerModels).toBe(true);
+    const none = parseArgs([], {});
+    expect([none.allowIndexing, none.indexingStore, none.indexingDeny, none.indexingLimited, none.offerModels]).toEqual([false, undefined, [], [], false]);
+  });
+
   test("--agent-info refuses a malformed value", () => {
     for (const bad of ["auggie", "auggie@", "@1.0", ""]) {
       expect(() => parseArgs(["--agent-info", bad], {})).toThrow("--agent-info must be <name>@<version>");
