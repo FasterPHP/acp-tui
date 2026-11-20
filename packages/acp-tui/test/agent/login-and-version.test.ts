@@ -59,8 +59,10 @@ describe("login for harness profiles", () => {
   test("the profile's command wins over the program's", () => {
     const one = profileFor({ name: "auggie", version: "1.2.2" });
     const zero = profileFor({ name: "auggie", version: "0.37.1 (commit 1a2b3c4d)" });
-    expect(loginCommandFor(one, "auggie login")).toBe("auggie auth login");
-    expect(loginCommandFor(zero, undefined)).toBe("auggie login");
+    // The profile names the program as the platform runs it (`auggie.cmd` on Windows).
+    const program = process.platform === "win32" ? "auggie.cmd" : "auggie";
+    expect(loginCommandFor(one, "auggie login")).toBe(`${program} auth login`);
+    expect(loginCommandFor(zero, undefined)).toBe(`${program} login`);
     expect(loginCommandFor(null, "opencode auth login")).toBe("opencode auth login");
     expect(loginCommandFor(null, undefined)).toBeUndefined();
     expect(one!.loginCommand("win32")).toBe("auggie.cmd auth login");

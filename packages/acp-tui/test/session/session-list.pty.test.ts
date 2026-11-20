@@ -12,6 +12,7 @@
 // (test/session/list-world.ts), and `claude` is overridden by a fake-agent
 // command, so the real claude-agent-acp is never launched.
 import { afterEach, describe, expect, test } from "bun:test";
+import { shellQuote } from "../../src/renderer/exit-text.ts";
 import { readFileSync } from "node:fs";
 import { SESSIONS_FIXTURE_PATH, SESSIONS_HOSTILE_FIXTURE_PATH } from "fake-agent";
 import { RESOURCE_NOT_FOUND } from "../../src/session/start.ts";
@@ -640,7 +641,7 @@ describe("Honest errors in the list (task 7.5)", () => {
     s.sendKeys("Ctrl+C");
     await s.waitFor((p) => osc52Payloads(p.rawOutput()).length > 0, 5000);
     const copied = osc52Payloads(s.rawOutput()).at(-1)!;
-    expect(copied).toBe(`session s-adhoc was started with an ad hoc harness command, which acp-tui never runs from its index; reopen it with: acp-tui --resume s-adhoc -- ${adHoc.join(" ")}`);
+    expect(copied).toBe(`session s-adhoc was started with an ad hoc harness command, which acp-tui never runs from its index; reopen it with: acp-tui --resume s-adhoc -- ${adHoc.map((word) => shellQuote(word)).join(" ")}`);
     expect(copied).not.toContain("\n");
     expect(listOpen(s)).toBe(true);
   }, 30000);

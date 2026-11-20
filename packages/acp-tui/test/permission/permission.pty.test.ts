@@ -354,7 +354,9 @@ describe("permission requests from Auggie 1.x (fake-agent auggie-1)", () => {
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: word }, "Enter");
-    await run.s.waitFor(CARD_HEADER, 5000);
+    // The whole card (its header and its closing frame row), not only the header text: under
+    // ConPTY the first frame can show the header before the frame is complete.
+    await run.s.waitFor((p) => cardRows(p).length > 0, 5000);
     return run;
   };
 
