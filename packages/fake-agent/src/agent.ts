@@ -32,6 +32,7 @@ import type { AuthRequiredMode } from "./cli.ts";
 import type { ScenarioLogger } from "./logger.ts";
 import { redactPromptParams } from "./redact.ts";
 import { createScenarioContext, type Scenario } from "./scenario.ts";
+import { IndexingPolicy, type IndexingOptions } from "./indexing.ts";
 import { SessionStore, type StoredSession } from "./sessions.ts";
 
 /**
@@ -41,6 +42,9 @@ import { SessionStore, type StoredSession } from "./sessions.ts";
  * benchmark, which must pass `--delay-scale 0`).
  */
 export const LOAD_UPDATE_DELAY_MS = 2;
+
+/** A harness's session title: the first prompt cut to this many characters, then `...`. */
+const TITLE_LIMIT = 50;
 
 /** JSON-RPC error code for `Resource not found`, as `claude-agent-acp` answers an unknown session. */
 const RESOURCE_NOT_FOUND = -32002;
@@ -96,8 +100,12 @@ export interface FakeAgentOptions {
   readonly sessionPermission?: boolean;
   /** `--auth-required`: see `FakeAgentCliOptions.authRequired`. */
   readonly authRequired?: AuthRequiredMode;
-  /** `--agent-info`: the `agentInfo` `initialize` reports (title equal to the name). */
+  /** `--agent-info`: the `agentInfo` `initialize` reports (title equal to the name unless `agentTitle` is given). */
   readonly agentInfo?: { readonly name: string; readonly version: string };
+  /** `--agent-title`: the `agentInfo` title; replaces the scenario's, or the name `--agent-info` gives. */
+  readonly agentTitle?: string;
+  /** The indexing options (`--allow-indexing` and the rest), used by a scenario whose `harness.indexing` is set. */
+  readonly indexing?: IndexingOptions;
   /** Everything off, an empty in-memory store: the behaviour before mvp-sessions. */
   readonly sessions?: FakeAgentSessionOptions;
 }
@@ -134,7 +142,7 @@ export function createFakeAgent(
   conn: AgentSideConnection,
   options: FakeAgentOptions,
 ): Agent {
-  const { scenario, logger, delayScale, items, chunk, longGap, tools, startDelayMs = 0, authRequired, agentInfo } = options;
+  const { scenario, logger, delayScale, items, chunk, longGap, tools, startDelayMs = 0, authRequired, agentInfo, agentTitle } = options;
   const { noInitialize = false, additionalDirectories = false, sessionDelayMs = 0, sessionHeartbeatMs, sessionPermission = false } = options;
   const sessions: FakeAgentSessionOptions = options.sessions ?? {
     load: false,
@@ -145,6 +153,15 @@ export function createFakeAgent(
     store: new SessionStore(undefined, false),
   };
   const { store } = sessions;
+  const harness = scenario.harness;
+  const canLoad = sessions.load || harness?.sessions === true;
+  const canResume = sessions.resume || harness?.sessions === true;
+  const canList = sessions.list || harness?.sessions === true;
+  const indexing = harness?.indexing ? new IndexingPolicy(options.indexing) : undefined;
+  /** A harness's sessions that are open in this process (new, loaded or resumed, and not closed). */
+  const live = new Set<string>();
+  /** A harness's new sessions that have had no prompt yet: not stored, so not listed or loadable. */
+  const pending = new Map<string, string>();
   const turns = new Map<string, TurnState>();
   /** Sessions that have had their title update in this process (`--title-update`). */
   const titled = new Set<string>();
@@ -201,9 +218,39 @@ export function createFakeAgent(
   function openable(sessionId: string): StoredSession {
     const session = store.get(sessionId);
     if (!session || sessions.loadErrors.has(sessionId)) {
-      throw new RequestError(RESOURCE_NOT_FOUND, "Resource not found", { sessionId });
+      throw sessionNotFound(sessionId);
     }
     return session;
+  }
+
+  /** What an unknown session answers: `claude-agent-acp`'s Resource not found, or a harness's `-32603` with the reason in `data.details`. */
+  function sessionNotFound(sessionId: string): RequestError {
+    return harness?.sessions
+      ? new RequestError(-32603, "Internal error", { details: `Session ${sessionId} not found` })
+      : new RequestError(RESOURCE_NOT_FOUND, "Resource not found", { sessionId });
+  }
+
+  /** What a method the harness does not implement answers: Auggie 1.x's text, else the SDK's. */
+  function methodNotFound(method: string): RequestError {
+    return harness?.sessions
+      ? new RequestError(-32601, `"Method not found": ${method}`, { method })
+      : RequestError.methodNotFound(method);
+  }
+
+  /**
+   * After a harness's `session/new` or `session/load` has answered: the indexing lines for the
+   * session directory and each `--add-workspace` (the session's first prompt waits for them).
+   */
+  function announceIndexing(sessionId: string, cwd: string, after?: () => Promise<void>): Promise<void> {
+    return (async () => {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      await after?.();
+      for (const text of indexing?.lines(cwd) ?? []) {
+        await sendUpdate(sessionId, { sessionUpdate: "agent_message_chunk", content: { type: "text", text } });
+      }
+    })().catch((error: unknown) => {
+      logger.record("session/started/error", { sessionId, message: String(error) });
+    });
   }
 
   /** What `session/new` returns besides the ID (config options, modes), for a session being opened. */
@@ -255,21 +302,28 @@ export function createFakeAgent(
       if (startDelayMs > 0) {
         await new Promise<void>((resolve) => setTimeout(resolve, startDelayMs));
       }
-      const overrides = scenario.initialize?.(request) ?? {};
+      const { agentInfo: scenarioInfo, agentCapabilities: scenarioCapabilities, ...overrides } = scenario.initialize?.(request) ?? {};
       const sessionCapabilities = {
-        ...(sessions.list ? { list: {} } : {}),
-        ...(sessions.resume ? { resume: {} } : {}),
+        ...(canList ? { list: {} } : {}),
+        ...(canResume ? { resume: {} } : {}),
         ...(additionalDirectories ? { additionalDirectories: {} } : {}),
+      };
+      const base = scenarioInfo ?? { name: "fake-agent", version: "0.0.0" };
+      const title = agentTitle ?? (agentInfo ? agentInfo.name : base.title);
+      const info = {
+        name: agentInfo?.name ?? base.name,
+        ...(title === undefined || title === null ? {} : { title }),
+        version: agentInfo?.version ?? base.version,
       };
       return {
         protocolVersion: 1,
-        agentInfo: agentInfo ? { name: agentInfo.name, title: agentInfo.name, version: agentInfo.version } : { name: "fake-agent", version: "0.0.0" },
+        agentInfo: info,
         ...overrides,
         agentCapabilities: {
-          loadSession: sessions.load,
+          loadSession: canLoad,
           promptCapabilities: { image: false, audio: false, embeddedContext: true },
           ...(Object.keys(sessionCapabilities).length > 0 ? { sessionCapabilities } : {}),
-          ...overrides.agentCapabilities,
+          ...scenarioCapabilities,
         },
       };
     },
@@ -286,14 +340,20 @@ export function createFakeAgent(
       } while (store.has(sessionId));
       await holdSession(sessionId);
       const history = sessions.history ? scenario.history?.(items) : undefined;
-      store.add({
-        sessionId,
-        cwd: request.cwd,
-        updatedAt: new Date().toISOString(),
-        turns: [],
-        ...(history ? { generated: history } : {}),
-      });
-      store.save();
+      if (harness?.sessions) {
+        // Stored at its first prompt, so listed and loadable only from then on.
+        live.add(sessionId);
+        pending.set(sessionId, request.cwd);
+      } else {
+        store.add({
+          sessionId,
+          cwd: request.cwd,
+          updatedAt: new Date().toISOString(),
+          turns: [],
+          ...(history ? { generated: history } : {}),
+        });
+        store.save();
+      }
       if (history) {
         // The session already holds its history, so the scenario counts it as answered turns
         // (the first prompt gets the short reply). It is sent once the response to
@@ -311,7 +371,9 @@ export function createFakeAgent(
         );
       }
       const overrides = scenario.newSession?.(request, sessionId) ?? {};
-      if (scenario.sessionStarted) {
+      if (indexing) {
+        startedSends.set(sessionId, announceIndexing(sessionId, request.cwd));
+      } else if (scenario.sessionStarted) {
         const started = scenario.sessionStarted;
         startedSends.set(
           sessionId,
@@ -329,7 +391,7 @@ export function createFakeAgent(
 
     async loadSession(request: LoadSessionRequest): Promise<LoadSessionResponse> {
       logger.record("session/load", request);
-      if (!sessions.load) {
+      if (!canLoad) {
         throw RequestError.methodNotFound("session/load");
       }
       const session = openable(request.sessionId);
@@ -337,16 +399,21 @@ export function createFakeAgent(
       const updates = await replay(session);
       scenario.sessionLoaded?.(session.sessionId, turnCount(session));
       logger.record("session/load/response", { sessionId: session.sessionId, updates });
+      live.add(session.sessionId);
+      if (indexing) {
+        startedSends.set(session.sessionId, announceIndexing(session.sessionId, request.cwd));
+      }
       return openedResponse(request);
     },
 
     async resumeSession(request: ResumeSessionRequest): Promise<ResumeSessionResponse> {
       logger.record("session/resume", request);
-      if (!sessions.resume) {
+      if (!canResume) {
         throw RequestError.methodNotFound("session/resume");
       }
       const session = openable(request.sessionId);
       await holdSession(session.sessionId);
+      live.add(session.sessionId);
       scenario.sessionLoaded?.(session.sessionId, turnCount(session));
       logger.record("session/resume/response", { sessionId: session.sessionId });
       return openedResponse(request);
@@ -354,7 +421,7 @@ export function createFakeAgent(
 
     async listSessions(request: ListSessionsRequest): Promise<ListSessionsResponse> {
       logger.record("session/list", request);
-      if (!sessions.list) {
+      if (!canList) {
         throw RequestError.methodNotFound("session/list");
       }
       if (sessions.listDelayMs !== undefined && sessions.listDelayMs > 0) {
@@ -383,7 +450,7 @@ export function createFakeAgent(
     async setSessionMode(request: SetSessionModeRequest): Promise<SetSessionModeResponse> {
       logger.record("session/set_mode", request);
       if (!scenario.setMode) {
-        throw RequestError.methodNotFound("session/set_mode");
+        throw methodNotFound("session/set_mode");
       }
       scenario.setMode(request);
       return {};
@@ -396,11 +463,11 @@ export function createFakeAgent(
      */
     async extMethod(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
       if (method !== "session/set_model") {
-        throw RequestError.methodNotFound(method);
+        throw methodNotFound(method);
       }
       logger.record("session/set_model", params);
       if (!scenario.setModel) {
-        throw RequestError.methodNotFound(method);
+        throw methodNotFound(method);
       }
       if (typeof params["sessionId"] !== "string" || typeof params["modelId"] !== "string") {
         throw RequestError.invalidParams(params, "sessionId and modelId are required");
@@ -414,6 +481,24 @@ export function createFakeAgent(
       logger.record("session/prompt", redactPromptParams(request));
       if (authRequired === "prompt") {
         throw new RequestError(AUTH_REQUIRED, AUGGIE_LOGIN_MESSAGE);
+      }
+      if (harness?.sessions) {
+        if (!live.has(request.sessionId)) {
+          throw sessionNotFound(request.sessionId);
+        }
+        const cwd = pending.get(request.sessionId);
+        if (cwd !== undefined) {
+          // The first prompt writes the session: from here it is listed and loadable, titled with it.
+          pending.delete(request.sessionId);
+          const first = promptText(request);
+          store.add({
+            sessionId: request.sessionId,
+            cwd,
+            ...(first === "" ? {} : { title: first.length > TITLE_LIMIT ? `${first.slice(0, TITLE_LIMIT)}...` : first }),
+            updatedAt: new Date().toISOString(),
+            turns: [],
+          });
+        }
       }
       await historySends.get(request.sessionId);
       await startedSends.get(request.sessionId);
@@ -514,6 +599,9 @@ export function createFakeAgent(
 
     async closeSession(request) {
       logger.record("session/close", request);
+      live.delete(request.sessionId);
+      pending.delete(request.sessionId);
+      return {};
     },
   };
 }
