@@ -256,7 +256,11 @@ describe.skipIf(WINDOWS)("Allowing Auggie to index", () => {
     first.sendKeys({ text: "1" });
     await first.waitFor(() => methods(w).filter((m) => m === "session/new").length === 2, 10000);
     await first.waitFor(READY, 10000);
-    expect(existsSync(store) && JSON.parse(readFileSync(store, "utf8")).indexingAllowDirs).toEqual([repo]);
+    // The harness writes its rule as it starts the new session; under load that can land after the
+    // screen is ready, so wait for the file rather than reading it once.
+    const allowed = (): unknown => (existsSync(store) ? JSON.parse(readFileSync(store, "utf8")).indexingAllowDirs : null);
+    await first.waitFor(() => JSON.stringify(allowed()) === JSON.stringify([repo]), 10000);
+    expect(allowed()).toEqual([repo]);
     first.sendKeys("Ctrl+D");
     expect(await first.wait(10000)).toBe(0);
     await first.dispose();

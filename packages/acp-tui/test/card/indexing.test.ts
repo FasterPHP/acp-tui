@@ -105,7 +105,8 @@ describe("the indexing card's rows", () => {
     expect(rows(["/home/user/Projects/app"], 80)).toEqual([
       "╭─ ◊ Question  from acp-tui ───────────────────────────────────────────────────╮",
       "│ Auggie is not indexing ~/Projects/app.                                       │",
-      "│ Allow restarts it with --allow-indexing; Auggie keeps it as a lasting rule.  │",
+      "│ Allow restarts the session with --allow-indexing; Auggie persists your       │",
+      "│ choice as a lasting rule.                                                    │",
       "│                                                                              │",
       "│ 1 allow indexing   2 not now                                                 │",
       "╰───────────────────────────────────────────────── enter choose · esc not now ─╯",

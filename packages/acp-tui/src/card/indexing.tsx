@@ -54,7 +54,7 @@ export function indexingParagraphs(directories: readonly string[]): ClientParagr
     directories.length === 1
       ? [{ text: `Auggie is not indexing ${directories[0]}.`, token: "text" }]
       : [{ text: "Auggie is not indexing these directories:", token: "text" }, ...directories.map((d) => ({ text: d, token: "accent" as const, indent: 2 }))];
-  return [...lead, { text: "Allow restarts it with --allow-indexing; Auggie keeps it as a lasting rule.", token: "text" }];
+  return [...lead, { text: "Allow restarts the session with --allow-indexing; Auggie persists your choice as a lasting rule.", token: "text" }];
 }
 
 // -- Host -----------------------------------------------------------------------------------------
