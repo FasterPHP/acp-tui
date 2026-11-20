@@ -16,7 +16,7 @@ import { SessionStore } from "./sessions.ts";
 
 function main(): void {
   const options = parseArgs(process.argv.slice(2));
-  const scenario = resolveScenario(options.scenario, { offerModels: options.offerModels });
+  const scenario = resolveScenario(options.scenario, { offerModels: options.offerModels, resumeOnly: options.resumeOnly });
   const logger = new ScenarioLogger(options.logPath);
   // Terminal output comes before anything else, as a harness that is a terminal interface would write it.
   if (options.printTerminal === "escape") {
