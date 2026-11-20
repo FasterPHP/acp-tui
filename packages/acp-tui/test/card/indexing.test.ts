@@ -93,42 +93,48 @@ describe("the indexing host", () => {
 });
 
 describe("the indexing card's rows", () => {
-  const rows = (directories: string[], fresh: boolean, width: number) =>
+  const rows = (directories: string[], width: number, cursor: number | null = null) =>
     elicitationRows(
-      { kind: "client", subtitle: FROM_ACP_TUI, paragraphs: indexingParagraphs(directories.map((d) => shownDirectory(d, "/home/user")), fresh), options: INDEXING_OPTIONS, cursor: 1 },
+      { kind: "client", subtitle: FROM_ACP_TUI, paragraphs: indexingParagraphs(directories.map((d) => shownDirectory(d, "/home/user"))), options: INDEXING_OPTIONS, cursor },
       width,
       { focused: true, maxRows: 100, hints: [{ text: "enter choose · esc not now", token: "muted" }] },
     ).map((row) => row.map((s) => s.text).join(""));
   const body = (r: string[]) => r.slice(1, -1).map((row) => row.slice(1, -1).trim()).join(" ");
 
-  test("One directory: Question from acp-tui, the directory with ~, what allowing does, the lasting rule, how to refuse for good, the two options", () => {
-    const r = rows(["/home/user/Projects/app"], false, 63);
-    expect(r[0]).toStartWith("╭─ ◊ Question  from acp-tui ─");
+  test("One directory at 80 columns: the exact card, a blank row before the options", () => {
+    expect(rows(["/home/user/Projects/app"], 80)).toEqual([
+      "╭─ ◊ Question  from acp-tui ───────────────────────────────────────────────────╮",
+      "│ Auggie is not indexing ~/Projects/app.                                       │",
+      "│ Allow restarts it with --allow-indexing; Auggie keeps it as a lasting rule.  │",
+      "│                                                                              │",
+      "│ 1 allow indexing   2 not now                                                 │",
+      "╰───────────────────────────────────────────────── enter choose · esc not now ─╯",
+    ]);
+  });
+
+  test("One directory at 63 columns wraps, names no settings file and no way to deny", () => {
+    const r = rows(["/home/user/Projects/app"], 63);
     expect(r.every((row) => row.length === 63)).toBe(true);
     const text = body(r);
-    for (const part of ["~/Projects/app", "--allow-indexing", "reopens this session", "indexingAllowDirs in ~/.augment/settings.json", "To never index a directory, answer Auggie's own question in auggie, started in that directory.", "1 allow indexing   2 not now"]) {
-      expect(text).toContain(part);
-    }
-    expect(r.at(-1)).toContain("esc not now");
+    for (const part of ["~/Projects/app", "--allow-indexing", "lasting rule", "1 allow indexing   2 not now"]) expect(text).toContain(part);
+    for (const gone of ["indexingAllowDirs", "never index", "reopens this session", "starts a new session"]) expect(text).not.toContain(gone);
   });
 
-  test("Before the first prompt: allowing starts a new session", () => {
-    const text = body(rows(["/work/app"], true, 63));
-    expect(text).toContain("starts a new session");
-    expect(text).not.toContain("reopens this session");
-  });
-
-  test("A directory joins: each directory on its own row, a long one wrapped, never cut", () => {
+  test("Two directories: a lead line, one indented row each, a long one wrapped and never cut", () => {
     const long = `/work/${"x".repeat(90)}`;
-    const r = rows(["/work/app", long], false, 63);
-    expect(r.some((row) => /^│ +\/work\/app +│$/.test(row))).toBe(true);
+    const r = rows(["/work/app", long], 63);
+    expect(r[1]).toMatch(/^│ Auggie is not indexing these directories: +│$/);
+    expect(r.some((row) => /^│   \/work\/app +│$/.test(row))).toBe(true);
     expect(body(r).replace(/ /g, "")).toContain(long);
-    expect(body(r)).toContain("these directories");
   });
 
-  test("at 80 columns, every row is the card's width", () => {
-    const r = rows(["/home/user/Projects/app"], false, 80);
-    expect(r).toHaveLength(10);
-    expect(r.every((row) => row.length === 80)).toBe(true);
+  test("Nothing is highlighted until a cursor is given", () => {
+    const marked = (cursor: number | null) =>
+      elicitationRows({ kind: "client", subtitle: FROM_ACP_TUI, paragraphs: indexingParagraphs(["/work/app"]), options: INDEXING_OPTIONS, cursor }, 80, { focused: true, maxRows: 100, hints: [] })
+        .flat()
+        .filter((s) => (s as { selected?: boolean }).selected)
+        .map((s) => s.text);
+    expect(marked(null)).toEqual([]);
+    expect(marked(0)).toEqual(["1", " allow indexing"]);
   });
 });

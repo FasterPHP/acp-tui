@@ -93,7 +93,6 @@ describe.skipIf(WINDOWS)("Auggie's indexing line becomes a question", () => {
     await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
     const body = cardBody(s);
     expect(body).toContain(lib);
-    expect(body).toContain("this directory");
     expect(body).not.toContain(repo);
     expect(w.received("auggie").filter((e) => e.method === "argv/add-workspace").map((e) => e.params?.["directories"])).toEqual([[lib]]);
     expect(methods(w)).toContain("session/load");
@@ -113,7 +112,7 @@ describe.skipIf(WINDOWS)("Auggie's indexing line becomes a question", () => {
 });
 
 describe.skipIf(WINDOWS)("Indexing question card", () => {
-  test("One directory, before the first prompt, at 63x21: Question from acp-tui, the directory, what allowing does, the lasting rule, how to refuse for good, 1 allow indexing and 2 not now", async () => {
+  test("One directory at 63x21: Question from acp-tui, the directory, what allowing does, the lasting rule, 1 allow indexing and 2 not now", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     w.configure({ auggie: ["--scenario", "auggie-1"] });
@@ -124,31 +123,45 @@ describe.skipIf(WINDOWS)("Indexing question card", () => {
     expect(rows[0]).toStartWith("╭─ ◊ Question  from acp-tui ─");
     expect(s.screenText().join("\n")).not.toContain("Permission");
     const body = cardBody(s);
-    for (const part of [
-      repo,
-      "--allow-indexing",
-      "starts a new session",
-      "indexingAllowDirs in ~/.augment/settings.json",
-      "To never index a directory, answer Auggie's own question in auggie, started in that directory.",
-      "1 allow indexing 2 not now",
-    ]) {
-      expect(body).toContain(part);
-    }
-    expect(body).not.toContain("reopens this session");
+    for (const part of [repo, "--allow-indexing", "lasting rule", "1 allow indexing 2 not now"]) expect(body).toContain(part);
+    for (const gone of ["indexingAllowDirs", "never index", "reopens this session", "starts a new session"]) expect(body).not.toContain(gone);
     expect(rows.at(-1)).toContain("esc not now");
+    expect(rows.at(-1)).toContain("up/down select");
+    expect(rows.at(-1)).not.toContain("enter");
     // Never cut: every row of the body is inside the frame.
     for (const row of rows) expect(row.length).toBeLessThanOrEqual(63);
   }, 40000);
 
-  test("After an answered prompt the card says allowing reopens this session", async () => {
+  test("Nothing is selected: Enter does nothing until an arrow key chooses, then Enter answers; the footer says select, then enter choose", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     w.configure({ auggie: ["--scenario", "auggie-1"] });
     const s = start(w, repo);
     await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
-    await promptPast(s, "hello");
-    await s.waitFor(() => cardBody(s).includes("reopens this session"), 10000);
-    expect(cardBody(s)).not.toContain("starts a new session");
+    await afterGuard();
+    s.sendKeys("Enter");
+    await Bun.sleep(600);
+    expect(card(s).length).toBeGreaterThan(0);
+    expect(methods(w)).toEqual(["initialize", "session/new"]);
+    expect(card(s).at(-1)).toContain("select");
+    // Down chooses `1 allow indexing`; the footer now says enter choose.
+    s.sendKeys("Down");
+    await s.waitFor(() => (card(s).at(-1) ?? "").includes("enter choose"), 5000);
+    // Down again moves to `2 not now`; Enter declines and closes the card.
+    s.sendKeys("Down", "Enter");
+    await s.waitFor(() => card(s).length === 0, 5000);
+    expect(methods(w)).toEqual(["initialize", "session/new"]);
+  }, 40000);
+
+  test("An arrow then Enter on 1 allows: the harness restarts with --allow-indexing", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    w.configure({ auggie: ["--scenario", "auggie-1"] });
+    const s = start(w, repo);
+    await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
+    await afterGuard();
+    s.sendKeys("Down", "Enter");
+    await s.waitFor(() => methods(w).includes("argv/allow-indexing"), 10000);
   }, 40000);
 
   test("A directory joins the open card: the session directory and an added workspace, both named, the same two options", async () => {
@@ -198,7 +211,8 @@ describe.skipIf(WINDOWS)("Allowing Auggie to index", () => {
     const s = start(w, repo, ["auggie"], { cols: 100, rows: 40 });
     await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
     await promptPast(s, "hello");
-    await s.waitFor(() => cardBody(s).includes("reopens this session"), 10000);
+    await s.waitFor(READY, 10000);
+    await s.waitFor(() => cardText(s).includes("2 not now"), 10000);
     // The card is back after the turn and, with the prompt box empty, has focus again.
     await afterGuard();
     s.sendKeys({ text: "1" });

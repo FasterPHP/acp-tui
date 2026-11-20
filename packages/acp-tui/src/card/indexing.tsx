@@ -47,19 +47,14 @@ export function shownDirectory(directory: string, home: string | null = homeDire
   return home ? shortenHome(text, home) : text;
 }
 
-/** The card's paragraphs for `directories` (already shown); `fresh`: the session has had no
- *  answered prompt, so allowing starts a new session instead of reopening this one. */
-export function indexingParagraphs(directories: readonly string[], fresh: boolean): ClientParagraph[] {
-  const one = directories.length === 1;
-  return [
-    { text: `Auggie is not indexing ${one ? "this directory" : "these directories"}:`, token: "text" },
-    ...directories.map((d) => ({ text: d, token: "accent" as const, indent: 2 })),
-    {
-      text: `Allowing restarts Auggie with --allow-indexing and ${fresh ? "starts a new session (this one has no prompt yet)" : "reopens this session"}. Auggie saves this as a lasting rule for each directory listed (indexingAllowDirs in ${SETTINGS}).`,
-      token: "text",
-    },
-    { text: "To never index a directory, answer Auggie's own question in auggie, started in that directory.", token: "muted" },
-  ];
+/** The card's paragraphs for `directories` (already shown): one directory in the first sentence,
+ *  several one to a row; then what allowing does, and that Auggie keeps it. */
+export function indexingParagraphs(directories: readonly string[]): ClientParagraph[] {
+  const lead: ClientParagraph[] =
+    directories.length === 1
+      ? [{ text: `Auggie is not indexing ${directories[0]}.`, token: "text" }]
+      : [{ text: "Auggie is not indexing these directories:", token: "text" }, ...directories.map((d) => ({ text: d, token: "accent" as const, indent: 2 }))];
+  return [...lead, { text: "Allow restarts it with --allow-indexing; Auggie keeps it as a lasting rule.", token: "text" }];
 }
 
 // -- Host -----------------------------------------------------------------------------------------
@@ -164,11 +159,11 @@ export function createIndexingHost(options: IndexingHostOptions): IndexingHost {
 
 // -- Card -----------------------------------------------------------------------------------------
 
-function hintsFor(keyMap: KeyMap): Segment[] {
-  const enter = actionLabel(keyMap, "elicitation", "confirm");
+function hintsFor(keyMap: KeyMap, selected: boolean): Segment[] {
+  const enter = selected ? actionLabel(keyMap, "elicitation", "confirm") : actionLabel(keyMap, "elicitation", "down") ? "up/down" : null;
   const esc = actionLabel(keyMap, "elicitation", "back");
   return [
-    ...(enter ? [{ text: `${enter} choose`, token: "muted" as const }] : []),
+    ...(enter ? [{ text: `${enter} ${selected ? "choose" : "select"}`, token: "muted" as const }] : []),
     ...(esc ? [...(enter ? [{ text: " · ", token: "muted" as const, breakBefore: true }] : []), { text: `${esc} not now`, token: "muted" as const }] : []),
   ];
 }
@@ -185,9 +180,10 @@ export function IndexingCard(props: IndexingCardProps): JSX.Element {
   let box: BoxRenderable | undefined;
   const appearedAt = Date.now();
   const guarded = () => Date.now() - appearedAt < OPTION_GUARD_MS;
-  // The cursor starts on `not now`: the card appears just after the session starts, while the user
-  // may already be typing, so a stray Enter must never allow Auggie to upload the code.
-  const [cursor, setCursor] = createSignal(1);
+  // Nothing is selected when the card opens: it appears just after the session starts, while the
+  // user may already be typing, so a stray Enter must never allow Auggie to upload the code. Enter
+  // does nothing until an arrow key has chosen an option; a digit answers at once.
+  const [cursor, setCursor] = createSignal<number | null>(null);
   const focused = () => store.ui.focus === "card";
 
   onMount(() => {
@@ -202,19 +198,19 @@ export function IndexingCard(props: IndexingCardProps): JSX.Element {
     // Read again when the session changes (a prompt answered makes allowing reopen it).
     void store.session.state;
     const directories = (props.host.current()?.directories ?? []).map((d) => shownDirectory(d, props.host.home));
-    return { kind: "client", subtitle: FROM_ACP_TUI, paragraphs: indexingParagraphs(directories, props.host.fresh()), options: INDEXING_OPTIONS, cursor: cursor() };
+    return { kind: "client", subtitle: FROM_ACP_TUI, paragraphs: indexingParagraphs(directories), options: INDEXING_OPTIONS, cursor: cursor() };
   });
 
   const padding = () => config().cards.padding;
   const padRows = () => (props.spacing.cardPadding ? padding().rows : 0);
   // Never cut (spec tui-layout "Indexing question card"): the card takes the rows its text needs,
   // from the conversation if it must.
-  const whole = createMemo(() => elicitationRows(page(), props.width, { focused: false, maxRows: Number.MAX_SAFE_INTEGER, hints: hintsFor(keyMap), padding: { rows: 0, columns: padding().columns } }).length);
+  const whole = createMemo(() => elicitationRows(page(), props.width, { focused: false, maxRows: Number.MAX_SAFE_INTEGER, hints: hintsFor(keyMap, cursor() !== null), padding: { rows: 0, columns: padding().columns } }).length);
   const rows = createMemo(() =>
     elicitationRows(page(), props.width, {
       focused: focused(),
       maxRows: Math.max(cardMaxRows(props.free, false), Math.min(whole(), Math.max(3, props.free))),
-      hints: hintsFor(keyMap),
+      hints: hintsFor(keyMap, cursor() !== null),
       padding: { rows: padRows(), columns: padding().columns },
     }),
   );
@@ -227,10 +223,13 @@ export function IndexingCard(props: IndexingCardProps): JSX.Element {
     return true;
   };
   const handlers: ContextHandlers<"elicitation"> = {
-    up: () => (setCursor((c) => Math.max(0, c - 1)), true),
-    down: () => (setCursor((c) => Math.min(INDEXING_OPTIONS.length - 1, c + 1)), true),
+    up: () => (setCursor((c) => (c === null ? INDEXING_OPTIONS.length - 1 : Math.max(0, c - 1))), true),
+    down: () => (setCursor((c) => (c === null ? 0 : Math.min(INDEXING_OPTIONS.length - 1, c + 1))), true),
     toggle: () => true,
-    confirm: () => (guarded() ? true : choose(cursor())),
+    confirm: () => {
+      const at = cursor();
+      return guarded() || at === null ? true : choose(at);
+    },
     back: () => choose(1),
   };
   for (let n = 1; n <= 9; n++) {

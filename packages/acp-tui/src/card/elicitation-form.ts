@@ -177,7 +177,7 @@ export type CardPage =
   /** acp-tui's own question (the indexing card, src/card/indexing.tsx): paragraphs drawn whole,
    *  wrapped and never cut, then numbered options on one row. Its text is acp-tui's, with any
    *  directory in it sanitised by the caller. */
-  | { readonly kind: "client"; readonly subtitle: string; readonly paragraphs: readonly ClientParagraph[]; readonly options: readonly string[]; readonly cursor: number };
+  | { readonly kind: "client"; readonly subtitle: string; readonly paragraphs: readonly ClientParagraph[]; readonly options: readonly string[]; readonly cursor: number | null };
 
 /** A paragraph of acp-tui's own question: `indent` columns before each wrapped row. */
 export interface ClientParagraph {
@@ -287,6 +287,7 @@ export function elicitationRows(page: CardPage, width: number, style: Elicitatio
       const indent = Math.min(p.indent ?? 0, Math.max(0, inner - 1));
       for (const row of wrapText(p.text, inner - indent)) fixed.push([...(indent > 0 ? [{ text: " ".repeat(indent), token: "text" as TokenName }] : []), { text: row, token: p.token }]);
     }
+    fixed.push([]);
     const row: CardSegment[] = [];
     page.options.forEach((label, i) => {
       if (i > 0) row.push({ text: "   ", token: "muted" });
