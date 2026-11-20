@@ -68,7 +68,7 @@ Everything else is in [configuration.md](configuration.md).
 - An emoji with a skin tone typed in the prompt box puts the cursor a few columns off. The text itself is right.
 - The kept keys above were measured in PhpStorm on Linux, Zed, and Windows Terminal, not in every IDE and platform.
 - Links open in the browser only where the platform's opener works.
-- Auggie 1.x has not been checked yet, and `npm install -g @augmentcode/auggie` now installs it; acp-tui tells you when that is the one running. Until 1.x support is released, stay on Auggie 0.x: install it with `npm install -g @augmentcode/auggie@v0-release`, and set `AUGMENT_DISABLE_AUTO_UPDATE=1` in your environment (or `"autoUpdate": false` in `~/.augment/settings.json`), because Auggie 0.x otherwise updates itself to 1.x.
+- Auggie 1.x has not been checked; acp-tui tells you when that is the one running.
 
 ## Reporting
 
@@ -91,7 +91,7 @@ $env:ACP_TUI_LOG="$HOME\acp-tui.log"; acp-tui
 
 The log holds method names, IDs and timings, never your prompts or the agent's text, but it does hold directory paths: look at it before you share it.
 
-If you install Auggie 0.x with npm 11, it may warn that `node-pty`'s install script was not run. That is harmless for acp-tui.
+If you run `npm install -g @augmentcode/auggie@0.36.0` with npm 11, it may warn that `node-pty`'s install script was not run. That is harmless for acp-tui.
 
 ## Privacy
 
