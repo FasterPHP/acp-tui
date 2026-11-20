@@ -37,6 +37,7 @@ import {
   type SetSessionModeResponse,
 } from "@agentclientprotocol/sdk";
 import { sanitise } from "acp-model";
+import { agentErrorText } from "./errors.ts";
 import type { DebugLogger } from "../log.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 import { harnessDescription, type LaunchedAgent } from "./launch.ts";
@@ -366,7 +367,13 @@ export async function loadSession(
 ): Promise<LoadSessionResponse> {
   const request: LoadSessionRequest = { sessionId, cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_load_request", sessionId, cwd });
-  const response = await raceWithExit(conn, agent, command, conn.loadSession(request), "session/load");
+  let response;
+  try {
+    response = await raceWithExit(conn, agent, command, conn.loadSession(request), "session/load");
+  } catch (error) {
+    options.logger?.log({ event: "session_load_failed", sessionId, code: (error as { code?: unknown } | null)?.code ?? null, reason: agentErrorText(error) });
+    throw error;
+  }
   options.logger?.log({ event: "session_load_response", sessionId });
   return response;
 }
@@ -383,7 +390,13 @@ export async function resumeSession(
 ): Promise<ResumeSessionResponse> {
   const request: ResumeSessionRequest = { sessionId, cwd, mcpServers: [], ...directoriesField(options) };
   options.logger?.log({ event: "session_resume_request", sessionId, cwd });
-  const response = await raceWithExit(conn, agent, command, conn.resumeSession(request), "session/resume");
+  let response;
+  try {
+    response = await raceWithExit(conn, agent, command, conn.resumeSession(request), "session/resume");
+  } catch (error) {
+    options.logger?.log({ event: "session_resume_failed", sessionId, code: (error as { code?: unknown } | null)?.code ?? null, reason: agentErrorText(error) });
+    throw error;
+  }
   options.logger?.log({ event: "session_resume_response", sessionId });
   return response;
 }

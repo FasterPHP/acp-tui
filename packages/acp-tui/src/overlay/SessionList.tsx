@@ -29,6 +29,7 @@ import { batch, createEffect, createMemo, createSignal, For, on, onCleanup, onMo
 import { useTerminalDimensions } from "@opentui/solid";
 import { TextAttributes, type BoxRenderable, type KeyEvent } from "@opentui/core";
 import type { SessionInfo } from "@agentclientprotocol/sdk";
+import { agentErrorText } from "../agent/errors.ts";
 import { useApp } from "../app/context.ts";
 import { typedText } from "../card/elicitation.tsx";
 import { createSpinner } from "../conversation/items.tsx";
@@ -190,7 +191,7 @@ function SessionListOverlay(props: {
         batch(() => {
           setReading(false);
           setCursor(null);
-          setFooter({ text: `${harness()} could not list its sessions: ${error instanceof Error ? error.message : String(error)}`, token: "warning" });
+          setFooter({ text: `${harness()} could not list its sessions: ${agentErrorText(error)}`, token: "warning" });
         });
       },
     );
@@ -229,7 +230,7 @@ function SessionListOverlay(props: {
         batch(() => {
           setStarting(false);
           setStartFailed(true);
-          setFooter({ text: error instanceof Error ? error.message : String(error), token: "danger" });
+          setFooter({ text: agentErrorText(error), token: "danger" });
         });
       },
     );
@@ -339,7 +340,7 @@ function SessionListOverlay(props: {
             setBusy(false);
             setStarting(false);
             setStartFailed(true);
-            setFooter({ text: error instanceof Error ? error.message : String(error), token: "danger" });
+            setFooter({ text: agentErrorText(error), token: "danger" });
           });
         },
       );

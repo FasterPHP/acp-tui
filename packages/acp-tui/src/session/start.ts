@@ -55,6 +55,7 @@ import { AgentNotAcpError, AgentStartupTimeoutError } from "../agent/startup-wat
 import { CannotReopenError, connectAgent, type ConnectedController, type LaunchedHarness, type SessionController } from "./controller.ts";
 import { createSessionRecorder, type SessionRecorder } from "./recorder.ts";
 import { userHome } from "../platform/paths.ts";
+import { agentErrorText } from "../agent/errors.ts";
 import { oneLine, type SessionIndex } from "./session-index.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 
@@ -181,7 +182,7 @@ export function openFailure(error: unknown, sessionId: string, launch: Pick<Laun
   }
   const tail = openHint ? `; ${openHint}` : "";
   const code = errorCode(error);
-  const raw = error instanceof Error ? error.message : String(error);
+  const raw = agentErrorText(error);
   // The harness's message reaches the terminal: sanitised, one line.
   const message = oneLine(raw) || "no message";
   if (code === null) return new SessionOpenFailure(`cannot open ${session} with ${agent}: ${sanitise(raw, "approval").trimEnd()}${tail}`);
