@@ -380,3 +380,52 @@ describe("row maps: a header repeated by its expanded card is decoration (interf
     expect(d.at(body.x, body.y, 8)).toBe("Thinking");
   }, 30000);
 });
+
+describe("row maps: a permission record whose question has line breaks (auggie-1x-support)", () => {
+  const QUESTION = "Tool \"bash\" requires approval:\n\n  echo hello\n\nAllow?";
+  const withRecord = (): Session => {
+    const answer: SessionUpdate = { sessionUpdate: "agent_message_chunk", messageId: "m", content: { type: "text", text: "Done." } };
+    const session = runUpdates([answer], "go");
+    const record: Item = {
+      id: "permission:t1",
+      status: "final",
+      origin: "self",
+      kind: "permission_record",
+      toolCallId: "t1",
+      title: QUESTION,
+      options: [{ optionId: "0", name: "Yes", kind: "allow_once" }],
+      outcome: { type: "answered", optionId: "0", optionKind: "allow_once" },
+    };
+    (session.items as Map<string, Item>).set(record.id, record);
+    (session.order as string[]).splice(1, 0, record.id);
+    return session;
+  };
+
+  test("collapsed: the drawn one line maps back to the question's characters", async () => {
+    const d = await draw(withRecord(), 100, "Done.");
+    const y = d.row("requires approval: echo hello Allow?");
+    const x = d.find("requires approval:", y).x;
+    expect(d.at(x, y, 8)).toBe("requires");
+    // The joined space after the colon stands for the whole blank run.
+    const h = d.hit(x + "requires approval:".length, y);
+    expect(h.text.slice(h.from, h.to)).toBe("\n\n  ");
+    expect(d.at(d.find("Allow?", y).x, y, 6)).toBe("Allow?");
+  }, 30000);
+
+  test("expanded: each row of the question maps to its own line, the command with its indentation", async () => {
+    const d = await draw(withRecord(), 100, "Done.", (i) => i.kind === "permission_record");
+    const header = d.row("permission");
+    expect(d.hit(20, header).to).toBe(d.hit(20, header).from);
+    const q = d.find("Tool \"bash\"", header + 1);
+    expect(d.at(q.x, q.y, 4)).toBe("Tool");
+    const cmd = d.find("echo hello", header + 1);
+    expect(cmd.y).toBe(q.y + 2);
+    expect(d.at(cmd.x, cmd.y, 10)).toBe("echo hello");
+    const allow = d.find("Allow?", cmd.y);
+    expect(allow.y).toBe(cmd.y + 2);
+    expect(d.at(allow.x, allow.y, 6)).toBe("Allow?");
+    // The blank row between maps to a newline.
+    const blank = d.hit(allow.x, cmd.y + 1);
+    expect(blank.text.slice(blank.from, blank.to)).toBe("\n");
+  }, 30000);
+});

@@ -13,7 +13,10 @@ import { toolKindToken } from "../theme/tokens.ts";
 import type { ConversationGlyphs } from "./glyphs.ts";
 import { LIVE_GLYPHS } from "./live-glyphs.ts";
 import { toolTitleText } from "./tool-title.ts";
-import { answeredLabel } from "./permission-label.ts";
+import { answeredLabel, questionLines } from "./permission-label.ts";
+import { splitEmoji, type EmojiClass } from "../render/emoji/emoji.ts";
+import { terminalEmojiClasses } from "./markdown/context.ts";
+import { EMOJI_NAME_TOKEN } from "./markdown/emoji.ts";
 import { commandResult, resultOutputLines, toolContent } from "./command-result.ts";
 import { singleFence } from "./markdown/project.ts";
 
@@ -272,8 +275,22 @@ const OUTCOME_LABELS: Record<string, string> = {
 /** A request the agent withdrew (`$/cancel_request`; spec tui-agent-session "Permission withdrawal"). */
 export const WITHDRAWN_LABEL = "withdrawn by agent";
 
-/** Permission outcome one-liner without its gutter: `#2 permission  allow once  Edit src/x.ts`. */
-export function permissionLine(item: PermissionRecordItem, tool: ToolCallItem | null, width: number): Segment[] {
+/** Whether a record's question has line breaks to show expanded (its record is then collapsible). */
+export function permissionHasQuestion(item: PermissionRecordItem): boolean {
+  return questionLines(item.title).length > 0;
+}
+
+/** The expanded record's question, one row of segments per line (blank lines kept), the emoji of
+ *  a class in `named` drawn as their names; empty when the question is one line. */
+export function permissionQuestionRows(item: PermissionRecordItem, named: readonly EmojiClass[] = terminalEmojiClasses()): Segment[][] {
+  return questionLines(item.title).map((line) =>
+    line === "" ? [] : splitEmoji(line, named).map((p): Segment => ({ text: p.text, token: p.source === undefined ? "text" : EMOJI_NAME_TOKEN })),
+  );
+}
+
+/** Permission outcome one-liner without its gutter: `#2 permission  allow once  Edit src/x.ts`.
+ *  `expanded` leaves the question to the card below it (when it has line breaks). */
+export function permissionLine(item: PermissionRecordItem, tool: ToolCallItem | null, width: number, expanded = false): Segment[] {
   const outcome = item.outcome;
   const label =
     outcome.type === "answered" ? (answeredLabel(item) ?? OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
@@ -284,6 +301,7 @@ export function permissionLine(item: PermissionRecordItem, tool: ToolCallItem | 
     { text: label, token },
     { text: "  ", token: "muted" },
   ];
+  if (expanded && permissionHasQuestion(item)) return fitSegments(head.slice(0, 3), width);
   return fitWithTitle(head, { text: oneLine(item.title || tool?.title || ""), token: "text" }, [], width);
 }
 

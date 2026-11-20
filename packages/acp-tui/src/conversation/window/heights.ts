@@ -21,8 +21,8 @@
 import type { Item } from "acp-model";
 import { displayWidth } from "../../layout/segments.ts";
 import { thoughtCardLayout, toolCardHeight } from "../card.ts";
-import { expandTabs, wrapWords } from "../content.ts";
-import { toolTitleShown } from "../format.ts";
+import { expandTabs, wrapLine, wrapWords } from "../content.ts";
+import { permissionQuestionRows, toolTitleShown } from "../format.ts";
 import type { ConversationGlyphs } from "../glyphs.ts";
 import { LIVE_GLYPHS } from "../live-glyphs.ts";
 import { cardPadding, terminalFlags } from "../markdown/context.ts";
@@ -213,8 +213,11 @@ export function estimateHeight(item: Item, width: number, expanded: boolean, opt
       return 1 + (expanded ? toolCardHeight(item, inner, options.fullOutput ?? false, glyphs, !toolTitleShown(item, body, glyphs)) : 0);
     case "plan":
       return 1 + (expanded ? item.entries.length + 2 * padRows : 0);
-    case "permission_record":
-      return 1;
+    case "permission_record": {
+      if (!expanded) return 1;
+      const rows = permissionQuestionRows(item);
+      return 1 + (rows.length === 0 ? 0 : rows.reduce((n, r) => n + (r.length === 0 ? 1 : Math.max(1, wrapLine(r, inner).length)), 0) + 2 * padRows);
+    }
     case "marker":
       return item.markerKind === "turn_end" ? 1 : Math.max(1, wrappedRows(item.text.replace(/\n+$/, ""), body));
   }

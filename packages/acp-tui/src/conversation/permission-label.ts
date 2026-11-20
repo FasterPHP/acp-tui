@@ -2,6 +2,7 @@
 // share a kind"): by its kind, unless two options of the request share one (Auggie 1.x offers
 // `Yes` and `No`, both `allow_once`), when every option is named by its own sanitised name.
 import { sanitise, type PermissionRecordItem } from "acp-model";
+import { expandTabs } from "./content.ts";
 
 const KIND_LABELS: Readonly<Record<string, string>> = {
   allow_once: "allow once",
@@ -19,6 +20,29 @@ interface NamedOption {
 /** One line of approval-sanitised text (no bidi controls or zero-width characters). */
 export function approvalLine(text: string): string {
   return sanitise(text, "approval").replace(/[\r\n\t]+/g, " ").trim();
+}
+
+/**
+ * The request's question as approval-sanitised lines: no bidi controls, zero-width or control
+ * characters, its line breaks kept, tabs expanded, trailing white space dropped from each line,
+ * every run of blank lines collapsed to one and none at either end; indentation kept. Joined
+ * with `\n`; empty when nothing is left.
+ */
+export function approvalQuestion(text: string): string {
+  const lines: string[] = [];
+  for (const raw of sanitise(text, "approval").split("\n")) {
+    const line = expandTabs(raw).trimEnd();
+    if (line === "" && (lines.length === 0 || lines[lines.length - 1] === "")) continue;
+    lines.push(line);
+  }
+  while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  return lines.join("\n");
+}
+
+/** The question's lines when it has more than one (what the expanded record shows), else none. */
+export function questionLines(title: string): string[] {
+  const question = approvalQuestion(title);
+  return question.includes("\n") ? question.split("\n") : [];
 }
 
 /** The kind's label (`allow once`), else the sanitised name of an option of a kind we do not know. */

@@ -49,14 +49,15 @@
 // them on those.
 import type { Renderable } from "@opentui/core";
 import { MarkdownRenderable } from "@opentui/core";
-import type { Item, PlanItem } from "acp-model";
+import type { Item, PermissionRecordItem, PlanItem } from "acp-model";
 import { drawnCard, type CardLayout, type CardPart } from "../conversation/card.ts";
 import { VIEWER_TEXT, wrapLine, wrapWordsAt, type WordRow } from "../conversation/content.ts";
 import { numberedDiff } from "../conversation/diff.ts";
-import { planRows } from "../conversation/format.ts";
+import { permissionQuestionRows, planRows } from "../conversation/format.ts";
 import type { ConversationGlyphs } from "../conversation/glyphs.ts";
+import { splitEmoji, type EmojiPiece } from "../render/emoji/emoji.ts";
 import { positionedBlock } from "../conversation/markdown/blocks.ts";
-import { cardPadding } from "../conversation/markdown/context.ts";
+import { cardPadding, terminalEmojiClasses } from "../conversation/markdown/context.ts";
 import { drawnBlock } from "../conversation/markdown/draw.ts";
 import { mapBlockRows, type RowCells } from "../conversation/markdown/project.ts";
 import { rowText, type Row } from "../conversation/markdown/types.ts";
@@ -503,6 +504,82 @@ function planCardRows(item: PlanItem, lines: Lines, glyphs: ConversationGlyphs):
   });
 }
 
+/** The cells of a line split at emoji drawn as names, laid out from `base`: a name's cells all
+ *  map to the emoji it stands for. */
+function pieceCells(pieces: readonly EmojiPiece[], base: number): { from: number[]; to: number[] } {
+  const from: number[] = [];
+  const to: number[] = [];
+  let at = 0;
+  for (const piece of pieces) {
+    if (piece.source === undefined) {
+      const cells = cellMap(piece.text, base + at);
+      from.push(...cells.from);
+      to.push(...cells.to);
+      at += piece.text.length;
+      continue;
+    }
+    for (let k = 0; k < displayWidth(piece.text); k++) {
+      from.push(base + at);
+      to.push(base + at + piece.source.length);
+    }
+    at += piece.source.length;
+  }
+  return { from, to };
+}
+
+/** An expanded permission record's question as card rows, one per line of its projection
+ *  (`at`: where the question starts in the first line). */
+function permissionCardRows(item: PermissionRecordItem, lines: Lines, at: number): CardRow[] {
+  const named = terminalEmojiClasses();
+  return permissionQuestionRows(item, named).map((segments, i) => {
+    const skip = i === 0 ? at : 0;
+    const text = lines.text(i).slice(skip);
+    const base = lines.start(i) + skip;
+    const cells = pieceCells(text === "" ? [] : splitEmoji(text, named), base);
+    return { segments, from: cells.from, to: cells.to, start: base, end: lines.end(i) };
+  });
+}
+
+/** The collapsed header of a record whose question has line breaks: the drawn one line is the
+ *  question joined (each run of white space one space), every character mapped to its place. */
+function joinedHeaderSpan(item: Renderable, header: TextNode | undefined, text: string, at: number): RowSpan | null {
+  if (!header) return null;
+  const drawn = header.plainText.split("\n")[0] ?? "";
+  const width = displayWidth(drawn);
+  const from = new Array<number>(width).fill(-1);
+  const to = new Array<number>(width).fill(-1);
+  let joined = "";
+  const starts: number[] = [];
+  const ends: number[] = [];
+  const source = text.slice(at);
+  for (let i = 0; i < source.length; ) {
+    if (/\s/.test(source[i]!)) {
+      let j = i;
+      while (j < source.length && /\s/.test(source[j]!)) j++;
+      if (joined !== "") {
+        joined += " ";
+        starts.push(at + i);
+        ends.push(at + j);
+      }
+      i = j;
+    } else {
+      joined += source[i];
+      starts.push(at + i);
+      ends.push(at + i + 1);
+      i++;
+    }
+  }
+  const found = locate(drawn, joined);
+  if (found) {
+    const map = cellMap(joined.slice(0, found.length), 0);
+    for (let k = 0; k < map.from.length && found.col + k < width; k++) {
+      from[found.col + k] = starts[map.from[k]!]!;
+      to[found.col + k] = ends[map.to[k]! - 1]!;
+    }
+  }
+  return span(header.y - item.y, header.x - item.x, from, to, 0, text.length);
+}
+
 /** A card row's display rows as `Card` in items.tsx wraps them: at spaces with `words` (a
  *  thought), else at the column; each with the column of the row where it starts. */
 function wrapCardRow(segments: readonly Segment[], inner: number, words: boolean): WordRow[] {
@@ -601,8 +678,21 @@ export function itemRows(item: Item, projection: Projection, node: Renderable, o
     }
     case "permission_record": {
       const at = projection.text.indexOf("): ") + 3;
-      const h = headerSpan(node, header, projection.text.slice(at), at, 0, projection.text.length);
-      if (h) out.push(h);
+      if (projection.summaryEnd === projection.text.length) {
+        const h = headerSpan(node, header, projection.text.slice(at), at, 0, projection.text.length);
+        if (h) out.push(h);
+        break;
+      }
+      // A question with line breaks: collapsed, its one line is the question joined; expanded,
+      // the header maps nothing and the card below maps each of the question's lines.
+      if (options.expanded && card) {
+        const h = headerSpan(node, header, "", 0, 0, 0);
+        if (h) out.push(h);
+        cardSpans(out, node, card, permissionCardRows(item, lines, at), options.glyphs, lines);
+      } else {
+        const h = joinedHeaderSpan(node, header, projection.text, at);
+        if (h) out.push(h);
+      }
       break;
     }
   }
