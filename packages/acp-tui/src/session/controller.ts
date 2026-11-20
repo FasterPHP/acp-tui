@@ -31,6 +31,7 @@ import { harnessActivity, type HarnessActivity } from "../agent/harness-activity
 import { killProcessTree } from "../agent/kill-tree.ts";
 import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
 import { isAuthRequired, LoginRequiredError, loginMessage } from "../agent/login.ts";
+import { agentErrorText } from "../agent/errors.ts";
 import { createDebugLogger, type DebugLogger } from "../log.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 
@@ -215,9 +216,7 @@ export interface LaunchedHarness {
 /** How long `detach()` waits for the process tree to be ended after the grace period (ms). */
 const KILL_TREE_WAIT_MS = 3000;
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+const errorMessage = agentErrorText;
 
 /**
  * Launches `options.command`, completes `initialize` and `session/new`, and returns a

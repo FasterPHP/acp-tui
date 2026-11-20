@@ -347,6 +347,21 @@ describe("legacy models (session-models, spec tui-palette \"Config option picker
     expect(params(run, "session/set_model")).toEqual([expect.objectContaining({ modelId: "fake-large" })]);
   }, 30000);
 
+  test("Setting refused with details: the notice reads the message and the first line of the reason", async () => {
+    const s = startPty(["bun", CLI, "--", "--", "bun", PALETTE_AGENT], { cols: 100, rows: 21, cwd: tempDir(), env: { PALETTE_AGENT_DETAILS: "1" } });
+    session = s;
+    await s.waitFor(READY, 10000);
+    await s.waitFor(() => bottomBorder(s).includes("Model Alpha"), 5000);
+    s.sendKeys("Ctrl+P");
+    await s.waitFor(/Commands \d+/, 3000);
+    s.sendKeys("Enter");
+    await s.waitFor(/Model 2 /, 3000);
+    s.sendKeys("Down", "Enter");
+    await s.waitFor(() => topBorder(s).includes(`could not change Model: Internal error: ${PALETTE_AGENT_REFUSAL}`), 5000);
+    expect(topBorder(s)).not.toContain("administrator");
+    expect(bottomBorder(s)).toContain("Model Alpha");
+  }, 20000);
+
   test("Legacy model refused: the agent's error leaves the pill at its value and a notice shows the message", async () => {
     const s = startPty(["bun", CLI, "--", "--", "bun", PALETTE_AGENT], { cols: 63, rows: 21, cwd: tempDir(), env: { PALETTE_AGENT_LEGACY: "1" } });
     session = s;
