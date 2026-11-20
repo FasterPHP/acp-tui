@@ -131,6 +131,7 @@ function hintsFor(page: CardPage, keyMap: KeyMap): Segment[] {
   const esc = actionLabel(keyMap, "elicitation", "back");
   const space = actionLabel(keyMap, "elicitation", "toggle");
   if (page.kind === "review") return [...hint(enter, "submit", true), ...hint(esc, "decline"), ...hint("1-9", "change")];
+  if (page.kind === "client") return [];
   if (page.kind === "url") return page.waiting ? [...hint(enter, "choose", true), ...hint(esc, "close")] : [...hint(enter, "choose", true), ...hint(esc, "cancel")];
   const q = page.question;
   const last = page.index === page.count - 1;

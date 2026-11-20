@@ -49,6 +49,7 @@ import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
 import { commandDisplayName } from "../agent/harness-name.ts";
 import { AD_HOC_AGENT, launchArgv, withDirectories, type LaunchDescription } from "../agent/resolve.ts";
+import type { IndexingSink } from "../agent/indexing.ts";
 import { shortenHome } from "../layout/segments.ts";
 import type { DebugLogger } from "../log.ts";
 import { AgentNotAcpError, AgentStartupTimeoutError } from "../agent/startup-watch.ts";
@@ -112,6 +113,8 @@ export interface StartLaunchOptions {
   readonly elicitation?: ElicitationHandler;
   /** Paces a load's replay around the renderer's frames (renderer/frame-pace.ts). */
   readonly pace?: Pace;
+  /** Takes Auggie 1.x's indexing lines (src/agent/indexing.ts) for the run. */
+  readonly indexing?: IndexingSink;
   /** Called each time a harness has answered `initialize` (a start, a switch to another harness). */
   readonly onHarnessInitialized?: () => void;
   /** Called as soon as a harness process has started, before `initialize` (controller.ts `onLaunched`). */
@@ -240,12 +243,13 @@ function homeOf(options: Pick<StartLaunchOptions, "home">): string | null {
 
 /** Launches and initialises the agent `launch` names, in the session directory (or the launch
  *  directory when that has gone), with no session yet. Throws the agent's start-up errors. */
-export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace" | "onHarnessInitialized" | "onLaunched" | "onHarnessActivity">): Promise<ConnectedController> {
+export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logger" | "elicitation" | "now" | "pace" | "onHarnessInitialized" | "onLaunched" | "onHarnessActivity" | "indexing">): Promise<ConnectedController> {
   const { launch, logger } = options;
   // The agent runs in the session directory; one the index recorded may have gone since.
   const processCwd = isDirectory(launch.directory) ? launch.directory : launch.launchDirectory;
   return connectAgent({
-    command: launchArgv(launch),
+    // A one-off argument (`--allow-indexing` after the indexing card) is on this launch only.
+    command: [...launchArgv(launch), ...(launch.oneOffArgs ?? [])],
     env: launch.env,
     harness: launch.agentName,
     ...(launch.installHint !== undefined ? { installHint: launch.installHint } : {}),
@@ -259,6 +263,7 @@ export function connectLaunch(options: Pick<StartLaunchOptions, "launch" | "logg
     ...(options.onHarnessInitialized ? { onInitialized: options.onHarnessInitialized } : {}),
     ...(options.onLaunched ? { onLaunched: options.onLaunched } : {}),
     ...(options.onHarnessActivity ? { onActivity: options.onHarnessActivity } : {}),
+    ...(options.indexing ? { indexing: options.indexing } : {}),
   });
 }
 

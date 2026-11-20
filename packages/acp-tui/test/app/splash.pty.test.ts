@@ -228,7 +228,8 @@ describe("splash while the harness starts (day-two-feedback task group 2)", () =
   }, 40000);
 
   test("Auggie 1.x: the identity row reads Harness: Auggie 1.2.2 with the model, never Auggie Coding", async () => {
-    const run = startCli("auggie-1", 0, { cols: 100, rows: 30, agentArgs: ["--allow-indexing"] });
+    // The indexing card (no --allow-indexing) leaves the splash in place.
+    const run = startCli("auggie-1", 0, { cols: 100, rows: 30 });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     await run.s.waitFor((p) => p.screenText().join("\n").includes("Harness: Auggie 1.2.2"), 5000);

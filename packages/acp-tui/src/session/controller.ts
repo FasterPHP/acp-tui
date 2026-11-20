@@ -14,7 +14,7 @@
 // process and connection, and the agent's messages are routed to it.
 import { createSession, reduce, type ModelEvent, type Session, type SessionOpenMode } from "acp-model";
 import type { Implementation, ListSessionsResponse, ResourceLink } from "@agentclientprotocol/sdk";
-import { createClientHandler, type ClientHandler, type ElicitationHandler } from "../agent/client-handler.ts";
+import { createClientHandler, type ClientHandler, type ClientHandlerOptions, type ElicitationHandler } from "../agent/client-handler.ts";
 import {
   createConnection,
   createNewSession,
@@ -33,6 +33,7 @@ import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
 import { isAuthRequired, isLoggedOutSignature, isNoApiKey, loggedOutStartMessage, loginCommandFor, LoginRequiredError, loginMessage, noApiKeyMessage } from "../agent/login.ts";
 import { type HarnessProfile, profileFor } from "../agent/harness-profiles.ts";
 import { agentErrorText } from "../agent/errors.ts";
+import { indexingIntercept, type IndexingSink } from "../agent/indexing.ts";
 import { createDebugLogger, type DebugLogger } from "../log.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 
@@ -209,6 +210,9 @@ export interface StartSessionOptions {
   /** Paces the replay's drain and the agent read loop around the renderer's frames during a load
    *  (renderer/frame-pace.ts); without one, timer turns. */
   pace?: Pace;
+  /** Takes Auggie 1.x's indexing lines (src/agent/indexing.ts), for a harness whose profile has the
+   *  patterns; without one they are agent text. */
+  indexing?: IndexingSink;
 }
 
 /** A harness process that has been started and may still be starting. */
@@ -269,6 +273,8 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
     dispatch(event: ModelEvent): void;
   }
   const retired = new Set<string>();
+  // Set once `initialize` has named the profile; every core's handler asks it.
+  let intercept: ((update: Parameters<NonNullable<ClientHandlerOptions["intercept"]>>[0]) => boolean) | null = null;
 
   function createCore(): Core {
     const listeners = new Set<(session: Session) => void>();
@@ -297,7 +303,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
       }
     }
     // The batched replay applies a slice of events, then notifies once (design decision 10).
-    const handler = createClientHandler({ dispatch, apply, flush: notify, logger, now, ...(options.pace ? { pace: options.pace } : {}), ...(options.elicitation ? { elicitation: options.elicitation } : {}) });
+    const handler = createClientHandler({ dispatch, apply, flush: notify, logger, now, ...(options.pace ? { pace: options.pace } : {}), ...(options.elicitation ? { elicitation: options.elicitation } : {}), intercept: (update) => intercept?.(update) ?? false });
     return {
       get session() {
         return session;
@@ -418,6 +424,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   // A harness whose program has a login command is launched with its `loginHint` (src/agent/hints.ts).
   // A harness with a profile names the profile's login command instead (spec "Login command from the profile").
   const profile = profileFor(agentInfo);
+  intercept = indexingIntercept(profile, options.indexing);
   const loginOptions = { harness: options.harness, loginHint: loginCommandFor(profile, options.loginHint) };
 
   /** Fails the start the way `-32000` does when an `auggie-1` harness answers a session request with

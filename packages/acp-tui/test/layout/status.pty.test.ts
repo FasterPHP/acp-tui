@@ -76,7 +76,7 @@ describe("status row (task 4.6)", () => {
   }, 20000);
 
   test("No modes: an agent that offers none shows no mode key (auggie-1: / commands, ? help, ctrl+d detach)", async () => {
-    const run = startCli("auggie-1", 0, { cols: 120, rows: 24 });
+    const run = startCli("auggie-1", 0, { cols: 120, rows: 24, agentArgs: ["--allow-indexing"] });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     await run.s.waitFor((p) => statusRow(p).includes("ctrl+d detach"), 5000);
