@@ -2,7 +2,7 @@
 // extensions stay text"). An emoji or emoji sequence that a terminal draws in another number of
 // cells than acp-tui lays out cuts or overdraws its neighbours, so where the capability table
 // (renderer/capabilities.ts `emoji`) says a terminal mis-measures a class of sequence, the
-// Markdown renderers draw the sequence as its CLDR short name in the long form, a shortcode such
+// Markdown renderers (and the permission card, app/permission.ts) draw the sequence as its CLDR short name in the long form, a shortcode such
 // as `:family_man_woman_girl:`, in the `muted` token, and keep the sequence itself as the span's
 // projection, so copy, find and export see the emoji. Pure: no OpenTUI.
 //

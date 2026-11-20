@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { deriveSurfaces } from "../../src/theme/index.ts";
-import type { OscColours, PtySession } from "../pty/harness.ts";
+import { startPty, type OscColours, type PtySession, type Vs16Width } from "../pty/harness.ts";
 import { activityRow, CARD_HEADER, cardBody, cardRows, promptText, READY, REQUIRES_ACTION, statusRow } from "../pty/regions.ts";
 
 import { startCli, type CliRun } from "../keys/cli-pty.ts";
@@ -347,10 +347,42 @@ describe("permission card focus and typing guard (task 6.6)", () => {
   }, 20000);
 });
 
+/** The environment of a terminal of the capability table, whatever the suite was started in. */
+const UNNAMED = { TERMINAL_EMULATOR: undefined, TERM_PROGRAM: undefined, TERM_PROGRAM_VERSION: undefined, WT_SESSION: undefined, ACP_TUI_CAPABILITIES: undefined };
+const TERMINAL_ENV = {
+  unknown: UNNAMED,
+  zed: { ...UNNAMED, TERM_PROGRAM: "zed" },
+  jetbrains: { ...UNNAMED, TERMINAL_EMULATOR: "JetBrains-JediTerm" },
+  "windows-terminal": { ...UNNAMED, WT_SESSION: "00000000-0000-0000-0000-000000000000" },
+} as const;
+
+const WARNING = "\u26a0\ufe0f";
+const FRAME = new Set(["│", "╭", "╮", "╰", "╯"]);
+
+/** The docked card's rows on screen, checked cell by cell: each starts and ends with the frame in
+ *  the first and last columns, and nothing but the content lies between (no second border). Under
+ *  ConPTY an emulator counting `⚠️` otherwise than ConPTY drew `││` at the end of the question
+ *  and skewed every row below it. */
+function cardFrameProblems(s: PtySession): string[] {
+  const rows = s.screenText();
+  const top = rows.findIndex((r) => r.startsWith(`╭─ ${CARD_HEADER}`));
+  const bottom = rows.findIndex((r, y) => y > top && r.startsWith("╰"));
+  if (top < 0 || bottom < 0) return ["no card"];
+  const problems: string[] = [];
+  const last = s.term.cols - 1;
+  for (let y = top; y <= bottom; y++) {
+    const absY = s.term.buffer.active.baseY + y;
+    const chars = (x: number) => s.cell(absY, x)?.getChars() ?? "";
+    if (!FRAME.has(chars(0)) || !FRAME.has(chars(last))) problems.push(`row ${y}: ${JSON.stringify(rows[y])} does not end at the frame`);
+    if (y > top && y < bottom && chars(last - 1) === "│") problems.push(`row ${y}: ${JSON.stringify(rows[y])} has a second border`);
+  }
+  return problems;
+}
+
 describe("permission requests from Auggie 1.x (fake-agent auggie-1)", () => {
-  const ask = async (word: string) => {
+  const ask = async (word: string, terminal?: keyof typeof TERMINAL_ENV, vs16?: Vs16Width) => {
     // --allow-indexing: no indexing card takes the keys meant for the prompt box.
-    const run = startCli("auggie-1", 0, { ...SIZE, agentArgs: ["--allow-indexing"] });
+    const run = startCli("auggie-1", 0, { ...SIZE, agentArgs: ["--allow-indexing"], ...(terminal ? { env: TERMINAL_ENV[terminal] } : {}), ...(vs16 ? { vs16 } : {}) });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: word }, "Enter");
@@ -376,6 +408,57 @@ describe("permission requests from Auggie 1.x (fake-agent auggie-1)", () => {
     expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "1" } }]);
     await run.s.waitFor(() => run.s.screenText().some((r) => /permission\s+No\b/.test(r)), 5000);
     expect(run.s.screenText().some((r) => r.includes("allow once"))).toBe(false);
+  });
+
+  // The question starts with `⚠️` (U+26A0 U+FE0F), laid out in 2 cells. Each terminal's emulator
+  // counts it as that terminal does (test/pty/vs16.ts): Zed in 1 cell, so its row names it; the
+  // others in 2, as ConPTY does on Windows.
+  for (const [terminal, vs16] of [["unknown", "wide"], ["jetbrains", "wide"], ["windows-terminal", "wide"]] as const) {
+    test(`${terminal}, ⚠️ counted in 2 cells: the question keeps it in two cells and the card's frame is whole`, async () => {
+      const run = await ask("permission", terminal, vs16);
+      await run.s.waitFor((p) => p.screenText().some((r) => r.includes(`${WARNING} Tool "bash" requires approval:`)), 5000);
+      expect(cardFrameProblems(run.s)).toEqual([]);
+      const y = run.s.screenText().findIndex((r) => r.includes(WARNING));
+      const absY = run.s.term.buffer.active.baseY + y;
+      const x = Array.from({ length: run.s.term.cols }, (_, k) => run.s.cell(absY, k)?.getChars()).indexOf(WARNING);
+      expect(run.s.cell(absY, x)?.getWidth()).toBe(2);
+      expect(run.s.cell(absY, x + 2)?.getChars()).toBe(" ");
+      expect(run.s.cell(absY, x + 3)?.getChars()).toBe("T");
+      expect(run.s.screenText().join("\n")).not.toContain(":warning:");
+    });
+  }
+
+  test("the frame check finds the skew: a card written as ConPTY repaints it (no cursor placed after ⚠️) is skewed where the emulator counts ⚠️ in 1 cell, and whole where it counts 2", async () => {
+    const inner = SIZE.cols - 2;
+    const pad = (text: string, width: number) => text + " ".repeat(width - Bun.stringWidth(text));
+    const card = [
+      `╭─ ${CARD_HEADER} ${"─".repeat(SIZE.cols - 5 - Bun.stringWidth(CARD_HEADER))}╮`,
+      `│${pad(`  ${WARNING} Tool "bash" requires approval:`, inner)}│`,
+      `│${pad("  1 Yes   2 No", inner)}│`,
+      `╰${"─".repeat(inner)}╯`,
+    ].join("");
+    const script = `process.stdout.write(${JSON.stringify(`\x1b[2J\x1b[H${card}`)}); setTimeout(() => {}, 60000);`;
+    for (const [vs16, whole] of [["narrow", false], ["wide", true]] as const) {
+      const s = startPty(["bun", "-e", script], { ...SIZE, vs16 });
+      session = s;
+      await s.waitFor((p) => p.screenText().some((r) => r.includes("1 Yes")), 5000);
+      expect(cardFrameProblems(s).length === 0).toBe(whole);
+      s.kill("SIGTERM");
+      await s.dispose();
+      session = undefined;
+    }
+  });
+
+  test("Zed, ⚠️ counted in 1 cell: the question draws it as :warning: in muted and the card's frame is whole", async () => {
+    const run = await ask("permission", "zed", "narrow");
+    await run.s.waitFor((p) => p.screenText().some((r) => r.includes(`:warning: Tool "bash" requires approval:`)), 5000);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    expect(run.s.screenText().join("\n")).not.toContain(WARNING);
+    const y = run.s.screenText().findIndex((r) => r.includes(":warning:"));
+    const x = run.s.screenText()[y]!.indexOf(":warning:");
+    const absY = run.s.term.buffer.active.baseY + y;
+    for (let k = 0; k < ":warning:".length; k++) expect(run.s.cell(absY, x + k)?.getFgColor()).toBe(MUTED_FG);
+    expect(run.s.cell(absY, x + ":warning: ".length)?.getFgColor()).not.toBe(MUTED_FG);
   });
 
   test("held: the early tool call takes index 1 while the request stands alone", async () => {

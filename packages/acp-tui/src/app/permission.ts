@@ -9,6 +9,13 @@
 // src/conversation/glyphs.ts, and a test checks they do not overlap), it shows
 // the tool index that links it to the tool's line in the conversation, and
 // option keys are ignored for 300 ms after it appears.
+//
+// Emoji: the card draws an emoji sequence of a class the terminal's row of the capability table
+// names (`emoji`, renderer/capabilities.ts) as its name, as the conversation does (spec
+// tui-rendering "Other extensions stay text"), so the frame lines up where the terminal draws the
+// sequence at another width than acp-tui lays out (Auggie 1.x starts every question with `⚠️`,
+// which Zed advances one cell and draws over the next). Names are drawn in `muted`, after the
+// approval sanitising, and are plain ASCII from the generated table.
 import { sanitise, type PermissionRecordItem, type ToolCallItem } from "acp-model";
 import { TextAttributes } from "@opentui/core";
 import { approvalLine, optionLabels } from "../conversation/permission-label.ts";
@@ -18,6 +25,9 @@ import { LIVE_PERMISSION_GLYPHS } from "../conversation/live-glyphs.ts";
 import { displayWidth, ELLIPSIS, takeWidth, truncateEnd, type Segment } from "../layout/segments.ts";
 import { spanStyle as toSpan, type ResolvedTheme, type SpanStyle, type TokenName } from "../theme/index.ts";
 import { CONVERSATION_KEEP_ROWS } from "../layout/layout.ts";
+import { splitEmoji, type EmojiClass } from "../render/emoji/emoji.ts";
+import { terminalEmojiClasses } from "../conversation/markdown/context.ts";
+import { EMOJI_NAME_TOKEN } from "../conversation/markdown/emoji.ts";
 
 export interface PermissionGlyphs {
   /** Marks the card's header. */
@@ -151,11 +161,13 @@ export interface PreviewRow {
  * mode (no bidi controls or zero-width characters, section 8), long lines wrapped rather than
  * cut, so nothing approved is hidden. Empty when the tool call has no content.
  */
-export function previewRows(tool: ToolCallItem | undefined, width: number): PreviewRow[] {
+export function previewRows(tool: ToolCallItem | undefined, width: number, named: readonly EmojiClass[] = terminalEmojiClasses()): PreviewRow[] {
   if (!tool || tool.content.length === 0) return [];
   const rows: PreviewRow[] = [];
   for (const line of cardLines(tool)) {
-    const segments = line.segments.map((seg) => ({ ...seg, text: sanitise(seg.text, "approval").replace(/[\r\n]/g, " ") }));
+    const segments = line.segments.flatMap((seg): Segment[] =>
+      splitEmoji(sanitise(seg.text, "approval").replace(/[\r\n]/g, " "), named).map((p) => (p.source === undefined ? { ...seg, text: p.text } : { ...seg, text: p.text, token: EMOJI_NAME_TOKEN })),
+    );
     const wrapped = segments.length === 0 ? [[]] : wrapLine(segments, Math.max(1, width));
     for (const row of wrapped) rows.push(line.fill ? { segments: row, fill: line.fill } : { segments: row });
   }
@@ -186,6 +198,9 @@ export interface CardStyle {
   /** The padding inside the frame (`NO_FRAME_PADDING` when absent): `rows` blank rows at the top
    *  and the bottom, drawn besides `maxRows`, and `columns` on both sides. */
   padding?: FramePadding;
+  /** The emoji classes drawn as their names (see the module header); default the terminal's
+   *  (`terminalEmojiClasses`). */
+  emoji?: readonly EmojiClass[];
 }
 
 /** the preview as laid out: rows shown, the first shown, rows in all. */
@@ -216,6 +231,47 @@ export function previewIsStop(layout: CardLayout | null): boolean {
 
 const OPTION_GAP = "   ";
 
+/** `text` with the emoji of a class in `named` drawn as their names (`:warning:`). */
+export function namedText(text: string, named: readonly EmojiClass[]): string {
+  const pieces = splitEmoji(text, named);
+  return pieces.length === 1 ? pieces[0]!.text : pieces.map((p) => p.text).join("");
+}
+
+/**
+ * The title's rows (`wrapText` over the title with its emoji named) as segments: the names in
+ * `EMOJI_NAME_TOKEN`, the rest in `text`. wrapText only drops and joins spaces, cuts words and
+ * (`cardLayout`) appends an ellipsis, so the rows' other characters are the drawn title's, in
+ * order: each is matched to its place there to learn whether it belongs to a name.
+ */
+function titleSegments(title: string, named: readonly EmojiClass[], width: number): { rows: string[]; segments: (rows: readonly string[]) => CardSegment[][] } {
+  const pieces = splitEmoji(title, named);
+  const drawn = pieces.map((p) => p.text).join("");
+  const plainRows = (rows: readonly string[]): CardSegment[][] => rows.map((t) => [{ text: t, token: "text" }]);
+  if (pieces.every((p) => p.source === undefined)) return { rows: wrapText(drawn, width), segments: plainRows };
+  const inName: boolean[] = [];
+  for (const p of pieces) for (let i = 0; i < p.text.length; i++) inName.push(p.source !== undefined);
+  const segments = (rows: readonly string[]): CardSegment[][] => {
+    let k = 0;
+    return rows.map((row) => {
+      const out: CardSegment[] = [];
+      for (let i = 0; i < row.length; i++) {
+        const c = row[i]!;
+        let name = false;
+        if (c !== " ") {
+          while (k < drawn.length && drawn[k] === " ") k++;
+          if (drawn[k] === c) name = inName[k++]!;
+        }
+        const token: TokenName = name ? EMOJI_NAME_TOKEN : "text";
+        const last = out[out.length - 1];
+        if (last && last.token === token) out[out.length - 1] = { ...last, text: last.text + c };
+        else out.push({ text: c, token });
+      }
+      return out.length === 0 ? [{ text: "", token: "text" }] : out;
+    });
+  };
+  return { rows: wrapText(drawn, width), segments };
+}
+
 /** Word-wraps `text` into rows of at most `width` columns, breaking long words. */
 export function wrapText(text: string, width: number): string[] {
   const rows: string[] = [];
@@ -241,9 +297,9 @@ export function wrapText(text: string, width: number): string[] {
   return rows;
 }
 
-function optionSegments(option: CardOption, index: number, style: CardStyle, selected: boolean, width: number): CardSegment[] {
+function optionSegments(option: CardOption, index: number, style: CardStyle, selected: boolean, width: number, named: readonly EmojiClass[]): CardSegment[] {
   const number = option.number === null ? "-" : String(option.number);
-  const label = truncateEnd(option.label, Math.max(1, width - number.length - 1));
+  const label = truncateEnd(namedText(option.label, named), Math.max(1, width - number.length - 1));
   const numberToken: TokenName = style.focused ? "accent" : "muted";
   const labelToken: TokenName = style.focused ? "text" : "muted";
   const mark = (style.answer ?? style.focused) && selected;
@@ -274,6 +330,7 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
   const frameToken: TokenName = style.flash ? "accent" : "permission";
   const padding = style.padding ?? NO_FRAME_PADDING;
   const inner = cardInner(width, padding.columns);
+  const named = style.emoji ?? terminalEmojiClasses();
   // The frame's sides in the frame's token, the padding columns between them and the content
   // plain (no attribute of the frame's, such as bold, on a blank cell).
   const left: CardSegment[] = [{ text: g.vertical, token: frameToken }, { text: " ".repeat(padding.columns), token: "text" }];
@@ -285,7 +342,7 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
     { text: `${g.marker} `, token: frameToken },
     { text: "Permission", token: "permission" },
   ];
-  if (model.toolKind) head.push({ text: `  ${model.toolKind}`, token: "accent" });
+  if (model.toolKind) head.push({ text: `  ${namedText(model.toolKind, named)}`, token: "accent" });
   if (model.index !== null) head.push({ text: `  #${model.index}`, token: "muted" });
   if ((style.queued ?? 1) > 1) head.push({ text: `  1 of ${style.queued}`, token: "muted" });
   const headRoom = width - 2; // the closing ` ` and corner
@@ -307,7 +364,7 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
   top.push({ text: g.topRight, token: frameToken });
 
   // Options: one row when they fit, else stacked.
-  const pieces = model.options.map((option, i) => optionSegments(option, i, style, i === style.selected, inner));
+  const pieces = model.options.map((option, i) => optionSegments(option, i, style, i === style.selected, inner, named));
   const widths = pieces.map((p) => p.reduce((w, s) => w + displayWidth(s.text), 0));
   const oneRow = widths.reduce((a, b) => a + b, 0) + OPTION_GAP.length * Math.max(0, pieces.length - 1) <= inner;
   let optionRows: CardSegment[][] = oneRow
@@ -320,7 +377,8 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
   const previewSource = style.preview && style.preview.rows.length > 0 ? style.preview : null;
   const titleCap = previewSource ? PREVIEW_TITLE_ROWS : Infinity;
   const titleRoom = Math.max(model.title ? 1 : 0, Math.min(titleCap, bodyRoom - optionRows.length));
-  let titleRows = model.title ? wrapText(model.title, inner) : [];
+  const title = model.title ? titleSegments(model.title, named, inner) : null;
+  let titleRows = title ? title.rows : [];
   if (titleRows.length > titleRoom) {
     titleRows = titleRows.slice(0, titleRoom);
     const last = titleRows.length - 1;
@@ -370,7 +428,7 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
   const blankRows = Array.from({ length: padRows }, (): CardSegment[] => framed([]));
   const answerRow = 1 + padRows + titleRows.length + previewShown.length;
   return {
-    rows: [top, ...blankRows, ...titleRows.map((t) => framed([{ text: t, token: "text" }])), ...previewShown, ...optionRows.map(framed), ...blankRows.map((row) => [...row]), bottom],
+    rows: [top, ...blankRows, ...(title ? title.segments(titleRows) : []).map(framed), ...previewShown, ...optionRows.map(framed), ...blankRows.map((row) => [...row]), bottom],
     preview,
     answerRow,
     answerEnd: answerRow + optionRows.length,
