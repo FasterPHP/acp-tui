@@ -160,8 +160,8 @@ function dimmed(rows: readonly Row[]): Row[] {
 }
 
 /** A text laid out as Markdown at `width`: its blocks and all their rows, margins included. */
-function markdownPart(text: string, width: number, glyphs: ConversationGlyphs, content: number | null, textToken: TokenName, dim: boolean): CardPart {
-  const layout = new MessageLayout(text, width, glyphs, terminalFlags(), true, textToken);
+function markdownPart(text: string, width: number, glyphs: ConversationGlyphs, content: number | null, textToken: TokenName, dim: boolean, hardBreaks = false): CardPart {
+  const layout = new MessageLayout(text, width, glyphs, terminalFlags(), true, textToken, hardBreaks);
   const blocks: CardBlock[] = [];
   const rows: Row[] = [];
   for (const block of layout.blocks()) {
@@ -276,7 +276,7 @@ function toolParts(item: ToolCallItem, width: number, glyphs: ConversationGlyphs
       case "text": {
         const result = commandResult(block.text, item.toolKind, item.toolStatus);
         if (result) parts.push(...resultParts(result, content, width));
-        else parts.push(markdownPart(block.text, width, glyphs, content, "text", false));
+        else parts.push(markdownPart(block.text, width, glyphs, content, "text", false, true));
         break;
       }
       case "diff": {
@@ -417,7 +417,7 @@ function codeRowCount(code: string, lang: string, width: number, glyphs: Convers
 function textRowCount(text: string, width: number, glyphs: ConversationGlyphs): number {
   const fence = singleFence(text);
   const counted = fence ? codeRowCount(fence.code, fence.lang, width, glyphs) : null;
-  return counted ?? markdownPart(text, width, glyphs, 0, "text", false).rows.length;
+  return counted ?? markdownPart(text, width, glyphs, 0, "text", false, true).rows.length;
 }
 
 /**
