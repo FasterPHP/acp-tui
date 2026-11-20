@@ -48,9 +48,22 @@ JetBrains and Zed terminals keep some keys for themselves, so they never reach a
 
 The full table, with Windows Terminal, is under "Keys the IDE terminals keep" in [configuration.md](configuration.md).
 
+## Auggie
+
+Install Auggie 1.x and log in:
+
+```sh
+npm install -g @augmentcode/auggie    # needs Node 20.6 or later
+auggie auth login
+```
+
+If you choose to stay on Auggie 0.x, install `@augmentcode/auggie@v0-release` and log in with `auggie login`; acp-tui works with both and says which login a missing one needs.
+
+Auggie 1.x indexes a directory for its context engine only once it is allowed. When it is not, acp-tui asks, once per directory: answer with the arrows or Tab and Enter, press 1 to allow indexing or 2 for not now, or Esc for not now. Allowing restarts Auggie with `--allow-indexing` (the session is reopened) and Auggie keeps the allowance as a lasting rule. Not now lasts until acp-tui exits. [configuration.md](configuration.md#harnesses) has the details.
+
 ## Configuration basics
 
-`bun run install-cli` created `config.jsonc` with the `auggie` harness and every setting at its default (`acp-tui config --path` prints where it is). Without a configuration file (if you never ran `install-cli`, or deleted the file) acp-tui behaves as if it held that default: plain `acp-tui` starts Auggie, and `acp-tui claude` says that `claude` is not configured and to uncomment its entry. A harness works only once it has an entry under `agent_servers`: to try Claude Code or OpenCode, remove the `//` in front of its line. If your file names a default harness without an entry (an older file may say `"default_agent": "claude"`), plain `acp-tui` stops with `default harness 'claude' is not configured` and says where to copy the entry from. Edit it while acp-tui runs: a saved change applies within a second. `acp-tui config --check` reports mistakes with file, line and column. Three settings worth knowing:
+`bun run install-cli` created `config.jsonc` with the `auggie` harness and every setting at its default (`acp-tui config --path` prints where it is). Without a configuration file (if you never ran `install-cli`, or deleted the file) acp-tui behaves as if it held that default: plain `acp-tui` starts Auggie, and `acp-tui claude` says that `claude` is not configured and to uncomment its entry. If your `config.jsonc` is older than the configured-harness change (it has no `agent_servers`, and often says `"default_agent": "claude"`), add an `auggie` entry to it: run `acp-tui config --diff-default` to see what is missing, or copy the entry from `config.dist.jsonc` beside it, which every `bun run install-cli` writes. A harness works only once it has an entry under `agent_servers`: to try Claude Code or OpenCode, remove the `//` in front of its line. If your file names a default harness without an entry (an older file may say `"default_agent": "claude"`), plain `acp-tui` stops with `default harness 'claude' is not configured` and says where to copy the entry from. Edit it while acp-tui runs: a saved change applies within a second. `acp-tui config --check` reports mistakes with file, line and column. Three settings worth knowing:
 
 - `mouse`: `"full"`, `"wheel"` or `"off"`. Use `"off"` to let the terminal select text itself.
 - `density`: how much of each turn's tool calls is shown.
@@ -63,18 +76,19 @@ Everything else is in [configuration.md](configuration.md).
 - Auggie sends no usage or cost, so the cost and context gauges show nothing with it.
 - There is no Effort pill with Auggie: it offers no reasoning effort setting over ACP.
 - Auggie's built-in slash commands such as `/mcp` are not offered over ACP.
+- Auggie 1.x asks for no permission unless it is given rules, so by default you will see no permission card. To be asked before it runs commands or changes files, add `"--permission", "bash:ask-user", "--permission", "write:ask-user", "--permission", "edit:ask-user"` to the `auggie` entry's `args`.
+- A model you choose in Auggie 1.x is saved as Auggie's own default model, for every later session, not only this one.
 - After an IDE theme change, press Ctrl+L: the IDEs do not tell terminal programs about it.
 - The attention bell rings while a JetBrains IDE has focus, because its terminal never reports focus. Set `attention.signal` to `"none"` to stop it.
 - An emoji with a skin tone typed in the prompt box puts the cursor a few columns off. The text itself is right.
 - The kept keys above were measured in PhpStorm on Linux, Zed, and Windows Terminal, not in every IDE and platform.
 - Links open in the browser only where the platform's opener works.
-- Auggie 1.x has not been checked; acp-tui tells you when that is the one running.
 
 ## Reporting
 
 Use the issue forms: [bug](https://github.com/FasterPHP/acp-tui/issues/new?template=bug.yml) or [feedback](https://github.com/FasterPHP/acp-tui/issues/new?template=feedback.yml). For a bug, please include:
 
-- the output of `acp-tui --version` and of `auggie --version`;
+- the output of `acp-tui --version` and of `auggie --version` (Auggie 1.x and 0.x behave differently);
 - your IDE and its version, and which terminal engine you use (classic or reworked, in the IDE's terminal settings), or the terminal program;
 - your OS and shell;
 - a screenshot if it is about how something looks;
@@ -91,7 +105,7 @@ $env:ACP_TUI_LOG="$HOME\acp-tui.log"; acp-tui
 
 The log holds method names, IDs and timings, never your prompts or the agent's text, but it does hold directory paths: look at it before you share it.
 
-If you run `npm install -g @augmentcode/auggie@0.36.0` with npm 11, it may warn that `node-pty`'s install script was not run. That is harmless for acp-tui.
+If you install Auggie 0.x with npm 11, it may warn that `node-pty`'s install script was not run. That is harmless for acp-tui.
 
 ## Privacy
 
