@@ -12,6 +12,7 @@ import { displayWidth, fitSegments, segmentsWidth, truncateEnd, type Segment } f
 import { toolKindToken } from "../theme/tokens.ts";
 import type { ConversationGlyphs } from "./glyphs.ts";
 import { LIVE_GLYPHS } from "./live-glyphs.ts";
+import { answeredLabel } from "./permission-label.ts";
 import { commandResult, resultOutputLines, toolContent } from "./command-result.ts";
 import { singleFence } from "./markdown/project.ts";
 
@@ -274,7 +275,7 @@ export const WITHDRAWN_LABEL = "withdrawn by agent";
 export function permissionLine(item: PermissionRecordItem, tool: ToolCallItem | null, width: number): Segment[] {
   const outcome = item.outcome;
   const label =
-    outcome.type === "answered" ? (OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
+    outcome.type === "answered" ? (answeredLabel(item) ?? OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
   const token = outcome.type === "answered" ? (outcome.optionKind.startsWith("allow") ? "tool.ok" : "tool.fail") : "muted";
   const head: Segment[] = [
     { text: tool ? `#${tool.index} ` : "", token: "muted" },

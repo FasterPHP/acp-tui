@@ -11,6 +11,7 @@
 // option keys are ignored for 300 ms after it appears.
 import { sanitise, type PermissionRecordItem, type ToolCallItem } from "acp-model";
 import { TextAttributes } from "@opentui/core";
+import { approvalLine, optionLabels } from "../conversation/permission-label.ts";
 import { cardLines, wrapLine } from "../conversation/content.ts";
 import { DEFAULT_PERMISSION_GLYPHS } from "../conversation/glyphs.ts";
 import { LIVE_PERMISSION_GLYPHS } from "../conversation/live-glyphs.ts";
@@ -78,13 +79,6 @@ export function cardMaxRows(free: number, grown: boolean): number {
   return Math.max(CARD_MIN_ROWS, free - (grown ? CONVERSATION_ROWS_GROWN : CONVERSATION_ROWS_AT_REST));
 }
 
-const KIND_LABELS: Record<string, string> = {
-  allow_once: "allow once",
-  allow_always: "allow always",
-  reject_once: "reject once",
-  reject_always: "reject always",
-};
-
 export interface CardOption {
   /** 1 to 9, or null past the ninth option (not selectable by number). */
   readonly number: number | null;
@@ -102,18 +96,20 @@ export interface CardModel {
 
 /** One line of approval-sanitised text. */
 export function approvalText(text: string): string {
-  return sanitise(text, "approval").replace(/[\r\n\t]+/g, " ").trim();
+  return approvalLine(text);
 }
 
 export function cardModel(record: PermissionRecordItem, tool: ToolCallItem | undefined): CardModel {
+  const labels = optionLabels(record.options);
   return {
     toolKind: tool?.toolKind ? approvalText(tool.toolKind) : null,
     title: approvalText(record.title || tool?.title || ""),
     index: tool?.index ?? null,
     options: record.options.map((option, i) => ({
       number: i < 9 ? i + 1 : null,
-      // Labelled by kind; the agent's name (sanitised) only for a kind we do not know.
-      label: KIND_LABELS[option.kind] ?? approvalText(option.name),
+      // Labelled by kind; by the agent's name (sanitised) for a kind we do not know or when two
+      // options share a kind.
+      label: labels[i] ?? "",
       optionId: option.optionId,
     })),
   };

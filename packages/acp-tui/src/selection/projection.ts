@@ -55,6 +55,7 @@ import { commandResult, resultProjectionLines, toolContent } from "../conversati
 import { glyphsVersion } from "../conversation/live-glyphs.ts";
 import { unifiedDiff } from "../conversation/diff.ts";
 import { WITHDRAWN_LABEL } from "../conversation/format.ts";
+import { answeredLabel } from "../conversation/permission-label.ts";
 import type { MessageProjection } from "../conversation/markdown/project.ts";
 import { markdownProjection, type MarkdownBlockKind } from "./markdown-text.ts";
 
@@ -206,7 +207,7 @@ const OUTCOME_LABELS: Readonly<Record<string, string>> = {
 /** A permission record's outcome as a label (`allow once`, `pending`, `cancelled`). */
 export function outcomeLabel(item: PermissionRecordItem): string {
   const outcome = item.outcome;
-  return outcome.type === "answered" ? (OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
+  return outcome.type === "answered" ? (answeredLabel(item) ?? OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
 }
 
 /** An agent message's Markdown as drawn (markdown-text.ts), into a fresh builder. */

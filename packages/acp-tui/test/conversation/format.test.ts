@@ -225,6 +225,25 @@ describe("summaries and lines", () => {
     expect(text(permissionLine({ ...record, outcome: { type: "cancelled" } }, tool({ index: 2 }), 80))).toBe("#2 permission  cancelled  Edit src/index.ts");
   });
 
+  test("a shared-kind outcome is recorded by the option's name", () => {
+    const record: PermissionRecordItem = {
+      id: "permission:u",
+      status: "final",
+      origin: "self",
+      kind: "permission_record",
+      toolCallId: "u",
+      title: "Allow?",
+      options: [
+        { optionId: "0", name: "Yes", kind: "allow_once" },
+        { optionId: "1", name: "No", kind: "allow_once" },
+      ],
+      outcome: { type: "answered", optionId: "1", optionKind: "allow_once" },
+    };
+    const line = permissionLine(record, null, 80);
+    expect(line[2]).toEqual({ text: "No", token: "tool.ok" });
+    expect(text(line)).not.toContain("allow once");
+  });
+
   test("turn-end marker: stop reason, duration, context when known", () => {
     const marker = { id: "m", status: "final" as const, origin: "self" as const, kind: "marker" as const, markerKind: "turn_end" as const, stopReason: "max_tokens" as const, durationMs: 1234, usage: { used: 38000, size: 200000 } };
     expect(text(turnEndLine(marker))).toBe("max tokens · 1.2s · ctx 38k/200k");

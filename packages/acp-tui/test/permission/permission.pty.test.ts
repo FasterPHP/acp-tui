@@ -346,3 +346,40 @@ describe("permission card focus and typing guard (task 6.6)", () => {
     expect(cardRows(run.s)).toEqual([]);
   }, 20000);
 });
+
+describe("permission requests from Auggie 1.x (fake-agent auggie-1)", () => {
+  const ask = async (word: string) => {
+    const run = startCli("auggie-1", 0, { ...SIZE });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: word }, "Enter");
+    await run.s.waitFor(CARD_HEADER, 5000);
+    return run;
+  };
+
+  test("options that share a kind are named; the request has no tool call, so no kind and no index; the answer is recorded by name", async () => {
+    const run = await ask("permission");
+    const card = cardRows(run.s);
+    expect(card[0]).toStartWith(`╭─ ${CARD_HEADER} ─`);
+    expect(card[0]).not.toContain("#");
+    expect(card.some((r) => r.includes("1 Yes   2 No"))).toBe(true);
+    expect(card.some((r) => r.includes("allow once"))).toBe(false);
+    // No running tool call is counted for the request.
+    expect(activityRow(run.s) ?? "").not.toMatch(/\d+ running/);
+
+    await afterGuard();
+    run.s.sendKeys("2", "Enter");
+    await run.s.waitFor(() => responses(run).length === 1, 5000);
+    expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "1" } }]);
+    await run.s.waitFor(() => run.s.screenText().some((r) => /permission\s+No\b/.test(r)), 5000);
+    expect(run.s.screenText().some((r) => r.includes("allow once"))).toBe(false);
+  });
+
+  test("held: the early tool call takes index 1 while the request stands alone", async () => {
+    const run = await ask("held");
+    const rows = run.s.screenText();
+    expect(rows.some((r) => r.includes("#1 "))).toBe(true);
+    expect(cardRows(run.s)[0]).not.toContain("#");
+    expect(rows.some((r) => /#2\b/.test(r))).toBe(false);
+  });
+});

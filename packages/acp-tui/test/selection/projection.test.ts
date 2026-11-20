@@ -107,6 +107,14 @@ describe("projection per item kind", () => {
   test("permission record and markers", () => {
     expect(itemText(permission("r"))).toBe("Permission (allow once): Edit src/x.ts");
     expect(itemText(permission("r", { outcome: { type: "cancelled" }, title: "" }))).toBe("Permission (cancelled): t1");
+    const shared = permission("r", {
+      options: [
+        { optionId: "0", name: "Yes", kind: "allow_once" },
+        { optionId: "1", name: "No", kind: "allow_once" },
+      ],
+      outcome: { type: "answered", optionId: "1", optionKind: "allow_once" },
+    });
+    expect(itemText(shared)).toBe("Permission (No): Edit src/x.ts");
     expect(itemText(marker("e", "error", "agent exited (code 1)\n"))).toBe("error: agent exited (code 1)");
     expect(itemText(marker("n", "notice", "detached"))).toBe("detached");
     expect(itemText(turnEnd("m"))).toBe("");

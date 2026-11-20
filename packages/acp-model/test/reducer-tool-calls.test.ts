@@ -228,3 +228,44 @@ describe("raw tool output is recorded", () => {
     }
   });
 });
+
+describe("permission requests for unknown tool calls", () => {
+  const open = (session: Session, id: string, toolCall: Record<string, unknown>, at = 1): Session =>
+    reduce(session, {
+      type: "permission_opened",
+      toolCallId: id,
+      at,
+      request: { sessionId: "s1", toolCall: { toolCallId: id, ...toolCall }, options: [] } as never,
+    });
+  const toolCall = (session: Session, id: string, at = 5): Session =>
+    reduce(session, { type: "session_update", at, update: { sessionUpdate: "tool_call", toolCallId: id, title: "bash", status: "pending" } });
+
+  test("a bare request stands alone and takes no index", () => {
+    let session = open(startTurn(createSession()), "u-1", { title: "Allow?", status: "pending" });
+    expect(session.items.get("permission:u-1")?.kind).toBe("permission_record");
+    expect(session.items.has("tool:u-1")).toBe(false);
+    session = toolCall(session, "call_1");
+    expect(toolItem(session, "call_1").index).toBe(1);
+  });
+
+  test("a request with details creates the item", () => {
+    const session = open(startTurn(createSession()), "u-2", { title: "Run", kind: "execute", rawInput: { command: "ls" } });
+    expect(toolItem(session, "u-2").toolKind).toBe("execute");
+    expect(toolItem(session, "u-2").index).toBe(1);
+  });
+
+  test("a tool call after the request creates the item with the next index", () => {
+    let session = open(startTurn(createSession()), "u-3", { title: "Allow?" });
+    session = reduce(session, { type: "permission_answered", toolCallId: "u-3", optionId: "y", optionKind: "allow_once", at: 2 });
+    session = toolCall(session, "u-3");
+    expect(toolItem(session, "u-3").index).toBe(1);
+    expect(session.items.get("permission:u-3")?.kind).toBe("permission_record");
+  });
+
+  test("another tool call while a bare request is open takes index 1", () => {
+    let session = open(startTurn(createSession()), "u-4", { title: "Allow?" });
+    session = toolCall(session, "call_1");
+    expect(toolItem(session, "call_1").index).toBe(1);
+    expect(session.items.has("tool:u-4")).toBe(false);
+  });
+});

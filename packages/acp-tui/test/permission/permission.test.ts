@@ -207,3 +207,30 @@ describe("optionAt (mvp-chrome-and-keys task 12.5)", () => {
     expect(optionAt(null, 4, 2)).toBeNull();
   });
 });
+
+describe("labels when options share a kind", () => {
+  const YES_NO = [
+    { optionId: "0", name: "Yes", kind: "allow_once" as const },
+    { optionId: "1", name: "No", kind: "allow_once" as const },
+  ];
+
+  test("every option is named, not labelled by kind", () => {
+    expect(cardModel(record("Allow?", YES_NO), undefined).options.map((o) => o.label)).toEqual(["Yes", "No"]);
+  });
+
+  test("the name is approval-sanitised", () => {
+    const options = [{ optionId: "0", name: "Ye‮s​", kind: "allow_once" as const }, YES_NO[1]!];
+    expect(cardModel(record("x", options), undefined).options[0]!.label).toBe("Yes");
+  });
+
+  test("distinct kinds keep their kind labels", () => {
+    expect(cardModel(record("x"), tool).options.map((o) => o.label)).toEqual(["allow once", "allow always", "reject once", "reject always"]);
+  });
+
+  test("a request without a tool call has no kind and no index in its header", () => {
+    const header = text(cardRows(cardModel(record("Allow?", YES_NO), undefined), 63, STYLE))[0]!;
+    expect(header).toContain("Permission");
+    expect(header).not.toContain("#");
+    expect(header).not.toMatch(/Permission\s+\S+\s+─/);
+  });
+});

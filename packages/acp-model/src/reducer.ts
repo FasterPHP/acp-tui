@@ -441,19 +441,29 @@ function handlePermissionOpened(
   request: RequestPermissionRequest,
   at: number,
 ): Session {
-  let next = upsertToolCall(
-    session,
-    {
-      toolCallId,
-      title: request.toolCall.title,
-      name: request.toolCall.name,
-      kind: request.toolCall.kind,
-      status: request.toolCall.status,
-      content: request.toolCall.content,
-      locations: request.toolCall.locations,
-    },
-    at,
-  );
+  // A request for a tool call nothing has started creates the item only when it carries the
+  // call's details; a bare one (Auggie 1.x sends a fresh ID that no `tool_call` ever uses) stands
+  // alone, takes no tool index and is not counted as a tool call.
+  const call = request.toolCall;
+  const known = session.items.get(`tool:${toolCallId}`)?.kind === "tool_call";
+  const detailed =
+    call.kind != null || (call.content?.length ?? 0) > 0 || (call.locations?.length ?? 0) > 0 || call.rawInput != null;
+  let next = session;
+  if (known || detailed) {
+    next = upsertToolCall(
+      session,
+      {
+        toolCallId,
+        title: call.title,
+        name: call.name,
+        kind: call.kind,
+        status: call.status,
+        content: call.content,
+        locations: call.locations,
+      },
+      at,
+    );
+  }
 
   const toolItem = next.items.get(`tool:${toolCallId}`);
   const title =
