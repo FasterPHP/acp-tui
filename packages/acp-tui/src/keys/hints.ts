@@ -48,7 +48,8 @@ export function hintsForKeyMap(map: KeyMap, interrupt: InterruptSetting = DEFAUL
     // An idle, focused prompt box: the mode key first, so it keeps its place when the others leave,
     // then for an empty box the agent's commands (`/`), the command palette (`?`; task 12.1) and
     // detach. `/` and `?` are text in a draft, so their hints leave (Marcus, 11 October 2026; task 12.8).
-    { key: actionLabel(map, "global", "cycleMode"), label: "mode", when: { turn: "idle", focus: "prompt" } },
+    // The mode key shows only while the session offers a mode (Auggie 1.x has none).
+    { key: actionLabel(map, "global", "cycleMode"), label: "mode", when: { turn: "idle", focus: "prompt", mode: true } },
     { key: actionLabel(map, "prompt", "agentCommands"), label: "commands", when: { turn: "idle", promptEmpty: true, focus: "prompt" } },
     { key: actionLabel(map, "prompt", "palette"), label: "help", when: { turn: "idle", promptEmpty: true, focus: "prompt" } },
     { key: actionLabel(map, "global", "detach"), label: "detach", when: { turn: "idle", promptEmpty: true, focus: "prompt" } },

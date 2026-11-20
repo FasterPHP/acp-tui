@@ -68,7 +68,7 @@ describe("App in the test renderer", () => {
     app.attach();
     const rows = await app.frame();
     expect(rows.at(-1)).toBe("");
-    expect(rows.at(-2)).toMatch(/^ ~\/proj {2}idle {2}shift\+tab mode {2}\/ commands {2}\? help {2}ctrl\+d detach +connected$/);
+    expect(rows.at(-2)).toMatch(/^ ~\/proj {2}idle {2}\/ commands {2}\? help {2}ctrl\+d detach +connected$/);
     // The prompt box: a rounded frame (one text row at 12 rows) above the spacer and the status row.
     // One text row, the padding row and the frame (day-one-feedback: the padding row below the text).
     expect(rows.slice(-7, -3)).toEqual([`╭${"─".repeat(78)}╮`, `│${" ".repeat(78)}│`, `│${" ".repeat(78)}│`, `╰${"─".repeat(78)}╯`]);

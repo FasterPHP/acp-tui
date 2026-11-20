@@ -11,6 +11,7 @@
 import { createEffect, createMemo, createSignal, For, onCleanup } from "solid-js";
 import type { ToolCallItem } from "acp-model";
 import { useApp, useConfig } from "../app/context.ts";
+import { toolTitleText } from "../conversation/tool-title.ts";
 import { activityBar, lingerLine, type LingerCall } from "./activity.ts";
 import { ACTIVITY_LINE_ROWS, type BlockComponent, type BlockProps } from "./Screen.tsx";
 
@@ -53,7 +54,7 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
       if (live && !has) next = [...current, c.id];
       else if (!live && has) {
         next = current.filter((id) => id !== c.id);
-        if (c.item.toolStatus === "completed" || c.item.toolStatus === "failed") finished = { title: c.item.title, failed: c.item.toolStatus === "failed" };
+        if (c.item.toolStatus === "completed" || c.item.toolStatus === "failed") finished = { title: toolTitleText(c.item), failed: c.item.toolStatus === "failed" };
       }
     }
     if (!next) return;

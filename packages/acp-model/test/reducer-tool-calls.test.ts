@@ -269,3 +269,65 @@ describe("permission requests for unknown tool calls", () => {
     expect(session.items.has("tool:u-4")).toBe(false);
   });
 });
+
+describe("tool input text is recorded", () => {
+  function begin(fields: Record<string, unknown>): Session {
+    return reduce(startTurn(createSession()), {
+      type: "session_update",
+      at: 1,
+      update: { sessionUpdate: "tool_call", toolCallId: "t1", title: "bash", status: "pending", ...fields } as never,
+    });
+  }
+
+  function update(session: Session, at: number, fields: Record<string, unknown>): Session {
+    return reduce(session, {
+      type: "session_update",
+      at,
+      update: { sessionUpdate: "tool_call_update", toolCallId: "t1", ...fields } as never,
+    });
+  }
+
+  test("Command", () => {
+    const session = begin({ kind: "execute", rawInput: { command: "grep -R add src" } });
+    expect(toolItem(session, "t1").inputText).toBe("grep -R add src");
+  });
+
+  test("Path", () => {
+    const session = begin({ kind: "edit", rawInput: { path: "notes.txt", edits: [] } });
+    expect(toolItem(session, "t1").inputText).toBe("notes.txt");
+  });
+
+  test("a command of a call that is not an execute is ignored, and a path of an execute is used", () => {
+    expect(toolItem(begin({ kind: "read", rawInput: { command: "x" } }), "t1").inputText).toBeNull();
+    expect(toolItem(begin({ kind: "execute", rawInput: { path: "a/b" } }), "t1").inputText).toBe("a/b");
+  });
+
+  test("Other shapes ignored", () => {
+    for (const rawInput of [{ pattern: "x" }, { command: 3 }, "ls", [1], 7, null]) {
+      expect(toolItem(begin({ kind: "execute", rawInput }), "t1").inputText).toBeNull();
+    }
+    expect(toolItem(begin({ kind: "execute" }), "t1").inputText).toBeNull();
+  });
+
+  test("an update without rawInput keeps the text, and a later rawInput replaces it", () => {
+    let session = begin({ kind: "execute", rawInput: { command: "ls" } });
+    session = update(session, 2, { status: "completed" });
+    expect(toolItem(session, "t1").inputText).toBe("ls");
+    session = update(session, 3, { rawInput: { command: "ls -la" } });
+    expect(toolItem(session, "t1").inputText).toBe("ls -la");
+  });
+
+  test("a kind that arrives in an earlier call decides an update's command", () => {
+    let session = begin({ kind: "execute" });
+    session = update(session, 2, { rawInput: { command: "pwd" } });
+    expect(toolItem(session, "t1").inputText).toBe("pwd");
+  });
+
+  test("Hostile input", () => {
+    const session = begin({ kind: "execute", rawInput: { command: "ls \u001b]52;c;eHh4\u0007‮txt" } });
+    const text = toolItem(session, "t1").inputText ?? "";
+    expect(text).not.toContain("\u001b");
+    expect(text).not.toContain("‮");
+    expect(text).toContain("ls");
+  });
+});

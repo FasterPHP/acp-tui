@@ -12,6 +12,7 @@ import { displayWidth, fitSegments, segmentsWidth, truncateEnd, type Segment } f
 import { toolKindToken } from "../theme/tokens.ts";
 import type { ConversationGlyphs } from "./glyphs.ts";
 import { LIVE_GLYPHS } from "./live-glyphs.ts";
+import { toolTitleText } from "./tool-title.ts";
 import { answeredLabel } from "./permission-label.ts";
 import { commandResult, resultOutputLines, toolContent } from "./command-result.ts";
 import { singleFence } from "./markdown/project.ts";
@@ -191,7 +192,7 @@ export function toolLine(item: ToolCallItem, width: number, glyphs: Conversation
   const duration = toolDuration(item);
   if (duration) tail.push(...(tail.length > 0 ? [gap] : []), { text: duration, token: "tool.duration" });
   tail.push(...(tail.length > 0 ? [gap] : []), { text: `#${item.index}`, token: "tool.index" });
-  const title: Segment = { text: oneLine(item.title) || toolKind(item), token: "tool.title" };
+  const title: Segment = { text: toolTitleText(item) || toolKind(item), token: "tool.title" };
   const room = width - segmentsWidth(head) - segmentsWidth(tail) - 2;
   if (room >= Math.min(displayWidth(title.text), 8)) {
     const shown = truncateEnd(title.text, room);
@@ -208,7 +209,7 @@ export function toolLine(item: ToolCallItem, width: number, glyphs: Conversation
  * (every frame is one column, as is the static glyph).
  */
 export function toolTitleShown(item: ToolCallItem, width: number, glyphs: ConversationGlyphs = LIVE_GLYPHS): boolean {
-  const title = oneLine(item.title) || toolKind(item);
+  const title = toolTitleText(item) || toolKind(item);
   return toolLine(item, width, glyphs, null).some((s) => s.token === "tool.title" && s.text === title);
 }
 
@@ -219,7 +220,7 @@ export function activityLine(item: ToolCallItem, width: number, glyphs: Conversa
     { text: `#${item.index} `, token: "tool.index" },
     { text: pad(toolKind(item), KIND_WIDTH) + " ", token: toolKindToken(item.toolKind) },
   ];
-  return fitWithTitle(head, { text: oneLine(item.title) || toolKind(item), token: "tool.title" }, [], width);
+  return fitWithTitle(head, { text: toolTitleText(item) || toolKind(item), token: "tool.title" }, [], width);
 }
 
 /** The activity region's rows (without gutters): at most `max` tools, then `+N more`. */

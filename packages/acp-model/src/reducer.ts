@@ -128,6 +128,19 @@ interface ToolCallFields {
   readonly locations?: readonly ToolCallLocation[] | null;
   /** The update's `rawOutput`, any JSON value; only `rawOutputTextOf` reads it. */
   readonly rawOutput?: unknown;
+  /** The update's `rawInput`, any JSON value; only `inputTextOf` reads it. */
+  readonly rawInput?: unknown;
+}
+
+/** The input text of a `rawInput` (design D9 of `auggie-1x-support`): its `command` string when the
+ *  call is of kind `execute`, else its `path` string; anything else records nothing (undefined).
+ *  Sanitised on entry like other agent text. */
+function inputTextOf(rawInput: unknown, kind: ToolKind | null | undefined): string | undefined {
+  if (typeof rawInput !== "object" || rawInput === null || Array.isArray(rawInput)) return undefined;
+  const { command, path } = rawInput as { command?: unknown; path?: unknown };
+  if (kind === "execute" && typeof command === "string") return sanitise(command, "approval");
+  if (typeof path === "string") return sanitise(path, "approval");
+  return undefined;
 }
 
 /** The text form of a `rawOutput` (design D3 of `day-one-feedback`): the value when it is a
@@ -203,6 +216,7 @@ function upsertToolCall(session: Session, fields: ToolCallFields, at: number): S
       content: mapToolCallContent(fields.content) ?? [],
       locations: mapLocations(fields.locations) ?? [],
       rawOutputText: rawOutputTextOf(fields.rawOutput) ?? null,
+      inputText: inputTextOf(fields.rawInput, fields.kind) ?? null,
       startedAt: at,
       endedAt: becomesFinal ? at : null,
     };
@@ -223,6 +237,7 @@ function upsertToolCall(session: Session, fields: ToolCallFields, at: number): S
       content: fields.content != null ? (mapToolCallContent(fields.content) ?? item.content) : item.content,
       locations: fields.locations != null ? (mapLocations(fields.locations) ?? item.locations) : item.locations,
       rawOutputText: rawOutputTextOf(fields.rawOutput) ?? item.rawOutputText,
+      inputText: inputTextOf(fields.rawInput, fields.kind ?? item.toolKind) ?? item.inputText,
       endedAt: item.endedAt ?? (becomesFinal ? at : null),
     };
   });
@@ -460,6 +475,7 @@ function handlePermissionOpened(
         status: call.status,
         content: call.content,
         locations: call.locations,
+        rawInput: call.rawInput,
       },
       at,
     );
@@ -633,6 +649,7 @@ function handleSessionUpdate(
           content: update.content,
           locations: update.locations,
           rawOutput: update.rawOutput,
+          rawInput: update.rawInput,
         },
         at,
       );
@@ -649,6 +666,7 @@ function handleSessionUpdate(
           content: update.content,
           locations: update.locations,
           rawOutput: update.rawOutput,
+          rawInput: update.rawInput,
         },
         at,
       );

@@ -21,6 +21,7 @@ const tool = (id: string, toolKind: ToolCallItem["toolKind"], over: Partial<Tool
   content: [],
   locations: [],
   rawOutputText: null,
+  inputText: null,
   startedAt: 1000,
   endedAt: 1100,
   ...over,

@@ -249,6 +249,14 @@ describe("hints", () => {
     // Only while idle: a running turn shows the interrupt key alone.
     expect(text("hints", view({ turnState: "running" }, { promptEmpty: false }))).toBe("esc esc interrupt");
   });
+  test("no modes: without a mode the hints show no mode key (auggie-1x-support task 6.4)", () => {
+    const none = view({ mode: null });
+    expect(text("hints", none)).toBe("/ commands  ? help  ctrl+d detach");
+  });
+  test("a mode offered as a pill alone still shows the mode key", () => {
+    const pilled = view({ mode: null, pills: [{ category: "mode", name: "Mode", value: "Ask" }] });
+    expect(text("hints", pilled)).toBe("shift+tab mode  / commands  ? help  ctrl+d detach");
+  });
   test("permission card focused", () => {
     const v = view({ turnState: "requires_action" }, { focus: "card", permissionOpen: true });
     expect(text("hints", v)).toBe("1-9 select  enter answer  tab prompt  esc esc interrupt");

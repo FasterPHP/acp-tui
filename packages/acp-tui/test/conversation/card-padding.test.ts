@@ -33,6 +33,7 @@ const tool = (over: Partial<ToolCallItem> = {}): ToolCallItem => ({
   content: [],
   locations: [],
   rawOutputText: null,
+  inputText: null,
   startedAt: 0,
   endedAt: 5,
   ...over,
