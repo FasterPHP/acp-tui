@@ -112,7 +112,7 @@ describe.skipIf(WINDOWS)("Auggie's indexing line becomes a question", () => {
 });
 
 describe.skipIf(WINDOWS)("Indexing question card", () => {
-  test("One directory at 63x21: Question from acp-tui, the directory, what allowing does, the lasting rule, 1 allow indexing and 2 not now", async () => {
+  test("One directory at 63x21: Question from acp-tui, the directory, what allowing does, that Auggie remembers the choice, 1 allow indexing and 2 not now", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     w.configure({ auggie: ["--scenario", "auggie-1"] });
@@ -123,7 +123,7 @@ describe.skipIf(WINDOWS)("Indexing question card", () => {
     expect(rows[0]).toStartWith("╭─ ◊ Question  from acp-tui ─");
     expect(s.screenText().join("\n")).not.toContain("Permission");
     const body = cardBody(s);
-    for (const part of [repo, "--allow-indexing", "lasting rule", "1 allow indexing 2 not now"]) expect(body).toContain(part);
+    for (const part of [repo, "--allow-indexing", "remembers your choice", "1 allow indexing 2 not now"]) expect(body).toContain(part);
     for (const gone of ["indexingAllowDirs", "never index", "reopens this session", "starts a new session"]) expect(body).not.toContain(gone);
     expect(rows.at(-1)).toContain("esc not now");
     expect(rows.at(-1)).toContain("up/down select");

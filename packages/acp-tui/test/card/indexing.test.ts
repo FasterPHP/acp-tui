@@ -105,8 +105,7 @@ describe("the indexing card's rows", () => {
     expect(rows(["/home/user/Projects/app"], 80)).toEqual([
       "╭─ ◊ Question  from acp-tui ───────────────────────────────────────────────────╮",
       "│ Auggie is not indexing ~/Projects/app.                                       │",
-      "│ Allow restarts the session with --allow-indexing; Auggie persists your       │",
-      "│ choice as a lasting rule.                                                    │",
+      "│ Allow restarts with --allow-indexing; Auggie remembers your choice.          │",
       "│                                                                              │",
       "│ 1 allow indexing   2 not now                                                 │",
       "╰───────────────────────────────────────────────── enter choose · esc not now ─╯",
@@ -117,7 +116,7 @@ describe("the indexing card's rows", () => {
     const r = rows(["/home/user/Projects/app"], 63);
     expect(r.every((row) => row.length === 63)).toBe(true);
     const text = body(r);
-    for (const part of ["~/Projects/app", "--allow-indexing", "lasting rule", "1 allow indexing   2 not now"]) expect(text).toContain(part);
+    for (const part of ["~/Projects/app", "--allow-indexing", "remembers your choice", "1 allow indexing   2 not now"]) expect(text).toContain(part);
     for (const gone of ["indexingAllowDirs", "never index", "reopens this session", "starts a new session"]) expect(text).not.toContain(gone);
   });
 
