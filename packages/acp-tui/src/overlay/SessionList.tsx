@@ -187,6 +187,8 @@ function SessionListOverlay(props: {
         if (at !== generation) return;
         batch(() => {
           setListed((rows) => [...rows, ...response.sessions]);
+          // The harness has answered, so its generation is known whatever moment the list opened at.
+          setHarnessGeneration(host.generation?.() ?? null);
           setCursor(response.nextCursor ?? null);
           setReading(false);
         });

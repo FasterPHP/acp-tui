@@ -51,7 +51,7 @@ describe("Sessions recorded by another harness generation (PTY)", () => {
     session = w.start(["-r", "s-1"]);
     expect(await session.wait(20000)).toBe(1);
     await session.flush();
-    expect(mainText(session)).toContain("session s-1 was recorded with Auggie 1.2.2, and Auggie 0.37.1 cannot open Auggie 1.x sessions; to use Auggie 1.x again: npm install -g @augmentcode/auggie");
+    expect(mainText(session)).toContain("session s-1 was recorded with Auggie 1.2.2, and Auggie 0.37.1 cannot open Auggie 1.x sessions; to use Auggie 1.x again: npm install -g @augmentcode/auggie@latest");
     expect(methods(w)).not.toContain("session/load");
   }, 40000);
 
@@ -134,5 +134,25 @@ describe("Sessions recorded by another harness generation (PTY)", () => {
     await s.waitFor(() => listBody(s).join(" ").replace(/\s+/g, " ").includes("cannot open Auggie 0.x sessions"), 10000);
     expect(listOpen(s)).toBe(true);
     expect(methods(w)).not.toContain("session/load");
+  }, 60000);
+
+  test("Muted when the list opens before `initialize`: the rows are muted as soon as the generation is known", async () => {
+    const w = world([...AUGGIE_1, "--list", "--start-delay", "1"], ["s-0", "s-1"]);
+    recordIn(w, "s-0", "0.36.0 (commit 7c61e5bb)");
+    w.record({ agent: "auggie", sessionId: "s-1", directory: w.base, title: "Title of s-1", at: Date.parse(NOW) - 1000, harness: { name: "auggie", version: "1.2.2" } });
+    const s = (session = w.start(["--resume"], { cols: 120 }));
+    await s.waitFor(() => listOpen(s), 15000);
+    const rowOf = (title: string) => {
+      const top = s.screenText().findIndex((r) => r.startsWith("╭─ Sessions"));
+      const at = listBody(s).findIndex((r) => r.startsWith(title));
+      return at < 0 ? -1 : s.term.buffer.active.baseY + top + 1 + at;
+    };
+    const fg = (title: string, x: number) => s.cell(rowOf(title), x)?.getFgColor();
+    const detailX = () => listBody(s)[listBody(s).findIndex((r) => r.startsWith("Title of s-1"))]!.indexOf("auggie") + 3;
+    await s.waitFor(() => rowOf("Title of s-0") > 0 && rowOf("Title of s-1") > 0, 15000);
+    // Before the harness answers, the list is up and nothing is known: no muted title.
+    expect(fg("Title of s-0", 2)).not.toBe(fg("Title of s-0", detailX()));
+    await s.waitFor(() => fg("Title of s-0", 2) === fg("Title of s-0", detailX()), 15000);
+    expect(fg("Title of s-1", 2)).not.toBe(fg("Title of s-1", detailX()));
   }, 60000);
 });

@@ -93,6 +93,7 @@ import {
   paletteRoutes,
   PICKER_CATEGORIES,
   pickerItems,
+  pickerNote,
   pickerOptions,
   rankSlashMatches,
   slashStart,
@@ -275,6 +276,12 @@ export function PaletteOverlay(): JSX.Element {
     },
     filter: () => items().length > PICKER_FILTER_ABOVE,
     placeholder: "type to search",
+    // No model is named (Auggie right after a login, or when none was chosen): none of the entries
+    // can carry the mark, so the line above says which one is in use.
+    note: () => {
+      const option = pickerOption(configId);
+      return option ? pickerNote(option) : null;
+    },
     grouped: true,
     marks: true,
     enter: "apply",
@@ -690,6 +697,7 @@ export function PaletteOverlay(): JSX.Element {
       closeLabel: esc,
       hints,
       marks: src?.marks ?? false,
+      valueColumn: src?.marks ?? false,
       ...(place ? { minRows: place.minRows, maxRows: place.maxRows } : {}),
       ...(items().length === 0 && src?.empty ? { empty: src.empty() ?? undefined } : {}),
       ...(src?.note?.() ? { note: src.note()! } : {}),

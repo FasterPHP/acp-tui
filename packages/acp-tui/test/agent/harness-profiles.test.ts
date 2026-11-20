@@ -76,7 +76,7 @@ describe("generationRefusal and olderEntryAdvice (auggie-1x-support task 9.2 and
 
   test("1.x recorded, 0.x in use: the way back", () => {
     expect(generationRefusal("s-1", { name: "auggie", version: "1.2.2" }, zero)).toBe(
-      "session s-1 was recorded with Auggie 1.2.2, and Auggie 0.37.1 cannot open Auggie 1.x sessions; to use Auggie 1.x again: npm install -g @augmentcode/auggie",
+      "session s-1 was recorded with Auggie 1.2.2, and Auggie 0.37.1 cannot open Auggie 1.x sessions; to use Auggie 1.x again: npm install -g @augmentcode/auggie@latest",
     );
   });
 

@@ -22,7 +22,7 @@ import type { CatalogueEntry } from "../keys/register.ts";
 import { actionLabel, KEY_SCOPES, type KeyContext, type KeyMap } from "../keys/keymap.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
 import { DEFAULT_MODEL_LABEL, LEGACY_MODEL_ID, legacyModelOption, modelDisplayName, providerGroups, DEFAULT_MODEL_LIST_SETTINGS, type ModelListSettings } from "../layout/provider-groups.ts";
-import type { ListItem } from "./list.ts";
+import { CURRENT_MARK, type ListItem } from "./list.ts";
 
 /** The group each context's commands are listed under, in the palette's order. */
 export const PALETTE_GROUPS: readonly { readonly context: KeyContext; readonly label: string }[] = [
@@ -588,4 +588,12 @@ export function pickerItems(option: SelectOption, models: ModelListSettings = DE
       search: split ? approvalText(`${choice.name} ${choice.value}`) : approvalText(choice.value),
     };
   });
+}
+
+/** The line above a picker's choices when none of them can carry the current mark: a model option
+ *  whose current value is empty (Auggie names no model right after a login or when none was
+ *  chosen), where the harness uses its own default and does not say which. Null otherwise. */
+export function pickerNote(option: SelectOption): string | null {
+  if (option.category !== "model" || option.currentValue !== "" || selectChoices(option).length === 0) return null;
+  return `${CURRENT_MARK} ${DEFAULT_MODEL_LABEL}: the harness's own default, not one of these (it does not say which)`;
 }

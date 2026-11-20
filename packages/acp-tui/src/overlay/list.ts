@@ -207,6 +207,10 @@ export interface OverlayView {
   readonly hints: readonly Segment[];
   /** Mark the current value with `CURRENT_MARK` (pickers). */
   readonly marks: boolean;
+  /** Draw each item's `value` (a picker's description) as a muted column after the titles, which
+   *  are padded to the widest one, and cut it only at the row's end (pickers). Absent: the value
+   *  is drawn right-aligned, in at most half the row. */
+  readonly valueColumn?: boolean;
   /** A footer row above the bottom border for errors and notices (the session list); its text
    *  wraps to at most `FOOTER_MAX_ROWS` rows, and it keeps one row while it is empty. Absent: no
    *  footer row. */
@@ -383,8 +387,30 @@ function detailRow(item: ListItem, columns: DetailColumns, selected: boolean): O
   return out;
 }
 
-function itemRow(item: ListItem, inner: number, selected: boolean, marks: boolean, columns: DetailColumns | null): OverlaySegment[] {
+/** The width of the title column of a list drawn with `valueColumn`: the widest title of the items
+ *  that have a value, at most 60% of the row; null when none has one. */
+export function valueColumnWidth(items: readonly ListItem[], inner: number, marks: boolean): number | null {
+  const withValue = items.filter((i) => i.value && !i.keys?.length && !i.route && !i.muted);
+  if (withValue.length === 0) return null;
+  const widest = Math.max(...withValue.map((i) => displayWidth(i.title)));
+  return Math.max(1, Math.min(widest, Math.floor(inner * 0.6) - (marks ? 2 : 0)));
+}
+
+function itemRow(item: ListItem, inner: number, selected: boolean, marks: boolean, columns: DetailColumns | null, valueAt: number | null = null): OverlaySegment[] {
   if (item.details && columns) return detailRow(item, columns, selected);
+  if (valueAt !== null && !item.muted && !item.keys?.length && !item.route) {
+    const sel = selected ? { selected: true } : {};
+    const out: OverlaySegment[] = [];
+    if (marks) out.push({ text: item.current ? `${CURRENT_MARK} ` : "  ", token: "accent", ...sel });
+    const title = truncateEnd(item.title, valueAt);
+    out.push({ text: title, token: "text", ...sel });
+    const room = inner - (marks ? 2 : 0) - valueAt - 2;
+    if (item.value && room >= 4) {
+      out.push({ text: " ".repeat(valueAt - displayWidth(title) + 2), token: "text", ...sel });
+      out.push({ text: truncateEnd(item.value, room), token: "muted", ...sel });
+    }
+    return out;
+  }
   // A muted entry (not available now) is never highlighted and is drawn whole in the muted colour.
   const sel = selected && !item.muted ? { selected: true } : {};
   const body: TokenName = item.muted ? "muted" : "text";
@@ -422,8 +448,8 @@ function itemRow(item: ListItem, inner: number, selected: boolean, marks: boolea
 
 /** Whether the row of `item` cuts its title or description (`…`), so that the detail has more
  *  to show than the row. */
-function rowIsCut(item: ListItem, inner: number, marks: boolean, columns: DetailColumns | null): boolean {
-  const shown = itemRow(item, inner, false, marks, columns).map((s) => s.text).join("");
+function rowIsCut(item: ListItem, inner: number, marks: boolean, columns: DetailColumns | null, valueAt: number | null = null): boolean {
+  const shown = itemRow(item, inner, false, marks, columns, valueAt).map((s) => s.text).join("");
   return !shown.includes(item.title) || (!!item.description && !shown.includes(item.description));
 }
 
@@ -444,12 +470,13 @@ export function overlayLayout(view: OverlayView): OverlayLayout {
   const footer = view.footer ? wrapText(view.footer.text, inner, FOOTER_MAX_ROWS) : [];
   const fixedBase = 2 + (view.filter !== null ? 1 : 0) + (view.note ? 1 : 0) + footer.length;
   const columns = detailColumns(view.items, inner, view.detailDrop, view.detailMin);
+  const valueAt = view.valueColumn ? valueColumnWidth(view.items, inner, view.marks) : null;
   // The detail area: a blank row, then what the selected row cuts, wrapped, in the rows the list
   // can spare; none when the row shows the entry whole.
   const selectedItem = view.items[view.selected];
   const detailRoom = maxHeight - fixedBase - Math.min(Math.max(1, rows.length), DETAIL_LIST_MIN);
   const detail =
-    view.detail && selectedItem && detailRoom >= 2 && rowIsCut(selectedItem, inner, view.marks, columns)
+    view.detail && selectedItem && detailRoom >= 2 && rowIsCut(selectedItem, inner, view.marks, columns, valueAt)
       ? ["", ...wrapText(view.detail, inner, detailRoom - 1)]
       : [];
   const fixed = fixedBase + detail.length;
@@ -512,7 +539,7 @@ export function overlayLayout(view: OverlayView): OverlayLayout {
     }
     const selected = row.index === view.selected && !view.items[row.index]!.muted;
     itemLines.set(lines.length, row.index);
-    lines.push(framed(itemRow(view.items[row.index]!, inner, selected, view.marks, columns), inner, selected));
+    lines.push(framed(itemRow(view.items[row.index]!, inner, selected, view.marks, columns, valueAt), inner, selected));
   }
   for (const text of detail) lines.push(framed(text === "" ? [] : [{ text, token: "muted" }], inner));
   for (const text of footer) lines.push(framed(text === "" ? [] : [{ text, token: view.footer!.token }], inner));

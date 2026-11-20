@@ -125,7 +125,7 @@ export function generationRefusal(sessionId: string, recorded: { readonly name: 
   if (was === null || using === null || was.generation === using.generation) return null;
   const clean = (text: string) => sanitise(text, "approval").replace(/\s+/g, " ").trim();
   const head = `session ${clean(sessionId)} was recorded with ${was.displayName} ${clean(was.version)}, and ${using.displayName} ${clean(using.version)} cannot open ${generationLabel(was.generation)} sessions`;
-  const way = using.generation === "auggie-1" ? "import them in auggie with /import-legacy-sessions (they get new IDs)" : `to use ${generationLabel(was.generation)} again: npm install -g @augmentcode/auggie`;
+  const way = using.generation === "auggie-1" ? "import them in auggie with /import-legacy-sessions (they get new IDs)" : `to use ${generationLabel(was.generation)} again: npm install -g @augmentcode/auggie@latest`;
   return `${head}; ${way}`;
 }
 

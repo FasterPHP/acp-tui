@@ -339,9 +339,11 @@ describe("legacy models (session-models, spec tui-palette \"Config option picker
     await run.s.waitFor(/Model 3/, 3000);
     await run.s.flush();
     const rows = boxRows(run.s, /Model 3/).slice(1, -1).map(inner);
-    expect(rows).toHaveLength(3);
-    expect(rows.some((row) => row.startsWith("●"))).toBe(false);
-    expect(rows[0]).toStartWith("  Fake Small");
+    // The note says which one is in use; none of the three choices is marked.
+    expect(rows).toHaveLength(4);
+    expect(rows[0]).toStartWith("● default: the harness's own default, not one of these");
+    expect(rows.slice(1).some((row) => row.startsWith("●"))).toBe(false);
+    expect(rows[1]).toStartWith("  Fake Small");
     run.s.sendKeys("Down", "Enter");
     await run.s.waitFor(() => bottomBorder(run.s).includes("Model Fake Large"), 5000);
     expect(params(run, "session/set_model")).toEqual([expect.objectContaining({ modelId: "fake-large" })]);
