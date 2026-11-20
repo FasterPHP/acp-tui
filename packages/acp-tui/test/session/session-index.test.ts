@@ -411,3 +411,77 @@ describe("addedDirectories", () => {
     expect(found.title).toBe("T");
   });
 });
+
+// auggie-1x-support task 9.1 (spec tui-sessions "Sessions recorded by another harness generation").
+describe("harness", () => {
+  test("Written with the entry and read back; absent when the harness gave none", () => {
+    const home = stateHome();
+    const index = open(home, { now: () => T0 });
+    index.record({ agent: "auggie", sessionId: "with", directory: "/work/app", harness: { name: "auggie", version: "0.36.0 (commit 7c61e5bb)" } });
+    index.record({ agent: "auggie", sessionId: "without", directory: "/work/app" });
+    const records = open(home).listAll();
+    expect(records.find((r) => r.sessionId === "with")?.harness).toEqual({ name: "auggie", version: "0.36.0 (commit 7c61e5bb)" });
+    expect(records.find((r) => r.sessionId === "without")).not.toHaveProperty("harness");
+    // One added field in the record, nothing else changes shape: an older acp-tui ignores it.
+    const line = JSON.parse(fileLines(join(home, "acp-tui", INDEX_FILE_NAME))[0]!) as { v: number; kind: string; record: Record<string, unknown> };
+    expect(line.v).toBe(1);
+    expect(line.record["harness"]).toEqual({ name: "auggie", version: "0.36.0 (commit 7c61e5bb)" });
+  });
+
+  test("Hostile or malformed values are cleaned or ignored, never dropping the entry", () => {
+    const home = stateHome();
+    const dir = join(home, "acp-tui");
+    mkdirSync(dir, { recursive: true });
+    const base = { agent: "auggie", directory: "/work/app", title: null, createdAt: "2026-10-04T09:00:00.000Z", updatedAt: "2026-10-04T09:00:00.000Z" };
+    const harnesses: Record<string, unknown> = {
+      old: undefined,
+      hostile: { name: "aug\x1b]0;x\x07gie\n", version: "1.2.2\x1b[31m‮\r\nsecond" },
+      long: { name: "a".repeat(500), version: "1".repeat(500) },
+      string: "auggie 1.2.2",
+      number: 7,
+      list: ["auggie", "1.2.2"],
+      noVersion: { name: "auggie" },
+      badVersion: { name: "auggie", version: 2 },
+      blank: { name: "  ", version: "\x1b" },
+      nullish: null,
+    };
+    const lines = Object.entries(harnesses).map(([sessionId, harness]) => ({ v: 1, kind: "recorded", record: { ...base, sessionId, ...(harness === undefined ? {} : { harness }) } }));
+    writeFileSync(join(dir, INDEX_FILE_NAME), lines.map((l) => JSON.stringify(l)).join("\n") + "\n");
+    const records = new Map(open(home).listAll().map((r) => [r.sessionId, r]));
+    expect([...records.keys()].sort()).toEqual(Object.keys(harnesses).sort());
+    for (const id of ["old", "string", "number", "list", "noVersion", "badVersion", "blank", "nullish"]) expect(records.get(id)).not.toHaveProperty("harness");
+    const hostile = records.get("hostile")!.harness!;
+    expect(hostile.name).not.toMatch(/[\x00-\x1f\x7f‮]/);
+    expect(hostile.version).not.toMatch(/[\x00-\x1f\x7f‮]/);
+    expect(hostile.name).toContain("aug");
+    const long = records.get("long")!.harness!;
+    expect(long.name.length).toBeLessThanOrEqual(80);
+    expect(long.version.length).toBeLessThanOrEqual(80);
+  });
+
+  test("A hostile harness given to record() is cleaned on write", () => {
+    const home = stateHome();
+    open(home, { now: () => T0 }).record({ agent: "auggie", sessionId: "s", directory: "/w", harness: { name: "auggie\x1b[2J", version: "1.2.2\n(x)" } });
+    const raw = readFileSync(join(home, "acp-tui", INDEX_FILE_NAME), "utf8");
+    expect(raw).not.toContain("\\u001b");
+    expect(open(home).find("s").record?.harness).toEqual({ name: "auggie", version: "1.2.2 (x)" });
+  });
+
+  test("Recording the session again without a harness (an older acp-tui) keeps the known one; with one, it is replaced", () => {
+    const home = stateHome();
+    const index = open(home, { now: () => T0 });
+    index.record({ agent: "auggie", sessionId: "s", directory: "/w", harness: { name: "auggie", version: "0.36.0" } });
+    index.record({ agent: "auggie", sessionId: "s", directory: "/w" });
+    expect(open(home).find("s").record?.harness).toEqual({ name: "auggie", version: "0.36.0" });
+    index.record({ agent: "auggie", sessionId: "s", directory: "/w", harness: { name: "auggie", version: "1.2.2" } });
+    expect(open(home).find("s").record?.harness).toEqual({ name: "auggie", version: "1.2.2" });
+  });
+
+  test("Compaction keeps the harness", () => {
+    const home = stateHome();
+    const index = open(home, { now: () => T0, compactAt: 5, keep: 3 });
+    index.record({ agent: "auggie", sessionId: "keep", directory: "/w", harness: { name: "auggie", version: "1.2.2" } });
+    for (let n = 0; n < 6; n++) index.updateActivity({ agent: "auggie", sessionId: "keep" }, T0 + n);
+    expect(open(home).find("keep").record?.harness).toEqual({ name: "auggie", version: "1.2.2" });
+  });
+});

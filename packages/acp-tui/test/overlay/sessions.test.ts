@@ -482,3 +482,45 @@ describe("Short names for ad hoc harnesses (auggie-1x-support 7.6)", () => {
   });
 });
 
+
+describe("Rows of another harness generation (auggie-1x-support task 9.3)", () => {
+  const zero = { name: "auggie", version: "0.36.0 (commit 7c61e5bb)" };
+  const one = { name: "auggie", version: "1.2.2" };
+  const AUGGIE: CurrentAgent = { name: "auggie", command: null };
+  const rows = mergeSessions([], [record("s-0", "auggie", "/w", "2026-10-04T10:00:00Z", { harness: zero }), record("s-1", "auggie", "/w", "2026-10-04T09:00:00Z", { harness: one }), record("s-2", "auggie", "/w", "2026-10-04T08:00:00Z")], AUGGIE);
+  const item = (id: string, generation: "auggie-0" | "auggie-1" | null | undefined) => sessionListItem(rows.find((r) => r.kind === "session" && r.sessionId === id)!, { now: Date.parse("2026-10-04T12:00:00Z"), home: null, ...(generation === undefined ? {} : { generation }) });
+
+  test("the entry carries the recorded harness, also when the harness lists the session too", () => {
+    expect(rows.map((r) => (r.kind === "session" ? r.harness?.version : null))).toEqual(["0.36.0 (commit 7c61e5bb)", "1.2.2", undefined]);
+    const listed: SessionInfo[] = [{ sessionId: "s-0", cwd: "/w", title: "t", updatedAt: "2026-10-04T10:00:00Z" }];
+    const merged = mergeSessions(listed, [record("s-0", "auggie", "/w", "2026-10-04T10:00:00Z", { harness: zero })], AUGGIE);
+    expect(merged[0]?.harness).toEqual(zero);
+  });
+
+  test("under an auggie-1 harness only the 0.x row is dim; an entry with no recorded harness is not", () => {
+    expect(item("s-0", "auggie-1").dim).toBe(true);
+    expect(item("s-1", "auggie-1").dim).toBeUndefined();
+    expect(item("s-2", "auggie-1").dim).toBeUndefined();
+    expect(item("s-1", "auggie-0").dim).toBe(true);
+  });
+
+  test("before the harness has answered initialize (no generation), or without a profile, nothing is dim", () => {
+    expect(item("s-0", null).dim).toBeUndefined();
+    expect(item("s-0", undefined).dim).toBeUndefined();
+  });
+
+  test("a dim row is drawn in the muted token but is still selectable", () => {
+    const items = [item("s-0", "auggie-1"), item("s-1", "auggie-1")];
+    const view = (list: ListItem[], width: number, extra: Partial<OverlayView> = {}): OverlayView => ({
+      title: "Sessions", filter: "", placeholder: "type to filter", items: list, grouped: false, selected: 0, offset: 0, width, rows: 21, closeLabel: "esc", hints: [], marks: false, ...extra,
+    });
+    const at = (selected: number) => overlayLayout(view(items, 100, { selected, detailMin: DETAIL_MIN_WIDTHS })).lines.find((l) => text(l).includes("s-0 from the index"))!;
+    // The title, the padding and the details are all muted.
+    expect(at(1).filter((seg) => seg.text.trim() !== "" && !/[╭╮╰╯│─]/.test(seg.text)).every((seg) => seg.token === "muted")).toBe(true);
+    // Selected, it is highlighted as any row.
+    expect(at(0).some((seg) => seg.selected === true)).toBe(true);
+    // The 1.x row's title is plain text.
+    const other = overlayLayout(view(items, 100, { selected: 0, detailMin: DETAIL_MIN_WIDTHS })).lines.find((l) => text(l).includes("s-1 from the index"))!;
+    expect(other.some((seg) => seg.token === "text" && seg.text.includes("s-1"))).toBe(true);
+  });
+});

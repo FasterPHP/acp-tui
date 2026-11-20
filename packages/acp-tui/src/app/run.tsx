@@ -324,6 +324,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     canList: switcher.canList,
     listPage: switcher.listPage,
     records: switcher.records,
+    generation: switcher.generation,
     choose: switcher.choose,
     current: switcher.current,
     starting: switcher.starting,

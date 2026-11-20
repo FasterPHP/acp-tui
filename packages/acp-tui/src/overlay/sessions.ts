@@ -25,9 +25,10 @@
 // held on one line (`oneLine`) before it reaches a row.
 import type { SessionInfo } from "@agentclientprotocol/sdk";
 import { commandDisplayName, shortHarnessName } from "../agent/harness-name.ts";
+import { recordedProfile, type HarnessProfileId } from "../agent/harness-profiles.ts";
 import type { Platform } from "../platform/paths.ts";
 import { shortenHome, truncateMiddle } from "../layout/segments.ts";
-import { AD_HOC_AGENT, oneLine, type SessionRecord } from "../session/session-index.ts";
+import { AD_HOC_AGENT, oneLine, type RecordedHarness, type SessionRecord } from "../session/session-index.ts";
 import type { ListItem } from "./list.ts";
 
 /** The agent in use: its name, or `ad hoc` with its command. */
@@ -58,6 +59,8 @@ export interface SessionEntry {
   readonly updatedAt: string | null;
   /** The session belongs to the agent in use (its own list, or the index with the same agent). */
   readonly current: boolean;
+  /** The harness the index records as having recorded it (absent: an older entry, or one only the harness lists). */
+  readonly harness?: RecordedHarness;
 }
 
 export type SessionListEntry = NewSessionEntry | SessionEntry;
@@ -131,6 +134,7 @@ export function mergeSessions(
       rows.set(k, {
         ...listedRow,
         title: record.title ?? listedRow.title,
+        ...(record.harness ? { harness: record.harness } : {}),
         updatedAt: instant(record.updatedAt) > instant(listedRow.updatedAt) ? record.updatedAt : listedRow.updatedAt,
       });
       continue;
@@ -144,6 +148,7 @@ export function mergeSessions(
       title: record.title,
       updatedAt: record.updatedAt,
       current: mine,
+      ...(record.harness ? { harness: record.harness } : {}),
     });
   }
   // Newest first; a stable order for equal times.
@@ -212,7 +217,10 @@ export function detailDropOrder(scope: SessionScope): readonly number[] {
 
 /** The list item of an entry: the title, then the agent, the activity time and the directory
  *  as details, one per column (empty when unknown, so the columns stay in place). */
-export function sessionListItem(entry: SessionListEntry, context: { readonly now: number; readonly home: string | null; readonly platform?: Platform }): ListItem {
+export function sessionListItem(
+  entry: SessionListEntry,
+  context: { readonly now: number; readonly home: string | null; readonly platform?: Platform; readonly generation?: HarnessProfileId | null },
+): ListItem {
   if (entry.kind === "new") {
     const agent = agentName(entry.agent);
     return { id: `new:${entry.agent}`, group: null, title: `New session with ${agent}`, search: agent };
@@ -225,9 +233,19 @@ export function sessionListItem(entry: SessionListEntry, context: { readonly now
     group: null,
     title: entry.title ?? entry.sessionId,
     details: [agent, activityTime(entry.updatedAt, context.now), truncateMiddle(directory, DIRECTORY_COLUMNS)],
+    // Drawn muted, and still chosen (to show why it cannot be opened), once the harness is known.
+    ...(otherGeneration(entry, context.generation ?? null) ? { dim: true } : {}),
     // The filter matches the title, the agent or the directory (spec tui-sessions "Filter").
     search: [agent, entry.directory, directory].join(" "),
   };
+}
+
+/** Whether a session was recorded by another generation of the harness than the one in use
+ *  (`generation`, null until the harness has answered `initialize`, or when it has no profile). */
+export function otherGeneration(entry: SessionEntry, generation: HarnessProfileId | null): boolean {
+  if (generation === null) return false;
+  const recorded = recordedProfile(entry.harness);
+  return recorded !== null && recorded.generation !== generation;
 }
 
 /** The harness as the list names it in its footer: its name, or for an `ad hoc` command its first

@@ -102,3 +102,36 @@ export function newerThanCheckedNotice(profile: HarnessProfile | null): string |
   if (Bun.semver.order(profile.version, profile.newerFrom) < 0) return null;
   return `auggie ${sanitise(profile.version, "approval")} is newer than acp-tui has been checked with (${profile.checkedThrough})`;
 }
+
+/** The generation as a message names it: `Auggie 0.x`. */
+function generationLabel(id: HarnessProfileId): string {
+  const definition = HARNESS_PROFILES[id];
+  return `${definition.displayName} ${id.slice(id.lastIndexOf("-") + 1)}.x`;
+}
+
+/** The profile an index entry's recorded harness maps to, or null (none recorded, or no profile). */
+export function recordedProfile(recorded: { readonly name: string; readonly version: string } | null | undefined): HarnessProfile | null {
+  return recorded ? profileFor(recorded) : null;
+}
+
+/**
+ * Why `sessionId`, recorded by `recorded`, cannot be opened by the harness `using`, or null when it
+ * can (no profile on either side, or the same generation). Nothing is sent to the harness: the
+ * message names the Auggie that recorded the session, the one in use, and the way back. Versions are
+ * leading semvers, so nothing hostile reaches the text; it is sanitised again regardless.
+ */
+export function generationRefusal(sessionId: string, recorded: { readonly name: string; readonly version: string } | null | undefined, using: HarnessProfile | null): string | null {
+  const was = recordedProfile(recorded);
+  if (was === null || using === null || was.generation === using.generation) return null;
+  const clean = (text: string) => sanitise(text, "approval").replace(/\s+/g, " ").trim();
+  const head = `session ${clean(sessionId)} was recorded with ${was.displayName} ${clean(was.version)}, and ${using.displayName} ${clean(using.version)} cannot open ${generationLabel(was.generation)} sessions`;
+  const way = using.generation === "auggie-1" ? "import them in auggie with /import-legacy-sessions (they get new IDs)" : `to use ${generationLabel(was.generation)} again: npm install -g @augmentcode/auggie`;
+  return `${head}; ${way}`;
+}
+
+/** What an `auggie-1` harness's `session/load` error adds for an entry with no recorded harness, when
+ *  its reason reads `Session … not found` (an older entry may be a 0.x session), else null. */
+export function olderEntryAdvice(using: HarnessProfile | null, errorText: string): string | null {
+  if (using?.generation !== "auggie-1" || !/Session\b[^\n]*\bnot found/i.test(errorText)) return null;
+  return "if it was recorded with Auggie 0.x, import it in auggie with /import-legacy-sessions (it gets a new ID)";
+}

@@ -43,7 +43,7 @@ import { existsSync, statSync } from "node:fs";
 import { sanitise, type SessionOpenMode } from "acp-model";
 import type { SessionInfo } from "@agentclientprotocol/sdk";
 import { LoginRequiredError } from "../agent/login.ts";
-import { newerThanCheckedNotice } from "../agent/harness-profiles.ts";
+import { generationRefusal, newerThanCheckedNotice, olderEntryAdvice } from "../agent/harness-profiles.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
@@ -56,7 +56,7 @@ import { CannotReopenError, connectAgent, type ConnectedController, type Launche
 import { createSessionRecorder, type SessionRecorder } from "./recorder.ts";
 import { userHome } from "../platform/paths.ts";
 import { agentErrorText } from "../agent/errors.ts";
-import { oneLine, type SessionIndex } from "./session-index.ts";
+import { cleanHarness, oneLine, type RecordedHarness, type SessionIndex } from "./session-index.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
 
 /** The end of a command-line failure to find or open a session (Marcus, 5 October 2026, IDE
@@ -149,6 +149,9 @@ export interface SessionTarget {
   readonly note?: string;
   /** The directories the index records as added for the session (absent: none). */
   readonly addedDirectories?: readonly string[];
+  /** The harness the index records as having recorded the session (absent: older entries, and
+   *  sessions the harness lists that the index does not hold). */
+  readonly harness?: RecordedHarness;
 }
 
 /** What `prepareLaunch` found: the launch to use (for `--continue`, possibly another agent's),
@@ -270,7 +273,7 @@ function requireReopen(controller: SessionController, sessionId: string, launch:
 /** `--resume <id>`: the session's directory and a known title (design decision 2), or a
  *  `SessionOpenFailure` when no source knows it. */
 async function resumeTarget(controller: SessionController, launch: LaunchDescription, sessionId: string, logger?: DebugLogger): Promise<SessionTarget> {
-  if (launch.indexed) return { sessionId, directory: launch.indexed.directory, title: launch.indexed.title };
+  if (launch.indexed) return { sessionId, directory: launch.indexed.directory, title: launch.indexed.title, ...(launch.indexed.harness ? { harness: launch.indexed.harness } : {}) };
   // An agent that cannot list cannot confirm the ID: the load decides, in the launch directory
   // (design decision 13).
   if (!controller.support.list) return { sessionId, directory: launch.directory, title: null };
@@ -312,8 +315,8 @@ async function latestCandidate(
   const directory = launch.directory;
   const argv = launchArgv(launch);
   let best: Candidate | null = null;
-  // The index's record of a session, for the directories added to it.
-  const recordedFor = (agent: string, sessionId: string): readonly string[] | undefined => index.list({ agent, directory }).find((r) => r.sessionId === sessionId)?.addedDirectories;
+  // The index's record of a session, for the directories added to it and the harness that recorded it.
+  const recordOf = (agent: string, sessionId: string) => index.list({ agent, directory }).find((r) => r.sessionId === sessionId);
   const consider = (candidate: Candidate): void => {
     if (best === null || candidate.at > best.at) best = candidate;
   };
@@ -322,8 +325,9 @@ async function latestCandidate(
     await scanList(controller, directory, logger, (info) => {
       // An agent that ignores the filter must not hand over another directory's session.
       if (info.cwd === directory) {
-        const added = recordedFor(launch.agentName, info.sessionId);
-        consider({ sessionId: info.sessionId, agent: launch.agentName, directory, title: typeof info.title === "string" ? oneLine(info.title) || null : null, ...(added ? { addedDirectories: added } : {}), at: instant(info.updatedAt) });
+        const recorded = recordOf(launch.agentName, info.sessionId);
+        const added = recorded?.addedDirectories;
+        consider({ sessionId: info.sessionId, agent: launch.agentName, directory, title: typeof info.title === "string" ? oneLine(info.title) || null : null, ...(added ? { addedDirectories: added } : {}), ...(recorded?.harness ? { harness: recorded.harness } : {}), at: instant(info.updatedAt) });
       }
       return false;
     }, onListError);
@@ -338,7 +342,7 @@ async function latestCandidate(
       // A session of an agent no longer configured could not be opened.
       continue;
     }
-    consider({ sessionId: record.sessionId, agent: record.agent, directory, title: record.title, ...(record.addedDirectories ? { addedDirectories: record.addedDirectories } : {}), at: instant(record.updatedAt) });
+    consider({ sessionId: record.sessionId, agent: record.agent, directory, title: record.title, ...(record.addedDirectories ? { addedDirectories: record.addedDirectories } : {}), ...(record.harness ? { harness: record.harness } : {}), at: instant(record.updatedAt) });
   }
   return best;
 }
@@ -412,6 +416,7 @@ async function prepareContinue(options: StartLaunchOptions): Promise<PreparedLau
       directory: best.directory,
       title: best.title,
       ...(best.addedDirectories ? { addedDirectories: best.addedDirectories } : {}),
+      ...(best.harness ? { harness: best.harness } : {}),
       ...(asked.skipped !== null ? { note: `could not ask ${oneLine(launch.agentName)} for its sessions; continued from acp-tui's record` } : {}),
     };
     // The session's own directories (configuration, recorded, --add-dir): a harness that takes them as
@@ -479,6 +484,11 @@ export async function startLaunch(options: StartLaunchOptions): Promise<StartedS
   }
 }
 
+/** The harness as the index records it: the `agentInfo` name and version, or null when it gave either as anything but text. */
+function recordedHarness(info: { readonly name?: unknown; readonly version?: unknown } | null): RecordedHarness | null {
+  return info && typeof info.name === "string" && typeof info.version === "string" ? cleanHarness({ name: info.name, version: info.version }) : null;
+}
+
 /** The `agentInfo` objects whose version notice has been considered (one per harness process). */
 const versionNoticed = new WeakSet<object>();
 
@@ -504,9 +514,10 @@ export async function startOn(controller: ConnectedController, options: StartLau
   const cancelled = (): boolean => options.cancelled?.() ?? false;
   const notify = (text: string): void => options.notify?.(sanitise(text, "approval"));
   const command = launchArgv(launch);
+  const recorded = recordedHarness(controller.agentInfo);
   const recorder = createSessionRecorder(
     index,
-    { agent: launch.agentName, ...(launch.agentName === AD_HOC_AGENT ? { command } : {}), ...(launch.addedDirectories ? { addedDirectories: launch.addedDirectories } : {}) },
+    { agent: launch.agentName, ...(recorded ? { harness: recorded } : {}), ...(launch.agentName === AD_HOC_AGENT ? { command } : {}), ...(launch.addedDirectories ? { addedDirectories: launch.addedDirectories } : {}) },
     options.now ? { now: options.now } : {},
   );
   controller.subscribe((session) => recorder.observe(session));
@@ -552,6 +563,9 @@ export async function startOn(controller: ConnectedController, options: StartLau
   }
   // Nothing is sent, and nothing attached, to an agent that cannot reopen sessions.
   requireReopen(controller, target.sessionId, launch);
+  // A session another generation of the harness recorded is refused before anything is sent.
+  const refused = generationRefusal(target.sessionId, target.harness, controller.profile);
+  if (refused !== null) throw new SessionOpenFailure(refused);
 
   if (launch.indexMatches > 1) notify(`${launch.indexMatches} harnesses have this session: opened with ${oneLine(launch.agentName)} (latest)`);
 
@@ -563,7 +577,9 @@ export async function startOn(controller: ConnectedController, options: StartLau
     if (cancelled()) return null;
     // The logged-out signature after `session/load` or `session/resume`: the login message, as for `session/new`.
     if (error instanceof LoginRequiredError) throw new SessionOpenFailure(error.message);
-    throw openFailure(error, target.sessionId, launch, options.openHint);
+    // An older entry (no recorded harness) that an `auggie-1` harness cannot find may be a 0.x session.
+    const advice = target.harness ? null : olderEntryAdvice(controller.profile, agentErrorText(error));
+    throw openFailure(error, target.sessionId, launch, [advice, options.openHint].filter(Boolean).join("; ") || undefined);
   }
   if (cancelled()) return null;
   // Design decision 2: a session in another directory than the launch directory (the shell's)

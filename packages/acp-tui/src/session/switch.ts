@@ -46,6 +46,7 @@ import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
 import type { ConnectedController, LaunchedHarness } from "./controller.ts";
 import type { SessionRecorder } from "./recorder.ts";
 import { oneLine, type SessionIndex, type SessionRecord } from "./session-index.ts";
+import type { HarnessProfileId } from "../agent/harness-profiles.ts";
 import { agentLabel, connectLaunch, prepareLaunch, RESUME_HINT, SessionOpenFailure, ignoresDirectoriesNotice, startOn, type PreparedLaunch, type SessionTarget } from "./start.ts";
 import type { SessionStore } from "./store.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
@@ -117,6 +118,8 @@ export interface SessionSwitcherOptions {
 export interface SessionSwitcher {
   /** The session in use, or null before the agent has started. */
   current(): CurrentSession | null;
+  /** The generation of the harness in use, once it has answered `initialize` and has a profile, else null. */
+  generation(): HarnessProfileId | null;
   /** Before the full-screen app: for `--resume <id>` and `--continue`, launches and initialises
    *  the agent and finds the session (`prepareLaunch`); nothing for a new session or the list.
    *  Throws the agent's start-up errors and `SessionOpenFailure`, nothing left running. */
@@ -397,6 +400,8 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
     records: () => index.listAll(),
 
+    generation: () => state?.controller.profile?.generation ?? null,
+
     refusal,
 
     choose: (entry) => open(entry),
@@ -437,7 +442,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       }
       const recorded = entry.kind === "session" ? (recordedOverride ?? recordedDirectories(entry.agent, entry.sessionId)) : [];
       const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }, recorded) : launchFor(base, directory(), { kind: "new" }, recordedOverride ?? []);
-      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title, ...(recorded.length > 0 ? { addedDirectories: recorded } : {}) } : null;
+      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title, ...(recorded.length > 0 ? { addedDirectories: recorded } : {}), ...(entry.harness ? { harness: entry.harness } : {}) } : null;
       // The same command (and environment) on a live connection: the agent process is kept.
       const shared = commandKey(target) === commandKey(previous.launch) && previous.controller.getSession().connection !== "disconnected";
 

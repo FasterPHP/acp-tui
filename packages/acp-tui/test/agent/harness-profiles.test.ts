@@ -1,7 +1,7 @@
 // Harness profiles keyed on `agentInfo` (spec tui-agent-session "Harness profiles recognised from
 // initialize" and "Harness newer than checked"), as pure rules.
 import { describe, expect, test } from "bun:test";
-import { HARNESS_PROFILES, leadingSemver, newerThanCheckedNotice, profileFor } from "../../src/agent/harness-profiles.ts";
+import { generationRefusal, HARNESS_PROFILES, leadingSemver, newerThanCheckedNotice, olderEntryAdvice, profileFor } from "../../src/agent/harness-profiles.ts";
 
 describe("profileFor", () => {
   test("auggie 0.x with a commit in the version", () => {
@@ -61,5 +61,43 @@ describe("newerThanCheckedNotice", () => {
 
   test("no profile: none", () => {
     expect(newerThanCheckedNotice(null)).toBeNull();
+  });
+});
+
+describe("generationRefusal and olderEntryAdvice (auggie-1x-support task 9.2 and 9.4)", () => {
+  const one = profileFor({ name: "auggie", version: "1.2.2" });
+  const zero = profileFor({ name: "auggie", version: "0.37.1 (commit 1a2b3c4d)" });
+
+  test("0.x recorded, 1.x in use: the import advice, with the version without its commit", () => {
+    expect(generationRefusal("s-0", { name: "auggie", version: "0.36.0 (commit 7c61e5bb)" }, one)).toBe(
+      "session s-0 was recorded with Auggie 0.36.0, and Auggie 1.2.2 cannot open Auggie 0.x sessions; import them in auggie with /import-legacy-sessions (they get new IDs)",
+    );
+  });
+
+  test("1.x recorded, 0.x in use: the way back", () => {
+    expect(generationRefusal("s-1", { name: "auggie", version: "1.2.2" }, zero)).toBe(
+      "session s-1 was recorded with Auggie 1.2.2, and Auggie 0.37.1 cannot open Auggie 1.x sessions; to use Auggie 1.x again: npm install -g @augmentcode/auggie",
+    );
+  });
+
+  test("the same generation, no recorded harness, a harness without a profile, or an unreadable version: no refusal", () => {
+    expect(generationRefusal("s", { name: "auggie", version: "1.2.0" }, one)).toBeNull();
+    expect(generationRefusal("s", undefined, one)).toBeNull();
+    expect(generationRefusal("s", { name: "auggie", version: "0.36.0" }, null)).toBeNull();
+    expect(generationRefusal("s", { name: "other", version: "0.36.0" }, one)).toBeNull();
+    expect(generationRefusal("s", { name: "auggie", version: "beta" }, one)).toBeNull();
+  });
+
+  test("a hostile session ID reaches the message printable", () => {
+    expect(generationRefusal("s\x1b[2J\n0", { name: "auggie", version: "0.36.0" }, one)).not.toMatch(/[\x00-\x1f\x7f]/);
+  });
+
+  test("older entries: only an auggie-1 harness and a `Session … not found` reason add the advice", () => {
+    const text = "Internal error: Session s-2 not found (-32603)";
+    expect(olderEntryAdvice(one, text)).toContain("/import-legacy-sessions");
+    expect(olderEntryAdvice(zero, text)).toBeNull();
+    expect(olderEntryAdvice(null, text)).toBeNull();
+    expect(olderEntryAdvice(one, "Internal error: No API key found")).toBeNull();
+    expect(olderEntryAdvice(one, "Resource not found")).toBeNull();
   });
 });

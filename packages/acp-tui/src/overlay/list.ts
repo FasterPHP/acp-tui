@@ -37,6 +37,9 @@ export interface ListItem {
    *  muted colour, never highlighted, skipped by the keyboard selection and the pointer, and run by
    *  neither Enter nor a click. */
   readonly muted?: boolean;
+  /** Drawn in the muted colour but still selectable and chosen (a session row another harness
+   *  generation recorded, whose choice explains why it cannot be opened). */
+  readonly dim?: boolean;
   /** Shown in the key column, as the keys are, while no key is bound to it: how to reach it
    *  otherwise (`esc esc` for interrupting the turn, `click the pill` for the model; spec
    *  tui-palette "Command palette overlay"). The filter matches it. */
@@ -369,9 +372,10 @@ function framed(content: OverlaySegment[], inner: number, selected = false): Ove
 function detailRow(item: ListItem, columns: DetailColumns, selected: boolean): OverlaySegment[] {
   const sel = selected ? { selected: true } : {};
   const title = truncateEnd(item.title, columns.title);
-  const out: OverlaySegment[] = [{ text: title, token: "text", ...sel }];
+  const body: TokenName = item.dim ? "muted" : "text";
+  const out: OverlaySegment[] = [{ text: title, token: body, ...sel }];
   const pad = columns.title - displayWidth(title);
-  if (pad > 0) out.push({ text: " ".repeat(pad), token: "text", ...sel });
+  if (pad > 0) out.push({ text: " ".repeat(pad), token: body, ...sel });
   for (const { index, width } of columns.columns) {
     const detail = item.details![index] ?? "";
     out.push({ text: `${" ".repeat(DETAIL_GAP)}${detail}${" ".repeat(Math.max(0, width - displayWidth(detail)))}`, token: "muted", ...sel });

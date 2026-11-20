@@ -42,6 +42,7 @@ import { actionLabel } from "../keys/keymap.ts";
 import { registerContext, type ContextHandlers } from "../keys/register.ts";
 import { oneLine, type SessionRecord } from "../session/session-index.ts";
 import { SESSION_LIST_OVERLAY } from "../session/store.ts";
+import type { HarnessProfileId } from "../agent/harness-profiles.ts";
 import type { SessionSwitcher } from "../session/switch.ts";
 import type { TokenName } from "../theme/index.ts";
 import { spanStyle as toSpan } from "../theme/index.ts";
@@ -72,6 +73,8 @@ export type SessionListHost = Pick<
   SessionSwitcher,
   "agents" | "currentAgent" | "directory" | "canList" | "listPage" | "records" | "choose" | "current" | "starting" | "ready"
 > & {
+  /** The generation of the harness in use once it has answered `initialize` and has a profile, else null. */
+  generation?(): HarnessProfileId | null;
   /** Esc at start-up: starts a new session (the app reports a failure as a start-up failure). */
   startNew(): void;
   /** Clock for the activity times; default `Date.now`. */
@@ -131,6 +134,8 @@ function SessionListOverlay(props: {
   const [held, setHeld] = createSignal<string | null>(null);
   const [listed, setListed] = createSignal<readonly SessionInfo[]>([]);
   const [records, setRecords] = createSignal<readonly SessionRecord[]>([]);
+  // The harness's generation once it has answered `initialize` (rows another generation recorded are muted).
+  const [harnessGeneration, setHarnessGeneration] = createSignal<HarnessProfileId | null>(null);
   const [cursor, setCursor] = createSignal<string | null>(null);
   const [reading, setReading] = createSignal(false);
   // The harness is still starting (a `--resume` list opened before it was up), and a choice made
@@ -209,6 +214,7 @@ function SessionListOverlay(props: {
       setReading(false);
       setRecords(host.records());
       setHeld(null);
+      setHarnessGeneration(host.generation?.() ?? null);
     });
     lastOffset = 0;
     lastIndex = 0;
@@ -222,7 +228,10 @@ function SessionListOverlay(props: {
     host.ready().then(
       () => {
         if (at !== generation) return;
-        setStarting(false);
+        batch(() => {
+          setStarting(false);
+          setHarnessGeneration(host.generation?.() ?? null);
+        });
         readPage(null);
       },
       (error: unknown) => {
@@ -262,7 +271,7 @@ function SessionListOverlay(props: {
     const sessions = mergeSessions(listed(), records(), current, scope() === "directory" ? s.directory : null, s.only);
     return [...newSessionEntries(s.only === null ? s.agents : s.agents.filter((a) => a === s.only), current), ...sessions];
   });
-  const items = createMemo(() => entries().map((entry) => ({ entry, item: sessionListItem(entry, { now: now(), home }) })));
+  const items = createMemo(() => entries().map((entry) => ({ entry, item: sessionListItem(entry, { now: now(), home, generation: harnessGeneration() }) })));
   const shown = createMemo(() => {
     const matching = new Set(filterItems(items().map((i) => i.item), filter()).map((i) => i.id));
     return items().filter((i) => matching.has(i.item.id));

@@ -17,7 +17,7 @@
 // The index sanitises and flattens every title again before it is stored.
 import type { Session } from "acp-model";
 import { takeWidth } from "../layout/segments.ts";
-import { oneLine, type SessionIndex, type SessionKey } from "./session-index.ts";
+import { oneLine, type RecordedHarness, type SessionIndex, type SessionKey } from "./session-index.ts";
 
 /** A title made from a prompt is cut to this many columns (spec tui-sessions "Session titles"). */
 export const PROMPT_TITLE_COLUMNS = 80;
@@ -49,6 +49,8 @@ export interface SessionIdentity {
   /** The directories added for this session (`--add-dir`, the ones recorded earlier), written
    *  with its index entry; the configuration's are not recorded. */
   readonly addedDirectories?: readonly string[];
+  /** The harness's `agentInfo` name and version, written with the entry (absent when it reported none). */
+  readonly harness?: RecordedHarness;
 }
 
 export interface SessionRecorder {
@@ -96,6 +98,7 @@ export function createSessionRecorder(index: SessionIndex, identity: SessionIden
     index.record({
       ...key,
       ...(identity.command ? { command: identity.command } : {}),
+      ...(identity.harness ? { harness: identity.harness } : {}),
       directory: session.cwd ?? "",
       title: recordTitle,
       ...(addedDirectories && addedDirectories.length > 0 ? { addedDirectories } : {}),

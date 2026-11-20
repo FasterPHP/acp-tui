@@ -240,3 +240,31 @@ describe("Recorded on the first answered prompt (auggie-1x-support 7.1)", () => 
   });
 });
 
+
+describe("harness recorded with the entry (auggie-1x-support task 9.1)", () => {
+  test("the identity's harness is written when the session is recorded, and again when it is opened", () => {
+    const idx = index(() => T0);
+    const harness = { name: "auggie", version: "1.2.2" };
+    const recorder = createSessionRecorder(idx, { agent: "auggie", harness }, { now: () => T0 });
+    const s = drive(recorder);
+    s.newSession("s-h", "/work/repo");
+    expect(idx.listAll()).toEqual([]);
+    s.prompt("hello");
+    expect(idx.find("s-h").record?.harness).toEqual(harness);
+
+    const opened = createSessionRecorder(idx, { agent: "auggie", harness: { name: "auggie", version: "1.3.0" } }, { now: () => T0 + 1000 });
+    const o = drive(opened);
+    o.newSession("s-h", "/work/repo");
+    opened.opened(o.step({ type: "session_updated" } as never), {});
+    expect(idx.find("s-h").record?.harness).toEqual({ name: "auggie", version: "1.3.0" });
+  });
+
+  test("a harness that reports none leaves the entry without one", () => {
+    const idx = index(() => T0);
+    const recorder = createSessionRecorder(idx, { agent: "fake" }, { now: () => T0 });
+    const s = drive(recorder);
+    s.newSession("s-n", "/work/repo");
+    s.prompt("hello");
+    expect(idx.find("s-n").record).not.toHaveProperty("harness");
+  });
+});
