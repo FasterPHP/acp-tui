@@ -245,8 +245,15 @@ describe("summaries and lines", () => {
   });
 
   test("turn-end marker: stop reason, duration, context when known", () => {
-    const marker = { id: "m", status: "final" as const, origin: "self" as const, kind: "marker" as const, markerKind: "turn_end" as const, stopReason: "max_tokens" as const, durationMs: 1234, usage: { used: 38000, size: 200000 } };
+    const marker = { id: "m", status: "final" as const, origin: "self" as const, kind: "marker" as const, markerKind: "turn_end" as const, stopReason: "max_tokens" as const, interrupted: false, durationMs: 1234, usage: { used: 38000, size: 200000 } };
     expect(text(turnEndLine(marker))).toBe("max tokens · 1.2s · ctx 38k/200k");
     expect(text(turnEndLine({ ...marker, usage: null }))).toBe("max tokens · 1.2s");
+  });
+
+  test("turn-end marker of an interrupted turn reads interrupted, whatever the agent answered", () => {
+    const marker = { id: "m", status: "final" as const, origin: "self" as const, kind: "marker" as const, markerKind: "turn_end" as const, stopReason: "end_turn" as const, interrupted: true, durationMs: 1234, usage: { used: 38000, size: 200000 } };
+    expect(text(turnEndLine(marker))).toBe("interrupted · 1.2s · ctx 38k/200k");
+    expect(text(turnEndLine({ ...marker, stopReason: "cancelled" }))).toBe("interrupted · 1.2s · ctx 38k/200k");
+    expect(text(turnEndLine({ ...marker, interrupted: false, stopReason: "cancelled" }))).toBe("cancelled · 1.2s · ctx 38k/200k");
   });
 });

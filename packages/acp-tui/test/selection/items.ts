@@ -58,6 +58,7 @@ export const turnEnd = (id: string): MarkerItem => ({
   origin: "self",
   kind: "marker",
   markerKind: "turn_end",
+  interrupted: false,
   stopReason: "end_turn",
   durationMs: 1200,
   usage: null,

@@ -82,6 +82,8 @@ describe("session controller (task 5.4) against fake-agent basic", () => {
 
     const finished = await waitFor(controller, (session) => session.state === "idle" && session.stopReason !== null);
     expect(finished.stopReason).toBe("cancelled");
+    const turnEnd = finished.order.map((id) => finished.items.get(id)).find((item) => item?.kind === "marker" && item.markerKind === "turn_end");
+    expect(turnEnd?.kind === "marker" && turnEnd.markerKind === "turn_end" && turnEnd.interrupted).toBe(true);
 
     const permissionRecord = finished.order.map((id) => finished.items.get(id)).find((item) => item?.kind === "permission_record");
     expect(permissionRecord?.kind === "permission_record" && permissionRecord.outcome.type).toBe("cancelled");
@@ -90,6 +92,30 @@ describe("session controller (task 5.4) against fake-agent basic", () => {
     // basic.test.ts assertion for the same path, at the model level).
     const kinds = finished.order.map((id) => finished.items.get(id)?.kind);
     expect(kinds).not.toContain("plan");
+  });
+
+  test("cancel dispatches interrupt_requested before session/cancel and logs it; the agent's end_turn stays", async () => {
+    const events: Record<string, unknown>[] = [];
+    const logger: DebugLogger = { log: (event) => void events.push(event as Record<string, unknown>) } as DebugLogger;
+    const controller = await track(await startSession({ command: fakeAgentCommand({ scenario: "auggie-1" }), cwd: tmpCwd(), logger }));
+    controller.prompt("slow");
+    await waitFor(controller, (session) => session.state === "running" && [...session.items.values()].some((item) => item.kind === "tool_call"));
+    controller.cancel();
+    const finished = await waitFor(controller, (session) => session.state === "idle" && session.stopReason !== null);
+    expect(finished.stopReason).toBe("end_turn");
+    const turnEnd = finished.order.map((id) => finished.items.get(id)).find((item) => item?.kind === "marker" && item.markerKind === "turn_end");
+    expect(turnEnd?.kind === "marker" && turnEnd.markerKind === "turn_end" && turnEnd.interrupted).toBe(true);
+    const names = events.map((event) => event.event);
+    expect(names.indexOf("interrupt_requested")).toBeGreaterThanOrEqual(0);
+    expect(names.indexOf("interrupt_requested")).toBeLessThan(names.indexOf("cancel_request"));
+  });
+
+  test("a turn that was not interrupted is not marked", async () => {
+    const controller = await track(await startSession({ command: fakeAgentCommand({ scenario: "auggie-1" }), cwd: tmpCwd() }));
+    controller.prompt("hello");
+    const finished = await waitFor(controller, (session) => session.state === "idle" && session.stopReason !== null);
+    const turnEnd = finished.order.map((id) => finished.items.get(id)).find((item) => item?.kind === "marker" && item.markerKind === "turn_end");
+    expect(turnEnd?.kind === "marker" && turnEnd.markerKind === "turn_end" && turnEnd.interrupted).toBe(false);
   });
 
   test("onInitialized is called once, when initialize has been answered, and a hook that throws does not fail the start-up", async () => {

@@ -419,3 +419,41 @@ describe("the model keeps every item", () => {
     expect(session.order[4999]).toBe("tool:t4998");
   });
 });
+
+describe("the user's interrupt is recorded on the turn", () => {
+  const turnEnd = (session: Session) => markersOf(session).filter((m) => m.markerKind === "turn_end")[0];
+
+  test("Interrupted, agent says end_turn", () => {
+    let session = reduce(createSession(), { type: "prompt_sent", text: "go", at: 0 });
+    session = reduce(session, { type: "interrupt_requested", at: 1 });
+    expect(session.state).toBe("running");
+    session = reduce(session, { type: "prompt_response", stopReason: "end_turn", at: 2 });
+    const marker = turnEnd(session);
+    expect(marker?.markerKind === "turn_end" && marker.stopReason).toBe("end_turn");
+    expect(marker?.markerKind === "turn_end" && marker.interrupted).toBe(true);
+    expect(session.stopReason).toBe("end_turn");
+  });
+
+  test("Not interrupted, even when the agent says cancelled", () => {
+    let session = reduce(createSession(), { type: "prompt_sent", text: "go", at: 0 });
+    session = reduce(session, { type: "prompt_response", stopReason: "cancelled", at: 2 });
+    const marker = turnEnd(session);
+    expect(marker?.markerKind === "turn_end" && marker.interrupted).toBe(false);
+  });
+
+  test("Idle: the session is unchanged", () => {
+    const session = createSession();
+    expect(reduce(session, { type: "interrupt_requested", at: 1 })).toBe(session);
+  });
+
+  test("The mark does not carry into the next turn", () => {
+    let session = reduce(createSession(), { type: "prompt_sent", text: "go", at: 0 });
+    session = reduce(session, { type: "interrupt_requested", at: 1 });
+    session = reduce(session, { type: "prompt_response", stopReason: "end_turn", at: 2 });
+    session = reduce(session, { type: "interrupt_requested", at: 3 });
+    session = reduce(session, { type: "prompt_sent", text: "again", at: 4 });
+    session = reduce(session, { type: "prompt_response", stopReason: "end_turn", at: 5 });
+    const marker = markersOf(session).filter((m) => m.markerKind === "turn_end")[1];
+    expect(marker?.markerKind === "turn_end" && marker.interrupted).toBe(false);
+  });
+});

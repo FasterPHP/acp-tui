@@ -551,6 +551,8 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
         handler.cancelOpenPermission();
         const sessionId = session.id;
         if (!sessionId) return;
+        logger.log({ event: "interrupt_requested", sessionId });
+        dispatch({ type: "interrupt_requested", at: now() });
         logger.log({ event: "cancel_request", sessionId });
         void conn.cancel({ sessionId }).catch(() => {
           // The agent may already be gone; agent-exited handling covers that case.

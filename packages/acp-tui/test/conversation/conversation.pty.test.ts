@@ -213,10 +213,10 @@ describe("items in start order, updated in place (task 7.1)", () => {
     await s.waitFor(() => run!.events("key_action").some((e) => e["action"] === "back"), 5000);
     await s.waitFor(/esc again to interrupt/, 5000);
     s.sendKeys("Esc");
-    await s.waitFor(/cancelled · \d/, 10000);
+    await s.waitFor(/interrupted · \d/, 10000);
     await settle(s);
     expect(count(s, "  #2 permission  cancelled  Edit src/index.ts")).toBe(1);
-    expect(count(s, /^ {2}cancelled · \d+\.\ds$/)).toBe(1);
+    expect(count(s, /^ {2}interrupted · \d+\.\ds$/)).toBe(1);
     expect(count(s, /^ {2}← stop edit {5}Edit src\/index\.ts +#2$/)).toBe(1);
     // The read the turn ended on is behind the group line it joined; opening it shows `stop`.
     const group = s.findLine(/^ {2}▸ 1 thought · 1 read$/);
