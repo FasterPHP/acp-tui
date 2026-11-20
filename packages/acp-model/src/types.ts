@@ -334,6 +334,9 @@ export type ModelEvent =
    *  sent after a load or resume): appended at the end as a final `notice` marker with origin
    *  `replay`, so it never reads as activity from another client; the state is unchanged. */
   | { readonly type: "client_notice"; readonly text: string; readonly at: number }
+  /** An error from the client itself (a failed `/add-dir`): appended like `client_notice`, as a
+   *  final `error` marker with origin `replay`; the state is unchanged. */
+  | { readonly type: "client_error"; readonly text: string; readonly at: number }
   | { readonly type: "prompt_sent"; readonly text: string; readonly at: number }
   /** The user asked to cancel the running turn (dispatched before `session/cancel` is sent). No
    *  effect while idle. */

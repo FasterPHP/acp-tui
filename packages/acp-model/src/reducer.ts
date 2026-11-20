@@ -789,6 +789,18 @@ export function reduce(
       return { ...appendItem(session, item), nextMarkerSeq: session.nextMarkerSeq + 1 };
     }
 
+    case "client_error": {
+      const item: MarkerItem = {
+        id: `marker:${session.nextMarkerSeq}`,
+        status: "final",
+        origin: "replay",
+        kind: "marker",
+        markerKind: "error",
+        text: sanitise(event.text),
+      };
+      return { ...appendItem(session, item), nextMarkerSeq: session.nextMarkerSeq + 1 };
+    }
+
     case "prompt_sent": {
       const item: Item = {
         id: `user:${session.nextMarkerSeq}`,

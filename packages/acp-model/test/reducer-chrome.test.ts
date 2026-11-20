@@ -280,3 +280,23 @@ describe("current legacy model follows a successful selection", () => {
     expect(after.models?.currentModelId).toBe("gpt");
   });
 });
+
+describe("Client error markers (auggie-1x-support 7.4)", () => {
+  test("Error after a failed reopen", () => {
+    const created = reduce(createSession(), { type: "session_created", at: 0, cwd: "/work", response: { sessionId: "s-9" } });
+    const text = "cannot open session s-9 with harness 'auggie': Internal error: Session s-9 not found (-32603)";
+    const next = reduce(created, { type: "client_error", text, at: 1 });
+    const last = next.items.get(next.order[next.order.length - 1]!);
+    expect(last).toMatchObject({ kind: "marker", markerKind: "error", status: "final", origin: "replay", text });
+    expect(next.state).toBe("idle");
+    expect(next.turn).toBeNull();
+  });
+
+  test("Hostile error text", () => {
+    const created = reduce(createSession(), { type: "session_created", at: 0, cwd: "/work", response: { sessionId: "s-9" } });
+    const next = reduce(created, { type: "client_error", text: `bad ${ESC}]8;;http://evil${ESC}\\link${ESC}]8;;${ESC}\\ text`, at: 1 });
+    const last = next.items.get(next.order[next.order.length - 1]!) as { text: string };
+    expect(last.text).not.toContain(ESC);
+    expect(last.text).toContain("link");
+  });
+});
