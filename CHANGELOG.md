@@ -20,6 +20,9 @@
 - `/add-dir` and `--add-dir` work before the first prompt.
 - Errors and the messages of the session list can be selected and copied.
 - Rows in the session list for a command you ran with `--` show a short harness name (`claude` for the Claude adapter, the script's name for a runner).
+- Tool output keeps its line breaks: plain text output (from any harness, when it is not a recognised command result or a code block) was drawn with its lines joined.
+- A permission question keeps its line breaks, in the card's scrollable preview, so a command quoted on its own line stays on its own line.
+- Emoji that a terminal measures differently from how it draws them (`⚠️` in Zed) are drawn as their names in permission cards too, so the card's frame lines up.
 - The tester guide says to install Auggie 1.x; an older `config.jsonc` without `agent_servers` needs an `auggie` entry (`acp-tui config --diff-default` shows it).
 
 ## 0.2.0
