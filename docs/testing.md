@@ -59,7 +59,7 @@ auggie auth login
 
 If you choose to stay on Auggie 0.x, install `@augmentcode/auggie@v0-release` and log in with `auggie login`; acp-tui works with both and says which login a missing one needs.
 
-Auggie 1.x indexes a directory for its context engine only once it is allowed. When it is not, acp-tui asks, once per directory: answer with the arrows or Tab and Enter, press 1 to allow indexing or 2 for not now, or Esc for not now. Allowing restarts Auggie with `--allow-indexing` (the session is reopened) and Auggie keeps the allowance as a lasting rule. Not now lasts until acp-tui exits. [configuration.md](configuration.md#harnesses) has the details.
+Auggie 1.x indexes a directory for its context engine only once it is allowed. When it is not, acp-tui asks, once per directory: choose with the arrow keys and Enter, press 1 to allow indexing or 2 for not now, or Esc for not now. Allowing restarts Auggie with `--allow-indexing` (the session is reopened) and Auggie keeps the allowance as a lasting rule. Not now lasts until acp-tui exits. [configuration.md](configuration.md#harnesses) has the details.
 
 ## Configuration basics
 
