@@ -21,16 +21,16 @@ const NO_MODELS = {
   options: [],
 } as unknown as SessionConfigOption;
 
-function makeScenario(name: string, offerModels: boolean): Scenario {
+function makeScenario(name: string, offerModels: boolean, resumeOnly = false): Scenario {
   return {
     name,
-    harness: { sessions: true },
+    harness: { sessions: true, ...(resumeOnly ? { resumeOnly } : {}) },
 
     initialize() {
       return {
         agentInfo: { ...AUGGIE_1_INFO },
         agentCapabilities: {
-          loadSession: true,
+          loadSession: !resumeOnly,
           promptCapabilities: { image: true },
           sessionCapabilities: { resume: {}, close: {}, list: {}, additionalDirectories: {} },
         },
@@ -51,3 +51,7 @@ export const auggie1NoauthScenario: Scenario = makeScenario("auggie-1-noauth", f
 
 /** `--offer-models`: the same agent with `auggie-1`'s model option. */
 export const auggie1NoauthOfferingScenario: Scenario = makeScenario("auggie-1-noauth", true);
+
+/** `--resume-only`: the same agent reopening sessions by `session/resume` only (with `--offer-models` too). */
+export const auggie1NoauthResumeOnlyScenario: Scenario = makeScenario("auggie-1-noauth", false, true);
+export const auggie1NoauthOfferingResumeOnlyScenario: Scenario = makeScenario("auggie-1-noauth", true, true);

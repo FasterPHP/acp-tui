@@ -58,6 +58,8 @@ export interface FakeAgentCliOptions {
   readonly indexingLimited: readonly string[];
   /** `--offer-models`: `auggie-1-noauth` offers `auggie-1`'s model option, so only the prompt fails. */
   readonly offerModels: boolean;
+  /** `--resume-only`: `auggie-1-noauth` does not advertise `loadSession`, so a client reopens sessions by `session/resume`. */
+  readonly resumeOnly: boolean;
   /** `--additional-directories`: advertise `sessionCapabilities.additionalDirectories`. */
   readonly additionalDirectories: boolean;
   /** `--add-workspace <dir>` (repeatable): accepted and logged as `argv/add-workspace`, as Auggie's flag would be. */
@@ -166,6 +168,7 @@ export function parseArgs(
   const indexingDeny: string[] = [];
   const indexingLimited: string[] = [];
   let offerModels = false;
+  let resumeOnly = false;
   let additionalDirectories = false;
   const addWorkspace: string[] = [];
   let noInitialize = false;
@@ -299,6 +302,9 @@ export function parseArgs(
       case "--offer-models":
         offerModels = true;
         break;
+      case "--resume-only":
+        resumeOnly = true;
+        break;
       case "--chunk":
         chunk = parsePositiveInteger(arg, requireValue(arg, argv, i));
         i += 1;
@@ -354,6 +360,7 @@ export function parseArgs(
     indexingDeny,
     indexingLimited,
     offerModels,
+    resumeOnly,
     additionalDirectories,
     addWorkspace,
     noInitialize,

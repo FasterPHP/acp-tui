@@ -154,7 +154,7 @@ export function createFakeAgent(
   };
   const { store } = sessions;
   const harness = scenario.harness;
-  const canLoad = sessions.load || harness?.sessions === true;
+  const canLoad = sessions.load || (harness?.sessions === true && harness.resumeOnly !== true);
   const canResume = sessions.resume || harness?.sessions === true;
   const canList = sessions.list || harness?.sessions === true;
   const indexing = harness?.indexing ? new IndexingPolicy(options.indexing) : undefined;

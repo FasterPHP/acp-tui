@@ -1,7 +1,7 @@
 // Scenario registry: maps --scenario names to Scenario implementations.
 import type { Scenario } from "../scenario.ts";
 import { auggie1Scenario } from "./auggie-1.ts";
-import { auggie1NoauthOfferingScenario, auggie1NoauthScenario } from "./auggie-1-noauth.ts";
+import { auggie1NoauthOfferingResumeOnlyScenario, auggie1NoauthOfferingScenario, auggie1NoauthResumeOnlyScenario, auggie1NoauthScenario } from "./auggie-1-noauth.ts";
 import { basicScenario } from "./basic.ts";
 import { bidiPermissionScenario } from "./bidi-permission.ts";
 import { bigOutputScenario } from "./big-output.ts";
@@ -72,11 +72,12 @@ export const SCENARIOS: Readonly<Record<string, Scenario>> = {
   [auggie1NoauthScenario.name]: auggie1NoauthScenario,
 };
 
-export function resolveScenario(name: string, flags: { readonly offerModels?: boolean } = {}): Scenario {
-  if (flags.offerModels) {
+export function resolveScenario(name: string, flags: { readonly offerModels?: boolean; readonly resumeOnly?: boolean } = {}): Scenario {
+  if (flags.offerModels || flags.resumeOnly) {
     if (name !== auggie1NoauthScenario.name) {
-      throw new Error(`--offer-models needs --scenario ${auggie1NoauthScenario.name}`);
+      throw new Error(`${flags.offerModels ? "--offer-models" : "--resume-only"} needs --scenario ${auggie1NoauthScenario.name}`);
     }
+    if (flags.resumeOnly) return flags.offerModels ? auggie1NoauthOfferingResumeOnlyScenario : auggie1NoauthResumeOnlyScenario;
     return auggie1NoauthOfferingScenario;
   }
   const scenario = SCENARIOS[name];

@@ -469,6 +469,26 @@ describe("auggie-1-noauth", () => {
     }
   });
 
+  test("stored sessions: session/load and session/resume answer the logged-out signature; --resume-only drops loadSession", async () => {
+    const { client } = testClient();
+    const dir = makeTempDir();
+    const store = join(dir, "store.json");
+    writeFileSync(store, JSON.stringify({ sessions: [{ sessionId: "s-1", cwd, title: "T", updatedAt: "2026-11-20T09:00:00.000Z", turns: [{ user: "q", agent: "a" }] }] }));
+    const signature = [{ type: "select", id: "model", name: "Model", category: "model", currentValue: "unknown/unknown", options: [] }];
+    for (const resumeOnly of [false, true]) {
+      const { handle, init } = await started(["--sessions", store, ...(resumeOnly ? ["--resume-only"] : [])], client, "auggie-1-noauth");
+      try {
+        expect(init.agentCapabilities?.loadSession).toBe(!resumeOnly);
+        expect((await handle.conn.listSessions({})).sessions.map((s) => s.sessionId)).toEqual(["s-1"]);
+        if (resumeOnly) expect((await errorOf(handle.conn.loadSession({ sessionId: "s-1", cwd, mcpServers: [] }))).code).toBe(-32601);
+        else expect((await handle.conn.loadSession({ sessionId: "s-1", cwd, mcpServers: [] })).configOptions).toEqual(signature as never);
+        expect((await handle.conn.resumeSession({ sessionId: "s-1", cwd })).configOptions).toEqual(signature as never);
+      } finally {
+        handle.stop();
+      }
+    }
+  });
+
   test("--offer-models answers auggie-1's model option, so only the prompt fails", async () => {
     const { client } = testClient();
     const { handle } = await started(["--offer-models"], client, "auggie-1-noauth");

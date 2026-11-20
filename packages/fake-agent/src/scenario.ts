@@ -84,6 +84,8 @@ export interface HarnessBehaviour {
    * `"Method not found": <method>` with `data.method`).
    */
   readonly sessions?: boolean;
+  /** With `sessions`: `loadSession` is not advertised and `session/load` is not found; only `session/resume` reopens sessions. */
+  readonly resumeOnly?: boolean;
   /** The indexing line after `session/new` and `session/load`, and the `--allow-indexing` family of options. */
   readonly indexing?: boolean;
 }
