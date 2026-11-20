@@ -149,7 +149,8 @@ describe("Escape (phase-1a task 8.2)", () => {
   }, 20000);
 
   test("Esc twice during an Auggie 1.x turn: the agent answers end_turn and the turn-end line reads interrupted", async () => {
-    const run = startCli("auggie-1", 0);
+    // --allow-indexing: no indexing card takes the keys meant for the prompt box.
+    const run = startCli("auggie-1", 0, { agentArgs: ["--allow-indexing"] });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "slow" }, "Enter");
@@ -164,7 +165,8 @@ describe("Escape (phase-1a task 8.2)", () => {
   }, 20000);
 
   test("A normal Auggie 1.x turn ends with end turn", async () => {
-    const run = startCli("auggie-1", 0);
+    // --allow-indexing: no indexing card takes the keys meant for the prompt box.
+    const run = startCli("auggie-1", 0, { agentArgs: ["--allow-indexing"] });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "hello" }, "Enter");

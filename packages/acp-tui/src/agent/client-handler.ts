@@ -72,6 +72,9 @@ export interface ClientHandlerOptions {
   now?(): number;
   /** Elicitation (the docked elicitation card). */
   elicitation?: ElicitationHandler;
+  /** Takes a `session/update` out before the model when it returns true (Auggie 1.x's indexing
+   *  lines, src/agent/indexing.ts `indexingIntercept`): nothing is dispatched or queued for it. */
+  intercept?(update: SessionNotification["update"]): boolean;
 }
 
 interface PendingPermission {
@@ -198,6 +201,10 @@ export function createClientHandler(options: ClientHandlerOptions): ClientHandle
       if (update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") {
         const content = toolContentTypes(update.content);
         if (content) options.logger?.log({ event: "tool_content", source: update.sessionUpdate, toolCallId: update.toolCallId, content });
+      }
+      if (options.intercept?.(update)) {
+        options.logger?.log({ event: "session_update_taken", sessionUpdate: update.sessionUpdate });
+        return;
       }
       const event: ModelEvent = { type: "session_update", update, at: now() };
       // While a load replays (or its queue still drains), queued in order and reduced later.

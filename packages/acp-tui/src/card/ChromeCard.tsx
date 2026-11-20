@@ -9,16 +9,27 @@ import { onCleanup, Show, type JSX } from "solid-js";
 import { PermissionCard } from "../app/PermissionCard.tsx";
 import type { BlockComponent, BlockProps } from "../layout/Screen.tsx";
 import { useKeys } from "../keys/context.ts";
+import { useApp } from "../app/context.ts";
 import { createElicitationHost, ElicitationCard, type ElicitationHost, type UrlActionOptions } from "./elicitation.tsx";
+import { IndexingCard, type IndexingHost } from "./indexing.tsx";
 
-export function createChromeCard(host: ElicitationHost, urlActions: UrlActionOptions = {}): BlockComponent {
+export function createChromeCard(host: ElicitationHost, urlActions: UrlActionOptions = {}, indexing?: IndexingHost): BlockComponent {
   return (props: BlockProps): JSX.Element => {
     const { controller } = useKeys();
-    // Tab from the conversation reaches the elicitation card as it does a permission card.
-    controller.setCardProbe(() => host.current() !== null);
+    const { store } = useApp();
+    // acp-tui's indexing question waits behind every other card, and for the turn to end (spec
+    // tui-layout "Indexing question card": never during a turn).
+    const asking = () =>
+      indexing !== undefined &&
+      indexing.current() !== null &&
+      host.current() === null &&
+      store.session.openPermissionId === null &&
+      store.session.state === "idle";
+    // Tab from the conversation reaches the elicitation and indexing cards as it does a permission card.
+    controller.setCardProbe(() => host.current() !== null || asking());
     onCleanup(() => controller.setCardProbe(null));
     return (
-      <Show when={host.current() !== null} fallback={<PermissionCard {...props} />}>
+      <Show when={host.current() !== null} fallback={<Show when={asking()} fallback={<PermissionCard {...props} />}><IndexingCard {...props} host={indexing!} /></Show>}>
         <ElicitationCard {...props} host={host} urlActions={urlActions} />
       </Show>
     );
@@ -35,9 +46,10 @@ export interface Cards {
   cancel(): void;
 }
 
-/** The docked cards: the permission card and the elicitation card in one block. `urlActions`:
- *  how the elicitation card opens and copies a URL (the clipboard mode, and test stubs). */
-export function createCards(urlActions: UrlActionOptions = {}): Cards {
+/** The docked cards: the permission card, the elicitation card and the indexing card in one block.
+ *  `urlActions`: how the elicitation card opens and copies a URL (the clipboard mode, and test
+ *  stubs); `indexing`: the run's indexing host (src/card/indexing.tsx). */
+export function createCards(urlActions: UrlActionOptions = {}, indexing?: IndexingHost): Cards {
   const host = createElicitationHost();
-  return { block: createChromeCard(host, urlActions), elicitation: host, cancel: () => host.cancelAll() };
+  return { block: createChromeCard(host, urlActions, indexing), elicitation: host, cancel: () => host.cancelAll() };
 }

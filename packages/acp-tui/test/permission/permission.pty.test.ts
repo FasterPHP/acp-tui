@@ -349,7 +349,8 @@ describe("permission card focus and typing guard (task 6.6)", () => {
 
 describe("permission requests from Auggie 1.x (fake-agent auggie-1)", () => {
   const ask = async (word: string) => {
-    const run = startCli("auggie-1", 0, { ...SIZE });
+    // --allow-indexing: no indexing card takes the keys meant for the prompt box.
+    const run = startCli("auggie-1", 0, { ...SIZE, agentArgs: ["--allow-indexing"] });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: word }, "Enter");

@@ -26,7 +26,7 @@ async function start(): Promise<PtySession> {
   const config = tempDir("tool-titles-config");
   mkdirSync(join(config, "acp-tui"));
   writeFileSync(join(config, "acp-tui", "config.jsonc"), `{ "density": "verbose" }`);
-  session = startPty(["bun", CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", "auggie-1", "--delay-scale", "0"], {
+  session = startPty(["bun", CLI, "--", "--", "bun", FAKE_AGENT, "--scenario", "auggie-1", "--delay-scale", "0", "--allow-indexing"], {
     cols: 100,
     rows: 50,
     cwd,

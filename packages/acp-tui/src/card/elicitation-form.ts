@@ -173,7 +173,18 @@ export type CardPage =
       readonly error: string | null;
     }
   | { readonly kind: "review"; readonly formTitle: string; readonly questions: readonly Question[]; readonly answers: Answers; readonly error: string | null }
-  | { readonly kind: "url"; readonly message: string; readonly url: string; readonly cursor: number; readonly waiting: boolean };
+  | { readonly kind: "url"; readonly message: string; readonly url: string; readonly cursor: number; readonly waiting: boolean }
+  /** acp-tui's own question (the indexing card, src/card/indexing.tsx): paragraphs drawn whole,
+   *  wrapped and never cut, then numbered options on one row. Its text is acp-tui's, with any
+   *  directory in it sanitised by the caller. */
+  | { readonly kind: "client"; readonly subtitle: string; readonly paragraphs: readonly ClientParagraph[]; readonly options: readonly string[]; readonly cursor: number };
+
+/** A paragraph of acp-tui's own question: `indent` columns before each wrapped row. */
+export interface ClientParagraph {
+  readonly text: string;
+  readonly token: TokenName;
+  readonly indent?: number;
+}
 
 export interface ElicitationRowStyle {
   readonly focused: boolean;
@@ -210,7 +221,7 @@ export function elicitationRows(page: CardPage, width: number, style: Elicitatio
   const inner = cardInner(width, padding.columns);
   // Every page's header starts with the word `Question`, never `Permission` (design D7).
   const heading = page.kind === "question" ? `${QUESTION_WORD} ${page.index + 1} of ${page.count}` : QUESTION_WORD;
-  const subtitle = page.kind === "question" ? page.formTitle : page.kind === "review" ? "Review your answers" : "Open a link";
+  const subtitle = page.kind === "question" ? page.formTitle : page.kind === "review" ? "Review your answers" : page.kind === "client" ? page.subtitle : "Open a link";
 
   // Top border: `╭─ ◊ Question 1 of 3  Set up the change ───╮`.
   const head: CardSegment[] = [
@@ -271,6 +282,17 @@ export function elicitationRows(page: CardPage, width: number, style: Elicitatio
       ]);
     });
     if (page.error) fixed.push(text(truncateEnd(page.error, inner), "warning"));
+  } else if (page.kind === "client") {
+    for (const p of page.paragraphs) {
+      const indent = Math.min(p.indent ?? 0, Math.max(0, inner - 1));
+      for (const row of wrapText(p.text, inner - indent)) fixed.push([...(indent > 0 ? [{ text: " ".repeat(indent), token: "text" as TokenName }] : []), { text: row, token: p.token }]);
+    }
+    const row: CardSegment[] = [];
+    page.options.forEach((label, i) => {
+      if (i > 0) row.push({ text: "   ", token: "muted" });
+      row.push({ text: `${i + 1}`, token: style.focused ? "accent" : "muted", ...sel(i === page.cursor) }, { text: ` ${label}`, token: style.focused ? "text" : "muted", ...sel(i === page.cursor) });
+    });
+    fixed.push(row);
   } else {
     flexible.push({ rows: wrapText(page.message, inner).slice(0, 3).map((t) => text(t, "text")), min: 1 });
     // The whole URL, wrapped and never cut: the user approves what they can read.
