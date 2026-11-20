@@ -10,6 +10,12 @@
 // the tool index that links it to the tool's line in the conversation, and
 // option keys are ignored for 300 ms after it appears.
 //
+// The question (auggie-1x-support task 4.5, Marcus 20 November 2026): the request's title keeps
+// its line breaks (`approvalQuestion`: sanitised as before, runs of blank lines collapsed to one,
+// indentation kept) and is drawn as the first rows of the scrollable preview, inside the fill and
+// the frame and above the answer row, so a question never draws outside the card or below its
+// options; a long one scrolls there with the tool call's own preview after it.
+//
 // Emoji: the card draws an emoji sequence of a class the terminal's row of the capability table
 // names (`emoji`, renderer/capabilities.ts) as its name, as the conversation does (spec
 // tui-rendering "Other extensions stay text"), so the frame lines up where the terminal draws the
@@ -19,10 +25,10 @@
 import { sanitise, type PermissionRecordItem, type ToolCallItem } from "acp-model";
 import { TextAttributes } from "@opentui/core";
 import { approvalLine, optionLabels } from "../conversation/permission-label.ts";
-import { cardLines, wrapLine } from "../conversation/content.ts";
+import { cardLines, expandTabs, wrapLine } from "../conversation/content.ts";
 import { DEFAULT_PERMISSION_GLYPHS } from "../conversation/glyphs.ts";
 import { LIVE_PERMISSION_GLYPHS } from "../conversation/live-glyphs.ts";
-import { displayWidth, ELLIPSIS, takeWidth, truncateEnd, type Segment } from "../layout/segments.ts";
+import { displayWidth, takeWidth, truncateEnd, type Segment } from "../layout/segments.ts";
 import { spanStyle as toSpan, type ResolvedTheme, type SpanStyle, type TokenName } from "../theme/index.ts";
 import { CONVERSATION_KEEP_ROWS } from "../layout/layout.ts";
 import { splitEmoji, type EmojiClass } from "../render/emoji/emoji.ts";
@@ -60,11 +66,10 @@ export const CONVERSATION_ROWS_AT_REST = CONVERSATION_KEEP_ROWS;
 export const CONVERSATION_ROWS_GROWN = 1;
 /** The least rows a card is given, whatever is left (a frame and one row of content). */
 export const CARD_MIN_ROWS = 3;
-/** With a preview, the title takes at most this many rows. */
-export const PREVIEW_TITLE_ROWS = 2;
-/** The preview rows a card claims before spacing gives way (day-one-feedback, Marcus 15 October
- *  2026; spec tui-layout "Spacing gives way before content"): the two a four-option request had
- *  at 63x21 before the prompt box's padding row. The rest of a longer preview takes the rows left. */
+/** The rows of the tool call's preview a card claims before spacing gives way (day-one-feedback,
+ *  Marcus 15 October 2026; spec tui-layout "Spacing gives way before content"): the two a
+ *  four-option request had at 63x21 before the prompt box's padding row. The question's rows are
+ *  claimed whole; the rest of a longer preview takes the rows left. */
 export const PREVIEW_CLAIM_ROWS = 2;
 
 /** The padding inside a docked card's frame (`cards.padding`): blank rows at its top and its
@@ -98,7 +103,8 @@ export interface CardOption {
 
 export interface CardModel {
   readonly toolKind: string | null;
-  /** Title sanitised in approval context: no bidi controls or zero-width characters. */
+  /** The question (the request's title), sanitised in approval context: no bidi controls or
+   *  zero-width characters, its lines joined with `\n` (`approvalQuestion`). */
   readonly title: string;
   readonly index: number | null;
   readonly options: readonly CardOption[];
@@ -109,11 +115,28 @@ export function approvalText(text: string): string {
   return approvalLine(text);
 }
 
+/**
+ * The request's question as approval-sanitised lines: no bidi controls, zero-width or control
+ * characters, its line breaks kept, tabs expanded, trailing white space dropped from each line,
+ * every run of blank lines collapsed to one and none at either end; indentation kept. Joined
+ * with `\n`; empty when nothing is left.
+ */
+export function approvalQuestion(text: string): string {
+  const lines: string[] = [];
+  for (const raw of sanitise(text, "approval").split("\n")) {
+    const line = expandTabs(raw).trimEnd();
+    if (line === "" && (lines.length === 0 || lines[lines.length - 1] === "")) continue;
+    lines.push(line);
+  }
+  while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  return lines.join("\n");
+}
+
 export function cardModel(record: PermissionRecordItem, tool: ToolCallItem | undefined): CardModel {
   const labels = optionLabels(record.options);
   return {
     toolKind: tool?.toolKind ? approvalText(tool.toolKind) : null,
-    title: approvalText(record.title || tool?.title || ""),
+    title: approvalQuestion(record.title || tool?.title || ""),
     index: tool?.index ?? null,
     options: record.options.map((option, i) => ({
       number: i < 9 ? i + 1 : null,
@@ -237,39 +260,89 @@ export function namedText(text: string, named: readonly EmojiClass[]): string {
   return pieces.length === 1 ? pieces[0]!.text : pieces.map((p) => p.text).join("");
 }
 
-/**
- * The title's rows (`wrapText` over the title with its emoji named) as segments: the names in
- * `EMOJI_NAME_TOKEN`, the rest in `text`. wrapText only drops and joins spaces, cuts words and
- * (`cardLayout`) appends an ellipsis, so the rows' other characters are the drawn title's, in
- * order: each is matched to its place there to learn whether it belongs to a name.
- */
-function titleSegments(title: string, named: readonly EmojiClass[], width: number): { rows: string[]; segments: (rows: readonly string[]) => CardSegment[][] } {
-  const pieces = splitEmoji(title, named);
-  const drawn = pieces.map((p) => p.text).join("");
-  const plainRows = (rows: readonly string[]): CardSegment[][] => rows.map((t) => [{ text: t, token: "text" }]);
-  if (pieces.every((p) => p.source === undefined)) return { rows: wrapText(drawn, width), segments: plainRows };
-  const inName: boolean[] = [];
-  for (const p of pieces) for (let i = 0; i < p.text.length; i++) inName.push(p.source !== undefined);
-  const segments = (rows: readonly string[]): CardSegment[][] => {
-    let k = 0;
-    return rows.map((row) => {
-      const out: CardSegment[] = [];
-      for (let i = 0; i < row.length; i++) {
-        const c = row[i]!;
-        let name = false;
-        if (c !== " ") {
-          while (k < drawn.length && drawn[k] === " ") k++;
-          if (drawn[k] === c) name = inName[k++]!;
-        }
-        const token: TokenName = name ? EMOJI_NAME_TOKEN : "text";
-        const last = out[out.length - 1];
-        if (last && last.token === token) out[out.length - 1] = { ...last, text: last.text + c };
-        else out.push({ text: c, token });
-      }
-      return out.length === 0 ? [{ text: "", token: "text" }] : out;
-    });
+interface Atom {
+  readonly text: string;
+  readonly width: number;
+  readonly token: TokenName;
+}
+
+const graphemes = new Intl.Segmenter();
+
+/** One line of the question as rows `width` columns wide: word-wrapped, a word longer than the
+ *  width cut, the spaces between words kept as written (only those at a break go), and the
+ *  line's indentation kept on every row it takes while it is under half the width. */
+function wrapQuestionLine(line: readonly Segment[], width: number): Segment[][] {
+  const atoms: Atom[] = [];
+  for (const seg of line) for (const { segment } of graphemes.segment(seg.text)) atoms.push({ text: segment, width: displayWidth(segment), token: seg.token });
+  let start = 0;
+  while (start < atoms.length && atoms[start]!.text === " ") start++;
+  const indent = start < width / 2 ? start : 0;
+  // Runs of spaces and of other graphemes, after the indentation.
+  const runs: { atoms: Atom[]; space: boolean; width: number }[] = [];
+  for (const atom of atoms.slice(start)) {
+    const space = atom.text === " ";
+    const last = runs[runs.length - 1];
+    if (last && last.space === space) {
+      last.atoms.push(atom);
+      last.width += atom.width;
+    } else runs.push({ atoms: [atom], space, width: atom.width });
+  }
+  const rows: Atom[][] = [];
+  const lead = (): Atom[] => Array.from({ length: indent }, () => ({ text: " ", width: 1, token: "text" as TokenName }));
+  let row = lead();
+  let used = indent;
+  let gap: Atom[] = [];
+  let gapWidth = 0;
+  const breakRow = () => {
+    rows.push(row);
+    row = lead();
+    used = indent;
   };
-  return { rows: wrapText(drawn, width), segments };
+  for (const run of runs) {
+    if (run.space) {
+      gap = run.atoms;
+      gapWidth = run.width;
+      continue;
+    }
+    if (used > indent && used + gapWidth + run.width > width) breakRow();
+    else if (used > indent) {
+      row.push(...gap);
+      used += gapWidth;
+    }
+    gap = [];
+    gapWidth = 0;
+    for (const atom of run.atoms) {
+      if (used + atom.width > width && used > indent) breakRow();
+      row.push(atom);
+      used += atom.width;
+    }
+  }
+  rows.push(row);
+  return rows.map((r) => {
+    const out: Segment[] = [];
+    for (const atom of r) {
+      const last = out[out.length - 1];
+      if (last && last.token === atom.token) out[out.length - 1] = { ...last, text: last.text + atom.text };
+      else out.push({ text: atom.text, token: atom.token });
+    }
+    return out;
+  });
+}
+
+/**
+ * The question's rows for the preview, `width` columns wide (the card's inner width): one row
+ * for each blank line, the others word-wrapped with their indentation kept, and on every line
+ * the emoji of a class in `named` drawn as their names in `EMOJI_NAME_TOKEN` (see the module
+ * header), the rest in `text`. `question` is `CardModel.title`, already sanitised.
+ */
+export function questionRows(question: string, width: number, named: readonly EmojiClass[] = terminalEmojiClasses()): PreviewRow[] {
+  if (question === "") return [];
+  const w = Math.max(1, width);
+  return question.split("\n").flatMap((line): PreviewRow[] => {
+    if (line === "") return [{ segments: [] }];
+    const segments = splitEmoji(line, named).map((p): Segment => ({ text: p.text, token: p.source === undefined ? "text" : EMOJI_NAME_TOKEN }));
+    return wrapQuestionLine(segments, w).map((row) => ({ segments: row }));
+  });
 }
 
 /** Word-wraps `text` into rows of at most `width` columns, breaking long words. */
@@ -311,19 +384,21 @@ function optionSegments(option: CardOption, index: number, style: CardStyle, sel
 
 /**
  * The card's rows for `width` columns: the top border with the marker, `Permission`, the tool
- * kind and index; the title, word-wrapped; the options on one row when they fit the inner width,
- * otherwise one per row; the bottom border. At most `style.maxRows` rows: the title gives way
- * first (its last row ends with an ellipsis), then the options past the last row that fits.
+ * kind and index; the preview (the question, then the tool call's content); the options on one
+ * row when they fit the inner width, otherwise one per row; the bottom border. At most
+ * `style.maxRows` rows: the preview gives way first (scrolled, down to one row while there is a
+ * question), then the options past the last row that fits.
  */
 export function cardRows(model: CardModel, width: number, style: CardStyle): CardSegment[][] {
   return cardLayout(model, width, style).rows;
 }
 
 /**
- * `cardRows` with the preview's window. With a preview the title takes at
- * most `PREVIEW_TITLE_ROWS` rows, the options keep theirs, and the preview takes the rows left
- * under `maxRows`, between the title and the options, from `style.preview.offset` (clamped so
- * the last row can be reached and no further); the bottom border shows which rows are shown.
+ * `cardRows` with the preview's window. The preview is the question's rows (`questionRows` over
+ * `model.title`) followed by `style.preview.rows` (the tool call's content); the options keep
+ * their rows and the preview takes the rows left under `maxRows`, at least one while there is a
+ * question, from `style.preview.offset` (clamped so the last row can be reached and no further);
+ * the bottom border shows which rows are shown when they are not all.
  */
 export function cardLayout(model: CardModel, width: number, style: CardStyle): CardLayout {
   const g = style.glyphs ?? LIVE_PERMISSION_GLYPHS;
@@ -371,36 +446,27 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
     ? [pieces.flatMap((p, i) => (i === 0 ? p : [{ text: OPTION_GAP, token: "muted" as TokenName }, ...p]))]
     : pieces;
 
-  // Heights: borders, title, options; the title gives way first.
+  // Heights: borders, the preview, options; the preview gives way first.
   const bodyRoom = Math.max(1, style.maxRows - 2);
   optionRows = optionRows.slice(0, Math.max(1, bodyRoom - 1));
-  const previewSource = style.preview && style.preview.rows.length > 0 ? style.preview : null;
-  const titleCap = previewSource ? PREVIEW_TITLE_ROWS : Infinity;
-  const titleRoom = Math.max(model.title ? 1 : 0, Math.min(titleCap, bodyRoom - optionRows.length));
-  const title = model.title ? titleSegments(model.title, named, inner) : null;
-  let titleRows = title ? title.rows : [];
-  if (titleRows.length > titleRoom) {
-    titleRows = titleRows.slice(0, titleRoom);
-    const last = titleRows.length - 1;
-    const row = titleRows[last]!;
-    titleRows[last] = displayWidth(row) < inner ? `${row}${ELLIPSIS}` : `${takeWidth(row, inner - 1)}${ELLIPSIS}`;
-  }
+  const question = model.title ? questionRows(model.title, inner, named) : [];
+  const previewAll = [...question, ...(style.preview?.rows ?? [])];
 
   const framed = (content: CardSegment[]): CardSegment[] => {
     const w = content.reduce((n, s) => n + displayWidth(s.text), 0);
     return [...left, ...content, { text: " ".repeat(Math.max(0, inner - w)), token: "text" }, ...right];
   };
-  // The preview: the rows left between the title and the options.
+  // The preview: the rows left above the options.
   let preview: PreviewWindow | null = null;
   let previewShown: CardSegment[][] = [];
-  if (previewSource) {
-    const room = bodyRoom - titleRows.length - optionRows.length;
-    const total = previewSource.rows.length;
-    const height = Math.min(total, Math.max(0, room));
+  if (previewAll.length > 0) {
+    const room = bodyRoom - optionRows.length;
+    const total = previewAll.length;
+    const height = Math.min(total, Math.max(question.length > 0 ? 1 : 0, room));
     if (height > 0) {
-      const offset = Math.max(0, Math.min(previewSource.offset, total - height));
+      const offset = Math.max(0, Math.min(style.preview?.offset ?? 0, total - height));
       preview = { height, offset, total };
-      previewShown = previewSource.rows.slice(offset, offset + height).map((row) => {
+      previewShown = previewAll.slice(offset, offset + height).map((row) => {
         const content: CardSegment[] = row.segments.map((seg) => (row.fill ? { ...seg, fill: row.fill } : { ...seg }));
         const w = content.reduce((n, seg) => n + displayWidth(seg.text), 0);
         const pad: CardSegment = row.fill ? { text: " ".repeat(Math.max(0, inner - w)), token: "text", fill: row.fill } : { text: " ".repeat(Math.max(0, inner - w)), token: "text" };
@@ -426,9 +492,9 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
   // The padding rows inside the frame (spec tui-layout "Permission card"), besides `maxRows`.
   const padRows = Math.max(0, padding.rows);
   const blankRows = Array.from({ length: padRows }, (): CardSegment[] => framed([]));
-  const answerRow = 1 + padRows + titleRows.length + previewShown.length;
+  const answerRow = 1 + padRows + previewShown.length;
   return {
-    rows: [top, ...blankRows, ...(title ? title.segments(titleRows) : []).map(framed), ...previewShown, ...optionRows.map(framed), ...blankRows.map((row) => [...row]), bottom],
+    rows: [top, ...blankRows, ...previewShown, ...optionRows.map(framed), ...blankRows.map((row) => [...row]), bottom],
     preview,
     answerRow,
     answerEnd: answerRow + optionRows.length,
@@ -439,9 +505,9 @@ export function cardLayout(model: CardModel, width: number, style: CardStyle): C
 
 /**
  * The rows a card's content claims before spacing gives way (spec tui-layout "Spacing gives way
- * before content"), its frame included and its padding rows not: the title, the options and the
- * preview's first `PREVIEW_CLAIM_ROWS` rows (all of a shorter one), at `width` columns with
- * `columns` of padding on each side.
+ * before content"), its frame included and its padding rows not: the question's rows, the
+ * options and the tool call's preview's first `PREVIEW_CLAIM_ROWS` rows (all of a shorter one),
+ * at `width` columns with `columns` of padding on each side.
  */
 export function cardClaim(model: CardModel, width: number, preview: readonly PreviewRow[], columns: number): number {
   return cardLayout(model, width, {

@@ -68,13 +68,16 @@ describe("the permission card's emoji per terminal row", () => {
     ]);
   });
 
-  test("wrapped and cut short, the name keeps its token on each row and the frame its width", () => {
+  test("wrapped and scrolled, the name keeps its token on each row and the frame its width", () => {
     const title = `${"word ".repeat(9)}${WARNING}${"x".repeat(40)} ${"tail ".repeat(30)}`;
     const layout = cardLayout(cardModel(record(title), undefined), 30, { ...STYLE, maxRows: 7, emoji: emojiOf("zed") });
     for (const row of layout.rows) expect(displayWidth(text(row))).toBe(30);
-    const muted = layout.rows.flatMap((r) => r.filter((s) => s.token === "muted" && s.text.trim() !== "").map((s) => s.text));
+    // The question's rows (not the bottom border, whose range is muted too).
+    const muted = layout.rows.slice(0, -1).flatMap((r) => r.filter((s) => s.token === "muted" && s.text.trim() !== "").map((s) => s.text));
     expect(muted.join("")).toBe(":warning:");
-    expect(layout.rows.map(text).join("\n")).toContain("…");
+    // The question scrolls in the preview (the range in the bottom border) rather than being cut.
+    expect(layout.preview!.total).toBeGreaterThan(layout.preview!.height);
+    expect(layout.rows.map(text).join("\n")).not.toContain("…");
   });
 
   test("sanitising comes first: bidi controls and zero-width characters go, the emoji is named after", () => {

@@ -12,7 +12,7 @@
 //     `Prism (GPT)`), no modes; `session/set_model` and `session/set_mode` are `-32601`; an unknown
 //     option is `-32603` with `data.details` `Unknown config option <id>`.
 //   - Every chunk without a `messageId`.
-//   - The turn is chosen by a word in the prompt: `held`, `slow`, `permission`, `tools`, else a short reply.
+//   - The turn is chosen by a word in the prompt: `held`, `slow`, `script`, `permission`, `tools`, else a short reply.
 //       tools       read, edit, write, then three `bash` calls (the last two fail or stream), titled with the
 //                   bare tool name, with `kind` and `rawInput`; `bash` updates carry the whole output so far;
 //                   the failing one ends `\n\n\nCommand exited with code 1`.
@@ -20,6 +20,8 @@
 //                   `⚠️ Tool "bash" requires approval:` and `Yes` and `No`, both `allow_once`; then the real
 //                   `call_...` call. `No` (or a cancelled outcome) fails it with `Tool execution denied: bash`
 //                   and three lines of advice.
+//       script      as `permission` for a 30-line command (`echo step 1` to `echo step 30`), each line
+//                   indented by two spaces as 1.2.2 indents the command: a question longer than the card.
 //       held        as `permission` for `write`, but the real `tool_call` goes out while the request is open,
 //                   and `session/cancel` does not end the turn: it waits for the answer.
 //       slow        a `bash` call that runs until `session/cancel`, then fails with `Command aborted` and
@@ -146,12 +148,19 @@ function requestApproval(ctx: ScenarioContext, tool: string, detail: string): Pr
 const approved = (response: RequestPermissionResponse): boolean =>
   response.outcome.outcome === "selected" && response.outcome.optionId === "0";
 
-async function permission(ctx: ScenarioContext): Promise<PromptResponse> {
-  const command = "echo allowed-probe";
-  const answer = await requestApproval(ctx, "bash", `  ${command}\n\n`);
+/** The `script` turn's command: 30 lines, so the question is longer than the card. */
+export const AUGGIE_1_SCRIPT = Array.from({ length: 30 }, (_, i) => `echo step ${i + 1}`).join("\n");
+
+async function permission(ctx: ScenarioContext, command = "echo allowed-probe"): Promise<PromptResponse> {
+  const indented = command
+    .split("\n")
+    .map((line) => `  ${line}`)
+    .join("\n");
+  const answer = await requestApproval(ctx, "bash", `${indented}\n\n`);
   if (approved(answer)) {
-    await bash(ctx, command, ["allowed-probe\n"], { status: "completed", output: "allowed-probe\n" });
-    await say(ctx, "allowed-probe\n");
+    const output = command === "echo allowed-probe" ? "allowed-probe\n" : "done\n";
+    await bash(ctx, command, [output], { status: "completed", output });
+    await say(ctx, output);
   } else {
     const toolCallId = nextCallId();
     await ctx.send({ sessionUpdate: "tool_call", toolCallId, title: "bash", status: "in_progress", kind: "execute", rawInput: { command } });
@@ -246,6 +255,7 @@ export const auggie1Scenario: Scenario = {
     const asked = ctx.prompt.map((block) => (block.type === "text" ? block.text : "")).join("").toLowerCase();
     if (asked.includes("held")) return held(ctx);
     if (asked.includes("slow")) return slow(ctx);
+    if (asked.includes("script")) return permission(ctx, AUGGIE_1_SCRIPT);
     if (asked.includes("permission")) return permission(ctx);
     if (asked.includes("tools")) return tools(ctx);
     await say(ctx, "Hello from fake Auggie.\n");

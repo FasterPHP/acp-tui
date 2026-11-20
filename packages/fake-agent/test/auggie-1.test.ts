@@ -196,6 +196,21 @@ describe("auggie-1: turns", () => {
     }
   });
 
+  test("script: the question holds a 30-line command, each line indented by two spaces", async () => {
+    const { client, requests } = testClient(() => "0");
+    const { handle } = await started([], client);
+    try {
+      const session = await handle.conn.newSession({ cwd, mcpServers: [] });
+      await prompt(handle, session.sessionId, "run the script");
+      const lines = requests[0]!.toolCall.title!.split("\n");
+      expect(lines.slice(0, 3)).toEqual(['⚠️ Tool "bash" requires approval:', "", "  echo step 1"]);
+      expect(lines.slice(-3)).toEqual(["  echo step 30", "", "Allow?"]);
+      expect(lines).toHaveLength(2 + 30 + 2);
+    } finally {
+      handle.stop();
+    }
+  });
+
   test.each([["No", "1"], ["a cancelled outcome", "cancelled"]])("permission: %s fails the real call with the denial text", async (_name, choice) => {
     const { client, updates } = testClient(() => choice);
     const { handle } = await started([], client);

@@ -461,6 +461,54 @@ describe("permission requests from Auggie 1.x (fake-agent auggie-1)", () => {
     expect(run.s.cell(absY, x + ":warning: ".length)?.getFgColor()).not.toBe(MUTED_FG);
   });
 
+  // auggie-1x-support task 4.5 (spec tui-layout "Permission card", "Permission card preview"):
+  // the question keeps its line breaks, drawn in the preview inside the card's fill and frame.
+  test("the question keeps its lines: the command on its own row, indented, a blank row either side, the frame whole", async () => {
+    const run = await ask("permission", "unknown", "wide");
+    await run.s.waitFor((p) => cardBody(p).includes("Allow?"), 5000);
+    expect(cardBody(run.s)).toEqual([`${WARNING} Tool "bash" requires approval:`, "", "  echo allowed-probe", "", "Allow?", "1 Yes   2 No"]);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    // The whole question fits: no range in the bottom border, and focus is on the answer row.
+    expect(cardRows(run.s).at(-1)).toMatch(/^╰─+╯$/);
+    await afterGuard();
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => responses(run).length === 1, 5000);
+    expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "0" } }]);
+  });
+
+  test("Zed: every line of the question is in the frame, with :warning: for ⚠️", async () => {
+    const run = await ask("permission", "zed", "narrow");
+    await run.s.waitFor((p) => cardBody(p).includes("Allow?"), 5000);
+    expect(cardBody(run.s)).toEqual([':warning: Tool "bash" requires approval:', "", "  echo allowed-probe", "", "Allow?", "1 Yes   2 No"]);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+  });
+
+  test("a long question at 63x21: the options stay visible, the question scrolls in the preview (the first focus stop), and End reaches Allow?", async () => {
+    const run = await ask("script", "unknown", "wide");
+    const bottom = () => cardRows(run.s).at(-1) ?? "";
+    await run.s.waitFor(() => / 1-\d+ of 34 /.test(bottom()), 5000);
+    const body = cardBody(run.s);
+    expect(body[0]).toBe(`${WARNING} Tool "bash" requires approval:`);
+    expect(body.slice(1, 3)).toEqual(["", "  echo step 1"]);
+    expect(body.at(-1)).toBe("1 Yes   2 No");
+    expect(body).not.toContain("Allow?");
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    // The conversation keeps its 4 rows: the card did not grow past its rule.
+    const shown = Number(/ 1-(\d+) of 34 /.exec(bottom())![1]);
+    expect(cardRows(run.s)).toHaveLength(shown + 3);
+    // Focus is on the preview: End scrolls it, the options stay where they were.
+    run.s.sendKeys("End");
+    await run.s.waitFor(() => bottom().includes(` ${35 - shown}-34 of 34 `), 3000);
+    expect(cardBody(run.s).slice(-4)).toEqual(["  echo step 30", "", "Allow?", "1 Yes   2 No"]);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    expect(responses(run)).toEqual([]);
+    // Tab to the answer row, then 2 and Enter answer No.
+    await afterGuard();
+    run.s.sendKeys("Tab", "2", "Enter");
+    await run.s.waitFor(() => responses(run).length === 1, 5000);
+    expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "1" } }]);
+  });
+
   test("held: the early tool call takes index 1 while the request stands alone", async () => {
     const run = await ask("held");
     const rows = run.s.screenText();

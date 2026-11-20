@@ -140,9 +140,9 @@ for (const { name: envName, env } of ENVIRONMENTS) {
       const bottom = () => cardRows(s).at(-1) ?? "";
       for (const form of FORMS) {
         s.write(form.end);
-        await s.waitFor(() => bottom().includes(" 52-53 of 53 "), 3000);
+        await s.waitFor(() => bottom().includes(" 52-54 of 54 "), 3000);
         s.write(form.home);
-        await s.waitFor(() => bottom().includes(" 1-2 of 53 "), 3000);
+        await s.waitFor(() => bottom().includes(" 1-3 of 54 "), 3000);
       }
     }, 60000);
 

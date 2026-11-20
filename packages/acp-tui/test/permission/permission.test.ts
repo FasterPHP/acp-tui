@@ -106,15 +106,22 @@ describe("cardRows", () => {
     expect(text(cardRows(four, 80, STYLE))[2]).toStartWith("│ 1 allow once   2 allow always   3 reject once   4 reject always");
   });
 
-  test("a long title wraps; the card never exceeds maxRows, the title giving way first with an ellipsis", () => {
+  test("a long question wraps; the card never exceeds maxRows, the question scrolling in the preview with the options kept", () => {
     const long = cardModel(record(Array.from({ length: 40 }, (_, i) => `word${i}`).join(" ")), tool);
     const tall = text(cardRows(long, 40, { ...STYLE, maxRows: 30 }));
     expect(tall.length).toBe(2 + 8 + 4);
-    const capped = text(cardRows(long, 40, { ...STYLE, maxRows: 13 }));
-    expect(capped.length).toBe(13);
-    expect(capped[7]!.trimEnd()).toMatch(/…\s*│$/);
-    expect(capped.slice(8, 12).map((r) => r.slice(2, 17).trimEnd())).toEqual(["1 allow once", "2 allow always", "3 reject once", "4 reject always"]);
-    for (const row of capped) expect(displayWidth(row)).toBe(40);
+    const capped = cardLayout(long, 40, { ...STYLE, maxRows: 13 });
+    const rows = text(capped.rows);
+    expect(rows.length).toBe(13);
+    expect(capped.preview).toEqual({ height: 7, offset: 0, total: 8 });
+    expect(rows.at(-1)).toMatch(/ 1-7 of 8 ─╯$/);
+    expect(rows.join("\n")).not.toContain("…");
+    expect(rows.slice(8, 12).map((r) => r.slice(2, 17).trimEnd())).toEqual(["1 allow once", "2 allow always", "3 reject once", "4 reject always"]);
+    for (const row of rows) expect(displayWidth(row)).toBe(40);
+    // At the end of the preview the question's last row shows, the options unchanged.
+    const end = text(cardLayout(long, 40, { ...STYLE, maxRows: 13, preview: { rows: [], offset: 99 } }).rows);
+    expect(end[7]).toContain("word39");
+    expect(end.at(-1)).toMatch(/ 2-8 of 8 ─╯$/);
   });
 
   test("the selected option is marked only while the card has focus", () => {

@@ -65,25 +65,25 @@ describe("permission card preview (task 13.1; mvp-chrome-and-keys task 5.1, with
     expect(body()[1]).toBe("/work/src/Http/Router.php");
     expect(body()[2]).toMatch(/^@@ -3,\d+ \+3,\d+ @@/);
     expect(body().slice(-4)).toEqual(["1 allow once", "2 allow always", "3 reject once", "4 reject always"]);
-    expect(bottom()).toContain(" 1-2 of 53 ");
+    expect(bottom()).toContain(" 1-3 of 54 ");
     expect(run.s.screenText().join("\n")).not.toContain("unchanged tail line 3");
 
     // The card has focus (the prompt box was empty): End shows the diff's last line.
     run.s.sendKeys("End");
-    await run.s.waitFor(() => bottom().includes(" 52-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 52-54 of 54 "), 3000);
     expect(body()[2]).toBe("38       unchanged tail line 3");
-    // Down at the end stays at the end; Up moves one row; PgUp a page (one row, of two); PgDn back.
+    // Down at the end stays at the end; Up moves one row; PgUp a page (two rows, of three: the question is the first row); PgDn back.
     run.s.sendKeys("Down");
     await run.s.flush();
-    expect(bottom()).toContain(" 52-53 of 53 ");
+    expect(bottom()).toContain(" 52-54 of 54 ");
     run.s.sendKeys("Up");
-    await run.s.waitFor(() => bottom().includes(" 51-52 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 51-53 of 54 "), 3000);
     run.s.sendKeys("PageUp");
-    await run.s.waitFor(() => bottom().includes(" 50-51 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 49-51 of 54 "), 3000);
     run.s.sendKeys("PageDown", "PageDown");
-    await run.s.waitFor(() => bottom().includes(" 52-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 52-54 of 54 "), 3000);
     run.s.sendKeys("Home");
-    await run.s.waitFor(() => bottom().includes(" 1-2 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 1-3 of 54 "), 3000);
     // Nothing was answered by scrolling.
     expect(responses(run, "session/request_permission/response")).toEqual([]);
   }, 20000);
@@ -95,19 +95,19 @@ describe("permission card preview (task 13.1; mvp-chrome-and-keys task 5.1, with
     await run.s.flush();
     const bottom = () => cardRows(run.s).at(-1) ?? "";
     run.s.sendKeys("End");
-    await run.s.waitFor(() => bottom().includes(" 52-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 52-54 of 54 "), 3000);
     run.s.sendKeys("Ctrl+O");
     // The margins, the activity bar, the prompt box's three rows, the spacer and the status row
     // leave 13; the card takes 12.
     await run.s.waitFor(() => cardRows(run.s).length === 12, 3000);
     // Eight preview rows now, still ending at the last line; the conversation keeps a row.
-    await run.s.waitFor(() => bottom().includes(" 49-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 49-54 of 54 "), 3000);
     expect(rowOf(run.s, "unchanged tail line 3")).toBeGreaterThan(0);
     expect(rowOf(run.s, "◊ Permission")).toBe(1 + 1 + 1);
     // Ctrl+O did not toggle the tool call in the conversation (the card's own binding outranks it).
     run.s.sendKeys("Ctrl+O");
     await run.s.waitFor(() => cardRows(run.s).length === 9, 3000);
-    await run.s.waitFor(() => bottom().includes(" 52-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 52-54 of 54 "), 3000);
 
     await afterGuard();
     run.s.sendKeys("3", "Enter");
@@ -124,7 +124,7 @@ describe("permission card preview (task 13.1; mvp-chrome-and-keys task 5.1, with
     await run.s.waitFor(() => cardRows(run.s).length > 0, 5000);
     // Down to the first removed lines (two preview rows at rest).
     run.s.sendKeys("Down", "Down", "Down", "Down", "Down");
-    await run.s.waitFor(() => (cardRows(run.s).at(-1) ?? "").includes(" 6-7 of 53 "), 3000);
+    await run.s.waitFor(() => (cardRows(run.s).at(-1) ?? "").includes(" 6-8 of 54 "), 3000);
     await run.s.flush();
     const surfaces = deriveSurfaces(DARK);
     const allowed = new Set([surfaces["surface.permission"], surfaces["surface.permission.selected"], surfaces["diff.added.bg"], surfaces["diff.removed.bg"]]);

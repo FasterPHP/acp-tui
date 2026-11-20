@@ -57,7 +57,7 @@ describe("permission card height (task 5.1, design D6)", () => {
     expect(cardTop(run.s) + rows.length).toBe(21 - 6);
     // The title, two preview rows and four options: as many preview lines as the rows allow.
     expect(rows.slice(1, -1).map((r) => uncard(r)).slice(-4)).toEqual(["1 allow once", "2 allow always", "3 reject once", "4 reject always"]);
-    expect(bottom(run.s)).toContain(" 1-2 of 53 ");
+    expect(bottom(run.s)).toContain(" 1-3 of 54 ");
   }, 20000);
 
   test("Four options in a 21-row pane: every decorative row gives way, so the title, two preview rows and the four options show; the activity line directly above the card, the prompt box directly below it", async () => {
@@ -77,7 +77,7 @@ describe("permission card height (task 5.1, design D6)", () => {
       "3 reject once",
       "4 reject always",
     ]);
-    expect(bottom(run.s)).toContain(" 1-2 of 53 ");
+    expect(bottom(run.s)).toContain(" 1-3 of 54 ");
     expect(conversationRows(run.s)).toBe(4);
     // The row directly above the card is the activity line, the row directly below it the prompt
     // box's top border, and the prompt box has no padding row.
@@ -95,7 +95,7 @@ describe("permission card height (task 5.1, design D6)", () => {
     await run.s.flush();
     const rows = cardRows(run.s);
     expect(rows).toHaveLength(9);
-    expect(bottom(run.s)).toContain(" 1-2 of 53 ");
+    expect(bottom(run.s)).toContain(" 1-3 of 54 ");
     expect(conversationRows(run.s)).toBe(4);
     expect(promptBox(run.s)).toHaveLength(4);
     expect(cardTop(run.s) + rows.length).toBe(22 - 7);
@@ -106,7 +106,7 @@ describe("permission card height (task 5.1, design D6)", () => {
     await prompt(run);
     await run.s.waitFor(() => cardRows(run.s).length > 0, 5000);
     run.s.sendKeys("End");
-    await run.s.waitFor(() => bottom(run.s).includes(" 52-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom(run.s).includes(" 52-54 of 54 "), 3000);
     const body = cardRows(run.s).slice(1, -1).map((r) => uncard(r));
     expect(body[2]).toBe("38       unchanged tail line 3");
     expect(responses(run, "session/request_permission/response")).toEqual([]);
@@ -193,7 +193,7 @@ describe("permission card focus stops (tasks 5.2 and 3.9)", () => {
     expect(selectedOptions(run.s)).toEqual([]);
     await Bun.sleep(400); // past the guard: still nothing selected
     run.s.sendKeys("Down");
-    await run.s.waitFor(() => bottom(run.s).includes(" 2-3 of 53 "), 3000);
+    await run.s.waitFor(() => bottom(run.s).includes(" 2-4 of 54 "), 3000);
     expect(selectedOptions(run.s)).toEqual([]);
   }, 20000);
 
@@ -234,7 +234,7 @@ describe("permission card focus stops (tasks 5.2 and 3.9)", () => {
     await diffCard(run);
     await Bun.sleep(400); // past the guard
     run.s.sendKeys("Down", "Down");
-    await run.s.waitFor(() => bottom(run.s).includes(" 3-4 of 53 "), 3000);
+    await run.s.waitFor(() => bottom(run.s).includes(" 3-5 of 54 "), 3000);
     expect(selectedOptions(run.s)).toEqual([]);
     run.s.sendKeys("Tab", "Right", "Enter");
     await run.s.waitFor(() => responses(run, "session/request_permission/response").length === 1, 5000);
@@ -326,9 +326,9 @@ describe("padding and gaps in a tall pane (day-one-feedback 13)", () => {
     expect(promptBox(run.s)).toHaveLength(4);
     // 40 rows: margins 2, spacer 1, status row 1, prompt box 4, the blank row below the card, the
     // activity line and its blank row, the blank row above the card, the conversation's 4 rows: the
-    // card takes the 24 left, padding rows included, so 15 preview rows beside the title and options.
+    // card takes the 24 left, padding rows included, so 16 preview rows (the question and 15 of the diff) beside the options.
     expect(rows).toHaveLength(24);
-    expect(bottom(run.s)).toContain(" 1-15 of 53 ");
+    expect(bottom(run.s)).toContain(" 1-16 of 54 ");
     expect(top - 3 - TOP_MARGIN).toBe(4);
   }, 20000);
 
