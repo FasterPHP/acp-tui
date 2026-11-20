@@ -20,11 +20,12 @@ import { useApp, useConfig } from "../app/context.ts";
 import { cardMaxRows, cardSpanStyle, OPTION_GUARD_MS, type CardSegment } from "../app/permission.ts";
 import { homeDirectory } from "../config/sources.ts";
 import type { BlockProps } from "../layout/Screen.tsx";
-import { shortenHome, type Segment } from "../layout/segments.ts";
 import { useKeys } from "../keys/context.ts";
 import { actionLabel, type KeyMap } from "../keys/keymap.ts";
-import { registerContext, type ContextHandlers } from "../keys/register.ts";
+import { CONTEXT_PRIORITY, registerContext, type ContextHandlers } from "../keys/register.ts";
 import type { DebugLogger } from "../log.ts";
+import { displayWidth, shortenHome, type Segment } from "../layout/segments.ts";
+import { isPrimaryPress } from "../renderer/mouse.ts";
 import { clean, elicitationRows, type CardPage, type ClientParagraph } from "./elicitation-form.ts";
 
 /** The card's options, in order: `1 allow indexing` and `2 not now`. */
@@ -188,9 +189,11 @@ export function IndexingCard(props: IndexingCardProps): JSX.Element {
 
   onMount(() => {
     if (store.ui.promptEmpty) store.setFocus("card");
-    else controller.notify(`acp-tui is asking something: ${actionLabel(keyMap, "global", "toggleFocus") ?? "tab"} to answer`);
+    else controller.notify(`acp-tui is asking something: ${actionLabel(keyMap, "global", "toggleFocus") ?? "tab"} twice to answer`);
+    store.setQuestionOpen(true);
   });
   onCleanup(() => {
+    store.setQuestionOpen(false);
     if (store.ui.focus === "card" && store.session.openPermissionId === null) store.setFocus("prompt");
   });
 
@@ -242,10 +245,42 @@ export function IndexingCard(props: IndexingCardProps): JSX.Element {
     if (!box) return;
     onCleanup(registerContext(keymap, keyMap, "elicitation", handlers, { target: box }));
   });
+  // The digits also answer from the conversation, as a permission card's do; in the prompt box
+  // they are typed into the draft.
+  const digits: ContextHandlers<"elicitation"> = {};
+  for (let n = 1; n <= INDEXING_OPTIONS.length; n++) {
+    digits[`choose${n}` as keyof typeof digits] = () => {
+      if (store.ui.focus !== "conversation") return false;
+      return guarded() ? true : choose(n - 1);
+    };
+  }
+  onCleanup(registerContext(keymap, keyMap, "elicitation", digits, { priority: CONTEXT_PRIORITY }));
+
+  // The option drawn at the click, in the rows as drawn (the frame and padding included).
+  const optionAt = (x: number, y: number): number | null => {
+    const row = rows()[y];
+    if (!row) return null;
+    let column = 0;
+    for (const segment of row) {
+      const width = displayWidth(segment.text);
+      if (x >= column && x < column + width) return segment.option ?? null;
+      column += width;
+    }
+    return null;
+  };
 
   const spanStyle = (s: CardSegment) => cardSpanStyle(theme, s);
   return (
-    <box ref={(r: BoxRenderable) => (box = r)} focusable focused={focused()} flexDirection="column" width="100%" backgroundColor={theme.color("surface.permission")}>
+    <box ref={(r: BoxRenderable) => (box = r)} focusable focused={focused()} flexDirection="column" width="100%" backgroundColor={theme.color("surface.permission")}
+      onMouseDown={(event) => {
+        if (!isPrimaryPress(event) || !box) return;
+        // As the permission card's: a click gives the card focus, and on an option selects it;
+        // it answers nothing (a click never lets Auggie index by itself).
+        const option = optionAt(event.x - box.x, event.y - box.y);
+        if (option !== null) setCursor(option);
+        store.setFocus("card");
+      }}
+    >
       <For each={rows()}>
         {(row) => (
           <text selectable={false} wrapMode="none" height={1} {...theme.text("text")}>

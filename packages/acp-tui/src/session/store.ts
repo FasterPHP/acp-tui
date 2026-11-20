@@ -75,6 +75,8 @@ export interface UiState {
    *  controller owns the state machine. */
   readonly armed: ArmedState | null;
   readonly promptEmpty: boolean;
+  /** acp-tui's own question card (the indexing question) is open: the status row says how to reach it. */
+  readonly questionOpen: boolean;
   /** The effective mouse policy: the chosen one, or `off` after F2 (task 8.5). */
   readonly mouse: MousePolicy;
   /** Where the conversation is scrolled to (the `position` module). */
@@ -151,6 +153,7 @@ export interface SessionStore {
   setFocus(focus: Focus): void;
   setArmed(armed: ArmedState | null): void;
   setPromptEmpty(empty: boolean): void;
+  setQuestionOpen(open: boolean): void;
   /** The harness has answered `initialize` (see `ui.harnessReady`). */
   setHarnessReady(ready: boolean): void;
   /** The harness has answered `initialize`: the start moves from `starting` to `opening session`. */
@@ -282,6 +285,7 @@ export function createSessionStore(options: SessionStoreOptions = {}): SessionSt
     focus: "prompt",
     armed: null,
     promptEmpty: true,
+    questionOpen: false,
     mouse: options.mouse ?? "full",
     // A copy: a store setter merges an object value into the one it holds.
     scroll: { ...FOLLOWING },
@@ -327,6 +331,7 @@ export function createSessionStore(options: SessionStoreOptions = {}): SessionSt
         ui: {
           focus: ui.focus,
           promptEmpty: ui.promptEmpty,
+          questionOpen: ui.questionOpen,
           armed: ui.armed,
         },
       }),
@@ -401,6 +406,7 @@ export function createSessionStore(options: SessionStoreOptions = {}): SessionSt
     setFocus: (focus) => setUi("focus", focus),
     setArmed: (armed) => setUi("armed", armed),
     setPromptEmpty: (empty) => setUi("promptEmpty", empty),
+    setQuestionOpen: (open) => setUi("questionOpen", open),
     setHarnessReady: (ready) => setUi("harnessReady", ready),
     setHarnessInitialized: () => {
       if (ui.initialized) return;

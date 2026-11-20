@@ -11,7 +11,7 @@ describe("deriveSessionView", () => {
     expect(v).toMatchObject({ agent: null, model: null, mode: null, cwd: null, usage: null, cost: null });
     expect(v.connection).toBe("connected");
     expect(v.turnState).toBe("idle");
-    expect(v.ui).toEqual({ focus: "prompt", promptEmpty: true, permissionOpen: false, armed: null });
+    expect(v.ui).toEqual({ focus: "prompt", promptEmpty: true, permissionOpen: false, questionOpen: false, armed: null });
     expect(v).toMatchObject({ turnStartedAt: null, mouse: "full", scroll: { following: true } });
   });
 

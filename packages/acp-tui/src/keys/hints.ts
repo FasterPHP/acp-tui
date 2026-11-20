@@ -34,6 +34,7 @@ export function hintsForKeyMap(map: KeyMap, interrupt: InterruptSetting = DEFAUL
     // The focus cycle is prompt box, conversation, card: from the prompt box the card is two
     // presses away, from the conversation one (task 8.3).
     { key: twice(actionLabel(map, "global", "toggleFocus")), label: "permission", when: { focus: "prompt", permissionOpen: true } },
+    { key: twice(actionLabel(map, "global", "toggleFocus")), label: "question", when: { focus: "prompt", questionOpen: true } },
     { key: chooseLabel(map), label: "select", when: { focus: "card" } },
     { key: actionLabel(map, "card", "confirm"), label: "answer", when: { focus: "card" } },
     { key: actionLabel(map, "global", "toggleFocus"), label: "prompt", when: { focus: "card" } },
@@ -41,6 +42,7 @@ export function hintsForKeyMap(map: KeyMap, interrupt: InterruptSetting = DEFAUL
     { key: actionLabel(map, "conversation", "toggle"), label: "toggle", when: { focus: "conversation" }, exclusive: true },
     { key: actionLabel(map, "conversation", "back"), label: "prompt", when: { focus: "conversation" }, exclusive: true },
     { key: actionLabel(map, "global", "toggleFocus"), label: "permission", when: { focus: "conversation", permissionOpen: true }, exclusive: true },
+    { key: actionLabel(map, "global", "toggleFocus"), label: "question", when: { focus: "conversation", questionOpen: true }, exclusive: true },
     // Esc interrupts on a double press (task 8.2), the first press arming it, or on one under
     // `interrupt: single`.
     { key: interruptHintKey(map, interrupt), label: "interrupt", when: { turn: "running" } },

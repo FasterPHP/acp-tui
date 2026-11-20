@@ -349,12 +349,14 @@ describe("labels and hints", () => {
   test("the default hints read their keys from the default key map", () => {
     expect(DEFAULT_HINTS.map((h) => `${h.key} ${h.label}`)).toEqual([
       "tab tab permission",
+      "tab tab question",
       "1-9 select",
       "enter answer",
       "tab prompt",
       "enter toggle",
       "esc prompt",
       "tab permission",
+      "tab question",
       "esc esc interrupt",
       "shift+tab mode",
       "/ commands",

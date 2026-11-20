@@ -84,6 +84,8 @@ export interface SessionView {
     focus: Focus;
     promptEmpty: boolean;
     permissionOpen: boolean;
+    /** acp-tui's own question card (the indexing question) is open. */
+    questionOpen: boolean;
     /** A two-press state is armed (Ctrl+D to detach, Esc to interrupt). */
     armed: ArmedState | null;
   };
@@ -138,6 +140,7 @@ export const DEFAULT_UI: SessionView["ui"] = {
   focus: "prompt",
   promptEmpty: true,
   permissionOpen: false,
+  questionOpen: false,
   armed: null,
 };
 

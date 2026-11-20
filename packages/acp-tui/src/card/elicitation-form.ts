@@ -291,7 +291,7 @@ export function elicitationRows(page: CardPage, width: number, style: Elicitatio
     const row: CardSegment[] = [];
     page.options.forEach((label, i) => {
       if (i > 0) row.push({ text: "   ", token: "muted" });
-      row.push({ text: `${i + 1}`, token: style.focused ? "accent" : "muted", ...sel(i === page.cursor) }, { text: ` ${label}`, token: style.focused ? "text" : "muted", ...sel(i === page.cursor) });
+      row.push({ text: `${i + 1}`, token: style.focused ? "accent" : "muted", option: i, ...sel(i === page.cursor) }, { text: ` ${label}`, token: style.focused ? "text" : "muted", option: i, ...sel(i === page.cursor) });
     });
     fixed.push(row);
   } else {

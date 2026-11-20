@@ -153,6 +153,86 @@ describe.skipIf(WINDOWS)("Indexing question card", () => {
     expect(methods(w)).toEqual(["initialize", "session/new"]);
   }, 40000);
 
+  /** The screen row and column of `text` in the card, or null. */
+  const cellOf = (s: PtySession, text: string): { x: number; y: number } | null => {
+    const rows = s.screenText();
+    for (let y = 0; y < rows.length; y++) {
+      const x = rows[y]!.indexOf(text);
+      if (x >= 0) return { x, y };
+    }
+    return null;
+  };
+  /** A cell of the prompt box's text row, two rows below the card's bottom frame. */
+  const promptCell = (s: PtySession) => {
+    const bottom = s.screenText().findIndex((r) => r.startsWith("╰") && r.includes("─"));
+    return { x: 6, y: bottom + 2 };
+  };
+
+  test("Focus leaves and comes back: a click in the prompt box takes focus, Tab Tab (or a click on the card) returns it, then Esc answers not now; the status row says how to get back", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    w.configure({ auggie: ["--scenario", "auggie-1"] });
+    const s = start(w, repo, ["auggie"], { cols: 100, rows: 40 });
+    await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
+    await afterGuard();
+    const at = promptCell(s);
+    s.mouseClick(at.x, at.y);
+    await s.waitFor(() => s.screenText().join("\n").includes("tab tab question"), 5000);
+    // Esc with the prompt box focused does not answer the card.
+    s.sendKeys("2");
+    await Bun.sleep(400);
+    expect(card(s).length).toBeGreaterThan(0);
+    s.sendKeys("Backspace");
+    s.sendKeys("Tab", "Tab");
+    await s.waitFor(() => (card(s).at(-1) ?? "").includes("esc not now"), 5000);
+    await s.waitFor(() => !s.screenText().join("\n").includes("tab tab question"), 5000);
+    s.sendKeys("Esc");
+    await s.waitFor(() => card(s).length === 0, 5000);
+  }, 40000);
+
+  test("A click on the card restores focus, a click on an option selects it without answering, and Enter then answers", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    w.configure({ auggie: ["--scenario", "auggie-1"] });
+    const s = start(w, repo, ["auggie"], { cols: 100, rows: 40 });
+    await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
+    await afterGuard();
+    const at = promptCell(s);
+    s.mouseClick(at.x, at.y);
+    await s.waitFor(() => s.screenText().join("\n").includes("tab tab question"), 5000);
+    // The option's row: its click focuses the card and selects it (enter choose appears).
+    const two = cellOf(s, "2 not now")!;
+    s.mouseClick(two.x + 3, two.y);
+    await s.waitFor(() => (card(s).at(-1) ?? "").includes("enter choose"), 5000);
+    expect(card(s).length).toBeGreaterThan(0);
+    expect(methods(w)).toEqual(["initialize", "session/new"]);
+    // Focus away again, then a click on the card's text restores it without selecting.
+    s.mouseClick(at.x, at.y);
+    await s.waitFor(() => s.screenText().join("\n").includes("tab tab question"), 5000);
+    const body = cellOf(s, "Auggie is not indexing")!;
+    s.mouseClick(body.x + 2, body.y);
+    await s.waitFor(() => !s.screenText().join("\n").includes("tab tab question"), 5000);
+    s.sendKeys("Enter");
+    await s.waitFor(() => card(s).length === 0, 5000);
+    expect(methods(w)).toEqual(["initialize", "session/new"]);
+  }, 40000);
+
+  test("A digit answers from the conversation too, as a permission card's does", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    w.configure({ auggie: ["--scenario", "auggie-1"] });
+    const s = start(w, repo, ["auggie"], { cols: 100, rows: 40 });
+    await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
+    await afterGuard();
+    const at = promptCell(s);
+    s.mouseClick(at.x, at.y);
+    await s.waitFor(() => s.screenText().join("\n").includes("tab tab question"), 5000);
+    s.sendKeys("Tab");
+    await Bun.sleep(200);
+    s.sendKeys({ text: "2" });
+    await s.waitFor(() => card(s).length === 0, 5000);
+  }, 40000);
+
   test("An arrow then Enter on 1 allows: the harness restarts with --allow-indexing", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
