@@ -252,7 +252,7 @@ describe("the start-up connection (day-two-feedback D2)", () => {
 });
 
 describe("harness rows and the install hint (configured-harnesses)", () => {
-  const AUGGIE_HINT = "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login";
+  const AUGGIE_HINT = "npm install -g @augmentcode/auggie (Node 20.6 or later), then run auggie auth login; to stay on Auggie 0.x: npm install -g @augmentcode/auggie@v0-release, then run auggie login";
   const OPENCODE_HINT = "npm install -g @opencode/cli, or see opencode.ai/docs";
   const missing = (name: string, command: string, hint?: string): AgentEntry => ({ name, command, args: [], env: {}, ...(hint ? { installHint: hint } : {}) });
 

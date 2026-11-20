@@ -55,11 +55,12 @@ describe.skipIf(process.platform === "win32")("Programs resolved from the PATH o
     const w = listWorld();
     const repo = w.dir("repo");
     bunOnlyPath(w);
-    const s = (session = w.start([], { cwd: repo, cols: 200, rows: 30 }));
+    const s = (session = w.start([], { cwd: repo, cols: 300, rows: 30 }));
     expect(await s.wait(20000)).toBe(1);
     const text = s.screenText().join("");
     expect(text).toContain("acp-tui: could not start harness 'auggie' (command 'auggie --acp')");
-    expect(text).toContain("auggie is not installed: install it with npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login");
+    expect(text).toContain("auggie is not installed: install it with npm install -g @augmentcode/auggie (Node 20.6 or later), then run auggie auth login; to stay on Auggie 0.x: npm install -g @augmentcode/auggie@v0-release, then run auggie login");
+    expect(text).not.toContain("0.36.0");
     expect(w.events("agent_launched")).toEqual([]);
     expect(w.events("launch_error")).toMatchObject([{ kind: "not_found" }]);
   }, 40000);

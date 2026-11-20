@@ -4,6 +4,7 @@ import { DEFAULT_UI, FOLLOWING, type SessionView } from "../../src/layout/view.t
 export const EMPTY_VIEW: SessionView = {
   agent: null,
   agentVersion: null,
+  agentProfileVersion: null,
   model: null,
   mode: null,
   cwd: null,
@@ -22,6 +23,7 @@ export const EMPTY_VIEW: SessionView = {
 export const FULL_VIEW: SessionView = {
   agent: "Claude Code",
   agentVersion: "0.81.2",
+  agentProfileVersion: null,
   model: "sonnet-4.5",
   mode: "Accept Edits",
   cwd: "/home/user/Projects/acp-tui",

@@ -255,3 +255,19 @@ describe("splash rows (task 4.7)", () => {
     for (const glyph of ascii) expect(glyph).toMatch(/^[\x20-\x7e]+$/);
   });
 });
+
+describe("identity row with a harness profile's version", () => {
+  const row = (input: Partial<SplashInput>): string => {
+    const layout = splashLayout({ ...INPUT, ...input }, 100, 30);
+    return text(layout.rows).find((r) => r.startsWith("Harness: ") || r.includes("Harness: "))!.trim();
+  };
+
+  test("the version follows the name, before the model", () => {
+    expect(row({ agent: "Auggie", agentVersion: "1.2.2", model: "Prism (GPT)" })).toBe("Harness: Auggie 1.2.2 · Model: Prism (GPT)");
+  });
+
+  test("no version, no change: Claude Agent is still Claude", () => {
+    expect(row({ agent: "Claude Agent", agentVersion: null })).toStartWith("Harness: Claude · ");
+    expect(row({ agent: "Auggie" })).toStartWith("Harness: Auggie · ");
+  });
+});

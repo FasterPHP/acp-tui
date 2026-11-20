@@ -29,6 +29,10 @@ describe("agent", () => {
   test("format template with version", () => {
     expect(text("agent", FULL_VIEW, { format: "{agent} v{version}" })).toBe("Claude Code v0.81.2");
   });
+  test("a harness with a profile shows Auggie alone, without the version", () => {
+    const profiled = deriveSessionView(createSession(), { agent: { name: "auggie", title: "Auggie Coding Agent", version: "1.2.2" } });
+    expect(text("agent", profiled)).toBe("Auggie");
+  });
   test("hidden without data", () => {
     expect(run("agent", EMPTY_VIEW)).toBeNull();
   });

@@ -94,6 +94,8 @@ export interface SplashInput {
   readonly version: string;
   /** The agent's sanitised name, or null before `initialize`. */
   readonly agent: string | null;
+  /** The reported version's leading semver when the harness has a profile (`1.2.2`), shown after its name; else null or absent. */
+  readonly agentVersion?: string | null;
   readonly model: string | null;
   /** The session's directory, or null before it reports one: the launch's is shown instead. */
   readonly cwd: string | null;
@@ -220,7 +222,8 @@ function sections(input: SplashInput, width: number): Section[] {
   } else {
     // The values are truncated, never the labels; the model part goes when its label and one column
     // of the value do not fit.
-    const harness = truncateEnd(input.agent === null ? input.launch.harness : harnessName(input.agent, input.launch.harness), Math.max(1, room - labelWidth));
+    const named = input.agent === null ? input.launch.harness : harnessName(input.agent, input.launch.harness);
+    const harness = truncateEnd(input.agentVersion ? `${named} ${input.agentVersion}` : named, Math.max(1, room - labelWidth));
     const row: SplashSegment[] = [harnessLabel, { text: harness, token: "text" }];
     const model = input.model;
     const used = labelWidth + displayWidth(harness) + displayWidth(sep);

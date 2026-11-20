@@ -38,9 +38,9 @@ describe("reasons from fake-agent auggie-1", () => {
     expect(agentErrorText(error)).toBe("Internal error: Unknown config option probe-nope");
   }, 20000);
 
-  test("a prompt refused with details: the conversation's error line holds the first line of the reason", async () => {
+  test("a prompt refused with details (a harness without a profile, so the reason shows as it is): the conversation's error line holds the first line of the reason", async () => {
     const { logger } = recorder();
-    const controller = await connect("auggie-1-noauth", ["--offer-models"], logger);
+    const controller = await connect("auggie-1-noauth", ["--offer-models", "--agent-info", "other@1.2.2"], logger);
     await controller.newSession("/work");
     controller.prompt("hello");
     await waitFor(controller, (session) => session.order.some((id) => session.items.get(id)?.kind === "marker"), 10000);

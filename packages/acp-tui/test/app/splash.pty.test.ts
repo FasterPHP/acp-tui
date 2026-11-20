@@ -226,4 +226,22 @@ describe("splash while the harness starts (day-two-feedback task group 2)", () =
     await s.waitFor(READY, 15000);
     expect(s.screenText()[at]!.trim()).toBe("Harness: fake-agent");
   }, 40000);
+
+  test("Auggie 1.x: the identity row reads Harness: Auggie 1.2.2 with the model, never Auggie Coding", async () => {
+    const run = startCli("auggie-1", 0, { cols: 100, rows: 30, agentArgs: ["--allow-indexing"] });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    await run.s.waitFor((p) => p.screenText().join("\n").includes("Harness: Auggie 1.2.2"), 5000);
+    const all = run.s.screenText().join("\n");
+    expect(all).toMatch(/Harness: Auggie 1\.2\.2 · Model: Prism \(GPT\)/);
+    expect(all).not.toContain("Auggie Coding");
+  }, 20000);
+
+  test("Auggie 0.x: the identity row reads the leading version without the commit", async () => {
+    const run = startCli("basic", 0, { cols: 100, rows: 30, agentArgs: ["--agent-info", "auggie@0.36.0 (commit 7c61e5bb)", "--agent-title", "Auggie Agent"] });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    await run.s.waitFor((p) => p.screenText().join("\n").includes("Harness: Auggie 0.36.0"), 5000);
+    expect(run.s.screenText().join("\n")).not.toContain("commit");
+  }, 20000);
 });

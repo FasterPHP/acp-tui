@@ -30,7 +30,8 @@ import { DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
 import { harnessActivity, type HarnessActivity } from "../agent/harness-activity.ts";
 import { killProcessTree } from "../agent/kill-tree.ts";
 import { launchAgent, type LaunchedAgent } from "../agent/launch.ts";
-import { isAuthRequired, LoginRequiredError, loginMessage } from "../agent/login.ts";
+import { isAuthRequired, isLoggedOutSignature, isNoApiKey, loggedOutStartMessage, loginCommandFor, LoginRequiredError, loginMessage, noApiKeyMessage } from "../agent/login.ts";
+import { type HarnessProfile, profileFor } from "../agent/harness-profiles.ts";
 import { agentErrorText } from "../agent/errors.ts";
 import { createDebugLogger, type DebugLogger } from "../log.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
@@ -70,6 +71,8 @@ export interface SessionController {
   readonly support: SessionSupport;
   /** `agentInfo` from the `initialize` response, if any. */
   readonly agentInfo: Implementation | null;
+  /** The harness's profile (`profileFor(agentInfo)`, src/agent/harness-profiles.ts), or null when it has none. */
+  readonly profile: HarnessProfile | null;
   /** Sends `session/new` with `cwd` (once per controller, instead of `openSession`), and
    *  `options.additionalDirectories` when given and non-empty (the caller checks `support`). */
   newSession(cwd: string, options?: SessionDirectories): Promise<void>;
@@ -413,7 +416,17 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
   const support = sessionSupport(init);
   const agentInfo = init.agentInfo ?? null;
   // A harness whose program has a login command is launched with its `loginHint` (src/agent/hints.ts).
-  const loginOptions = { harness: options.harness, loginHint: options.loginHint };
+  // A harness with a profile names the profile's login command instead (spec "Login command from the profile").
+  const profile = profileFor(agentInfo);
+  const loginOptions = { harness: options.harness, loginHint: loginCommandFor(profile, options.loginHint) };
+
+  /** Fails the start the way `-32000` does when an `auggie-1` harness answers a session request with
+   *  the logged-out model signature (spec "Auggie 1.x not logged in at the start"). */
+  function failIfLoggedOut(configOptions: readonly unknown[] | null | undefined, phase: "new" | "load" | "resume"): void {
+    if (!isLoggedOutSignature(profile, configOptions)) return;
+    logger.log({ event: "auth_required", phase });
+    throw new LoginRequiredError(loggedOutStartMessage(loginOptions));
+  }
 
   /** Makes `core` the controller the agent's messages go to; the previous one's session retires. */
   function activate(core: Core): void {
@@ -434,6 +447,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
     return {
       support,
       agentInfo,
+      profile,
       kill,
       detach,
 
@@ -457,6 +471,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
           }
           throw error;
         }
+        failIfLoggedOut(response.configOptions, "new");
         dispatch({ type: "session_created", response, cwd, additionalDirectories: directories.additionalDirectories ?? [], agentInfo, at: now() });
       },
 
@@ -471,6 +486,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
         const sent = sentField(directories);
         if (mode === "resume") {
           const response = await resumeSession(conn, agent, options.command, sessionId, cwd, { logger, ...sent });
+          failIfLoggedOut(response.configOptions, "resume");
           dispatch({ type: "session_opened", response, at: now() });
           return mode;
         }
@@ -478,6 +494,7 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
         let response;
         try {
           response = await loadSession(conn, agent, options.command, sessionId, cwd, { logger, ...sent });
+          failIfLoggedOut(response.configOptions, "load");
         } catch (error) {
           handler.abortReplay();
           throw error;
@@ -545,6 +562,11 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
               return;
             }
             logger.log({ event: "prompt_error", sessionId });
+            if (isNoApiKey(profile, error)) {
+              // Auggie 1.x with no login answers every prompt `No API key found ...` (spec "Auggie 1.x not logged in on a prompt").
+              dispatch({ type: "prompt_error", message: noApiKeyMessage(error, loginOptions), at: now() });
+              return;
+            }
             dispatch({ type: "prompt_error", message: errorMessage(error), at: now() });
           },
         );

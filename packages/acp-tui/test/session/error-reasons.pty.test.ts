@@ -48,7 +48,7 @@ describe("Reasons in agent errors (PTY)", () => {
   }, 40000);
 
   test("Internal error with details: the conversation's error line reads the reason, not the advice", async () => {
-    const w = world(["--scenario", "auggie-1-noauth", "--offer-models"]);
+    const w = world(["--scenario", "auggie-1-noauth", "--offer-models", "--agent-info", "other@1.2.2"]);
     const s = start(w, []);
     await s.waitFor(READY, 20000);
     s.sendKeys({ text: "hello" }, "Enter");

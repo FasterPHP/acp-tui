@@ -43,7 +43,7 @@ import { existsSync, statSync } from "node:fs";
 import { sanitise, type SessionOpenMode } from "acp-model";
 import type { SessionInfo } from "@agentclientprotocol/sdk";
 import { LoginRequiredError } from "../agent/login.ts";
-import { uncheckedAuggieNotice } from "../agent/harness-version.ts";
+import { newerThanCheckedNotice } from "../agent/harness-profiles.ts";
 import { findAgent, loadAgentCatalogue, type AgentCatalogue } from "../agent/catalogue.ts";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
@@ -520,8 +520,8 @@ export async function startOn(controller: ConnectedController, options: StartLau
   const info = controller.agentInfo;
   if (info && !versionNoticed.has(info)) {
     versionNoticed.add(info);
-    const unchecked = uncheckedAuggieNotice(info);
-    if (unchecked !== null) notify(unchecked);
+    const newer = newerThanCheckedNotice(controller.profile);
+    if (newer !== null) notify(newer);
   }
 
   // Delivery (spec tui-sessions "Additional directories sent to the harness"): the template, when
@@ -561,6 +561,8 @@ export async function startOn(controller: ConnectedController, options: StartLau
     mode = await controller.openSession(target.sessionId, target.directory, directories);
   } catch (error) {
     if (cancelled()) return null;
+    // The logged-out signature after `session/load` or `session/resume`: the login message, as for `session/new`.
+    if (error instanceof LoginRequiredError) throw new SessionOpenFailure(error.message);
     throw openFailure(error, target.sessionId, launch, options.openHint);
   }
   if (cancelled()) return null;

@@ -4,6 +4,7 @@
 // can recompute it on every change and tests can build one directly.
 import { sanitise, type ConnectionState, type Session, type SessionOpenMode, type TurnState } from "acp-model";
 import { DEFAULT_MODEL_LABEL, legacyModelOption, modelDisplayName, type ModelListSettings } from "./provider-groups.ts";
+import { profileFor } from "../agent/harness-profiles.ts";
 import type { MousePolicy } from "../renderer/options.ts";
 import type { HintRule } from "./modules.ts";
 
@@ -37,6 +38,8 @@ export interface SessionView {
   /** Agent display name (`agentInfo.title`, else `agentInfo.name`), or null before `initialize`. */
   agent: string | null;
   agentVersion: string | null;
+  /** The reported version's leading semver when the harness has a profile (`1.2.2`; src/agent/harness-profiles.ts), else null. */
+  agentProfileVersion: string | null;
   /** Current model name from the `model` config option, else the legacy model state, if the
    *  agent reported either. */
   model: string | null;
@@ -211,8 +214,11 @@ export function deriveSessionView(session: Session, input: ViewInput = {}): Sess
     mode = current?.name ?? session.modes.currentModeId;
   }
   const usage = session.usage;
+  // A profile's display name replaces the derived one (spec tui-layout "Display names from harness profiles").
+  const profile = profileFor(agent);
   return {
-    agent: clean(agent?.title) ?? clean(agent?.name),
+    agent: profile !== null ? profile.displayName : (clean(agent?.title) ?? clean(agent?.name)),
+    agentProfileVersion: profile !== null ? clean(profile.version) : null,
     agentVersion: clean(agent?.version),
     model: clean(selectedName(session, "model", input.models) ?? legacyModelName(session, input.models)),
     mode: clean(mode),
