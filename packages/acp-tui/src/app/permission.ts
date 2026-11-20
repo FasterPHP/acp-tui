@@ -24,7 +24,9 @@
 // approval sanitising, and are plain ASCII from the generated table.
 import { sanitise, type PermissionRecordItem, type ToolCallItem } from "acp-model";
 import { TextAttributes } from "@opentui/core";
-import { approvalLine, optionLabels } from "../conversation/permission-label.ts";
+import { approvalLine, approvalQuestion, optionLabels } from "../conversation/permission-label.ts";
+
+export { approvalQuestion };
 import { cardLines, expandTabs, wrapLine } from "../conversation/content.ts";
 import { DEFAULT_PERMISSION_GLYPHS } from "../conversation/glyphs.ts";
 import { LIVE_PERMISSION_GLYPHS } from "../conversation/live-glyphs.ts";
@@ -113,23 +115,6 @@ export interface CardModel {
 /** One line of approval-sanitised text. */
 export function approvalText(text: string): string {
   return approvalLine(text);
-}
-
-/**
- * The request's question as approval-sanitised lines: no bidi controls, zero-width or control
- * characters, its line breaks kept, tabs expanded, trailing white space dropped from each line,
- * every run of blank lines collapsed to one and none at either end; indentation kept. Joined
- * with `\n`; empty when nothing is left.
- */
-export function approvalQuestion(text: string): string {
-  const lines: string[] = [];
-  for (const raw of sanitise(text, "approval").split("\n")) {
-    const line = expandTabs(raw).trimEnd();
-    if (line === "" && (lines.length === 0 || lines[lines.length - 1] === "")) continue;
-    lines.push(line);
-  }
-  while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
-  return lines.join("\n");
 }
 
 export function cardModel(record: PermissionRecordItem, tool: ToolCallItem | undefined): CardModel {

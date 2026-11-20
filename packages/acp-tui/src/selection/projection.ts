@@ -56,7 +56,7 @@ import { glyphsVersion } from "../conversation/live-glyphs.ts";
 import { unifiedDiff } from "../conversation/diff.ts";
 import { toolTitleText } from "../conversation/tool-title.ts";
 import { WITHDRAWN_LABEL } from "../conversation/format.ts";
-import { answeredLabel } from "../conversation/permission-label.ts";
+import { answeredLabel, questionLines } from "../conversation/permission-label.ts";
 import type { MessageProjection } from "../conversation/markdown/project.ts";
 import { markdownProjection, type MarkdownBlockKind } from "./markdown-text.ts";
 
@@ -211,6 +211,22 @@ export function outcomeLabel(item: PermissionRecordItem): string {
   return outcome.type === "answered" ? (answeredLabel(item) ?? OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
 }
 
+/**
+ * A permission record's text: `Permission (allow once): <question>`. A question with line breaks
+ * keeps them (the expanded record draws them and copies them; collapsed, the one line shows the
+ * joined question and a copy of it takes the same text); `summaryEnd` is the first line's end.
+ */
+function permissionProjection(b: Builder, item: PermissionRecordItem): Projection {
+  const head = `Permission (${outcomeLabel(item)}): `;
+  const lines = questionLines(item.title);
+  if (lines.length === 0) {
+    b.block("text", [`${head}${oneLine(item.title) || item.toolCallId}`]);
+    return b.done();
+  }
+  b.block("text", [`${head}${lines[0]}`, ...lines.slice(1)]);
+  return b.done(head.length + lines[0]!.length);
+}
+
 /** An agent message's Markdown as drawn (markdown-text.ts), into a fresh builder. */
 function projectMarkdown(builder: Builder, source: string, cache: boolean): void {
   builder.markdown(markdownProjection(source, cache));
@@ -270,8 +286,7 @@ export function projectItem(item: Item): Projection {
       // The collapsed line (`plan 3/4`) shows none of the entries.
       return b.done(0);
     case "permission_record":
-      b.block("text", [`Permission (${outcomeLabel(item)}): ${oneLine(item.title) || item.toolCallId}`]);
-      return b.done();
+      return permissionProjection(b, item);
     case "marker":
       if (item.markerKind === "turn_end") return b.done();
       b.block("text", textLines(item.markerKind === "error" ? `error: ${item.text}` : item.text));
