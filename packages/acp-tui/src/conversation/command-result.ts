@@ -4,7 +4,7 @@
 // unchanged.
 //
 // A text is a command result when, after unwrapping a text that is exactly one fence without an
-// info string, it is exactly one of two envelopes:
+// info string, it is exactly one of the envelopes:
 //
 // 1. Auggie's `launch-process` result (0.36.0): `Here are the results from executing the
 //    command.`, the return code between `<return-code>` lines and the output between `<output>`
@@ -13,6 +13,9 @@
 // 2. `claude-agent-acp`'s failure: a first line `Exit code <n>`, then the output; only for a failed
 //    `execute` call and only inside a bare fence (a bare `Exit code` line elsewhere is ordinary
 //    text).
+//
+// 3. pi's failure (Auggie 1.x): the output, an empty line, then `Command exited with code <n>` as
+//    the last line, for a failed `execute` call and not in a fence. A success has no code line.
 //
 // Anything else is not a result and is drawn as before. The table is exact on purpose: an agent
 // that quotes the tags in prose must not be rewritten. Recheck both envelopes at each Auggie
@@ -36,6 +39,10 @@ const AUGGIE_ENVELOPE =
 
 /** `claude-agent-acp`'s failure: Claude Code's `Exit code <n>`, then the output (possibly none). */
 const EXIT_CODE_FIRST_LINE = /^Exit code (\d+)(?:\n([\s\S]*))?$/;
+
+/** pi's failure, as Auggie 1.x sends it: the output (possibly none), at least one empty line, then
+ *  `Command exited with code <n>` as the last line. Without the empty line the text is output. */
+const PI_FAILURE = /^(?:([\s\S]*?)\n)?(?:[ \t]*\n)+Command exited with code (\d+)\n?$/;
 
 /** The output without leading blank lines (the first line's indentation is kept) and without
  *  trailing whitespace. */
@@ -61,6 +68,10 @@ export function commandResult(text: string, kind: ToolKind | null | undefined, s
   if (fenced && kind === "execute" && status === "failed") {
     const claude = EXIT_CODE_FIRST_LINE.exec(body);
     if (claude) return { output: tidyOutput(claude[2] ?? ""), code: Number.parseInt(claude[1]!, 10) };
+  }
+  if (!fenced && kind === "execute" && status === "failed") {
+    const pi = PI_FAILURE.exec(body);
+    if (pi) return { output: tidyOutput(pi[1] ?? ""), code: Number.parseInt(pi[2]!, 10) };
   }
   return null;
 }

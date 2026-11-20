@@ -41,6 +41,7 @@ const tool: ToolCallItem = {
   content: [],
   locations: [],
   rawOutputText: null,
+  inputText: null,
   startedAt: 0,
   endedAt: null,
 };

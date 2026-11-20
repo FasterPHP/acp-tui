@@ -173,6 +173,7 @@ describe("heights (task 6.2)", () => {
     content: [{ type: "text", text }],
     locations: [],
     rawOutputText: null,
+    inputText: null,
     startedAt: 0,
     endedAt: 1,
   });

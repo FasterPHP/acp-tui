@@ -37,6 +37,7 @@ function tool(overrides: Partial<ToolCallItem> = {}): ToolCallItem {
     content: [],
     locations: [],
     rawOutputText: null,
+    inputText: null,
     startedAt: 1000,
     endedAt: 1050,
     ...overrides,

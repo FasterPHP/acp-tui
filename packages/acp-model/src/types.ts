@@ -80,6 +80,9 @@ export interface ToolCallItem extends ItemBase {
   /** The latest `rawOutput` as text (a string, or the string `output` of an object, as Auggie
    *  sends it), sanitised; null when none was sent or it had another shape. */
   readonly rawOutputText: string | null;
+  /** The `command` (kind `execute`) or else the `path` string of the latest `rawInput`, sanitised;
+   *  null when none was sent or it had another shape. Names a call whose title is one bare word. */
+  readonly inputText: string | null;
   readonly startedAt: number | null;
   readonly endedAt: number | null;
 }

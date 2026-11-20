@@ -147,3 +147,33 @@ describe("result lines as drawn and projected (task 4.1)", () => {
     expect(resultOutputLines("a\tb  \nxx\tyy")).toEqual(["a       b", "xx      yy"]);
   });
 });
+
+describe("pi's failure envelope (auggie-1x-support task 6.3)", () => {
+  const PI = "cat: nope.txt: No such file or directory\n\n\nCommand exited with code 1";
+
+  test("pi failure recognised", () => {
+    expect(commandResult(PI, "execute", "failed")).toEqual({ output: "cat: nope.txt: No such file or directory", code: 1 });
+  });
+
+  test("one empty line is enough, and the output may be empty or have several lines", () => {
+    expect(commandResult("a\nb\n\nCommand exited with code 2", "execute", "failed")).toEqual({ output: "a\nb", code: 2 });
+    expect(commandResult("\n\nCommand exited with code 3", "execute", "failed")).toEqual({ output: "", code: 3 });
+  });
+
+  test("pi success stays output", () => {
+    expect(commandResult("hello.txt\nnotes.txt", "execute", "completed")).toBeNull();
+  });
+
+  test("Code line inside the output: no empty line before it", () => {
+    expect(commandResult("boom\nCommand exited with code 2", "execute", "failed")).toBeNull();
+  });
+
+  test("gated: a failed execute call, not in a fence, the code line last; aborted and denied stay plain", () => {
+    expect(commandResult(PI, "execute", "completed")).toBeNull();
+    expect(commandResult(PI, "read", "failed")).toBeNull();
+    expect(commandResult(fence(PI), "execute", "failed")).toBeNull();
+    expect(commandResult("x\n\nCommand exited with code 1\nmore", "execute", "failed")).toBeNull();
+    expect(commandResult("Command aborted", "execute", "failed")).toBeNull();
+    expect(commandResult("Tool execution denied: no", "execute", "failed")).toBeNull();
+  });
+});

@@ -45,6 +45,7 @@ import type { Token, Tokens } from "marked";
 import type { ThoughtItem, ToolCallItem, ToolCallItemContent } from "acp-model";
 import { displayWidth, truncateEnd } from "../layout/segments.ts";
 import type { TokenName } from "../theme/index.ts";
+import { toolTitleText } from "./tool-title.ts";
 import { commandResult, OUTPUT_INDENT, OUTPUT_LABEL, resultOutputLines, RETURN_CODE_LABEL, toolContent, type CommandResult } from "./command-result.ts";
 import { diffCardLines, VIEWER_TEXT, wrapLine, type CardLine } from "./content.ts";
 import { TERMINAL_UNAVAILABLE_NOTICE } from "./format.ts";
@@ -198,7 +199,7 @@ function columnRows(lines: readonly CardLine[], width: number): { rows: Row[]; p
  *  else `tool` (selection/projection.ts `toolTitle`). */
 export function cardTitle(item: ToolCallItem): string {
   const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
-  return oneLine(item.title) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
+  return toolTitleText(item) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
 }
 
 /** The full title wrapped at `width` in `tool.title`, emoji the terminal mis-measures drawn as

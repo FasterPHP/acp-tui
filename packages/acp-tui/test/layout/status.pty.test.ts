@@ -68,10 +68,21 @@ describe("status row (task 4.6)", () => {
   }, 20000);
 
   test("empty prompt box: idle, focused and empty at 120 columns, the hints show / commands, ? help (task 12.1), the mode-cycle key with mode and Ctrl+D detach", async () => {
-    const run = startCli("basic", 0, { cols: 120, rows: 24 });
+    const run = startCli("config-options", 0, { cols: 120, rows: 24 });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     expect(statusRow(run.s)).toContain("shift+tab mode  / commands  ? help  ctrl+d detach");
     expect(statusRow(run.s)).not.toContain("enter");
+  }, 20000);
+
+  test("No modes: an agent that offers none shows no mode key (auggie-1: / commands, ? help, ctrl+d detach)", async () => {
+    const run = startCli("auggie-1", 0, { cols: 120, rows: 24 });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    await run.s.waitFor((p) => statusRow(p).includes("ctrl+d detach"), 5000);
+    const row = statusRow(run.s);
+    expect(row).toContain("/ commands  ? help  ctrl+d detach");
+    expect(row).not.toContain("shift+tab");
+    expect(row).not.toContain("mode");
   }, 20000);
 });

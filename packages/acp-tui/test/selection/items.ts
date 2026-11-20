@@ -31,6 +31,7 @@ export function tool(id: string, overrides: Partial<ToolCallItem> = {}): ToolCal
     content: [],
     locations: [],
     rawOutputText: null,
+    inputText: null,
     startedAt: 0,
     endedAt: 10,
     ...overrides,

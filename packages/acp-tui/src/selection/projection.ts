@@ -54,6 +54,7 @@ import type { Item, PermissionRecordItem, ToolCallItem } from "acp-model";
 import { commandResult, resultProjectionLines, toolContent } from "../conversation/command-result.ts";
 import { glyphsVersion } from "../conversation/live-glyphs.ts";
 import { unifiedDiff } from "../conversation/diff.ts";
+import { toolTitleText } from "../conversation/tool-title.ts";
 import { WITHDRAWN_LABEL } from "../conversation/format.ts";
 import { answeredLabel } from "../conversation/permission-label.ts";
 import type { MessageProjection } from "../conversation/markdown/project.ts";
@@ -194,7 +195,7 @@ function oneLine(text: string): string {
 
 /** A tool call's title line: the title, else its kind, else `tool`. */
 export function toolTitle(item: ToolCallItem): string {
-  return oneLine(item.title) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
+  return toolTitleText(item) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
 }
 
 const OUTCOME_LABELS: Readonly<Record<string, string>> = {

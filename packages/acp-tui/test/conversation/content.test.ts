@@ -224,6 +224,7 @@ describe("expanded tool cards (phase-1a task 7.3)", () => {
     content,
     locations: [],
     rawOutputText: null,
+    inputText: null,
     startedAt: null,
     endedAt: null,
   });
