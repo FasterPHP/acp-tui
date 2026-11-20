@@ -74,22 +74,23 @@ const LEXED_CACHE_SIZE = 4096;
 const lexedCache = new Map<string, { prepared: Prepared; tokens: TokensList }>();
 
 /** A message's pre-pass and tokens. */
-export function lexMessage(text: string): { prepared: Prepared; tokens: TokensList } {
+export function lexMessage(text: string, breaks = false): { prepared: Prepared; tokens: TokensList } {
   const prepared = prepass(text);
-  return { prepared, tokens: lexMarkdown(prepared.source) };
+  return { prepared, tokens: lexMarkdown(prepared.source, breaks) };
 }
 
 /** A message's pre-pass and tokens, from a small cache keyed by its text. */
-export function lexedMessage(text: string): { prepared: Prepared; tokens: TokensList } {
-  const hit = lexedCache.get(text);
+export function lexedMessage(text: string, breaks = false): { prepared: Prepared; tokens: TokensList } {
+  const key = breaks ? `\u0000${text}` : text;
+  const hit = lexedCache.get(key);
   if (hit) {
     // Most recently used last.
-    lexedCache.delete(text);
-    lexedCache.set(text, hit);
+    lexedCache.delete(key);
+    lexedCache.set(key, hit);
     return hit;
   }
-  const lexed = lexMessage(text);
-  lexedCache.set(text, lexed);
+  const lexed = lexMessage(text, breaks);
+  lexedCache.set(key, lexed);
   if (lexedCache.size > LEXED_CACHE_SIZE) lexedCache.delete(lexedCache.keys().next().value!);
   return lexed;
 }
@@ -116,7 +117,8 @@ export class MessageLayout {
 
   /** `cache`: keep the text's pre-pass and tokens for the next layout of it (not while it streams,
    *  when every chunk is a new text). `textToken`: the token of plain text (`thought` for a
-   *  thought's body, mvp-rendering task 9.4). */
+   *  thought's body, mvp-rendering task 9.4). `hardBreaks`: a single newline is a line break (a tool's
+   *  text, which is output, not prose). */
   constructor(
     source: string | Prepared,
     width: number,
@@ -124,14 +126,15 @@ export class MessageLayout {
     flags: MarkdownFlags = DEFAULT_FLAGS,
     cache = true,
     textToken: TokenName = "text",
+    hardBreaks = false,
   ) {
     if (typeof source === "string") {
-      const lexed = cache ? lexedMessage(source) : lexMessage(source);
+      const lexed = cache ? lexedMessage(source, hardBreaks) : lexMessage(source, hardBreaks);
       this.prepared = lexed.prepared;
       this.tokens = lexed.tokens;
     } else {
       this.prepared = source;
-      this.tokens = lexMarkdown(source.source);
+      this.tokens = lexMarkdown(source.source, hardBreaks);
     }
     this.ctx = { width: Math.max(1, width), glyphs: glyphs.markdown, prepared: this.prepared, flags, textToken, listDepth: 0 };
     let offset = 0;
