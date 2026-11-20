@@ -4,10 +4,10 @@
 // "Declining Auggie's indexing" and "Other indexing lines from Auggie"; tui-layout "Indexing
 // question card".
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
-import { READY, RUNNING, REQUIRES_ACTION, promptBox } from "../pty/regions.ts";
+import { READY, RUNNING, REQUIRES_ACTION, promptBox, promptText } from "../pty/regions.ts";
 import { boxRows } from "../overlay/cli.ts";
 import { listBody, listRows, listWorld, type ListWorld } from "../session/list-world.ts";
 import { WINDOWS } from "../windows.ts";
@@ -62,6 +62,43 @@ describe.skipIf(WINDOWS)("Auggie's indexing line becomes a question", () => {
     expect(screen).not.toContain(DISABLED(repo));
     expect(w.events("indexing_line")).toMatchObject([{ kind: "disabled" }]);
   }, 40000);
+
+  test("Added directory: the session directory is allowed, /add-dir ../lib restarts the harness with --add-workspace, and the card names the added directory only", async () => {
+    const w = listWorld();
+    const repo = w.dir("repo");
+    const lib = w.dir("lib");
+    // Auggie already has a rule for the session directory (as in check B), and a session store so the
+    // restarted process can load the session.
+    const store = join(w.base, "indexing.json");
+    writeFileSync(store, JSON.stringify({ indexingAllowDirs: [repo] }));
+    w.configure({ auggie: ["--scenario", "auggie-1", "--indexing-store", store, "--sessions", join(w.base, "sessions.json"), "--persist"] });
+    const file = join(w.env["XDG_CONFIG_HOME"]!, "acp-tui", "config.jsonc");
+    const config = JSON.parse(readFileSync(file, "utf8")) as { agent_servers: Record<string, Record<string, unknown>> };
+    config.agent_servers["auggie"]!["additional_directory_args"] = ["--add-workspace", "{dir}"];
+    writeFileSync(file, JSON.stringify(config));
+    const s = start(w, repo, ["auggie"], { cols: 120, rows: 40 });
+    await s.waitFor(READY, 20000);
+    s.sendKeys({ text: "hello" }, "Enter");
+    await s.waitFor("Hello from fake Auggie.", 10000);
+    await s.waitFor(READY, 10000);
+    expect(card(s)).toEqual([]);
+    // `/` opens the slash menu; Esc leaves it as text, then the rest of the command.
+    s.sendKeys({ text: "/" });
+    await s.waitFor("Slash commands", 5000);
+    s.sendKeys("Esc");
+    await s.waitFor((p) => !p.screenText().join("\n").includes("Slash commands") && promptText(p).join("").trim() === "/", 5000);
+    s.sendKeys({ text: "add-dir ../lib" }, "Enter");
+    await s.waitFor("and reopen this session", 10000);
+    s.sendKeys("Enter");
+    await s.waitFor(() => cardText(s).includes("2 not now"), 20000);
+    const body = cardBody(s);
+    expect(body).toContain(lib);
+    expect(body).toContain("this directory");
+    expect(body).not.toContain(repo);
+    expect(w.received("auggie").filter((e) => e.method === "argv/add-workspace").map((e) => e.params?.["directories"])).toEqual([[lib]]);
+    expect(methods(w)).toContain("session/load");
+    expect(s.screenText().join("\n")).not.toContain("Indexing disabled");
+  }, 60000);
 
   test("Another harness: the same text from a harness with no profile is agent text and no card opens", async () => {
     const w = listWorld();
