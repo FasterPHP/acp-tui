@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Auggie 1.x
+
+- Auggie 1.x (`npm install -g @augmentcode/auggie`, Node 20.6 or later, then `auggie auth login`) is supported next to 0.x, with the one `auggie` entry. acp-tui recognises the generation from Auggie's answer to `initialize`; the login hint, the install hint and the notice for a version newer than checked (1.2.x, 0.37.x) follow it. The commented `auggie` example explains both generations, `--thinking` for 1.x, and `--permission bash:ask-user` (also `write` and `edit`) rules, which 1.x needs to ask before it acts; a commented `auggie-v2` example runs 1.x from `@augmentcode/onison` beside a 0.x `auggie`.
+- A model chosen in 1.x is saved as Auggie's global default.
+- Auggie 1.x indexes a directory only once it is allowed. acp-tui now turns Auggie's `Indexing disabled` line into a question card, `Auggie is not indexing <dir>.`, opening with nothing selected (digits choose, Esc means not now). Allowing restarts Auggie with `--allow-indexing`, which Auggie keeps as a lasting rule; a stored deny, a file-limit line and the home-directory line are notices.
+- Each session records which Auggie made it. A session of the other generation is refused with a message that says how to get back to it (`/import-legacy-sessions` in 1.x).
+- The login hint names the command for the generation that is running (`auggie auth login` or `auggie login`).
+
+### Other changes
+
+- When a harness refuses a request, the reason it gives in the error's data is shown instead of `Internal error`.
+- Permission cards name their options by what they do when a harness sends two with the same kind, and show a request for a tool call the harness has not announced.
+- A turn you interrupt ends as `interrupted`, whatever stop reason the harness answers with.
+- Tool calls that carry only a bare tool name as their title are drawn as their command or path; pi's failed-command text shows as a command result; the mode hint is hidden when a harness offers no modes.
+- A session is recorded in the index on its first answered prompt, so a session that was never answered does not fill the list.
+- `/add-dir` and `--add-dir` work before the first prompt.
+- Errors and the messages of the session list can be selected and copied.
+- Rows in the session list for a command you ran with `--` show a short harness name (`claude` for the Claude adapter, the script's name for a runner).
+- The tester guide says to install Auggie 1.x; an older `config.jsonc` without `agent_servers` needs an `auggie` entry (`acp-tui config --diff-default` shows it).
+
 ## 0.2.0
 
 ### Breaking changes
