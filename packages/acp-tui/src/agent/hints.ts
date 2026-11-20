@@ -9,6 +9,9 @@ import { auggieInstallHint, auggieLoginCommand, BUN_INSTALL_HINT, opencodeInstal
 
 /** What acp-tui can tell the user about a program it knows. */
 export interface ProgramHints {
+  /** The short name for the harness the program runs (the session list's harness column for an
+   *  ad hoc session): `claude` for the Claude adapter, whose program name is its package's. */
+  readonly shortName?: string;
   /** How to install the program, which an error for a missing program ends with. */
   readonly installHint?: string;
   /** The command that logs in (`auggie login`): an authentication-required error adds
@@ -24,9 +27,9 @@ export const CLAUDE_ADAPTER_PACKAGE_NAME = "@agentclientprotocol/claude-agent-ac
  *  hint: Claude Code logs in inside its own interface (`/login`), and the adapter's message says so. */
 export function programHints(platform: NodeJS.Platform = process.platform): Readonly<Record<string, ProgramHints>> {
   return {
-    auggie: { installHint: auggieInstallHint(platform), loginHint: auggieLoginCommand(platform) },
-    opencode: { installHint: opencodeInstallHint(platform), loginHint: "opencode auth login" },
-    "claude-agent-acp": { installHint: BUN_INSTALL_HINT },
+    auggie: { shortName: "auggie", installHint: auggieInstallHint(platform), loginHint: auggieLoginCommand(platform) },
+    opencode: { shortName: "opencode", installHint: opencodeInstallHint(platform), loginHint: "opencode auth login" },
+    "claude-agent-acp": { shortName: "claude", installHint: BUN_INSTALL_HINT },
   };
 }
 

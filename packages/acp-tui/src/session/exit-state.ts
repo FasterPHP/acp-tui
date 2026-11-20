@@ -13,7 +13,7 @@ import type { SessionRecorder } from "./recorder.ts";
 export interface SessionExitState {
   /** The agent advertises `loadSession` or `sessionCapabilities.resume`. */
   readonly canReopen: boolean;
-  /** A prompt was sent in this run. */
+  /** A prompt was answered in this run (an update or a stop reason; an error alone does not count). */
   readonly hadPrompt: boolean;
   /** The session was opened from history (`session/load` or `session/resume`). */
   readonly openedFromHistory: boolean;
@@ -26,13 +26,13 @@ export interface SessionExitState {
 /** The state of a session that may still be starting: `opened` is true once a load or resume has
  *  been requested for it (a detach during the load still leaves a session to resume). */
 export function sessionExitState(
-  parts: { readonly controller: Pick<SessionController, "support">; readonly recorder: Pick<SessionRecorder, "prompted">; readonly opened: boolean },
+  parts: { readonly controller: Pick<SessionController, "support">; readonly recorder: Pick<SessionRecorder, "answered">; readonly opened: boolean },
   launch: Pick<LaunchDescription, "agentName" | "command" | "args">,
 ): SessionExitState {
   const { controller, recorder } = parts;
   return {
     canReopen: controller.support.load || controller.support.resume,
-    hadPrompt: recorder.prompted,
+    hadPrompt: recorder.answered,
     openedFromHistory: parts.opened,
     agentName: launch.agentName,
     adHocCommand: launch.agentName === AD_HOC_AGENT ? launchArgv(launch) : null,

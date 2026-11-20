@@ -65,7 +65,7 @@ describe("Session index wiring (task 4.2)", () => {
     now = T0 + 60_000;
     s.prompt("and again");
     expect(idx.find("s-1").record).toMatchObject({ createdAt: new Date(T0).toISOString(), updatedAt: new Date(T0 + 60_000).toISOString(), title: "hello there" });
-    expect(recorder.prompted).toBe(true);
+    expect(recorder.answered).toBe(true);
   });
 
   test("Agent title replaces the prompt title", () => {
@@ -199,3 +199,44 @@ describe("Directories added for the session (harness-feedback)", () => {
     expect(idx.find("s-3").record).toMatchObject({ addedDirectories: ["/work/lib", "/work/docs"], title: "hello" });
   });
 });
+
+describe("Recorded on the first answered prompt (auggie-1x-support 7.1)", () => {
+  test("First prompt refused: nothing recorded, and the next prompt is the first", () => {
+    const idx = index(() => T0);
+    const recorder = createSessionRecorder(idx, { agent: "fake" }, { now: () => T0 });
+    const s = drive(recorder);
+    s.newSession("s-9", "/work");
+    s.step({ type: "prompt_sent", text: "refused prompt" } as never);
+    s.step({ type: "prompt_error", message: "Internal error" } as never);
+    expect(idx.listAll()).toEqual([]);
+    expect(recorder.answered).toBe(false);
+
+    s.prompt("second try");
+    expect(idx.find("s-9").record?.title).toBe("second try");
+    expect(recorder.answered).toBe(true);
+  });
+
+  test("Detached during the first turn: the first update records the session", () => {
+    const idx = index(() => T0);
+    const recorder = createSessionRecorder(idx, { agent: "fake" }, { now: () => T0 });
+    const s = drive(recorder);
+    s.newSession("s-8", "/work");
+    s.step({ type: "prompt_sent", text: "long question" } as never);
+    expect(idx.listAll()).toEqual([]);
+    s.step({ type: "session_update", update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Partly" } } } as never);
+    expect(idx.find("s-8").record?.title).toBe("long question");
+    expect(recorder.answered).toBe(true);
+  });
+
+  test("Answered by an error after some output still counts", () => {
+    const idx = index(() => T0);
+    const recorder = createSessionRecorder(idx, { agent: "fake" }, { now: () => T0 });
+    const s = drive(recorder);
+    s.newSession("s-7", "/work");
+    s.step({ type: "prompt_sent", text: "q" } as never);
+    s.step({ type: "session_update", update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "x" } } } as never);
+    s.step({ type: "prompt_error", message: "late failure" } as never);
+    expect(idx.find("s-7").record).not.toBeNull();
+  });
+});
+

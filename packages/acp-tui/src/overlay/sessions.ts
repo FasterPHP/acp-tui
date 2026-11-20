@@ -24,7 +24,7 @@
 // Every agent-supplied string (titles, directories, IDs) is sanitised and
 // held on one line (`oneLine`) before it reaches a row.
 import type { SessionInfo } from "@agentclientprotocol/sdk";
-import { commandDisplayName } from "../agent/harness-name.ts";
+import { commandDisplayName, shortHarnessName } from "../agent/harness-name.ts";
 import type { Platform } from "../platform/paths.ts";
 import { shortenHome, truncateMiddle } from "../layout/segments.ts";
 import { AD_HOC_AGENT, oneLine, type SessionRecord } from "../session/session-index.ts";
@@ -212,12 +212,13 @@ export function detailDropOrder(scope: SessionScope): readonly number[] {
 
 /** The list item of an entry: the title, then the agent, the activity time and the directory
  *  as details, one per column (empty when unknown, so the columns stay in place). */
-export function sessionListItem(entry: SessionListEntry, context: { readonly now: number; readonly home: string | null }): ListItem {
+export function sessionListItem(entry: SessionListEntry, context: { readonly now: number; readonly home: string | null; readonly platform?: Platform }): ListItem {
   if (entry.kind === "new") {
     const agent = agentName(entry.agent);
     return { id: `new:${entry.agent}`, group: null, title: `New session with ${agent}`, search: agent };
   }
-  const agent = agentName(entry.agent);
+  // An ad hoc row names its harness by a short name from the recorded command, not `ad hoc`.
+  const agent = entry.agent === AD_HOC_AGENT && entry.command && entry.command.length > 0 ? oneLine(shortHarnessName(entry.command, context.platform)) : agentName(entry.agent);
   const directory = shortenHome(entry.directory, context.home);
   return {
     id: `session:${JSON.stringify([entry.agent, entry.command, entry.sessionId])}`,

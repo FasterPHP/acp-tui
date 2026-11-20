@@ -94,6 +94,9 @@ export interface SessionController {
   /** Appends acp-tui's own notice to the conversation as a marker item (`client_notice`; the
    *  session directory marker, mvp-sessions task 12.3). Nothing is sent to the agent. */
   notice(text: string): void;
+  /** Appends acp-tui's own error to the conversation as an error marker (`client_error`; a failed
+   *  `/add-dir`), drawn whole and copied like any item. Nothing is sent to the agent. */
+  error(text: string): void;
   /** One page of `session/list` (`cwd` filters by directory); only when `support.list`. */
   listSessions(params: { readonly cwd?: string; readonly cursor?: string }, signal?: AbortSignal, options?: { readonly startup?: boolean }): Promise<ListSessionsResponse>;
   /** Current, immutable session snapshot. */
@@ -493,6 +496,10 @@ export async function connectAgent(options: StartSessionOptions): Promise<Connec
 
       notice(text: string): void {
         dispatch({ type: "client_notice", text, at: now() });
+      },
+
+      error(text: string): void {
+        dispatch({ type: "client_error", text, at: now() });
       },
 
       listSessions(params, signal, listOptions): Promise<ListSessionsResponse> {

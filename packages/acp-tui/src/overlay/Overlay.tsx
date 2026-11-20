@@ -559,7 +559,7 @@ export function PaletteOverlay(): JSX.Element {
     void add(path, confirmRestart).then(
       (result) => {
         if (result.ok) controller.notify(`added ${shortenHome(result.directory, homeDirectory())} to the session`, "muted");
-        else if (result.cancelled !== true) controller.notify(clean(result.message), "warning");
+        else if (result.cancelled !== true && result.reported !== true) controller.notify(clean(result.message), "warning");
       },
       (error: unknown) => controller.notify(`could not add the directory: ${clean(agentErrorText(error))}`, "warning"),
     );

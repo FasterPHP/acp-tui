@@ -70,10 +70,11 @@ export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it
 type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs" | "harnessDirectories">;
 
 /** What `addDirectory` did: the directory is in the session (`how` names the route), or a message
- *  for a notice (`cancelled`: the user declined the restart, so there is nothing to say). */
+ *  for a notice (`cancelled`: the user declined the restart, so there is nothing to say;
+ *  `reported`: the failure is already in the conversation as an error line). */
 export type AddDirectoryResult =
   | { readonly ok: true; readonly directory: string; readonly how: "resume" | "load" | "restart" }
-  | { readonly ok: false; readonly message: string; readonly cancelled?: true };
+  | { readonly ok: false; readonly message: string; readonly cancelled?: true; readonly reported?: true };
 
 /** Shown by `/add-dir` while a turn runs, a permission request is open or the session is opening. */
 export const ADD_DIRECTORY_REFUSED_RUNNING = "a directory can be added once the turn has ended";
@@ -435,7 +436,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
         }
       }
       const recorded = entry.kind === "session" ? (recordedOverride ?? recordedDirectories(entry.agent, entry.sessionId)) : [];
-      const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }, recorded) : launchFor(base, directory(), { kind: "new" });
+      const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }, recorded) : launchFor(base, directory(), { kind: "new" }, recordedOverride ?? []);
       const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title, ...(recorded.length > 0 ? { addedDirectories: recorded } : {}) } : null;
       // The same command (and environment) on a live connection: the agent process is kept.
       const shared = commandKey(target) === commandKey(previous.launch) && previous.controller.getSession().connection !== "disconnected";
@@ -542,7 +543,11 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     // The directories recorded for the session, with the new one; the configuration's and this
     // run's `--add-dir` are derived again from their own sources.
     const recorded = [...(launched.addedDirectories ?? []), added];
-    const entry: SessionListEntry = {
+    // A session with no answered prompt that was not opened from history has nothing to load
+    // (Auggie 1.x writes its session at the first prompt): the template and load routes start a
+    // new session with the directories instead.
+    const fresh = !using.opened && !(using.recorder?.answered ?? false);
+    const entry: SessionListEntry = fresh ? { kind: "new", agent: launched.agentName, current: true } : {
       kind: "session",
       sessionId: session.id,
       agent: launched.agentName,
@@ -553,13 +558,23 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       current: true,
     };
 
+    // A failure is added to the conversation whole, as an error line, not as a notice that is cut
+    // to one row (the session in use is whichever one the failed attempt left in place).
+    const report = (text: string): AddDirectoryResult => {
+      (state ?? using).controller.error(text);
+      return { ok: false, message: text, reported: true };
+    };
+
     if (byTemplate) {
-      if (!(await confirm(`Restart ${harnessOf(launched)} with ${shown} and reopen this session`))) return { ok: false, message: "cancelled", cancelled: true };
+      const question = fresh
+        ? `Restart ${harnessOf(launched)} with ${shown} and start a new session (this one has no prompt yet)`
+        : `Restart ${harnessOf(launched)} with ${shown} and reopen this session`;
+      if (!(await confirm(question))) return { ok: false, message: "cancelled", cancelled: true };
       // The overlay waited: the session may have started a turn meanwhile.
       const again = refusal();
       if (again) return refuse(again);
       const failure = await open(entry, recorded);
-      return failure === null ? { ok: true, directory: added, how: "restart" } : refuse(failure);
+      return failure === null ? { ok: true, directory: added, how: "restart" } : report(failure);
     }
 
     if (using.controller.support.resume) {
@@ -574,12 +589,12 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
         logger?.log({ event: "add_directory_resume_failed" });
         if (cancelled()) return refuse("cancelled");
         // Falls back to loading the session, as opening it from the list does.
-        if (!using.controller.support.load) return refuse(`cannot add ${shown}: ${message(error)}`);
+        if (!using.controller.support.load && !fresh) return report(`cannot add ${shown}: ${message(error)}`);
       } finally {
         switching = false;
       }
     }
     const failure = await open(entry, recorded);
-    return failure === null ? { ok: true, directory: added, how: "load" } : refuse(failure);
+    return failure === null ? { ok: true, directory: added, how: "load" } : report(failure);
   }
 }

@@ -431,6 +431,13 @@ function SessionListOverlay(props: {
   });
 
   const moveBy = (move: number | "first" | "last") => select(moveSelection(shown().length, selected(), move));
+  // Ctrl+C copies the footer's message (an error, or the advice with the command to run), not
+  // the progress text.
+  controller.setMessageSource(() => {
+    const message = footer();
+    return message !== null && message.token !== "muted" ? oneLine(message.text) : null;
+  });
+  onCleanup(() => controller.setMessageSource(null));
   const handlers: ContextHandlers<"overlay"> = {
     up: () => moveBy(-1),
     down: () => moveBy(1),

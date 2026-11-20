@@ -233,6 +233,14 @@ function SelectionLayer(props: {
     return true;
   }
 
+  /** The message an open overlay (the session list's footer) shows, copied whole as plain text. */
+  function copyMessage(trigger: string): boolean {
+    const text = controller.messageText() ?? "";
+    if (text === "") return false;
+    void copyText(text, trigger);
+    return true;
+  }
+
   function copySelection(trigger: string): boolean {
     const text = selectedText();
     if (text === "") return false;
@@ -369,13 +377,13 @@ function SelectionLayer(props: {
       // focused, the item under the cursor; else nothing. Always consumed, so it never reaches
       // clear, cancel or exit.
       copy: () => {
-        if (!copyPromptSelection("ctrl+c") && !copySelection("ctrl+c")) copyItem(false, "ctrl+c");
+        if (!copyMessage("ctrl+c") && !copyPromptSelection("ctrl+c") && !copySelection("ctrl+c")) copyItem(false, "ctrl+c");
         return true;
       },
       // Ctrl+Shift+C (design D7): a selection as plain text (a slice of Markdown source could cut
       // a fence or a table in half), else the cursor item's Markdown; always consumed.
       copyRich: () => {
-        if (!copyPromptSelection("ctrl+shift+c") && !copySelection("ctrl+shift+c")) copyItem(true, "ctrl+shift+c");
+        if (!copyMessage("ctrl+shift+c") && !copyPromptSelection("ctrl+shift+c") && !copySelection("ctrl+shift+c")) copyItem(true, "ctrl+shift+c");
         return true;
       },
       // Esc clears a selection and does nothing else: the prompt box's (tui-selection "Esc clears

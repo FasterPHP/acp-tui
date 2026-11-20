@@ -23,6 +23,7 @@ import { listBody, listRows, listWorld, mainText, unframe, type ListWorld } from
 import { shortenHome } from "../../src/layout/segments.ts";
 import { userHome } from "../../src/platform/paths.ts";
 import { WINDOWS } from "../windows.ts";
+import { localEnv, osc52Payloads } from "../selection/pty.ts";
 
 let session: PtySession | null = null;
 afterEach(async () => {
@@ -608,9 +609,10 @@ describe("Honest errors in the list (task 7.5)", () => {
     const adHoc = w.fake("adhoc", ["--scenario", "basic", "--load"]);
     w.record({ agent: "ad hoc", command: adHoc, sessionId: "s-adhoc", directory: repo, title: "Started ad hoc", at: Date.now() - MINUTE });
     const s = start(w, ["--resume"], { cwd: repo, cols: 160 });
-    // The row's harness column (after the title, which holds the words too) reads `ad hoc`.
+    // The row's harness column (after the title, which holds the words too) reads the script's name.
     const harnessColumn = () => (listBody(s).find((r) => r.startsWith("Started ad hoc")) ?? "").slice("Started ad hoc".length);
-    await s.waitFor(() => harnessColumn().includes("ad hoc"), 15000);
+    await s.waitFor(() => harnessColumn().includes("main"), 15000);
+    expect(harnessColumn()).not.toContain("ad hoc");
     // The harness's page too, so the choice below cancels no request still in flight.
     await s.waitFor(() => methods(w, "fake").includes("session/list") && listBody(s).some((r) => r.startsWith("Fix the router")), 15000);
     s.sendKeys({ text: "started ad hoc" }, "Enter");
@@ -621,5 +623,40 @@ describe("Honest errors in the list (task 7.5)", () => {
     // Nothing run: the ad hoc command's log was never written.
     expect(methods(w, "adhoc")).toEqual([]);
     expect(methods(w, "fake")).toEqual(["initialize", "session/list"]);
+  }, 30000);
+
+  test("Ad hoc advice copied: Ctrl+C in the list copies the footer's whole message, and the toast says so", async () => {
+    const w = listWorld();
+    Object.assign(w.env, localEnv() as Record<string, string>);
+    const repo = w.dir("repo");
+    w.configure({ fake: ["--scenario", "copy-fixtures", "--load", "--list", "--sessions", twoSessions(w, repo)] }, { default_agent_server: "fake" });
+    const adHoc = w.fake("adhoc", ["--scenario", "basic", "--load"]);
+    w.record({ agent: "ad hoc", command: adHoc, sessionId: "s-adhoc", directory: repo, title: "Started ad hoc", at: Date.now() - MINUTE });
+    const s = start(w, ["--resume"], { cwd: repo, cols: 120 });
+    await s.waitFor(() => listBody(s).some((r) => r.startsWith("Started ad hoc")), 15000);
+    await s.waitFor(() => methods(w, "fake").includes("session/list") && listBody(s).some((r) => r.startsWith("Fix the router")), 15000);
+    s.sendKeys({ text: "started ad hoc" }, "Enter");
+    await s.waitFor(() => footerText(s).includes("reopen it with: acp-tui --resume s-adhoc -- bun"), 5000);
+    s.sendKeys("Ctrl+C");
+    await s.waitFor((p) => osc52Payloads(p.rawOutput()).length > 0, 5000);
+    const copied = osc52Payloads(s.rawOutput()).at(-1)!;
+    expect(copied).toBe(`session s-adhoc was started with an ad hoc harness command, which acp-tui never runs from its index; reopen it with: acp-tui --resume s-adhoc -- ${adHoc.join(" ")}`);
+    expect(copied).not.toContain("\n");
+    expect(listOpen(s)).toBe(true);
+  }, 30000);
+
+  test("Nothing in the footer: Ctrl+C copies nothing and the list stays as it was", async () => {
+    const w = listWorld();
+    Object.assign(w.env, localEnv() as Record<string, string>);
+    const repo = w.dir("repo");
+    w.configure({ fake: ["--scenario", "copy-fixtures", "--load", "--list", "--sessions", twoSessions(w, repo)] }, { default_agent_server: "fake" });
+    const s = start(w, ["--resume"], { cwd: repo });
+    await s.waitFor(() => methods(w, "fake").includes("session/list") && listBody(s).some((r) => r.startsWith("Fix the router")), 15000);
+    const before = listRows(s).join("\n");
+    s.sendKeys("Ctrl+C");
+    await Bun.sleep(600);
+    expect(osc52Payloads(s.rawOutput())).toEqual([]);
+    expect(listOpen(s)).toBe(true);
+    expect(listRows(s).join("\n")).toBe(before);
   }, 30000);
 });

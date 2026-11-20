@@ -453,3 +453,32 @@ describe("the list at start-up (day-two-feedback D2)", () => {
     });
   });
 });
+
+describe("Short names for ad hoc harnesses (auggie-1x-support 7.6)", () => {
+  const row = (command: readonly string[]) =>
+    sessionListItem({ kind: "session", sessionId: "s-1", agent: "ad hoc", command, directory: "/w", title: "t", updatedAt: null, current: false }, { now: 0, home: null, platform: "linux" });
+
+  test("Claude through bunx", () => {
+    const item = row(["bunx", "--bun", "@agentclientprotocol/claude-agent-acp@0.94.0"]);
+    expect(item.details?.[0]).toBe("claude");
+  });
+
+  test("Script through a runner, and its filter text", () => {
+    const item = row(["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"]);
+    expect(item.details?.[0]).toBe("main");
+    expect(filterItems([item], "main")).toHaveLength(1);
+    expect(item.search).not.toContain("ad hoc");
+  });
+
+  test("Unknown program, and a row with no recorded command", () => {
+    expect(row(["/opt/tools/my-agent", "--acp"]).details?.[0]).toBe("my-agent");
+    const bare = sessionListItem({ kind: "session", sessionId: "s-2", agent: "ad hoc", command: null, directory: "/w", title: "t", updatedAt: null, current: false }, { now: 0, home: null });
+    expect(bare.details?.[0]).toBe("ad hoc");
+  });
+
+  test("Windows program", () => {
+    const item = sessionListItem({ kind: "session", sessionId: "s-3", agent: "ad hoc", command: ["C:\\Tools\\Auggie.CMD", "--acp"], directory: "C:\\w", title: "t", updatedAt: null, current: false }, { now: 0, home: null, platform: "win32" });
+    expect(item.details?.[0]).toBe("auggie");
+  });
+});
+

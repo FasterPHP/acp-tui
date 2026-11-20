@@ -47,17 +47,19 @@ describe("programOf", () => {
 
 describe("hintsFor", () => {
   test("auggie and opencode by command, each with an install and a login hint", () => {
-    expect(hintsFor("auggie", ["--acp"], "linux")).toEqual({ installHint: AUGGIE_INSTALL_HINT, loginHint: "auggie login" });
-    expect(hintsFor("/x/opencode", ["acp"], "linux")).toEqual({ installHint: OPENCODE_INSTALL_HINT, loginHint: "opencode auth login" });
+    expect(hintsFor("auggie", ["--acp"], "linux")).toEqual({ shortName: "auggie", installHint: AUGGIE_INSTALL_HINT, loginHint: "auggie login" });
+    expect(hintsFor("/x/opencode", ["acp"], "linux")).toEqual({ shortName: "opencode", installHint: OPENCODE_INSTALL_HINT, loginHint: "opencode auth login" });
   });
 
   test("on Windows the npm programs are named by their .cmd shims, which PowerShell's default execution policy runs; Linux and macOS are unchanged", () => {
     expect(hintsFor("C:\\npm\\auggie.cmd", ["--acp"], "win32")).toEqual({
+      shortName: "auggie",
       installHint: "npm.cmd install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie.cmd login",
       loginHint: "auggie.cmd login",
     });
-    expect(hintsFor("opencode", ["acp"], "win32")).toEqual({ installHint: "npm.cmd install -g @opencode/cli, or see opencode.ai/docs", loginHint: "opencode auth login" });
+    expect(hintsFor("opencode", ["acp"], "win32")).toEqual({ shortName: "opencode", installHint: "npm.cmd install -g @opencode/cli, or see opencode.ai/docs", loginHint: "opencode auth login" });
     expect(hintsFor("auggie", ["--acp"], "darwin")).toEqual({
+      shortName: "auggie",
       installHint: "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login",
       loginHint: "auggie login",
     });
@@ -67,7 +69,7 @@ describe("hintsFor", () => {
 
   test("the Claude adapter has an install hint (Bun) and no login hint", () => {
     const hints = hintsFor("bunx", ["--bun", `${CLAUDE_ADAPTER_PACKAGE_NAME}@0.94.0`], "linux");
-    expect(hints).toEqual({ installHint: BUN_INSTALL_HINT });
+    expect(hints).toEqual({ shortName: "claude", installHint: BUN_INSTALL_HINT });
     expect(hints.loginHint).toBeUndefined();
   });
 
