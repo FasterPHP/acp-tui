@@ -148,6 +148,30 @@ describe("Escape (phase-1a task 8.2)", () => {
     expect(run.s.exitCode).toBeNull();
   }, 20000);
 
+  test("Esc twice during an Auggie 1.x turn: the agent answers end_turn and the turn-end line reads interrupted", async () => {
+    const run = startCli("auggie-1", 0);
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "slow" }, "Enter");
+    await run.s.waitFor(RUNNING, 5000);
+    await run.s.waitFor(/slow|sleep/, 5000);
+    run.s.sendKeys("Esc");
+    await run.s.waitFor((p) => statusRow(p).includes(INTERRUPT_ARMED), 5000);
+    run.s.sendKeys("Esc");
+    await run.s.waitFor(/interrupted · \d/, 10000);
+    expect(run.methods()).toContain("session/cancel");
+    expect(run.s.screenText().join("\n")).not.toMatch(/end turn · \d/);
+  }, 20000);
+
+  test("A normal Auggie 1.x turn ends with end turn", async () => {
+    const run = startCli("auggie-1", 0);
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "hello" }, "Enter");
+    await run.s.waitFor(/end turn · \d/, 10000);
+    expect(run.s.screenText().join("\n")).not.toContain("interrupted");
+  }, 20000);
+
   test("Single Esc does not cancel: after 2 s the armed state goes and the turn keeps running", async () => {
     const run = startCli("basic", 1000);
     session = run.s;

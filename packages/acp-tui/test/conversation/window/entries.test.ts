@@ -28,7 +28,7 @@ const tool = (id: string, toolKind: ToolCallItem["toolKind"], over: Partial<Tool
 const thought = (id: string, over: Partial<ThoughtItem> = {}): ThoughtItem => ({ id, kind: "thought", status: "final", origin: "self", text: "**T**", ...over });
 const user = (id: string): Item => ({ id, kind: "user_message", status: "final", origin: "self", text: "hi" });
 const agent = (id: string): Item => ({ id, kind: "agent_message", status: "final", origin: "self", text: "answer" });
-const turnEnd = (id: string): MarkerItem => ({ id, kind: "marker", status: "final", origin: "self", markerKind: "turn_end", stopReason: "end_turn", durationMs: 10, usage: null });
+const turnEnd = (id: string): MarkerItem => ({ id, kind: "marker", status: "final", origin: "self", markerKind: "turn_end", stopReason: "end_turn", interrupted: false, durationMs: 10, usage: null });
 
 function model(...items: Item[]): { order: string[]; lookup: ItemLookup } {
   const map = new Map(items.map((i) => [i.id, i]));

@@ -540,6 +540,7 @@ function emptyTurn(startedAt: number): NonNullable<Session["turn"]> {
     openPermissionToolCallId: null,
     openElicitationIds: [],
     planReportedThisTurn: false,
+    interrupted: false,
   };
 }
 
@@ -787,12 +788,19 @@ export function reduce(
       };
     }
 
+    case "interrupt_requested": {
+      if (session.state === "idle" || !session.turn) return session;
+      if (session.turn.interrupted) return session;
+      return { ...session, turn: { ...session.turn, interrupted: true } };
+    }
+
     case "prompt_response": {
       const durationMs = session.turn ? Math.max(0, event.at - session.turn.startedAt) : 0;
       const next = endTurn(session, event.at, {
         kind: "marker",
         markerKind: "turn_end",
         stopReason: event.stopReason,
+        interrupted: session.turn?.interrupted ?? false,
         durationMs,
         usage: session.usage,
       });

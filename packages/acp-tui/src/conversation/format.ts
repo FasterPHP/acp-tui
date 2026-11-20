@@ -290,12 +290,13 @@ function stopReasonLabel(reason: string): string {
   return reason.replace(/_/g, " ");
 }
 
-/** Turn-end marker without its gutter: `end turn · 1.2s · ctx 38k/200k`. */
+/** Turn-end marker without its gutter: `end turn · 1.2s · ctx 38k/200k`; `interrupted` replaces
+ *  the stop reason when the user interrupted the turn, whatever the agent answered. */
 export function turnEndLine(
   marker: Extract<MarkerItem, { markerKind: "turn_end" }>,
   glyphs: ConversationGlyphs = LIVE_GLYPHS,
 ): Segment[] {
-  const parts = [stopReasonLabel(marker.stopReason), formatDuration(marker.durationMs)];
+  const parts = [marker.interrupted ? "interrupted" : stopReasonLabel(marker.stopReason), formatDuration(marker.durationMs)];
   const usage: UsageUpdate | null = marker.usage;
   if (usage && usage.size > 0) parts.push(`ctx ${formatCount(usage.used)}/${formatCount(usage.size)}`);
   return [{ text: parts.join(glyphs.separator), token: "muted" }];
