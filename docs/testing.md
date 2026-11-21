@@ -76,6 +76,7 @@ Everything else is in [configuration.md](configuration.md).
 - Auggie sends no usage or cost, so the cost and context gauges show nothing with it.
 - There is no Effort pill with Auggie: it offers no reasoning effort setting over ACP.
 - Auggie's built-in slash commands such as `/mcp` are not offered over ACP.
+- Auggie 1.x does not list your custom commands and skills in the `/` menu (it sends none over ACP; reported upstream). They still work when typed: press `/`, then Esc to type a plain `/`, then the name and any arguments, and Enter.
 - Auggie 1.x asks for no permission unless it is given rules, so by default you will see no permission card. To be asked before it runs commands or changes files, add `"--permission", "bash:ask-user", "--permission", "write:ask-user", "--permission", "edit:ask-user"` to the `auggie` entry's `args`.
 - A model you choose in Auggie 1.x is saved as Auggie's own default model, for every later session, not only this one.
 - After an IDE theme change, press Ctrl+L: the IDEs do not tell terminal programs about it.
