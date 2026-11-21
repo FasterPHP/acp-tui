@@ -150,8 +150,8 @@ describe("Sessions recorded by another harness generation (PTY)", () => {
     const fg = (title: string, x: number) => s.cell(rowOf(title), x)?.getFgColor();
     const detailX = () => listBody(s)[listBody(s).findIndex((r) => r.startsWith("Title of s-1"))]!.indexOf("auggie") + 3;
     await s.waitFor(() => rowOf("Title of s-0") > 0 && rowOf("Title of s-1") > 0, 15000);
-    // Before the harness answers, the list is up and nothing is known: no muted title.
-    expect(fg("Title of s-0", 2)).not.toBe(fg("Title of s-0", detailX()));
+    // Whether the harness has answered by now depends on the machine (on Windows CI it already has),
+    // so nothing is asserted about the rows before the generation is known.
     await s.waitFor(() => fg("Title of s-0", 2) === fg("Title of s-0", detailX()), 15000);
     expect(fg("Title of s-1", 2)).not.toBe(fg("Title of s-1", detailX()));
   }, 60000);
