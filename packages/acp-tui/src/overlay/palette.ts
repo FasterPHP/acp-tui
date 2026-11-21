@@ -592,8 +592,9 @@ export function pickerItems(option: SelectOption, models: ModelListSettings = DE
 
 /** The line above a picker's choices when none of them can carry the current mark: a model option
  *  whose current value is empty (Auggie names no model right after a login or when none was
- *  chosen), where the harness uses its own default and does not say which. Null otherwise. */
-export function pickerNote(option: SelectOption): string | null {
+ *  chosen), where the harness uses its own choice and does not say which. `harness` is the
+ *  harness's display name (its profile's), when one is known. Null otherwise. */
+export function pickerNote(option: SelectOption, harness: string | null = null): string | null {
   if (option.category !== "model" || option.currentValue !== "" || selectChoices(option).length === 0) return null;
-  return `${CURRENT_MARK} ${DEFAULT_MODEL_LABEL}: the harness's own default, not one of these (it does not say which)`;
+  return `${CURRENT_MARK} ${DEFAULT_MODEL_LABEL}: ${harness ? `${harness}'s` : "the harness's"} own choice`;
 }

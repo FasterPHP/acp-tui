@@ -341,7 +341,7 @@ describe("legacy models (session-models, spec tui-palette \"Config option picker
     const rows = boxRows(run.s, /Model 3/).slice(1, -1).map(inner);
     // The note says which one is in use; none of the three choices is marked.
     expect(rows).toHaveLength(4);
-    expect(rows[0]).toStartWith("● default: the harness's own default, not one of these");
+    expect(rows[0]).toBe("● default: the harness's own choice");
     expect(rows.slice(1).some((row) => row.startsWith("●"))).toBe(false);
     expect(rows[1]).toStartWith("  Fake Small");
     run.s.sendKeys("Down", "Enter");

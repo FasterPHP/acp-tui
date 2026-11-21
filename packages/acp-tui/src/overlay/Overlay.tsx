@@ -58,6 +58,7 @@
 // notice naming it (spec tui-keymap "Mode and effort keys"); neither acts while
 // an overlay has focus, and without such an option they say so.
 import { agentErrorText } from "../agent/errors.ts";
+import { profileFor } from "../agent/harness-profiles.ts";
 import { batch, createEffect, createMemo, createSignal, on, onCleanup, onMount, For, Show, type JSX } from "solid-js";
 import { useTerminalDimensions } from "@opentui/solid";
 import { TextAttributes, type BoxRenderable, type KeyEvent } from "@opentui/core";
@@ -280,7 +281,7 @@ export function PaletteOverlay(): JSX.Element {
     // can carry the mark, so the line above says which one is in use.
     note: () => {
       const option = pickerOption(configId);
-      return option ? pickerNote(option) : null;
+      return option ? pickerNote(option, profileFor(store.session.agent)?.displayName ?? null) : null;
     },
     grouped: true,
     marks: true,

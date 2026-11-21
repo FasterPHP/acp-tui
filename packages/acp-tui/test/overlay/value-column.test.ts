@@ -38,7 +38,9 @@ describe("picker note for an unnamed current model", () => {
   const option = (currentValue: string, category = "model") =>
     ({ type: "select", id: "m", name: "Model", category, currentValue, options: [{ value: "a", name: "A" }] }) as Parameters<typeof pickerNote>[0];
   test("an empty current model is explained; a named one or another category is not", () => {
-    expect(pickerNote(option(""))).toBe("● default: the harness's own default, not one of these (it does not say which)");
+    expect(pickerNote(option(""))).toBe("● default: the harness's own choice");
+    expect(pickerNote(option(""), "Auggie")).toBe("● default: Auggie's own choice");
+    expect(pickerNote(option("a"), "Auggie")).toBeNull();
     expect(pickerNote(option("a"))).toBeNull();
     expect(pickerNote(option("", "mode"))).toBeNull();
   });

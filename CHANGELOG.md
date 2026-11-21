@@ -10,7 +10,7 @@
 - Each session records which Auggie made it. A session of the other generation is refused with a message that says how to get back to it (`/import-legacy-sessions` in 1.x).
 - The login hint names the command for the generation that is running (`auggie auth login` or `auggie login`).
 - The splash's arrow is `→` alone (the box-drawing line drew as a block in some terminals).
-- Model pickers draw descriptions in a column after the names and cut them only at the row's end; when the harness names no current model, a line says that `default` is the harness's own default (Auggie does not say which model that is).
+- Model pickers draw descriptions in a column after the names and cut them only at the row's end; when the harness names no current model, a line says that `default` is the harness's own choice (Auggie does not say which model that is).
 - The advice for a 1.x session refused under 0.x reads `npm install -g @augmentcode/auggie@latest`.
 
 ### Other changes
