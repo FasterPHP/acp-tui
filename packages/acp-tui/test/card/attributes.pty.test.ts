@@ -55,7 +55,7 @@ function strayBold(s: PtySession, title: string): string[] {
   // Body rows: `│` is the frame (bold in the `permission` token); the padding columns beside it
   // and the rest are plain.
   for (let y = top + 1; y < bottom; y++) check(y, 2, SIZE.cols - 2);
-  // The bottom border's text (`1-5 of 53`, the hints) is plain; its line is the frame.
+  // The bottom border's text (`1-6 of 54`, the hints) is plain; its line is the frame.
   check(bottom, 0, SIZE.cols, BOX);
   // The prompt box below the card is never bold.
   const promptTop = rows.length - 1 - promptBox(s).length;
@@ -93,18 +93,21 @@ describe("the docked cards' bold right edge stays in its cells (S6, B2 finding 2
 
     expect(state("rest")).toEqual(clean("rest"));
     run.s.sendKeys("End");
-    await run.s.waitFor(() => bottom().includes(" 52-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 52-54 of 54 "), 3000);
     await settle(run.s);
     expect(state("end")).toEqual(clean("end"));
     run.s.sendKeys("Ctrl+O");
-    await run.s.waitFor(() => bottom().includes(" 49-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 49-54 of 54 "), 3000);
     await settle(run.s);
     expect(state("grown")).toEqual(clean("grown"));
     run.s.sendKeys("Ctrl+O");
-    await run.s.waitFor(() => bottom().includes(" 52-53 of 53 "), 3000);
+    await run.s.waitFor(() => bottom().includes(" 52-54 of 54 "), 3000);
     await settle(run.s);
     expect(state("back")).toEqual(clean("back"));
-    // The title row is plain text, and the header word keeps its bold.
+    // The question row is plain text, and the header word keeps its bold. The question is the
+    // preview's first row, so Home brings it back.
+    run.s.sendKeys("Home");
+    await run.s.waitFor(() => bottom().includes(" 1-3 of 54 "), 3000);
     const title = run.s.screenText().findIndex((r) => r.includes("Edit src/Http/Router.php") && r.startsWith("│"));
     expect(cellAt(run.s, title, 2).isBold()).toBe(0);
     const header = run.s.screenText().findIndex((r) => r.startsWith("╭─ ◊ Permission"));

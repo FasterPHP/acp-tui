@@ -20,8 +20,8 @@ git clone https://github.com/FasterPHP/acp-tui.git
 cd acp-tui
 bun install
 bun run install-cli
-npm install -g @augmentcode/auggie@0.36.0
-auggie login
+npm install -g @augmentcode/auggie
+auggie auth login
 ```
 
 `bun run install-cli` writes a small `acp-tui` command into `~/.local/bin` that runs this checkout, and creates `~/.config/acp-tui/config.jsonc` with the `auggie` harness and every setting at its default. You can also run the checkout without installing it, as `bun packages/acp-tui/src/cli.ts`: with no configuration file acp-tui behaves as if it held that default, so it starts Auggie. If it warns that `~/.local/bin` is not on your `PATH`, add it in your shell's start-up file:
@@ -32,7 +32,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 `npm install -g` may print a warning that `node-pty`'s install script was not run. It is harmless for acp-tui.
 
-Auggie 0.36.0 is the version acp-tui has been checked with.
+acp-tui has been checked with Auggie 1.2.x (Node 20.6 or later) and 0.37.x; for 0.x, install `@augmentcode/auggie@v0-release` and log in with `auggie login`.
 
 ## Install on Windows
 

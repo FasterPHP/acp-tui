@@ -80,6 +80,9 @@ export interface ToolCallItem extends ItemBase {
   /** The latest `rawOutput` as text (a string, or the string `output` of an object, as Auggie
    *  sends it), sanitised; null when none was sent or it had another shape. */
   readonly rawOutputText: string | null;
+  /** The `command` (kind `execute`) or else the `path` string of the latest `rawInput`, sanitised;
+   *  null when none was sent or it had another shape. Names a call whose title is one bare word. */
+  readonly inputText: string | null;
   readonly startedAt: number | null;
   readonly endedAt: number | null;
 }
@@ -115,6 +118,9 @@ export type MarkerItem =
       readonly kind: "marker";
       readonly markerKind: "turn_end";
       readonly stopReason: StopReason;
+      /** True when the user interrupted the turn (an `interrupt_requested` event came before the
+       *  prompt response), whatever stop reason the agent gave. */
+      readonly interrupted: boolean;
       readonly durationMs: number;
       readonly usage: UsageUpdate | null;
     }
@@ -165,6 +171,8 @@ interface TurnRuntime {
    *  `elicitation_opened` and `elicitation_closed` name the same one). */
   readonly openElicitationIds: readonly string[];
   readonly planReportedThisTurn: boolean;
+  /** Set by `interrupt_requested`; carried onto the turn-end marker. */
+  readonly interrupted: boolean;
 }
 
 /** One command from the agent's `available_commands_update`, sanitised. */
@@ -326,7 +334,13 @@ export type ModelEvent =
    *  sent after a load or resume): appended at the end as a final `notice` marker with origin
    *  `replay`, so it never reads as activity from another client; the state is unchanged. */
   | { readonly type: "client_notice"; readonly text: string; readonly at: number }
+  /** An error from the client itself (a failed `/add-dir`): appended like `client_notice`, as a
+   *  final `error` marker with origin `replay`; the state is unchanged. */
+  | { readonly type: "client_error"; readonly text: string; readonly at: number }
   | { readonly type: "prompt_sent"; readonly text: string; readonly at: number }
+  /** The user asked to cancel the running turn (dispatched before `session/cancel` is sent). No
+   *  effect while idle. */
+  | { readonly type: "interrupt_requested"; readonly at: number }
   | { readonly type: "prompt_response"; readonly stopReason: StopReason; readonly at: number }
   | { readonly type: "prompt_error"; readonly message: string; readonly at: number }
   | {

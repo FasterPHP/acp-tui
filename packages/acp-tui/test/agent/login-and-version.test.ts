@@ -1,10 +1,10 @@
-// colleague-preview: the login message (spec tui-agent-session "Harness needs a login") and the
-// notice for an unchecked Auggie ("Harness version not yet checked"), as pure rules.
+// The login message (spec tui-agent-session "Harness needs a login") and the logged-out rules of the
+// harness profiles ("Auggie 1.x not logged in at the start" and "on a prompt"), as pure rules.
 import { describe, expect, test } from "bun:test";
 import { RequestError } from "@agentclientprotocol/sdk";
 import { auggieLoginCommand } from "../../src/agent/command.ts";
-import { AUGGIE_LOGIN_STEP, isAuthRequired, loginMessage, loginStep } from "../../src/agent/login.ts";
-import { majorAtLeastOne, uncheckedAuggieNotice } from "../../src/agent/harness-version.ts";
+import { profileFor } from "../../src/agent/harness-profiles.ts";
+import { AUGGIE_LOGIN_STEP, isAuthRequired, isLoggedOutSignature, isNoApiKey, loggedOutStartMessage, loginCommandFor, loginMessage, loginStep, noApiKeyMessage } from "../../src/agent/login.ts";
 
 const AUGGIE_TEXT = "Authentication required: Auggie does not currently support authenticating over ACP. Please run `auggie login` from your terminal then try again.";
 
@@ -55,26 +55,42 @@ describe("login message", () => {
   });
 });
 
-describe("version rule", () => {
-  test("major version of 1 or more", () => {
-    for (const version of ["1.2.0", "1.2.0-prerelease.202610191214", "2", "v1.0", "10.1"]) expect(majorAtLeastOne(version)).toBe(true);
-    for (const version of ["0.36.0", "0", "", "beta", "0.9.9"]) expect(majorAtLeastOne(version)).toBe(false);
+describe("login for harness profiles", () => {
+  test("the profile's command wins over the program's", () => {
+    const one = profileFor({ name: "auggie", version: "1.2.2" });
+    const zero = profileFor({ name: "auggie", version: "0.37.1 (commit 1a2b3c4d)" });
+    // The profile names the program as the platform runs it (`auggie.cmd` on Windows).
+    const program = process.platform === "win32" ? "auggie.cmd" : "auggie";
+    expect(loginCommandFor(one, "auggie login")).toBe(`${program} auth login`);
+    expect(loginCommandFor(zero, undefined)).toBe(`${program} login`);
+    expect(loginCommandFor(null, "opencode auth login")).toBe("opencode auth login");
+    expect(loginCommandFor(null, undefined)).toBeUndefined();
+    expect(one!.loginCommand("win32")).toBe("auggie.cmd auth login");
+    expect(zero!.loginCommand("win32")).toBe("auggie.cmd login");
   });
 
-  test("the notice for auggie 1.x, once worded, with the version sanitised and cut to 40 columns", () => {
-    expect(uncheckedAuggieNotice({ name: "auggie", version: "1.2.0-prerelease.202610191214" })).toBe("auggie 1.2.0-prerelease.202610191214 has not been checked with acp-tui; testers use 0.36.0");
-    expect(uncheckedAuggieNotice({ name: "auggie", version: "2" })).toBe("auggie 2 has not been checked with acp-tui; testers use 0.36.0");
-    const hostile = uncheckedAuggieNotice({ name: "auggie", version: `1.0\x1b]52;c;ZXZpbA==\x07${"9".repeat(80)}` })!;
-    expect(hostile).not.toContain("\x1b");
-    expect(hostile).toContain("…");
-    expect(hostile.length).toBeLessThan(110);
+  test("a start that fails on the signature names the login command and no message", () => {
+    expect(loggedOutStartMessage({ harness: "auggie", loginHint: "auggie auth login" })).toBe(`harness 'auggie' needs you to log in; ${loginStep("auggie auth login")}`);
   });
 
-  test("no notice for 0.36.0, another harness, a missing version or no agentInfo", () => {
-    expect(uncheckedAuggieNotice({ name: "auggie", version: "0.36.0" })).toBeNull();
-    expect(uncheckedAuggieNotice({ name: "other", version: "3.0.0" })).toBeNull();
-    expect(uncheckedAuggieNotice({ name: "auggie" })).toBeNull();
-    expect(uncheckedAuggieNotice(null)).toBeNull();
-    expect(uncheckedAuggieNotice(undefined)).toBeNull();
+  test("the model signature: exact, and only for auggie-1", () => {
+    const one = profileFor({ name: "auggie", version: "1.2.2" });
+    const empty = { type: "select", id: "model", category: "model", currentValue: "unknown/unknown", options: [] };
+    expect(isLoggedOutSignature(one, [empty])).toBe(true);
+    expect(isLoggedOutSignature(one, [{ ...empty, options: [{ value: "a", name: "A" }] }])).toBe(false);
+    expect(isLoggedOutSignature(one, [{ ...empty, currentValue: "gpt" }])).toBe(false);
+    expect(isLoggedOutSignature(one, [{ ...empty, category: "mode", id: "mode" }])).toBe(false);
+    expect(isLoggedOutSignature(one, undefined)).toBe(false);
+    expect(isLoggedOutSignature(profileFor({ name: "auggie", version: "0.37.1" }), [empty])).toBe(false);
+    expect(isLoggedOutSignature(null, [empty])).toBe(false);
+  });
+
+  test("a prompt error whose reason starts No API key found, for auggie-1 only", () => {
+    const one = profileFor({ name: "auggie", version: "1.2.2" });
+    const error = new RequestError(-32603, "Internal error", { details: "No API key found for unknown.\n\nUse /login or see docs/providers.md" });
+    expect(isNoApiKey(one, error)).toBe(true);
+    expect(isNoApiKey(null, error)).toBe(false);
+    expect(isNoApiKey(one, new RequestError(-32603, "Internal error", { details: "Other" }))).toBe(false);
+    expect(noApiKeyMessage(error, { harness: "auggie", loginHint: "auggie auth login" })).toBe(`harness 'auggie' needs you to log in: No API key found for unknown.; ${loginStep("auggie auth login")}`);
   });
 });

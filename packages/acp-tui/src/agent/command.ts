@@ -28,15 +28,23 @@ function npmProgram(name: string, platform: NodeJS.Platform): string {
   return platform === "win32" ? `${name}.cmd` : name;
 }
 
-/** The command that logs in to Auggie: `auggie login`, or `auggie.cmd login` on Windows. */
+/** The command that logs in to Auggie 0.x: `auggie login`, or `auggie.cmd login` on Windows. It is
+ *  also what acp-tui suggests for an `auggie` program before it knows the generation (the profile's
+ *  command, src/agent/harness-profiles.ts, replaces it once `initialize` has answered). */
 export function auggieLoginCommand(platform: NodeJS.Platform = process.platform): string {
   return `${npmProgram("auggie", platform)} login`;
 }
 
-/** How to install Auggie: 0.36.0 is what the colleagues testing acp-tui run (plan decision 2:
- *  pinned in the hint); `npm.cmd` and `auggie.cmd` on Windows. */
+/** The command that logs in to Auggie 1.x: `auggie auth login`, or `auggie.cmd auth login` on Windows. */
+export function auggieAuthLoginCommand(platform: NodeJS.Platform = process.platform): string {
+  return `${npmProgram("auggie", platform)} auth login`;
+}
+
+/** How to install Auggie: the current line (1.x, Node 20.6 or later) and its login, then how to stay
+ *  on 0.x (`v0-release`) and its login; `npm.cmd` and `auggie.cmd` on Windows. */
 export function auggieInstallHint(platform: NodeJS.Platform = process.platform): string {
-  return `${npmProgram("npm", platform)} install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run ${auggieLoginCommand(platform)}`;
+  const npm = npmProgram("npm", platform);
+  return `${npm} install -g @augmentcode/auggie (Node 20.6 or later), then run ${auggieAuthLoginCommand(platform)}; to stay on Auggie 0.x: ${npm} install -g @augmentcode/auggie@v0-release, then run ${auggieLoginCommand(platform)}`;
 }
 
 /** How to install OpenCode: its 2.x line is published as `@opencode/cli`; the older `opencode-ai`

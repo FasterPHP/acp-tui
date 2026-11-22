@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { deriveSurfaces } from "../../src/theme/index.ts";
-import type { OscColours, PtySession } from "../pty/harness.ts";
+import { startPty, type OscColours, type PtySession, type Vs16Width } from "../pty/harness.ts";
 import { activityRow, CARD_HEADER, cardBody, cardRows, promptText, READY, REQUIRES_ACTION, statusRow } from "../pty/regions.ts";
 
 import { startCli, type CliRun } from "../keys/cli-pty.ts";
@@ -345,4 +345,175 @@ describe("permission card focus and typing guard (task 6.6)", () => {
     expect(responses(run)).toEqual([{ outcome: { outcome: "cancelled" } }]);
     expect(cardRows(run.s)).toEqual([]);
   }, 20000);
+});
+
+/** The environment of a terminal of the capability table, whatever the suite was started in. */
+const UNNAMED = { TERMINAL_EMULATOR: undefined, TERM_PROGRAM: undefined, TERM_PROGRAM_VERSION: undefined, WT_SESSION: undefined, ACP_TUI_CAPABILITIES: undefined };
+const TERMINAL_ENV = {
+  unknown: UNNAMED,
+  zed: { ...UNNAMED, TERM_PROGRAM: "zed" },
+  jetbrains: { ...UNNAMED, TERMINAL_EMULATOR: "JetBrains-JediTerm" },
+  "windows-terminal": { ...UNNAMED, WT_SESSION: "00000000-0000-0000-0000-000000000000" },
+} as const;
+
+const WARNING = "\u26a0\ufe0f";
+const FRAME = new Set(["│", "╭", "╮", "╰", "╯"]);
+
+/** The docked card's rows on screen, checked cell by cell: each starts and ends with the frame in
+ *  the first and last columns, and nothing but the content lies between (no second border). Under
+ *  ConPTY an emulator counting `⚠️` otherwise than ConPTY drew `││` at the end of the question
+ *  and skewed every row below it. */
+function cardFrameProblems(s: PtySession): string[] {
+  const rows = s.screenText();
+  const top = rows.findIndex((r) => r.startsWith(`╭─ ${CARD_HEADER}`));
+  const bottom = rows.findIndex((r, y) => y > top && r.startsWith("╰"));
+  if (top < 0 || bottom < 0) return ["no card"];
+  const problems: string[] = [];
+  const last = s.term.cols - 1;
+  for (let y = top; y <= bottom; y++) {
+    const absY = s.term.buffer.active.baseY + y;
+    const chars = (x: number) => s.cell(absY, x)?.getChars() ?? "";
+    if (!FRAME.has(chars(0)) || !FRAME.has(chars(last))) problems.push(`row ${y}: ${JSON.stringify(rows[y])} does not end at the frame`);
+    if (y > top && y < bottom && chars(last - 1) === "│") problems.push(`row ${y}: ${JSON.stringify(rows[y])} has a second border`);
+  }
+  return problems;
+}
+
+describe("permission requests from Auggie 1.x (fake-agent auggie-1)", () => {
+  const ask = async (word: string, terminal?: keyof typeof TERMINAL_ENV, vs16?: Vs16Width) => {
+    // --allow-indexing: no indexing card takes the keys meant for the prompt box.
+    const run = startCli("auggie-1", 0, { ...SIZE, agentArgs: ["--allow-indexing"], ...(terminal ? { env: TERMINAL_ENV[terminal] } : {}), ...(vs16 ? { vs16 } : {}) });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: word }, "Enter");
+    // The whole card (its header and its closing frame row), not only the header text: under
+    // ConPTY the first frame can show the header before the frame is complete.
+    await run.s.waitFor((p) => cardRows(p).length > 0, 5000);
+    return run;
+  };
+
+  test("options that share a kind are named; the request has no tool call, so no kind and no index; the answer is recorded by name", async () => {
+    const run = await ask("permission");
+    const card = cardRows(run.s);
+    expect(card[0]).toStartWith(`╭─ ${CARD_HEADER} ─`);
+    expect(card[0]).not.toContain("#");
+    expect(card.some((r) => r.includes("1 Yes   2 No"))).toBe(true);
+    expect(card.some((r) => r.includes("allow once"))).toBe(false);
+    // No running tool call is counted for the request.
+    expect(activityRow(run.s) ?? "").not.toMatch(/\d+ running/);
+
+    await afterGuard();
+    run.s.sendKeys("2", "Enter");
+    await run.s.waitFor(() => responses(run).length === 1, 5000);
+    expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "1" } }]);
+    await run.s.waitFor(() => run.s.screenText().some((r) => /permission\s+No\b/.test(r)), 5000);
+    expect(run.s.screenText().some((r) => r.includes("allow once"))).toBe(false);
+  });
+
+  // The question starts with `⚠️` (U+26A0 U+FE0F), laid out in 2 cells. Each terminal's emulator
+  // counts it as that terminal does (test/pty/vs16.ts): Zed in 1 cell, so its row names it; the
+  // others in 2, as ConPTY does on Windows.
+  for (const [terminal, vs16] of [["unknown", "wide"], ["jetbrains", "wide"], ["windows-terminal", "wide"]] as const) {
+    test(`${terminal}, ⚠️ counted in 2 cells: the question keeps it in two cells and the card's frame is whole`, async () => {
+      const run = await ask("permission", terminal, vs16);
+      await run.s.waitFor((p) => p.screenText().some((r) => r.includes(`${WARNING} Tool "bash" requires approval:`)), 5000);
+      expect(cardFrameProblems(run.s)).toEqual([]);
+      const y = run.s.screenText().findIndex((r) => r.includes(WARNING));
+      const absY = run.s.term.buffer.active.baseY + y;
+      const x = Array.from({ length: run.s.term.cols }, (_, k) => run.s.cell(absY, k)?.getChars()).indexOf(WARNING);
+      expect(run.s.cell(absY, x)?.getWidth()).toBe(2);
+      expect(run.s.cell(absY, x + 2)?.getChars()).toBe(" ");
+      expect(run.s.cell(absY, x + 3)?.getChars()).toBe("T");
+      expect(run.s.screenText().join("\n")).not.toContain(":warning:");
+    });
+  }
+
+  test("the frame check finds the skew: a card written as ConPTY repaints it (no cursor placed after ⚠️) is skewed where the emulator counts ⚠️ in 1 cell, and whole where it counts 2", async () => {
+    const inner = SIZE.cols - 2;
+    const pad = (text: string, width: number) => text + " ".repeat(width - Bun.stringWidth(text));
+    const card = [
+      `╭─ ${CARD_HEADER} ${"─".repeat(SIZE.cols - 5 - Bun.stringWidth(CARD_HEADER))}╮`,
+      `│${pad(`  ${WARNING} Tool "bash" requires approval:`, inner)}│`,
+      `│${pad("  1 Yes   2 No", inner)}│`,
+      `╰${"─".repeat(inner)}╯`,
+    ].join("");
+    const script = `process.stdout.write(${JSON.stringify(`\x1b[2J\x1b[H${card}`)}); setTimeout(() => {}, 60000);`;
+    for (const [vs16, whole] of [["narrow", false], ["wide", true]] as const) {
+      const s = startPty(["bun", "-e", script], { ...SIZE, vs16 });
+      session = s;
+      await s.waitFor((p) => p.screenText().some((r) => r.includes("1 Yes")), 5000);
+      expect(cardFrameProblems(s).length === 0).toBe(whole);
+      s.kill("SIGTERM");
+      await s.dispose();
+      session = undefined;
+    }
+  });
+
+  test("Zed, ⚠️ counted in 1 cell: the question draws it as :warning: in muted and the card's frame is whole", async () => {
+    const run = await ask("permission", "zed", "narrow");
+    await run.s.waitFor((p) => p.screenText().some((r) => r.includes(`:warning: Tool "bash" requires approval:`)), 5000);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    expect(run.s.screenText().join("\n")).not.toContain(WARNING);
+    const y = run.s.screenText().findIndex((r) => r.includes(":warning:"));
+    const x = run.s.screenText()[y]!.indexOf(":warning:");
+    const absY = run.s.term.buffer.active.baseY + y;
+    for (let k = 0; k < ":warning:".length; k++) expect(run.s.cell(absY, x + k)?.getFgColor()).toBe(MUTED_FG);
+    expect(run.s.cell(absY, x + ":warning: ".length)?.getFgColor()).not.toBe(MUTED_FG);
+  });
+
+  // auggie-1x-support task 4.5 (spec tui-layout "Permission card", "Permission card preview"):
+  // the question keeps its line breaks, drawn in the preview inside the card's fill and frame.
+  test("the question keeps its lines: the command on its own row, indented, a blank row either side, the frame whole", async () => {
+    const run = await ask("permission", "unknown", "wide");
+    await run.s.waitFor((p) => cardBody(p).includes("Allow?"), 5000);
+    expect(cardBody(run.s)).toEqual([`${WARNING} Tool "bash" requires approval:`, "", "  echo allowed-probe", "", "Allow?", "1 Yes   2 No"]);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    // The whole question fits: no range in the bottom border, and focus is on the answer row.
+    expect(cardRows(run.s).at(-1)).toMatch(/^╰─+╯$/);
+    await afterGuard();
+    run.s.sendKeys("Enter");
+    await run.s.waitFor(() => responses(run).length === 1, 5000);
+    expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "0" } }]);
+  });
+
+  test("Zed: every line of the question is in the frame, with :warning: for ⚠️", async () => {
+    const run = await ask("permission", "zed", "narrow");
+    await run.s.waitFor((p) => cardBody(p).includes("Allow?"), 5000);
+    expect(cardBody(run.s)).toEqual([':warning: Tool "bash" requires approval:', "", "  echo allowed-probe", "", "Allow?", "1 Yes   2 No"]);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+  });
+
+  test("a long question at 63x21: the options stay visible, the question scrolls in the preview (the first focus stop), and End reaches Allow?", async () => {
+    const run = await ask("script", "unknown", "wide");
+    const bottom = () => cardRows(run.s).at(-1) ?? "";
+    await run.s.waitFor(() => / 1-\d+ of 34 /.test(bottom()), 5000);
+    const body = cardBody(run.s);
+    expect(body[0]).toBe(`${WARNING} Tool "bash" requires approval:`);
+    expect(body.slice(1, 3)).toEqual(["", "  echo step 1"]);
+    expect(body.at(-1)).toBe("1 Yes   2 No");
+    expect(body).not.toContain("Allow?");
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    // The conversation keeps its 4 rows: the card did not grow past its rule.
+    const shown = Number(/ 1-(\d+) of 34 /.exec(bottom())![1]);
+    expect(cardRows(run.s)).toHaveLength(shown + 3);
+    // Focus is on the preview: End scrolls it, the options stay where they were.
+    run.s.sendKeys("End");
+    await run.s.waitFor(() => bottom().includes(` ${35 - shown}-34 of 34 `), 3000);
+    expect(cardBody(run.s).slice(-4)).toEqual(["  echo step 30", "", "Allow?", "1 Yes   2 No"]);
+    expect(cardFrameProblems(run.s)).toEqual([]);
+    expect(responses(run)).toEqual([]);
+    // Tab to the answer row, then 2 and Enter answer No.
+    await afterGuard();
+    run.s.sendKeys("Tab", "2", "Enter");
+    await run.s.waitFor(() => responses(run).length === 1, 5000);
+    expect(responses(run)).toEqual([{ outcome: { outcome: "selected", optionId: "1" } }]);
+  });
+
+  test("held: the early tool call takes index 1 while the request stands alone", async () => {
+    const run = await ask("held");
+    const rows = run.s.screenText();
+    expect(rows.some((r) => r.includes("#1 "))).toBe(true);
+    expect(cardRows(run.s)[0]).not.toContain("#");
+    expect(rows.some((r) => /#2\b/.test(r))).toBe(false);
+  });
 });

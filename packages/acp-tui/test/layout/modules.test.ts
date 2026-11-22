@@ -29,6 +29,10 @@ describe("agent", () => {
   test("format template with version", () => {
     expect(text("agent", FULL_VIEW, { format: "{agent} v{version}" })).toBe("Claude Code v0.81.2");
   });
+  test("a harness with a profile shows Auggie alone, without the version", () => {
+    const profiled = deriveSessionView(createSession(), { agent: { name: "auggie", title: "Auggie Coding Agent", version: "1.2.2" } });
+    expect(text("agent", profiled)).toBe("Auggie");
+  });
   test("hidden without data", () => {
     expect(run("agent", EMPTY_VIEW)).toBeNull();
   });
@@ -248,6 +252,14 @@ describe("hints", () => {
     for (const gone of ["/ commands", "? help", "ctrl+d detach"]) expect(draft).not.toContain(gone);
     // Only while idle: a running turn shows the interrupt key alone.
     expect(text("hints", view({ turnState: "running" }, { promptEmpty: false }))).toBe("esc esc interrupt");
+  });
+  test("no modes: without a mode the hints show no mode key (auggie-1x-support task 6.4)", () => {
+    const none = view({ mode: null });
+    expect(text("hints", none)).toBe("/ commands  ? help  ctrl+d detach");
+  });
+  test("a mode offered as a pill alone still shows the mode key", () => {
+    const pilled = view({ mode: null, pills: [{ category: "mode", name: "Mode", value: "Ask" }] });
+    expect(text("hints", pilled)).toBe("shift+tab mode  / commands  ? help  ctrl+d detach");
   });
   test("permission card focused", () => {
     const v = view({ turnState: "requires_action" }, { focus: "card", permissionOpen: true });

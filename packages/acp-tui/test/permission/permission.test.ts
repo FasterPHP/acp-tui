@@ -41,6 +41,7 @@ const tool: ToolCallItem = {
   content: [],
   locations: [],
   rawOutputText: null,
+  inputText: null,
   startedAt: 0,
   endedAt: null,
 };
@@ -105,15 +106,22 @@ describe("cardRows", () => {
     expect(text(cardRows(four, 80, STYLE))[2]).toStartWith("│ 1 allow once   2 allow always   3 reject once   4 reject always");
   });
 
-  test("a long title wraps; the card never exceeds maxRows, the title giving way first with an ellipsis", () => {
+  test("a long question wraps; the card never exceeds maxRows, the question scrolling in the preview with the options kept", () => {
     const long = cardModel(record(Array.from({ length: 40 }, (_, i) => `word${i}`).join(" ")), tool);
     const tall = text(cardRows(long, 40, { ...STYLE, maxRows: 30 }));
     expect(tall.length).toBe(2 + 8 + 4);
-    const capped = text(cardRows(long, 40, { ...STYLE, maxRows: 13 }));
-    expect(capped.length).toBe(13);
-    expect(capped[7]!.trimEnd()).toMatch(/…\s*│$/);
-    expect(capped.slice(8, 12).map((r) => r.slice(2, 17).trimEnd())).toEqual(["1 allow once", "2 allow always", "3 reject once", "4 reject always"]);
-    for (const row of capped) expect(displayWidth(row)).toBe(40);
+    const capped = cardLayout(long, 40, { ...STYLE, maxRows: 13 });
+    const rows = text(capped.rows);
+    expect(rows.length).toBe(13);
+    expect(capped.preview).toEqual({ height: 7, offset: 0, total: 8 });
+    expect(rows.at(-1)).toMatch(/ 1-7 of 8 ─╯$/);
+    expect(rows.join("\n")).not.toContain("…");
+    expect(rows.slice(8, 12).map((r) => r.slice(2, 17).trimEnd())).toEqual(["1 allow once", "2 allow always", "3 reject once", "4 reject always"]);
+    for (const row of rows) expect(displayWidth(row)).toBe(40);
+    // At the end of the preview the question's last row shows, the options unchanged.
+    const end = text(cardLayout(long, 40, { ...STYLE, maxRows: 13, preview: { rows: [], offset: 99 } }).rows);
+    expect(end[7]).toContain("word39");
+    expect(end.at(-1)).toMatch(/ 2-8 of 8 ─╯$/);
   });
 
   test("the selected option is marked only while the card has focus", () => {
@@ -205,5 +213,32 @@ describe("optionAt (mvp-chrome-and-keys task 12.5)", () => {
 
   test("no card", () => {
     expect(optionAt(null, 4, 2)).toBeNull();
+  });
+});
+
+describe("labels when options share a kind", () => {
+  const YES_NO = [
+    { optionId: "0", name: "Yes", kind: "allow_once" as const },
+    { optionId: "1", name: "No", kind: "allow_once" as const },
+  ];
+
+  test("every option is named, not labelled by kind", () => {
+    expect(cardModel(record("Allow?", YES_NO), undefined).options.map((o) => o.label)).toEqual(["Yes", "No"]);
+  });
+
+  test("the name is approval-sanitised", () => {
+    const options = [{ optionId: "0", name: "Ye‮s​", kind: "allow_once" as const }, YES_NO[1]!];
+    expect(cardModel(record("x", options), undefined).options[0]!.label).toBe("Yes");
+  });
+
+  test("distinct kinds keep their kind labels", () => {
+    expect(cardModel(record("x"), tool).options.map((o) => o.label)).toEqual(["allow once", "allow always", "reject once", "reject always"]);
+  });
+
+  test("a request without a tool call has no kind and no index in its header", () => {
+    const header = text(cardRows(cardModel(record("Allow?", YES_NO), undefined), 63, STYLE))[0]!;
+    expect(header).toContain("Permission");
+    expect(header).not.toContain("#");
+    expect(header).not.toMatch(/Permission\s+\S+\s+─/);
   });
 });

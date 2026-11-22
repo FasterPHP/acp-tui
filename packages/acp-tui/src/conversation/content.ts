@@ -8,6 +8,7 @@ import type { Item, ToolCallItem, ToolCallItemContent } from "acp-model";
 import { displayWidth, fitSegments, segmentsWidth, takeWidth, truncateEnd, type Segment } from "../layout/segments.ts";
 import type { TokenName } from "../theme/index.ts";
 import { TERMINAL_UNAVAILABLE_NOTICE } from "./format.ts";
+import { toolTitleText } from "./tool-title.ts";
 import { numberedDiff, unifiedDiff, type DiffLine } from "./diff.ts";
 
 /** Labels and glyphs the viewer draws; one object so Phase 1 glyph sets can replace it. */
@@ -119,7 +120,7 @@ export function headerSegments(item: ToolCallItem, width: number, awaitingPermis
     }
   }
 
-  const title = oneLine(item.title) || oneLine(item.toolKind ?? "tool");
+  const title = toolTitleText(item) || oneLine(item.toolKind ?? "tool");
   const shownTitle = truncateEnd(title, titleWidth);
   if (shownTitle === "") return [...fittedHead, ...tail];
   return [...fittedHead, sepSeg, { text: shownTitle, token: "text" }, ...tail];

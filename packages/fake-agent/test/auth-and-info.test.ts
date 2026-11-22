@@ -65,6 +65,32 @@ describe("fake-agent --agent-info", () => {
     }
   });
 
+  test("--agent-title sets the title, and a version with spaces is reported whole", async () => {
+    const { client } = recordingClient();
+    const handle = spawnFakeAgent({
+      scenario: "basic",
+      args: ["--agent-info", "auggie@0.37.1 (commit 1a2b3c4d)", "--agent-title", "Auggie Agent"],
+      client,
+    });
+    try {
+      const response = await handle.conn.initialize({ protocolVersion: 1 });
+      expect(response.agentInfo).toEqual({ name: "auggie", title: "Auggie Agent", version: "0.37.1 (commit 1a2b3c4d)" });
+    } finally {
+      handle.stop();
+    }
+  });
+
+  test("--agent-title alone changes only the title of the scenario's identity", async () => {
+    const { client } = recordingClient();
+    const handle = spawnFakeAgent({ scenario: "auggie-1", args: ["--agent-title", "Auggie Agent"], client });
+    try {
+      const response = await handle.conn.initialize({ protocolVersion: 1 });
+      expect(response.agentInfo).toEqual({ name: "auggie", title: "Auggie Agent", version: "1.2.2" });
+    } finally {
+      handle.stop();
+    }
+  });
+
   test("without it the identity is fake-agent 0.0.0", async () => {
     const { client } = recordingClient();
     const handle = spawnFakeAgent({ scenario: "basic", client });

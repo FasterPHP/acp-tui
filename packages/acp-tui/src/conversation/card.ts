@@ -45,6 +45,7 @@ import type { Token, Tokens } from "marked";
 import type { ThoughtItem, ToolCallItem, ToolCallItemContent } from "acp-model";
 import { displayWidth, truncateEnd } from "../layout/segments.ts";
 import type { TokenName } from "../theme/index.ts";
+import { toolTitleText } from "./tool-title.ts";
 import { commandResult, OUTPUT_INDENT, OUTPUT_LABEL, resultOutputLines, RETURN_CODE_LABEL, toolContent, type CommandResult } from "./command-result.ts";
 import { diffCardLines, VIEWER_TEXT, wrapLine, type CardLine } from "./content.ts";
 import { TERMINAL_UNAVAILABLE_NOTICE } from "./format.ts";
@@ -159,8 +160,8 @@ function dimmed(rows: readonly Row[]): Row[] {
 }
 
 /** A text laid out as Markdown at `width`: its blocks and all their rows, margins included. */
-function markdownPart(text: string, width: number, glyphs: ConversationGlyphs, content: number | null, textToken: TokenName, dim: boolean): CardPart {
-  const layout = new MessageLayout(text, width, glyphs, terminalFlags(), true, textToken);
+function markdownPart(text: string, width: number, glyphs: ConversationGlyphs, content: number | null, textToken: TokenName, dim: boolean, hardBreaks = false): CardPart {
+  const layout = new MessageLayout(text, width, glyphs, terminalFlags(), true, textToken, hardBreaks);
   const blocks: CardBlock[] = [];
   const rows: Row[] = [];
   for (const block of layout.blocks()) {
@@ -198,7 +199,7 @@ function columnRows(lines: readonly CardLine[], width: number): { rows: Row[]; p
  *  else `tool` (selection/projection.ts `toolTitle`). */
 export function cardTitle(item: ToolCallItem): string {
   const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
-  return oneLine(item.title) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
+  return toolTitleText(item) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
 }
 
 /** The full title wrapped at `width` in `tool.title`, emoji the terminal mis-measures drawn as
@@ -275,7 +276,7 @@ function toolParts(item: ToolCallItem, width: number, glyphs: ConversationGlyphs
       case "text": {
         const result = commandResult(block.text, item.toolKind, item.toolStatus);
         if (result) parts.push(...resultParts(result, content, width));
-        else parts.push(markdownPart(block.text, width, glyphs, content, "text", false));
+        else parts.push(markdownPart(block.text, width, glyphs, content, "text", false, true));
         break;
       }
       case "diff": {
@@ -416,7 +417,7 @@ function codeRowCount(code: string, lang: string, width: number, glyphs: Convers
 function textRowCount(text: string, width: number, glyphs: ConversationGlyphs): number {
   const fence = singleFence(text);
   const counted = fence ? codeRowCount(fence.code, fence.lang, width, glyphs) : null;
-  return counted ?? markdownPart(text, width, glyphs, 0, "text", false).rows.length;
+  return counted ?? markdownPart(text, width, glyphs, 0, "text", false, true).rows.length;
 }
 
 /**

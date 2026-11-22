@@ -76,9 +76,9 @@ describe("splash rows (task 4.7)", () => {
     expect(splashLayout(INPUT, 50, 40).shown).toEqual(["wordmark", "identity", "hints"]);
   });
 
-  test("the graphic (task 12.3): `IDE · terminal ━→ acp-tui ━→ auggie · claude · codex · …`, 56 columns; kept at 63 and 61 columns in 12 rows, dropped below 56", () => {
-    const graphic = (width: number, height = 12) => text(splashLayout(INPUT, width, height).rows).filter((r) => r.includes("acp-tui ━→"));
-    expect(graphic(63)).toEqual(["IDE · terminal ━→ acp-tui ━→ auggie · claude · codex · …"]);
+  test("the graphic (task 12.3): `IDE · terminal  → acp-tui  → auggie · claude · codex · …`, 56 columns; kept at 63 and 61 columns in 12 rows, dropped below 56", () => {
+    const graphic = (width: number, height = 12) => text(splashLayout(INPUT, width, height).rows).filter((r) => r.includes("acp-tui  →"));
+    expect(graphic(63)).toEqual(["IDE · terminal  → acp-tui  → auggie · claude · codex · …"]);
     expect(displayWidth(graphic(63)[0]!)).toBe(56);
     // 63x21 and 61x20 both leave the conversation 12 rows (design D1): the whole splash fits.
     for (const width of [63, 61]) {
@@ -253,5 +253,21 @@ describe("splash rows (task 4.7)", () => {
     for (const glyph of Object.values(PERMISSION_GLYPHS)) expect(splash).not.toContain(glyph);
     const ascii = [...Object.values(ASCII_CHROME_GLYPHS.busy).filter((glyph) => glyph !== ""), ...ASCII_CHROME_GLYPHS.splash.wordmark, ASCII_CHROME_GLYPHS.splash.arrow, ASCII_CHROME_GLYPHS.splash.separator, ASCII_CHROME_GLYPHS.splash.more];
     for (const glyph of ascii) expect(glyph).toMatch(/^[\x20-\x7e]+$/);
+  });
+});
+
+describe("identity row with a harness profile's version", () => {
+  const row = (input: Partial<SplashInput>): string => {
+    const layout = splashLayout({ ...INPUT, ...input }, 100, 30);
+    return text(layout.rows).find((r) => r.startsWith("Harness: ") || r.includes("Harness: "))!.trim();
+  };
+
+  test("the version follows the name, before the model", () => {
+    expect(row({ agent: "Auggie", agentVersion: "1.2.2", model: "Prism (GPT)" })).toBe("Harness: Auggie 1.2.2 · Model: Prism (GPT)");
+  });
+
+  test("no version, no change: Claude Agent is still Claude", () => {
+    expect(row({ agent: "Claude Agent", agentVersion: null })).toStartWith("Harness: Claude · ");
+    expect(row({ agent: "Auggie" })).toStartWith("Harness: Auggie · ");
   });
 });

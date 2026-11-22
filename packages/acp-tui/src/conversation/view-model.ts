@@ -19,6 +19,7 @@
 import { batch, createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { Item } from "acp-model";
+import { questionLines } from "./permission-label.ts";
 
 /** The top visible item and the row of it at the top of the viewport (negative inside the
  *  blank rows above it). */
@@ -61,7 +62,7 @@ export interface ConversationViewModel {
 }
 
 export function collapsible(item: Item): boolean {
-  return item.kind === "tool_call" || item.kind === "thought" || item.kind === "plan";
+  return item.kind === "tool_call" || item.kind === "thought" || item.kind === "plan" || (item.kind === "permission_record" && questionLines(item.title).length > 0);
 }
 
 /** The default when the user has not toggled an item: none expands itself, a failed tool call

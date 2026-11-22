@@ -4,6 +4,8 @@
 import { sanitise } from "acp-model";
 import { displayWidth, truncateEnd } from "../layout/segments.ts";
 import { auggieLoginCommand } from "./command.ts";
+import { agentErrorReason } from "./errors.ts";
+import type { HarnessProfile } from "./harness-profiles.ts";
 
 /** ACP's "authentication required" error code. */
 export const AUTH_REQUIRED_CODE = -32000;
@@ -51,4 +53,43 @@ export function loginMessage(error: unknown, options: LoginMessageOptions): stri
   let message = `${who} needs you to log in${text === "" ? "" : `: ${text}`}`;
   if (options.loginHint !== undefined && !text.includes(options.loginHint)) message += `; ${loginStep(options.loginHint)}`;
   return message;
+}
+
+/** The login command to name: the profile's when the harness has one, else the program's
+ *  (`hints.ts`: `auggie login` before any profile is known), else none. */
+export function loginCommandFor(profile: HarnessProfile | null, programHint: string | undefined): string | undefined {
+  return profile !== null ? profile.loginCommand() : programHint;
+}
+
+/** What a harness that signals "not logged in" by its model list (`auggie-1`) shows after
+ *  `session/new`, `session/load` or `session/resume`: a `model` config option whose current value is
+ *  `unknown/unknown` and which offers no choices. Only that exact signature counts (spec
+ *  tui-agent-session "Auggie 1.x not logged in at the start"). */
+export function isLoggedOutSignature(profile: HarnessProfile | null, configOptions: readonly unknown[] | null | undefined): boolean {
+  if (profile === null || !profile.signalsLoggedOutByModel || !configOptions) return false;
+  return configOptions.some((raw) => {
+    const option = raw as { category?: unknown; id?: unknown; currentValue?: unknown; options?: unknown };
+    return (option.category === "model" || option.id === "model") && option.currentValue === "unknown/unknown" && Array.isArray(option.options) && option.options.length === 0;
+  });
+}
+
+/** The reason an `auggie-1` prompt error gives when no model could be used (`No API key found for unknown.`). */
+const NO_API_KEY = /^No API key found/;
+
+/** Whether a prompt error is `auggie-1`'s logged-out answer: its reason (`data.details`) starts `No API key found`. */
+export function isNoApiKey(profile: HarnessProfile | null, error: unknown): boolean {
+  if (profile === null || !profile.signalsLoggedOutByModel) return false;
+  const reason = agentErrorReason(error);
+  return reason !== null && NO_API_KEY.test(reason);
+}
+
+/** The login text for a failed start, the harness's own message in place of an error's: `harness
+ *  'auggie' needs you to log in; run auggie auth login in a terminal, then start acp-tui again`. */
+export function loggedOutStartMessage(options: LoginMessageOptions): string {
+  return loginMessage(new Error(""), options);
+}
+
+/** The conversation's error line for `isNoApiKey`: `harness 'auggie' needs you to log in: <reason>; run ...`. */
+export function noApiKeyMessage(error: unknown, options: LoginMessageOptions): string {
+  return loginMessage(new Error(agentErrorReason(error) ?? ""), options);
 }

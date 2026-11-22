@@ -93,6 +93,7 @@ import { bindTerminalColours, createLiveTheme, createThemeRefresh, type ThemeCol
 import { createConfiguredTheme } from "../theme/configured.ts";
 import { createPalette } from "../overlay/Overlay.tsx";
 import { createCards } from "../card/ChromeCard.tsx";
+import { createIndexingHost } from "../card/indexing.tsx";
 import { chainIntercepts, createScrollbar } from "../conversation/scrollbar.ts";
 import { registerGrammars } from "../conversation/grammars.ts";
 import { createSelection } from "../selection/select.tsx";
@@ -263,7 +264,15 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
   // The docked cards (mvp-chrome-and-keys tasks 5.1 and 5.6): the permission card with its preview
   // and Ctrl+O grow, and the elicitation card, whose handler the session controller gives the ACP
   // client, which also advertises the capability (src/card/ChromeCard.tsx).
-  const cards = createCards({ clipboard: clipboardMode });
+  // The indexing question (auggie-1x-support D16, src/card/indexing.tsx): for the whole run, so a
+  // directory answered `not now` stays answered across harness processes and sessions.
+  const indexing = createIndexingHost({
+    notify: notice,
+    allow: () => switcher.allowIndexing(),
+    fresh: () => switcher.fresh(),
+    logger: options.logger,
+  });
+  const cards = createCards({ clipboard: clipboardMode }, indexing);
   // Selection and copy: the selection's mouse hook behind the policy check, and its component in
   // the App's overlay slot (src/selection/).
   const selection = createSelection({ clipboard: clipboardMode });
@@ -303,6 +312,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     configDirectories: (directory) => (directory === launch.directory ? config.config().additional_directories : readConfigDirectories(directory).directories),
     cancelled: () => lifecycleRef?.shuttingDown ?? false,
     elicitation: cards.elicitation,
+    indexing,
     pace,
     // On Windows a harness run through npm's `.cmd` shim retitles the tab (windows-support D5).
     onHarnessInitialized: () => {
@@ -324,6 +334,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     canList: switcher.canList,
     listPage: switcher.listPage,
     records: switcher.records,
+    generation: switcher.generation,
     choose: switcher.choose,
     current: switcher.current,
     starting: switcher.starting,

@@ -6,7 +6,7 @@ import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { compactEnv } from "../pty/config-home.ts";
-import { startPty, type OscColours, type PtySession } from "../pty/harness.ts";
+import { startPty, type OscColours, type PtySession, type Vs16Width } from "../pty/harness.ts";
 import { homeEnv, WINDOWS } from "../windows.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
@@ -54,13 +54,15 @@ export interface StartCliOptions {
   colours?: OscColours;
   /** fake-agent options after its scenario and log (for example `--config-never`). */
   agentArgs?: string[];
+  /** How the emulator counts a narrow base with VS16 (`PtyStartOptions.vs16`). */
+  vs16?: Vs16Width;
 }
 
 /** Starts `acp-tui -- fake-agent --scenario <scenario> --delay-scale <scale> --log <log>`. */
 export function startCli(scenario = "basic", delayScale = 0, opts: StartCliOptions = {}): CliRun {
   const log = join(tempDir(), "agent.log");
   const args = [opts.entry ?? CLI, "--", ...(opts.args ?? []), "--", "bun", FAKE_AGENT, "--scenario", scenario, "--delay-scale", String(delayScale), "--log", log, ...(opts.agentArgs ?? [])];
-  const s = startPty(["bun", ...args], { cols: opts.cols ?? 80, rows: opts.rows ?? 24, cwd: tempDir(), env: { ...compactEnv(), ...SHORT_HOME, ...opts.env }, colours: opts.colours });
+  const s = startPty(["bun", ...args], { cols: opts.cols ?? 80, rows: opts.rows ?? 24, cwd: tempDir(), env: { ...compactEnv(), ...SHORT_HOME, ...opts.env }, colours: opts.colours, ...(opts.vs16 ? { vs16: opts.vs16 } : {}) });
   const entries = (): LogEntry[] =>
     existsSync(log)
       ? readFileSync(log, "utf8")

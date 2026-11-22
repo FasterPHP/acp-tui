@@ -19,6 +19,7 @@ const tool = (over: Partial<ToolCallItem> = {}): ToolCallItem => ({
   content: [{ type: "text", text: ["```", ...Array.from({ length: 12 }, (_, i) => `line ${i + 1}`), "```"].join("\n") }],
   locations: [],
   rawOutputText: null,
+  inputText: null,
   startedAt: 0,
   endedAt: 500,
   ...over,

@@ -110,13 +110,14 @@ export function interactionSuite(options: SuiteOptions = {}): void {
       const one = rows.findIndex((r) => /Run earlier check .*#1$/.test(r));
       expect(one).toBeGreaterThanOrEqual(0);
       // mvp-rendering (tasks 9.1, 9.2; review C13 and C14): the title fits on the line, so the card
-      // is a padding row, the output rendered as Markdown (its two lines are one paragraph) and a
+      // is a padding row, the output (its two lines on two rows: a tool's text keeps its lines) and a
       // padding row.
       expect(rows[one + 1]).toMatch(/^ {2}┃$/);
       // The card's rule, then two columns of padding (`cards.padding.columns`, day-one-feedback).
-      expect(rows[one + 2]).toMatch(/^ {2}┃ {2}earlier tool output line 1 earlier tool output line 2$/);
-      expect(rows[one + 3]).toMatch(/^ {2}┃$/);
-      expect(rows[one + 4]).toMatch(/Read later file .*#2$/);
+      expect(rows[one + 2]).toMatch(/^ {2}┃ {2}earlier tool output line 1$/);
+      expect(rows[one + 3]).toMatch(/^ {2}┃ {2}earlier tool output line 2$/);
+      expect(rows[one + 4]).toMatch(/^ {2}┃$/);
+      expect(rows[one + 5]).toMatch(/Read later file .*#2$/);
       // Ctrl+O again collapses it.
       s.sendKeys("Ctrl+O");
       await s.waitFor((p) => !conversationRows(p).join("\n").includes("earlier tool output"), 5000);

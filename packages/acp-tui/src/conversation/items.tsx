@@ -19,7 +19,7 @@ import { displayWidth, type Segment } from "../layout/segments.ts";
 import { spanStyle, type ResolvedTheme, type TokenName } from "../theme/index.ts";
 import { markerHere, markerSpans, setDrawnCard, setDrawnMarker, thoughtCardLayout, toolCardLayout, type CardLayout, type MarkerCells } from "./card.ts";
 import { wrapLine, type CardLine } from "./content.ts";
-import { permissionLine, planLine, planRows, thoughtLine, toolLine, toolTitleShown, turnEndLine } from "./format.ts";
+import { permissionLine, permissionQuestionRows, planLine, planRows, thoughtLine, toolLine, toolTitleShown, turnEndLine } from "./format.ts";
 import { SPINNER_FRAME_MS, type ConversationGlyphs } from "./glyphs.ts";
 import { createRenderNode, drawCapabilities, rowsToChunks, type MarkdownHolder } from "./markdown/draw.ts";
 import { createHighlightedRows } from "./markdown/highlight.ts";
@@ -421,7 +421,14 @@ export function ItemView(props: { id: string; margin: number; ctx: ItemContext }
           const t = ctx.items[`tool:${record().toolCallId}`];
           return t?.kind === "tool_call" ? (t as ToolCallItem) : null;
         };
-        return meta("muted", () => <Segments segments={permissionLine(record(), tool(), width())} theme={theme} />);
+        return (
+          <>
+            {meta("muted", () => <Segments segments={permissionLine(record(), tool(), width(), expanded())} theme={theme} />, true)}
+            <Show when={expanded()}>
+              <Card lines={() => permissionQuestionRows(record()).map((segments) => ({ segments }))} ctx={ctx} />
+            </Show>
+          </>
+        );
       }
       case "plan": {
         const plan = as("plan");

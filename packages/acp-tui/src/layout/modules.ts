@@ -119,7 +119,11 @@ export interface HintCondition {
   /** `running` covers both `running` and `requires_action`. */
   turn?: "idle" | "running";
   permissionOpen?: boolean;
+  questionOpen?: boolean;
   promptEmpty?: boolean;
+  /** The session offers a mode (a `mode` config option or legacy modes): the mode key has
+   *  something to cycle. */
+  mode?: boolean;
 }
 
 export interface HintRule {
@@ -141,7 +145,9 @@ export function hintApplies(rule: HintRule, view: SessionView): boolean {
   if (w.focus !== undefined && w.focus !== view.ui.focus) return false;
   if (w.turn !== undefined && w.turn !== (view.turnState === "idle" ? "idle" : "running")) return false;
   if (w.permissionOpen !== undefined && w.permissionOpen !== view.ui.permissionOpen) return false;
+  if (w.questionOpen !== undefined && w.questionOpen !== view.ui.questionOpen) return false;
   if (w.promptEmpty !== undefined && w.promptEmpty !== view.ui.promptEmpty) return false;
+  if (w.mode !== undefined && w.mode !== (view.mode !== null || (view.pills?.some((p) => p.category === "mode") ?? false))) return false;
   return true;
 }
 

@@ -93,6 +93,9 @@ export interface LaunchDescription {
   readonly addDirs?: readonly string[];
   /** Notices for the session that starts with this launch (a recorded directory that has gone). */
   readonly directoryNotices?: readonly string[];
+  /** Arguments for this launch's process only, after `launchArgv`'s (`--allow-indexing` once the
+   *  indexing card is answered allow); never recorded, and never copied to a later launch. */
+  readonly oneOffArgs?: readonly string[];
 }
 
 /** The install and login hints, timeout, directory template and own directories of a catalogue

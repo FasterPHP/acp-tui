@@ -29,6 +29,7 @@ import { batch, createEffect, createMemo, createSignal, For, on, onCleanup, onMo
 import { useTerminalDimensions } from "@opentui/solid";
 import { TextAttributes, type BoxRenderable, type KeyEvent } from "@opentui/core";
 import type { SessionInfo } from "@agentclientprotocol/sdk";
+import { agentErrorText } from "../agent/errors.ts";
 import { useApp } from "../app/context.ts";
 import { typedText } from "../card/elicitation.tsx";
 import { createSpinner } from "../conversation/items.tsx";
@@ -41,6 +42,7 @@ import { actionLabel } from "../keys/keymap.ts";
 import { registerContext, type ContextHandlers } from "../keys/register.ts";
 import { oneLine, type SessionRecord } from "../session/session-index.ts";
 import { SESSION_LIST_OVERLAY } from "../session/store.ts";
+import type { HarnessProfileId } from "../agent/harness-profiles.ts";
 import type { SessionSwitcher } from "../session/switch.ts";
 import type { TokenName } from "../theme/index.ts";
 import { spanStyle as toSpan } from "../theme/index.ts";
@@ -71,6 +73,8 @@ export type SessionListHost = Pick<
   SessionSwitcher,
   "agents" | "currentAgent" | "directory" | "canList" | "listPage" | "records" | "choose" | "current" | "starting" | "ready"
 > & {
+  /** The generation of the harness in use once it has answered `initialize` and has a profile, else null. */
+  generation?(): HarnessProfileId | null;
   /** Esc at start-up: starts a new session (the app reports a failure as a start-up failure). */
   startNew(): void;
   /** Clock for the activity times; default `Date.now`. */
@@ -130,6 +134,8 @@ function SessionListOverlay(props: {
   const [held, setHeld] = createSignal<string | null>(null);
   const [listed, setListed] = createSignal<readonly SessionInfo[]>([]);
   const [records, setRecords] = createSignal<readonly SessionRecord[]>([]);
+  // The harness's generation once it has answered `initialize` (rows another generation recorded are muted).
+  const [harnessGeneration, setHarnessGeneration] = createSignal<HarnessProfileId | null>(null);
   const [cursor, setCursor] = createSignal<string | null>(null);
   const [reading, setReading] = createSignal(false);
   // The harness is still starting (a `--resume` list opened before it was up), and a choice made
@@ -181,6 +187,8 @@ function SessionListOverlay(props: {
         if (at !== generation) return;
         batch(() => {
           setListed((rows) => [...rows, ...response.sessions]);
+          // The harness has answered, so its generation is known whatever moment the list opened at.
+          setHarnessGeneration(host.generation?.() ?? null);
           setCursor(response.nextCursor ?? null);
           setReading(false);
         });
@@ -190,7 +198,7 @@ function SessionListOverlay(props: {
         batch(() => {
           setReading(false);
           setCursor(null);
-          setFooter({ text: `${harness()} could not list its sessions: ${error instanceof Error ? error.message : String(error)}`, token: "warning" });
+          setFooter({ text: `${harness()} could not list its sessions: ${agentErrorText(error)}`, token: "warning" });
         });
       },
     );
@@ -208,6 +216,7 @@ function SessionListOverlay(props: {
       setReading(false);
       setRecords(host.records());
       setHeld(null);
+      setHarnessGeneration(host.generation?.() ?? null);
     });
     lastOffset = 0;
     lastIndex = 0;
@@ -221,7 +230,10 @@ function SessionListOverlay(props: {
     host.ready().then(
       () => {
         if (at !== generation) return;
-        setStarting(false);
+        batch(() => {
+          setStarting(false);
+          setHarnessGeneration(host.generation?.() ?? null);
+        });
         readPage(null);
       },
       (error: unknown) => {
@@ -229,7 +241,7 @@ function SessionListOverlay(props: {
         batch(() => {
           setStarting(false);
           setStartFailed(true);
-          setFooter({ text: error instanceof Error ? error.message : String(error), token: "danger" });
+          setFooter({ text: agentErrorText(error), token: "danger" });
         });
       },
     );
@@ -261,7 +273,7 @@ function SessionListOverlay(props: {
     const sessions = mergeSessions(listed(), records(), current, scope() === "directory" ? s.directory : null, s.only);
     return [...newSessionEntries(s.only === null ? s.agents : s.agents.filter((a) => a === s.only), current), ...sessions];
   });
-  const items = createMemo(() => entries().map((entry) => ({ entry, item: sessionListItem(entry, { now: now(), home }) })));
+  const items = createMemo(() => entries().map((entry) => ({ entry, item: sessionListItem(entry, { now: now(), home, generation: harnessGeneration() }) })));
   const shown = createMemo(() => {
     const matching = new Set(filterItems(items().map((i) => i.item), filter()).map((i) => i.id));
     return items().filter((i) => matching.has(i.item.id));
@@ -339,7 +351,7 @@ function SessionListOverlay(props: {
             setBusy(false);
             setStarting(false);
             setStartFailed(true);
-            setFooter({ text: error instanceof Error ? error.message : String(error), token: "danger" });
+            setFooter({ text: agentErrorText(error), token: "danger" });
           });
         },
       );
@@ -430,6 +442,13 @@ function SessionListOverlay(props: {
   });
 
   const moveBy = (move: number | "first" | "last") => select(moveSelection(shown().length, selected(), move));
+  // Ctrl+C copies the footer's message (an error, or the advice with the command to run), not
+  // the progress text.
+  controller.setMessageSource(() => {
+    const message = footer();
+    return message !== null && message.token !== "muted" ? oneLine(message.text) : null;
+  });
+  onCleanup(() => controller.setMessageSource(null));
   const handlers: ContextHandlers<"overlay"> = {
     up: () => moveBy(-1),
     down: () => moveBy(1),

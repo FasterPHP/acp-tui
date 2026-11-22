@@ -24,7 +24,7 @@ describe("agent/launch (task 5.2)", () => {
   });
 
   test("an install hint ends the message when the program is not found", () => {
-    const hint = "npm install -g @augmentcode/auggie@0.36.0 (Node 20 or later), then run auggie login";
+    const hint = "npm install -g @augmentcode/auggie (Node 20.6 or later), then run auggie auth login; to stay on Auggie 0.x: npm install -g @augmentcode/auggie@v0-release, then run auggie login";
     try {
       launchAgent(["acp-tui-no-such-auggie", "--acp"], { harness: "auggie", installHint: hint, env: { PATH: "/usr/bin:/bin" } });
       throw new Error("expected launchAgent to throw");

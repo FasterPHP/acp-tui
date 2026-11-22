@@ -7,13 +7,14 @@
 // after the gutter (day-one-feedback task 7.2), so it lines up with the tool glyphs above it.
 import type { Session, ToolCallItem } from "acp-model";
 import { LIVE_GLYPHS } from "../conversation/live-glyphs.ts";
+import { toolTitleText } from "../conversation/tool-title.ts";
 import { displayWidth, fitSegments, segmentsWidth, truncateEnd, type Segment } from "./segments.ts";
 
 type PlanEntry = Session["plan"][number];
 
 export interface ActivityInput {
   /** Tool calls pending or in progress, in start order. */
-  running: readonly Pick<ToolCallItem, "title">[];
+  running: readonly (Pick<ToolCallItem, "title"> & { readonly inputText?: string | null })[];
   /** The plan reported during the running turn; empty when none (or idle). */
   plan: readonly Pick<PlanEntry, "content" | "status">[];
   permissionOpen: boolean;
@@ -43,7 +44,7 @@ function oneLine(text: string): string {
 function parts(input: ActivityInput): Record<Part["kind"], Part | null> {
   const latest = input.running.at(-1);
   const running: Part | null = latest
-    ? { kind: "running", head: { text: `${input.running.length} running`, token: "tool.running" }, tail: oneLine(latest.title) || null }
+    ? { kind: "running", head: { text: `${input.running.length} running`, token: "tool.running" }, tail: toolTitleText(latest) || null }
     : null;
   let plan: Part | null = null;
   if (input.plan.length > 0) {

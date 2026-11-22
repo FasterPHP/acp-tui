@@ -48,6 +48,7 @@
 import type { Item, ToolCallItem } from "acp-model";
 import { toolContent } from "../conversation/command-result.ts";
 import { unifiedDiff } from "../conversation/diff.ts";
+import { questionLines } from "../conversation/permission-label.ts";
 import { outcomeLabel, TERMINAL_NOTICE, toolTitle, type ItemLookup } from "./projection.ts";
 
 function trimTrailingNewlines(text: string): string {
@@ -118,7 +119,11 @@ export function itemMarkdown(item: Item): string {
       return ["**Plan**", ...(entries.length > 0 ? [entries.join("\n")] : [])].join("\n\n");
     }
     case "permission_record":
-      return `**Permission** (${outcomeLabel(item)}): ${oneLine(item.title) || item.toolCallId}`;
+    {
+      const lines = questionLines(item.title);
+      if (lines.length === 0) return `**Permission** (${outcomeLabel(item)}): ${oneLine(item.title) || item.toolCallId}`;
+      return `**Permission** (${outcomeLabel(item)}):\n\n${["```text", ...lines, "```"].join("\n")}`;
+    }
     case "marker":
       if (item.markerKind === "turn_end") return "";
       return `**${item.markerKind === "error" ? "Error" : "Notice"}:** ${trimTrailingNewlines(item.text)}`;

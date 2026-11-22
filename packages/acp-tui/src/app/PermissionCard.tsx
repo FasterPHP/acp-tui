@@ -24,9 +24,10 @@
 // card appears, so typing ahead cannot answer. Esc returns focus to the prompt
 // box.
 //
-// The preview (spec tui-layout "Permission card preview"): the card also shows
-// what it approves, the tool call's content (`previewRows`), between the title
-// and the options; Up, Down, PgUp, PgDn, Home and End scroll it while the card
+// The preview (spec tui-layout "Permission card preview"): the card shows the
+// request's question with its line breaks kept (`questionRows`, drawn by
+// `cardLayout` from the model's title), then what it approves, the tool call's
+// content (`previewRows`), above the options; Up, Down, PgUp, PgDn, Home and End scroll it while the card
 // has focus, and Ctrl+O grows the card and back. The card is laid out last
 // (mvp-chrome-and-keys design D6): at rest it takes what it needs while the
 // conversation keeps 4 of the rows the other regions leave (`props.free`),
@@ -123,7 +124,7 @@ export const PermissionCard = (props: PermissionCardProps): JSX.Element => {
           setGrown(false);
           // Focus enters at the first stop, if it enters now (the layout is not drawn yet, so the
           // preview's own rows decide; `stop()` falls back to the answer row if it then fits).
-          setStop(preview().length > 0 ? "preview" : "answer");
+          setStop(preview().length > 0 || (model()?.title ?? "") !== "" ? "preview" : "answer");
           if (store.ui.promptEmpty) store.setFocus("card");
           else startFlash();
         } else if (!id) {

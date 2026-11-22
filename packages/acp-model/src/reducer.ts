@@ -128,6 +128,19 @@ interface ToolCallFields {
   readonly locations?: readonly ToolCallLocation[] | null;
   /** The update's `rawOutput`, any JSON value; only `rawOutputTextOf` reads it. */
   readonly rawOutput?: unknown;
+  /** The update's `rawInput`, any JSON value; only `inputTextOf` reads it. */
+  readonly rawInput?: unknown;
+}
+
+/** The input text of a `rawInput` (design D9 of `auggie-1x-support`): its `command` string when the
+ *  call is of kind `execute`, else its `path` string; anything else records nothing (undefined).
+ *  Sanitised on entry like other agent text. */
+function inputTextOf(rawInput: unknown, kind: ToolKind | null | undefined): string | undefined {
+  if (typeof rawInput !== "object" || rawInput === null || Array.isArray(rawInput)) return undefined;
+  const { command, path } = rawInput as { command?: unknown; path?: unknown };
+  if (kind === "execute" && typeof command === "string") return sanitise(command, "approval");
+  if (typeof path === "string") return sanitise(path, "approval");
+  return undefined;
 }
 
 /** The text form of a `rawOutput` (design D3 of `day-one-feedback`): the value when it is a
@@ -203,6 +216,7 @@ function upsertToolCall(session: Session, fields: ToolCallFields, at: number): S
       content: mapToolCallContent(fields.content) ?? [],
       locations: mapLocations(fields.locations) ?? [],
       rawOutputText: rawOutputTextOf(fields.rawOutput) ?? null,
+      inputText: inputTextOf(fields.rawInput, fields.kind) ?? null,
       startedAt: at,
       endedAt: becomesFinal ? at : null,
     };
@@ -223,6 +237,7 @@ function upsertToolCall(session: Session, fields: ToolCallFields, at: number): S
       content: fields.content != null ? (mapToolCallContent(fields.content) ?? item.content) : item.content,
       locations: fields.locations != null ? (mapLocations(fields.locations) ?? item.locations) : item.locations,
       rawOutputText: rawOutputTextOf(fields.rawOutput) ?? item.rawOutputText,
+      inputText: inputTextOf(fields.rawInput, fields.kind ?? item.toolKind) ?? item.inputText,
       endedAt: item.endedAt ?? (becomesFinal ? at : null),
     };
   });
@@ -441,19 +456,30 @@ function handlePermissionOpened(
   request: RequestPermissionRequest,
   at: number,
 ): Session {
-  let next = upsertToolCall(
-    session,
-    {
-      toolCallId,
-      title: request.toolCall.title,
-      name: request.toolCall.name,
-      kind: request.toolCall.kind,
-      status: request.toolCall.status,
-      content: request.toolCall.content,
-      locations: request.toolCall.locations,
-    },
-    at,
-  );
+  // A request for a tool call nothing has started creates the item only when it carries the
+  // call's details; a bare one (Auggie 1.x sends a fresh ID that no `tool_call` ever uses) stands
+  // alone, takes no tool index and is not counted as a tool call.
+  const call = request.toolCall;
+  const known = session.items.get(`tool:${toolCallId}`)?.kind === "tool_call";
+  const detailed =
+    call.kind != null || (call.content?.length ?? 0) > 0 || (call.locations?.length ?? 0) > 0 || call.rawInput != null;
+  let next = session;
+  if (known || detailed) {
+    next = upsertToolCall(
+      session,
+      {
+        toolCallId,
+        title: call.title,
+        name: call.name,
+        kind: call.kind,
+        status: call.status,
+        content: call.content,
+        locations: call.locations,
+        rawInput: call.rawInput,
+      },
+      at,
+    );
+  }
 
   const toolItem = next.items.get(`tool:${toolCallId}`);
   const title =
@@ -530,6 +556,7 @@ function emptyTurn(startedAt: number): NonNullable<Session["turn"]> {
     openPermissionToolCallId: null,
     openElicitationIds: [],
     planReportedThisTurn: false,
+    interrupted: false,
   };
 }
 
@@ -622,6 +649,7 @@ function handleSessionUpdate(
           content: update.content,
           locations: update.locations,
           rawOutput: update.rawOutput,
+          rawInput: update.rawInput,
         },
         at,
       );
@@ -638,6 +666,7 @@ function handleSessionUpdate(
           content: update.content,
           locations: update.locations,
           rawOutput: update.rawOutput,
+          rawInput: update.rawInput,
         },
         at,
       );
@@ -760,6 +789,18 @@ export function reduce(
       return { ...appendItem(session, item), nextMarkerSeq: session.nextMarkerSeq + 1 };
     }
 
+    case "client_error": {
+      const item: MarkerItem = {
+        id: `marker:${session.nextMarkerSeq}`,
+        status: "final",
+        origin: "replay",
+        kind: "marker",
+        markerKind: "error",
+        text: sanitise(event.text),
+      };
+      return { ...appendItem(session, item), nextMarkerSeq: session.nextMarkerSeq + 1 };
+    }
+
     case "prompt_sent": {
       const item: Item = {
         id: `user:${session.nextMarkerSeq}`,
@@ -777,12 +818,19 @@ export function reduce(
       };
     }
 
+    case "interrupt_requested": {
+      if (session.state === "idle" || !session.turn) return session;
+      if (session.turn.interrupted) return session;
+      return { ...session, turn: { ...session.turn, interrupted: true } };
+    }
+
     case "prompt_response": {
       const durationMs = session.turn ? Math.max(0, event.at - session.turn.startedAt) : 0;
       const next = endTurn(session, event.at, {
         kind: "marker",
         markerKind: "turn_end",
         stopReason: event.stopReason,
+        interrupted: session.turn?.interrupted ?? false,
         durationMs,
         usage: session.usage,
       });

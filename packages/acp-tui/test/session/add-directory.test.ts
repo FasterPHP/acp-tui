@@ -76,6 +76,15 @@ function setup(options: { readonly args: readonly string[]; readonly template?: 
 
 const ACP = ["--additional-directories", "--resume", "--load"];
 
+/** Sends a prompt and waits until the harness has answered it, so the session counts as having
+ *  had a prompt (a session with none is replaced by a new one, not loaded). */
+async function answerOnePrompt(w: ReturnType<typeof setup>): Promise<void> {
+  const using = w.switcher.current()!;
+  using.controller.prompt("hello");
+  for (let i = 0; i < 400 && !(using.recorder?.answered && using.controller.getSession().state === "idle"); i++) await Bun.sleep(25);
+  expect(using.recorder?.answered).toBe(true);
+}
+
 describe("the ACP route", () => {
   test("a harness with resume: session/resume carries the complete list, nothing is replayed, no prompt is sent and the model records the list", async () => {
     const w = setup({ args: ACP });
@@ -99,8 +108,9 @@ describe("the ACP route", () => {
   }, 30000);
 
   test("an error from session/resume falls back to session/load, and the list is the same", async () => {
-    const w = setup({ args: ACP });
+    const w = setup({ args: ACP, scenario: "copy-fixtures" });
     await w.switcher.start();
+    await answerOnePrompt(w);
     const first = w.switcher.current()!.controller;
     (first as { resumeWithDirectories: unknown }).resumeWithDirectories = async () => {
       throw new Error("resume refused");
@@ -116,8 +126,9 @@ describe("the ACP route", () => {
   }, 30000);
 
   test("a harness with load only: session/load carries the list on the same process and the conversation is replaced by its replay", async () => {
-    const w = setup({ args: ["--additional-directories", "--load"] });
+    const w = setup({ args: ["--additional-directories", "--load"], scenario: "copy-fixtures" });
     await w.switcher.start();
+    await answerOnePrompt(w);
     const result = await w.switcher.addDirectory("../lib", w.never);
     expect(result).toEqual({ ok: true, directory: w.lib, how: "load" });
     expect(w.received().some((e) => e.method === "session/resume")).toBe(false);
@@ -191,8 +202,9 @@ describe("refusals", () => {
 
 describe("the template route", () => {
   test("declined: nothing restarts; confirmed: the old process is detached, a new one is launched with --add-workspace and the session is loaded on it", async () => {
-    const w = setup({ args: ["--load", "--additional-directories"], template: true, persist: true });
+    const w = setup({ args: ["--load", "--additional-directories"], template: true, persist: true, scenario: "copy-fixtures" });
     await w.switcher.start();
+    await answerOnePrompt(w);
     const before = w.switcher.current()!;
     const asked: string[] = [];
     const declined = await w.switcher.addDirectory("../lib", async (text) => {
@@ -216,4 +228,65 @@ describe("the template route", () => {
     expect(w.switcher.current()!.launch.addedDirectories).toEqual([w.lib]);
     expect(w.switcher.current()!.controller.getSession().additionalDirectories).toEqual([w.lib]);
   }, 40000);
+});
+
+describe("before the first prompt (auggie-1x-support 7.3)", () => {
+  test("template route: the restart starts a new session with the directories, says so, and loads nothing", async () => {
+    const w = setup({ args: ["--load", "--additional-directories"], template: true, persist: true });
+    await w.switcher.start();
+    const before = w.switcher.current()!;
+    const asked: string[] = [];
+    const result = await w.switcher.addDirectory("../lib", async (text) => {
+      asked.push(text);
+      return true;
+    });
+    expect(asked).toEqual([`Restart fake with ${shortenHome(w.lib, userHome())} and start a new session (this one has no prompt yet)`]);
+    expect(result).toEqual({ ok: true, directory: w.lib, how: "restart" });
+    expect(w.received().filter((e) => e.method === "session/load")).toHaveLength(0);
+    expect(w.received().filter((e) => e.method === "session/new")).toHaveLength(2);
+    expect(w.received().filter((e) => e.method === "argv/add-workspace").at(-1)!.params).toEqual({ directories: [w.lib] });
+    const now = w.switcher.current()!;
+    expect(now.controller).not.toBe(before.controller);
+    expect(now.launch.addedDirectories).toEqual([w.lib]);
+    expect(now.opened).toBe(false);
+  }, 40000);
+
+  test("load route: session/new carries the directories on the same process", async () => {
+    const w = setup({ args: ["--additional-directories", "--load"] });
+    await w.switcher.start();
+    const result = await w.switcher.addDirectory("../lib", w.never);
+    expect(result).toEqual({ ok: true, directory: w.lib, how: "load" });
+    expect(w.received().filter((e) => e.method === "session/load")).toHaveLength(0);
+    const news = w.received().filter((e) => e.method === "session/new");
+    expect(news.at(-1)!.params).toMatchObject({ additionalDirectories: [w.lib] });
+    expect(w.switcher.current()!.controller.getSession().additionalDirectories).toEqual([w.lib]);
+  }, 30000);
+
+  test("a session opened by load keeps the old route even with no prompt of its own", async () => {
+    const w = setup({ args: ["--load", "--additional-directories"], template: true, persist: true, scenario: "copy-fixtures" });
+    await w.switcher.start();
+    await answerOnePrompt(w);
+    const id = w.switcher.current()!.controller.getSession().id!;
+    // Reopen the recorded session (a list row), then add a directory: it is a load again.
+    const entry = { kind: "session" as const, sessionId: id, agent: "fake", command: null, directory: w.app, title: null, updatedAt: null, current: true };
+    expect(await w.switcher.choose(entry)).toBeNull();
+    const asked: string[] = [];
+    await w.switcher.addDirectory("../lib", async (text) => (asked.push(text), false));
+    expect(asked[0]).toContain("and reopen this session");
+  }, 60000);
+
+  test("a failed reopen is added to the conversation whole, as an error line, not as a notice", async () => {
+    const w = setup({ args: ["--additional-directories", "--load", "--load-error", "fake-session-1"], scenario: "copy-fixtures" });
+    await w.switcher.start();
+    await answerOnePrompt(w);
+    const result = await w.switcher.addDirectory("../lib", w.never);
+    expect(result).toMatchObject({ ok: false, reported: true });
+    const session = w.switcher.current()!.controller.getSession();
+    const last = session.items.get(session.order[session.order.length - 1]!);
+    expect(last).toMatchObject({ kind: "marker", markerKind: "error" });
+    const text = (last as { text: string }).text;
+    expect(text).toBe((result as { message: string }).message);
+    expect(text).toContain("fake-session-1");
+    expect(text.length).toBeGreaterThan(40);
+  }, 30000);
 });

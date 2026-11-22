@@ -16,7 +16,7 @@ import { SessionStore } from "./sessions.ts";
 
 function main(): void {
   const options = parseArgs(process.argv.slice(2));
-  const scenario = resolveScenario(options.scenario);
+  const scenario = resolveScenario(options.scenario, { offerModels: options.offerModels, resumeOnly: options.resumeOnly });
   const logger = new ScenarioLogger(options.logPath);
   // Terminal output comes before anything else, as a harness that is a terminal interface would write it.
   if (options.printTerminal === "escape") {
@@ -26,6 +26,9 @@ function main(): void {
   }
   if (options.addWorkspace.length > 0) {
     logger.record("argv/add-workspace", { directories: options.addWorkspace });
+  }
+  if (options.allowIndexing) {
+    logger.record("argv/allow-indexing", {});
   }
   const store = SessionStore.open(
     options.sessionsPath,
@@ -71,6 +74,14 @@ function main(): void {
         sessionPermission: options.sessionPermission,
         ...(options.authRequired === undefined ? {} : { authRequired: options.authRequired }),
         ...(options.agentInfo === undefined ? {} : { agentInfo: options.agentInfo }),
+        ...(options.agentTitle === undefined ? {} : { agentTitle: options.agentTitle }),
+        indexing: {
+          allow: options.allowIndexing,
+          ...(options.indexingStore === undefined ? {} : { storePath: options.indexingStore }),
+          deny: options.indexingDeny,
+          limited: options.indexingLimited,
+          addWorkspace: options.addWorkspace,
+        },
         sessions: {
           load: options.load,
           resume: options.resume,

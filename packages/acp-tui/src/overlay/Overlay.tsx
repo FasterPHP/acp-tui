@@ -57,6 +57,8 @@
 // the thinking level to the next value and apply it as the picker would, with a
 // notice naming it (spec tui-keymap "Mode and effort keys"); neither acts while
 // an overlay has focus, and without such an option they say so.
+import { agentErrorText } from "../agent/errors.ts";
+import { profileFor } from "../agent/harness-profiles.ts";
 import { batch, createEffect, createMemo, createSignal, on, onCleanup, onMount, For, Show, type JSX } from "solid-js";
 import { useTerminalDimensions } from "@opentui/solid";
 import { TextAttributes, type BoxRenderable, type KeyEvent } from "@opentui/core";
@@ -92,6 +94,7 @@ import {
   paletteRoutes,
   PICKER_CATEGORIES,
   pickerItems,
+  pickerNote,
   pickerOptions,
   rankSlashMatches,
   slashStart,
@@ -274,6 +277,12 @@ export function PaletteOverlay(): JSX.Element {
     },
     filter: () => items().length > PICKER_FILTER_ABOVE,
     placeholder: "type to search",
+    // No model is named (Auggie right after a login, or when none was chosen): none of the entries
+    // can carry the mark, so the line above says which one is in use.
+    note: () => {
+      const option = pickerOption(configId);
+      return option ? pickerNote(option, profileFor(store.session.agent)?.displayName ?? null) : null;
+    },
     grouped: true,
     marks: true,
     enter: "apply",
@@ -509,7 +518,7 @@ export function PaletteOverlay(): JSX.Element {
       },
       (error: unknown) => {
         settle();
-        controller.notify(`could not change ${name}: ${clean(error instanceof Error ? error.message : String(error))}`, "warning");
+        controller.notify(`could not change ${name}: ${clean(agentErrorText(error))}`, "warning");
       },
     );
   };
@@ -558,9 +567,9 @@ export function PaletteOverlay(): JSX.Element {
     void add(path, confirmRestart).then(
       (result) => {
         if (result.ok) controller.notify(`added ${shortenHome(result.directory, homeDirectory())} to the session`, "muted");
-        else if (result.cancelled !== true) controller.notify(clean(result.message), "warning");
+        else if (result.cancelled !== true && result.reported !== true) controller.notify(clean(result.message), "warning");
       },
-      (error: unknown) => controller.notify(`could not add the directory: ${clean(error instanceof Error ? error.message : String(error))}`, "warning"),
+      (error: unknown) => controller.notify(`could not add the directory: ${clean(agentErrorText(error))}`, "warning"),
     );
   };
 
@@ -689,6 +698,7 @@ export function PaletteOverlay(): JSX.Element {
       closeLabel: esc,
       hints,
       marks: src?.marks ?? false,
+      valueColumn: src?.marks ?? false,
       ...(place ? { minRows: place.minRows, maxRows: place.maxRows } : {}),
       ...(items().length === 0 && src?.empty ? { empty: src.empty() ?? undefined } : {}),
       ...(src?.note?.() ? { note: src.note()! } : {}),

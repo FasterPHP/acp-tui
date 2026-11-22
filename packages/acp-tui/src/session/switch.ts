@@ -34,6 +34,7 @@ import { existsSync, realpathSync, statSync } from "node:fs";
 import type { ListSessionsResponse } from "@agentclientprotocol/sdk";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
 import type { HarnessActivity } from "../agent/harness-activity.ts";
+import type { IndexingSink } from "../agent/indexing.ts";
 import { absoluteEntry } from "../config/directories.ts";
 import { homeDirectory } from "../config/sources.ts";
 import { shortenHome } from "../layout/segments.ts";
@@ -46,6 +47,7 @@ import type { CurrentAgent, SessionListEntry } from "../overlay/sessions.ts";
 import type { ConnectedController, LaunchedHarness } from "./controller.ts";
 import type { SessionRecorder } from "./recorder.ts";
 import { oneLine, type SessionIndex, type SessionRecord } from "./session-index.ts";
+import type { HarnessProfileId } from "../agent/harness-profiles.ts";
 import { agentLabel, connectLaunch, prepareLaunch, RESUME_HINT, SessionOpenFailure, ignoresDirectoriesNotice, startOn, type PreparedLaunch, type SessionTarget } from "./start.ts";
 import type { SessionStore } from "./store.ts";
 import type { Pace } from "../renderer/frame-pace.ts";
@@ -70,10 +72,11 @@ export const SWITCH_REFUSED_OPENING = "the session is still opening: wait for it
 type AgentBase = Pick<LaunchDescription, "agentName" | "agentSource" | "command" | "args" | "env" | "installHint" | "loginHint" | "startupTimeoutSeconds" | "additionalDirectoryArgs" | "harnessDirectories">;
 
 /** What `addDirectory` did: the directory is in the session (`how` names the route), or a message
- *  for a notice (`cancelled`: the user declined the restart, so there is nothing to say). */
+ *  for a notice (`cancelled`: the user declined the restart, so there is nothing to say;
+ *  `reported`: the failure is already in the conversation as an error line). */
 export type AddDirectoryResult =
   | { readonly ok: true; readonly directory: string; readonly how: "resume" | "load" | "restart" }
-  | { readonly ok: false; readonly message: string; readonly cancelled?: true };
+  | { readonly ok: false; readonly message: string; readonly cancelled?: true; readonly reported?: true };
 
 /** Shown by `/add-dir` while a turn runs, a permission request is open or the session is opening. */
 export const ADD_DIRECTORY_REFUSED_RUNNING = "a directory can be added once the turn has ended";
@@ -101,6 +104,8 @@ export interface SessionSwitcherOptions {
   readonly elicitation?: ElicitationHandler;
   /** Paces a load's replay around the renderer's frames (renderer/frame-pace.ts). */
   readonly pace?: Pace;
+  /** Takes Auggie 1.x's indexing lines (src/agent/indexing.ts) from every harness of the run. */
+  readonly indexing?: IndexingSink;
   /** Called each time a harness has answered `initialize` (start-up, a switch to another harness). */
   readonly onHarnessInitialized?: () => void;
   /** Called when a harness may have retitled the console (controller.ts `onActivity`). */
@@ -116,6 +121,8 @@ export interface SessionSwitcherOptions {
 export interface SessionSwitcher {
   /** The session in use, or null before the agent has started. */
   current(): CurrentSession | null;
+  /** The generation of the harness in use, once it has answered `initialize` and has a profile, else null. */
+  generation(): HarnessProfileId | null;
   /** Before the full-screen app: for `--resume <id>` and `--continue`, launches and initialises
    *  the agent and finds the session (`prepareLaunch`); nothing for a new session or the list.
    *  Throws the agent's start-up errors and `SessionOpenFailure`, nothing left running. */
@@ -166,6 +173,17 @@ export interface SessionSwitcher {
    * that is not a directory or is listed already, and for a harness that can take no directories.
    */
   addDirectory(path: string, confirm: (restart: string) => Promise<boolean>): Promise<AddDirectoryResult>;
+  /**
+   * The indexing card's allow (spec tui-agent-session "Allowing Auggie to index"): restarts the
+   * harness once with `--allow-indexing` added, then reopens the session with `session/load`, or
+   * starts a new session in the same directory when it has had no answered prompt. The flag is on
+   * that launch only. Resolves with null once done, else with the failure, which is also added to
+   * the conversation as an error line. Refused, sending nothing, as `/add-dir` is.
+   */
+  allowIndexing(): Promise<string | null>;
+  /** Whether the session in use has had no answered prompt and was not opened from history (the
+   *  indexing card's allow would then start a new session). */
+  fresh(): boolean;
   /** Detaches every agent this run has started and not yet closed (exit). */
   detach(): Promise<void>;
 }
@@ -176,8 +194,8 @@ function harnessOf(launch: Pick<LaunchDescription, "agentName" | "command">): st
 }
 
 /** The command and environment a launch runs, to tell whether two launches share an agent. */
-function commandKey(launch: Pick<LaunchDescription, "command" | "args" | "env" | "additionalDirectoryArgs" | "additionalDirectories">): string {
-  return JSON.stringify([launchArgv(launch), Object.entries(launch.env).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))]);
+function commandKey(launch: Pick<LaunchDescription, "command" | "args" | "env" | "additionalDirectoryArgs" | "additionalDirectories" | "oneOffArgs">): string {
+  return JSON.stringify([[...launchArgv(launch), ...(launch.oneOffArgs ?? [])], Object.entries(launch.env).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))]);
 }
 
 function message(error: unknown): string {
@@ -239,6 +257,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     ...(logger ? { logger } : {}),
     ...(options.elicitation ? { elicitation: options.elicitation } : {}),
     ...(options.pace ? { pace: options.pace } : {}),
+    ...(options.indexing ? { indexing: options.indexing } : {}),
     ...(options.onHarnessInitialized ? { onHarnessInitialized: options.onHarnessInitialized } : {}),
     ...(options.onHarnessActivity ? { onHarnessActivity: options.onHarnessActivity } : {}),
     ...(options.now ? { now: options.now } : {}),
@@ -396,11 +415,17 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
     records: () => index.listAll(),
 
+    generation: () => state?.controller.profile?.generation ?? null,
+
     refusal,
 
     choose: (entry) => open(entry),
 
     addDirectory,
+
+    allowIndexing,
+
+    fresh: () => isFresh(state),
 
     async detach() {
       detaching = true;
@@ -412,7 +437,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
 
   /** Opens a row of the list; `recordedOverride` replaces the index's record of the session's
    *  directories (`/add-dir`: the list with the new directory, before the index has it). */
-  async function open(entry: SessionListEntry, recordedOverride?: readonly string[]): Promise<string | null> {
+  async function open(entry: SessionListEntry, recordedOverride?: readonly string[], oneOffArgs?: readonly string[]): Promise<string | null> {
     {
       const refused = refusal();
       if (refused) return refused;
@@ -435,8 +460,10 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
         }
       }
       const recorded = entry.kind === "session" ? (recordedOverride ?? recordedDirectories(entry.agent, entry.sessionId)) : [];
-      const target = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }, recorded) : launchFor(base, directory(), { kind: "new" });
-      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title, ...(recorded.length > 0 ? { addedDirectories: recorded } : {}) } : null;
+      const planned = entry.kind === "session" ? launchFor(base, entry.directory, { kind: "resume", id: entry.sessionId }, recorded) : launchFor(base, directory(), { kind: "new" }, recordedOverride ?? []);
+      // A one-off argument makes the command differ (`commandKey`), so a new process is started.
+      const target: LaunchDescription = oneOffArgs && oneOffArgs.length > 0 ? { ...planned, oneOffArgs } : planned;
+      const sessionTarget: SessionTarget | null = entry.kind === "session" ? { sessionId: entry.sessionId, directory: entry.directory, title: entry.title, ...(recorded.length > 0 ? { addedDirectories: recorded } : {}), ...(entry.harness ? { harness: entry.harness } : {}) } : null;
       // The same command (and environment) on a live connection: the agent process is kept.
       const shared = commandKey(target) === commandKey(previous.launch) && previous.controller.getSession().connection !== "disconnected";
 
@@ -542,7 +569,11 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
     // The directories recorded for the session, with the new one; the configuration's and this
     // run's `--add-dir` are derived again from their own sources.
     const recorded = [...(launched.addedDirectories ?? []), added];
-    const entry: SessionListEntry = {
+    // A session with no answered prompt that was not opened from history has nothing to load
+    // (Auggie 1.x writes its session at the first prompt): the template and load routes start a
+    // new session with the directories instead.
+    const fresh = isFresh(using);
+    const entry: SessionListEntry = fresh ? { kind: "new", agent: launched.agentName, current: true } : {
       kind: "session",
       sessionId: session.id,
       agent: launched.agentName,
@@ -553,13 +584,23 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       current: true,
     };
 
+    // A failure is added to the conversation whole, as an error line, not as a notice that is cut
+    // to one row (the session in use is whichever one the failed attempt left in place).
+    const report = (text: string): AddDirectoryResult => {
+      (state ?? using).controller.error(text);
+      return { ok: false, message: text, reported: true };
+    };
+
     if (byTemplate) {
-      if (!(await confirm(`Restart ${harnessOf(launched)} with ${shown} and reopen this session`))) return { ok: false, message: "cancelled", cancelled: true };
+      const question = fresh
+        ? `Restart ${harnessOf(launched)} with ${shown} and start a new session (this one has no prompt yet)`
+        : `Restart ${harnessOf(launched)} with ${shown} and reopen this session`;
+      if (!(await confirm(question))) return { ok: false, message: "cancelled", cancelled: true };
       // The overlay waited: the session may have started a turn meanwhile.
       const again = refusal();
       if (again) return refuse(again);
       const failure = await open(entry, recorded);
-      return failure === null ? { ok: true, directory: added, how: "restart" } : refuse(failure);
+      return failure === null ? { ok: true, directory: added, how: "restart" } : report(failure);
     }
 
     if (using.controller.support.resume) {
@@ -574,12 +615,52 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
         logger?.log({ event: "add_directory_resume_failed" });
         if (cancelled()) return refuse("cancelled");
         // Falls back to loading the session, as opening it from the list does.
-        if (!using.controller.support.load) return refuse(`cannot add ${shown}: ${message(error)}`);
+        if (!using.controller.support.load && !fresh) return report(`cannot add ${shown}: ${message(error)}`);
       } finally {
         switching = false;
       }
     }
     const failure = await open(entry, recorded);
-    return failure === null ? { ok: true, directory: added, how: "load" } : refuse(failure);
+    return failure === null ? { ok: true, directory: added, how: "load" } : report(failure);
   }
+
+  /** The list entry that reopens the session in use on a new process: the session itself, or a new
+   *  session when it has nothing to load. */
+  function reopenEntry(using: CurrentSession): SessionListEntry {
+    const launched = using.launch;
+    const session = using.controller.getSession();
+    return isFresh(using)
+      ? { kind: "new", agent: launched.agentName, current: true }
+      : {
+          kind: "session",
+          sessionId: session.id!,
+          agent: launched.agentName,
+          command: launched.agentName === AD_HOC_AGENT ? launchArgv(launched) : null,
+          directory: directory(),
+          title: session.title ?? null,
+          updatedAt: null,
+          current: true,
+        };
+  }
+
+  async function allowIndexing(): Promise<string | null> {
+    const using = state;
+    const session = using?.controller.getSession();
+    if (!using || !session?.id) return `${harnessOf(using?.launch ?? launch)} is still starting`;
+    if (switching) return "another session is being opened";
+    const refused = refusal();
+    if (refused) return refused;
+    const failure = await open(reopenEntry(using), using.launch.addedDirectories ?? [], [ALLOW_INDEXING_ARG]);
+    if (failure !== null) (state ?? using).controller.error(failure);
+    return failure;
+  }
+}
+
+/** The argument that lets Auggie index the workspaces it has no rule for, and save allow rules. */
+export const ALLOW_INDEXING_ARG = "--allow-indexing";
+
+/** A session with no answered prompt that was not opened from history: Auggie 1.x writes a session
+ *  only at its first prompt, so there is nothing to load and a restart starts a new session. */
+function isFresh(using: CurrentSession | null): boolean {
+  return using !== null && !using.opened && !(using.recorder?.answered ?? false);
 }

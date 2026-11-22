@@ -20,11 +20,13 @@ import { diffSnapshots, snapshotBuffer, type ScreenSnapshot } from "./snapshot.t
 import { TEST_HOOKS_VAR } from "../../src/renderer/test-hooks.ts";
 import { JEDITERM_ENV, JediTermFilter } from "./jediterm.ts";
 import { WINDOWS } from "../windows.ts";
+import { widenVs16, type Vs16Width } from "./vs16.ts";
 
 export * from "./jediterm.ts";
 export * from "./modes.ts";
 export * from "./mouse.ts";
 export * from "./snapshot.ts";
+export type { Vs16Width } from "./vs16.ts";
 
 /**
  * Colours the emulator reports to OSC 10 (foreground) and OSC 11 (background)
@@ -61,6 +63,12 @@ export interface PtyStartOptions {
    * ignored, and APC strings printed as text. `env` still overrides the environment.
    */
   terminal?: "xterm" | "jediterm";
+  /**
+   * How the emulator counts a narrow base with variation selector 16 (`⚠️`): `narrow` (1 cell,
+   * xterm.js as it is, as Zed) or `wide` (2 cells, as ConPTY and the terminals behind it). Default
+   * `wide` on Windows, where the screen comes through ConPTY, `narrow` elsewhere (vs16.ts).
+   */
+  vs16?: Vs16Width;
 }
 
 /** How long a frame takes to reach the harness whole through ConPTY (`waitFor` on Windows). */
@@ -160,6 +168,7 @@ export class PtySession {
     const cols = opts.cols ?? 80;
     const rows = opts.rows ?? 24;
     this.term = new XTerm({ cols, rows, scrollback: opts.scrollback ?? 10000, allowProposedApi: true });
+    if ((opts.vs16 ?? (WINDOWS ? "wide" : "narrow")) === "wide") widenVs16(this.term);
     this.colours = opts.colours;
     this.jediterm = opts.terminal === "jediterm" ? new JediTermFilter() : null;
     this.term.parser.registerOscHandler(4, (data) => {

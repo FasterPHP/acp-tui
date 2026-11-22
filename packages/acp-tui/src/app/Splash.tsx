@@ -36,6 +36,7 @@ export function Splash(props: { view: SessionView }): JSX.Element {
       {
         version: VERSION,
         agent: props.view.agent,
+        agentVersion: props.view.agentProfileVersion,
         model: props.view.model,
         cwd: props.view.cwd,
         launch: launched(),

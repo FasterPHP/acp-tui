@@ -22,7 +22,7 @@
 //   with mouse reporting on (a double open with acp-tui's own click), and reworked draws no OSC 8.
 //   False for every unverified terminal; acp-tui's own click handler opens links either way.
 // - `emoji`: the classes of emoji sequence drawn as their names (render/emoji/emoji.ts; task
-//   14.5, review C11), because the terminal draws them in another number of cells than acp-tui
+//   14.5, review C11), in the conversation and in the permission card (app/permission.ts), because the terminal draws them in another number of cells than acp-tui
 //   lays out (cell counts measured by `tools/mvp-rendering/emoji-probe.ts` on 10 October 2026).
 //   JetBrains (both engines): ZWJ sequences (family 8 cells, laid out 2), flags (4, England 14),
 //   keycaps (3) and skin tones (4); variation selector 16 is drawn in 2 cells there. Zed: ZWJ

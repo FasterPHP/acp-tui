@@ -46,6 +46,20 @@ export interface FakeAgentCliOptions {
   readonly authRequired: AuthRequiredMode | undefined;
   /** `--agent-info <name>@<version>`: the `agentInfo` `initialize` reports. */
   readonly agentInfo: { readonly name: string; readonly version: string } | undefined;
+  /** `--agent-title <title>`: the `agentInfo` title (`Auggie Coding Agent`). */
+  readonly agentTitle: string | undefined;
+  /** `--allow-indexing`: the `auggie-1` scenario allows every workspace that is not denied (logged as `argv/allow-indexing`). */
+  readonly allowIndexing: boolean;
+  /** `--indexing-store <file>`: where the `auggie-1` scenario keeps the directories it has allowed. */
+  readonly indexingStore: string | undefined;
+  /** `--indexing-deny <dir>` (repeatable): refused even with `--allow-indexing`. */
+  readonly indexingDeny: readonly string[];
+  /** `--indexing-limited <dir>` (repeatable): the file-limit line for it instead of the disabled one. */
+  readonly indexingLimited: readonly string[];
+  /** `--offer-models`: `auggie-1-noauth` offers `auggie-1`'s model option, so only the prompt fails. */
+  readonly offerModels: boolean;
+  /** `--resume-only`: `auggie-1-noauth` does not advertise `loadSession`, so a client reopens sessions by `session/resume`. */
+  readonly resumeOnly: boolean;
   /** `--additional-directories`: advertise `sessionCapabilities.additionalDirectories`. */
   readonly additionalDirectories: boolean;
   /** `--add-workspace <dir>` (repeatable): accepted and logged as `argv/add-workspace`, as Auggie's flag would be. */
@@ -148,6 +162,13 @@ export function parseArgs(
   let configNever = false;
   let authRequired: AuthRequiredMode | undefined;
   let agentInfo: { name: string; version: string } | undefined;
+  let agentTitle: string | undefined;
+  let allowIndexing = false;
+  let indexingStore: string | undefined;
+  const indexingDeny: string[] = [];
+  const indexingLimited: string[] = [];
+  let offerModels = false;
+  let resumeOnly = false;
   let additionalDirectories = false;
   const addWorkspace: string[] = [];
   let noInitialize = false;
@@ -259,6 +280,31 @@ export function parseArgs(
         agentInfo = parseAgentInfo(requireValue(arg, argv, i));
         i += 1;
         break;
+      case "--agent-title":
+        agentTitle = requireValue(arg, argv, i);
+        i += 1;
+        break;
+      case "--allow-indexing":
+        allowIndexing = true;
+        break;
+      case "--indexing-store":
+        indexingStore = requireValue(arg, argv, i);
+        i += 1;
+        break;
+      case "--indexing-deny":
+        indexingDeny.push(requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--indexing-limited":
+        indexingLimited.push(requireValue(arg, argv, i));
+        i += 1;
+        break;
+      case "--offer-models":
+        offerModels = true;
+        break;
+      case "--resume-only":
+        resumeOnly = true;
+        break;
       case "--chunk":
         chunk = parsePositiveInteger(arg, requireValue(arg, argv, i));
         i += 1;
@@ -308,6 +354,13 @@ export function parseArgs(
     configNever,
     authRequired,
     agentInfo,
+    agentTitle,
+    allowIndexing,
+    indexingStore,
+    indexingDeny,
+    indexingLimited,
+    offerModels,
+    resumeOnly,
     additionalDirectories,
     addWorkspace,
     noInitialize,

@@ -11,7 +11,7 @@ describe("deriveSessionView", () => {
     expect(v).toMatchObject({ agent: null, model: null, mode: null, cwd: null, usage: null, cost: null });
     expect(v.connection).toBe("connected");
     expect(v.turnState).toBe("idle");
-    expect(v.ui).toEqual({ focus: "prompt", promptEmpty: true, permissionOpen: false, armed: null });
+    expect(v.ui).toEqual({ focus: "prompt", promptEmpty: true, permissionOpen: false, questionOpen: false, armed: null });
     expect(v).toMatchObject({ turnStartedAt: null, mouse: "full", scroll: { following: true } });
   });
 
@@ -74,6 +74,18 @@ describe("deriveSessionView", () => {
     expect(deriveSessionView(session)).toMatchObject({ agent: "fake-agent", agentVersion: "0.0.0" });
     expect(deriveSessionView(session, { agent: null }).agent).toBeNull();
     expect(deriveSessionView(session, { agent: { name: "other" } }).agent).toBe("other");
+  });
+
+  test("a harness profile's display name replaces the title, with the leading version kept apart", () => {
+    const zero = deriveSessionView(createSession(), { agent: { name: "auggie", title: "Auggie Agent", version: "0.36.0 (commit 7c61e5bb)" } });
+    expect(zero).toMatchObject({ agent: "Auggie", agentProfileVersion: "0.36.0", agentVersion: "0.36.0 (commit 7c61e5bb)" });
+    const one = deriveSessionView(createSession(), { agent: { name: "auggie", title: "Auggie Coding Agent", version: "1.2.2" } });
+    expect(one).toMatchObject({ agent: "Auggie", agentProfileVersion: "1.2.2" });
+  });
+
+  test("no profile: the title, and no profile version", () => {
+    expect(deriveSessionView(createSession(), { agent: { name: "claude-agent-acp", title: "Claude Agent", version: "0.94.0" } })).toMatchObject({ agent: "Claude Agent", agentProfileVersion: null });
+    expect(deriveSessionView(createSession(), { agent: { name: "auggie", title: "Auggie Agent" } })).toMatchObject({ agent: "Auggie Agent", agentProfileVersion: null });
   });
 });
 

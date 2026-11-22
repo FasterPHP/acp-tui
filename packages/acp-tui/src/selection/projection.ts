@@ -54,7 +54,9 @@ import type { Item, PermissionRecordItem, ToolCallItem } from "acp-model";
 import { commandResult, resultProjectionLines, toolContent } from "../conversation/command-result.ts";
 import { glyphsVersion } from "../conversation/live-glyphs.ts";
 import { unifiedDiff } from "../conversation/diff.ts";
+import { toolTitleText } from "../conversation/tool-title.ts";
 import { WITHDRAWN_LABEL } from "../conversation/format.ts";
+import { answeredLabel, questionLines } from "../conversation/permission-label.ts";
 import type { MessageProjection } from "../conversation/markdown/project.ts";
 import { markdownProjection, type MarkdownBlockKind } from "./markdown-text.ts";
 
@@ -193,7 +195,7 @@ function oneLine(text: string): string {
 
 /** A tool call's title line: the title, else its kind, else `tool`. */
 export function toolTitle(item: ToolCallItem): string {
-  return oneLine(item.title) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
+  return toolTitleText(item) || oneLine(item.toolKind ?? item.toolName ?? "") || "tool";
 }
 
 const OUTCOME_LABELS: Readonly<Record<string, string>> = {
@@ -206,7 +208,23 @@ const OUTCOME_LABELS: Readonly<Record<string, string>> = {
 /** A permission record's outcome as a label (`allow once`, `pending`, `cancelled`). */
 export function outcomeLabel(item: PermissionRecordItem): string {
   const outcome = item.outcome;
-  return outcome.type === "answered" ? (OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
+  return outcome.type === "answered" ? (answeredLabel(item) ?? OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
+}
+
+/**
+ * A permission record's text: `Permission (allow once): <question>`. A question with line breaks
+ * keeps them (the expanded record draws them and copies them; collapsed, the one line shows the
+ * joined question and a copy of it takes the same text); `summaryEnd` is the first line's end.
+ */
+function permissionProjection(b: Builder, item: PermissionRecordItem): Projection {
+  const head = `Permission (${outcomeLabel(item)}): `;
+  const lines = questionLines(item.title);
+  if (lines.length === 0) {
+    b.block("text", [`${head}${oneLine(item.title) || item.toolCallId}`]);
+    return b.done();
+  }
+  b.block("text", [`${head}${lines[0]}`, ...lines.slice(1)]);
+  return b.done(head.length + lines[0]!.length);
 }
 
 /** An agent message's Markdown as drawn (markdown-text.ts), into a fresh builder. */
@@ -268,8 +286,7 @@ export function projectItem(item: Item): Projection {
       // The collapsed line (`plan 3/4`) shows none of the entries.
       return b.done(0);
     case "permission_record":
-      b.block("text", [`Permission (${outcomeLabel(item)}): ${oneLine(item.title) || item.toolCallId}`]);
-      return b.done();
+      return permissionProjection(b, item);
     case "marker":
       if (item.markerKind === "turn_end") return b.done();
       b.block("text", textLines(item.markerKind === "error" ? `error: ${item.text}` : item.text));

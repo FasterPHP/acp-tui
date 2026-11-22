@@ -36,6 +36,31 @@ import { APP_DIR_NAME, pathsFor, stateDirectory, stateHome, userHome, type Platf
 /** The agent name recorded for a command given after `--` (also exported by agent/resolve.ts). */
 export const AD_HOC_AGENT = "ad hoc";
 
+/** The harness that recorded a session: the `name` and `version` of its `initialize` `agentInfo`,
+ *  sanitised and held on one line (the version as reported, such as `0.36.0 (commit 7c61e5bb)`). */
+export interface RecordedHarness {
+  readonly name: string;
+  readonly version: string;
+}
+
+/** The longest name or version kept (the file is not trusted). */
+const HARNESS_FIELD_MAX = 80;
+
+/** A harness name or version cleaned for the index, or null when nothing printable is left. */
+function harnessField(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const clean = oneLine(value).slice(0, HARNESS_FIELD_MAX).trim();
+  return clean === "" ? null : clean;
+}
+
+/** `harness` as the index keeps it, or null when it is not a name and a version. */
+export function cleanHarness(value: unknown): RecordedHarness | null {
+  if (typeof value !== "object" || value === null) return null;
+  const name = harnessField((value as Record<string, unknown>)["name"]);
+  const version = harnessField((value as Record<string, unknown>)["version"]);
+  return name !== null && version !== null ? { name, version } : null;
+}
+
 /** One session as the index knows it. Times are ISO 8601 instants (UTC). */
 export interface SessionRecord {
   readonly sessionId: string;
@@ -51,6 +76,9 @@ export interface SessionRecord {
    *  for a session that has none, and for entries written before the field existed. The
    *  configuration's directories are not recorded. */
   readonly addedDirectories?: readonly string[];
+  /** The harness that recorded the session, from its `agentInfo` (absent for entries written before
+   *  the field existed, and when the harness reported none). */
+  readonly harness?: RecordedHarness;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -67,6 +95,8 @@ export interface RecordInput extends SessionKey {
   readonly title?: string | null;
   /** The directories added for the session, written with it. */
   readonly addedDirectories?: readonly string[];
+  /** The harness that is recording the session. */
+  readonly harness?: RecordedHarness;
   /** Creation and last-activity time, as epoch milliseconds; default now. */
   readonly at?: number;
 }
@@ -164,6 +194,8 @@ function readRecord(value: unknown): SessionRecord | null {
   // Optional, and ignored when it is not a list of strings (the file is not trusted).
   const added = r["addedDirectories"];
   const addedDirectories = Array.isArray(added) && added.every(isString) ? (added as string[]).map(oneLine).filter((d) => d !== "") : [];
+  // Optional, and ignored unless it holds a printable name and version.
+  const harness = cleanHarness(r["harness"]);
   return {
     sessionId: oneLine(r["sessionId"]),
     agent: oneLine(r["agent"]),
@@ -171,6 +203,7 @@ function readRecord(value: unknown): SessionRecord | null {
     directory: oneLine(r["directory"]),
     title: r["title"] === null ? null : oneLine(r["title"]) || null,
     ...(addedDirectories.length > 0 ? { addedDirectories } : {}),
+    ...(harness ? { harness } : {}),
     createdAt: r["createdAt"],
     updatedAt: r["updatedAt"],
   };
@@ -225,6 +258,8 @@ function merge(lines: readonly Line[]): Map<string, SessionRecord> {
       // title is not lost to a record without one.
       sessions.set(k, {
         ...line.record,
+        // An older acp-tui recording the session again leaves the harness out: the known one stays.
+        ...(line.record.harness ?? previous.harness ? { harness: (line.record.harness ?? previous.harness)! } : {}),
         createdAt: Date.parse(previous.createdAt) < Date.parse(line.record.createdAt) ? previous.createdAt : line.record.createdAt,
         title: line.record.title ?? previous.title,
         updatedAt: Date.parse(previous.updatedAt) > Date.parse(line.record.updatedAt) ? previous.updatedAt : line.record.updatedAt,
@@ -363,6 +398,7 @@ export function openSessionIndex(options: SessionIndexOptions = {}): SessionInde
     record(input) {
       const at = iso(input.at ?? now());
       const title = input.title == null ? null : oneLine(input.title) || null;
+      const harness = cleanHarness(input.harness);
       const record: SessionRecord = {
         sessionId: oneLine(input.sessionId),
         agent: oneLine(input.agent),
@@ -370,6 +406,7 @@ export function openSessionIndex(options: SessionIndexOptions = {}): SessionInde
         directory: oneLine(input.directory),
         title,
         ...(input.addedDirectories && input.addedDirectories.length > 0 ? { addedDirectories: input.addedDirectories.map(oneLine).filter((d) => d !== "") } : {}),
+        ...(harness ? { harness } : {}),
         createdAt: at,
         updatedAt: at,
       };

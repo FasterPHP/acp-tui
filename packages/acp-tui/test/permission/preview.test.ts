@@ -59,11 +59,12 @@ describe("permission card preview", () => {
     const { tool, model } = fixture([{ type: "diff", path: "/w/a.ts", oldText, newText }]);
     const rows = previewRows(tool, 59);
     const at = (offset: number) => cardLayout(model, 63, { ...style, preview: { rows, offset } });
-    // 13 rows: borders, the title, four stacked options, six preview rows.
+    // 13 rows: borders, four stacked options, seven preview rows (the question's and six of the diff).
     expect(at(0).rows).toHaveLength(13);
-    expect(at(0).preview).toEqual({ height: 6, offset: 0, total: 10 });
-    expect(text(at(0).rows.at(-1)!)).toMatch(/^╰─+ 1-6 of 10 ─╯$/);
-    expect(at(99).preview).toEqual({ height: 6, offset: 4, total: 10 });
+    expect(at(0).preview).toEqual({ height: 7, offset: 0, total: 11 });
+    expect(text(at(0).rows.at(-1)!)).toMatch(/^╰─+ 1-7 of 11 ─╯$/);
+    expect(text(at(0).rows[1]!)).toMatch(/^│ Edit a\.ts +│$/);
+    expect(at(99).preview).toEqual({ height: 7, offset: 4, total: 11 });
     expect(text(at(99).rows[7]!)).toMatch(/^│ 13 {3}line 13 +│$/);
     for (const row of at(99).rows) expect(displayWidth(text(row))).toBe(63);
     // Room for everything: no position shown, as tall as needed.
@@ -76,7 +77,8 @@ describe("permission card preview", () => {
     const { tool, model } = fixture([], 3);
     expect(previewRows(tool, 59)).toEqual([]);
     expect(cardLayout(model, 63, { ...style, preview: { rows: [], offset: 0 } }).rows).toEqual(cardRows(model, 63, style));
-    expect(cardLayout(model, 63, { ...style, preview: { rows: [], offset: 0 } }).preview).toBeNull();
+    // The question alone is the preview, and it fits.
+    expect(cardLayout(model, 63, { ...style, preview: { rows: [], offset: 0 } }).preview).toEqual({ height: 1, offset: 0, total: 1 });
   });
 });
 

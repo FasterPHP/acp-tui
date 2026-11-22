@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { shortenHome } from "../../src/layout/segments.ts";
 import { userHome } from "../../src/platform/paths.ts";
 import type { PtySession } from "../pty/harness.ts";
+import { localEnv, osc52Payloads } from "../selection/pty.ts";
 import { promptText, READY, RUNNING, statusRow } from "../pty/regions.ts";
 import { listWorld, type ListWorld } from "./list-world.ts";
 
@@ -247,5 +248,51 @@ describe("Adding a directory during a session", () => {
     // The slash menu lists the command, and the palette now shows the count as its value.
     s.sendKeys({ text: "/" });
     await s.waitFor((p) => screen(p).includes("/add-dir"), 10000);
+  }, 60000);
+
+  test("Before the first prompt: the restart starts a new session (session/new, no session/load) and the dirs module reads +1 dir", async () => {
+    const w = listWorld();
+    const app = w.dir("app");
+    const lib = w.dir("lib");
+    const store = join(w.base, "store.json");
+    w.configure({ auggie: ["--scenario", "copy-fixtures", "--load", "--sessions", store, "--persist"] });
+    withTemplate(w, "auggie");
+    const s = (session = w.start([], { cwd: app, cols: 200 }));
+    await s.waitFor(READY, 20000);
+    await typeCommand(s, "/add-dir ../lib");
+    await s.waitFor((p) => screen(p).includes("and start a new session (this one has no prompt yet)") && screen(p).includes("Cancel"), 10000);
+    expect(screen(s)).toContain(`Restart auggie with ${shown(lib)}`);
+    s.sendKeys("Enter");
+    await s.waitFor(() => w.events("agent_launched").length === 2, 20000);
+    await s.waitFor((p) => statusRow(p).includes("+1 dir"), 20000);
+    expect(methods(w, "auggie", "argv/add-workspace").map((e) => e.params?.["directories"])).toEqual([[lib]]);
+    expect(methods(w, "auggie", "session/new")).toHaveLength(2);
+    expect(methods(w, "auggie", "session/load")).toHaveLength(0);
+    expect(methods(w, "auggie", "session/prompt")).toHaveLength(0);
+  }, 60000);
+
+  test("Failure drawn in the conversation: the whole message wraps at 63x21 and Ctrl+C on the cursor item copies it whole", async () => {
+    const w = listWorld();
+    Object.assign(w.env, localEnv() as Record<string, string>);
+    const app = w.dir("app");
+    w.dir("lib");
+    w.configure({ fake: ["--scenario", "copy-fixtures", "--additional-directories", "--load", "--load-error", "fake-session-1"] });
+    const s = (session = w.start(["fake"], { cwd: app, cols: 63, rows: 21 }));
+    await firstTurn(s);
+    await typeCommand(s, "/add-dir ../lib");
+    // The message is in the conversation, not (only) the border notice: it wraps over rows.
+    await s.waitFor((p) => screen(p).includes("(-32002)"), 20000);
+    expect(s.screenText().filter((r) => r.includes("error: cannot open") || r.includes("'fake': the harness")).length).toBe(2);
+    s.sendKeys("Tab");
+    await Bun.sleep(300);
+    s.sendKeys("Ctrl+C");
+    await s.waitFor((p) => osc52Payloads(p.rawOutput()).length > 0, 5000);
+    const copied = osc52Payloads(s.rawOutput()).at(-1)!;
+    expect(copied).toContain("cannot open session fake-session-1");
+    expect(copied.length).toBeGreaterThan(63);
+    expect(copied).not.toContain("\n");
+    // Every word of the copy is on the screen.
+    const drawn = screen(s).replace(/\s+/g, " ");
+    for (const word of copied.split(" ")) expect(drawn).toContain(word);
   }, 60000);
 });

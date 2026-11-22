@@ -45,13 +45,19 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
     name: "auggie",
     active: true,
-    about: `The default harness, Auggie, installed with ${AUGGIE_INSTALL_HINT}. additional_directory_args is the template acp-tui uses to pass each additional directory to a harness that does not take them through ACP, here as --add-workspace: the entry's additional_directories, a project's, --add-dir and /add-dir. Source: docs.augmentcode.com/cli/acp.`,
+    about: `The default harness, Auggie, installed with ${AUGGIE_INSTALL_HINT}. This one entry runs either generation, whichever your npm installed: acp-tui recognises 0.x and 1.x when Auggie starts and logs you in with the matching command (auggie auth login for 1.x, auggie login for 0.x). To choose a thinking effort at start-up, add --thinking <effort> to args for 1.x, or --reasoning-effort <effort> for 0.x. Auggie 1.x asks for no permission unless it is given rules: to be asked before it runs commands or changes files, add "--permission", "bash:ask-user", "--permission", "write:ask-user", "--permission", "edit:ask-user" to args (not checked with 0.x, so keep them out of an entry that may run it). Auggie 1.x indexes a directory only once it is allowed: acp-tui asks, and on your yes restarts Auggie with --allow-indexing, which Auggie saves as a lasting rule. additional_directory_args is the template acp-tui uses to pass each additional directory to a harness that does not take them through ACP, here as --add-workspace: the entry's additional_directories, a project's, --add-dir and /add-dir. Source: docs.augmentcode.com/cli/acp.`,
     entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
     suggestion: {
       about:
         "the same with a directory; to use it, put // in front of the auggie line above and remove it from this one. additional_directories gives Auggie's context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours (a directory that does not exist is a warning and left out). Auggie indexes that folder in the background, so start-up is not delayed. Writing --add-workspace <dir> in args also works, but bypasses acp-tui: that directory is not shown in the dirs module of the status row (+N dirs) and is not deduplicated with the others.",
       entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS, additionalDirectories: ["/path/to/projects"] },
     },
+  },
+  {
+    name: "auggie-v2",
+    about:
+      "Auggie 1.x beside a 0.x one: keep 0.x as the auggie entry above (npm install -g @augmentcode/auggie@v0-release) and run 1.x from its own package, @augmentcode/onison (npm install -g @augmentcode/onison, then auggie-v2 auth login). Most people need only the auggie entry above. Source: npm @augmentcode/onison.",
+    entry: { command: "auggie-v2", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
   },
   {
     name: "claude",

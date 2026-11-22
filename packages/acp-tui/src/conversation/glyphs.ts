@@ -152,7 +152,7 @@ const ROWS: readonly Row[] = [
   row("splash.wordmark.1", "any", "┏━┓ ┏━╸ ┏━┓    ╺┳╸ ╻ ╻ ╻", ".-. .-- .-.    --- . . ."),
   row("splash.wordmark.2", "any", "┣━┫ ┃   ┣━┛ ━━  ┃  ┃ ┃ ┃", "|-| |   |-' --  |  | | |"),
   row("splash.wordmark.3", "any", "╹ ╹ ┗━╸ ╹       ╹  ┗━┛ ╹", "' ' '-- '       '  '-' '"),
-  row("splash.arrow", 2, "━→", "->"),
+  row("splash.arrow", 2, " →", "->"),
   row("splash.separator", 3, " · ", " - "),
   row("splash.more", [1, 3], "…", "..."),
   // Marks the terminal's title while the session waits for the user. The permission marker unless

@@ -133,6 +133,13 @@ export function renderSettingsKey(): string {
 let terminalEmoji: readonly EmojiClass[] | undefined;
 let flagsCache: { settings: RenderSettings; emoji: readonly EmojiClass[]; flags: MarkdownFlags } | undefined;
 
+/** The emoji classes this terminal draws as their names (the capability table's `emoji`, read
+ *  once; `setTerminalEmoji` in tests): what the conversation and the permission card draw with. */
+export function terminalEmojiClasses(): readonly EmojiClass[] {
+  terminalEmoji ??= terminalCapabilities(process.env).emoji;
+  return terminalEmoji;
+}
+
 /** The flags for the terminal this process runs in: the rendering settings, with the capability
  *  table's emoji classes (read once). What the conversation draws and estimates with, so its
  *  heights and its screen agree; the projection reads `DEFAULT_FLAGS`, which gives the same text
@@ -140,18 +147,18 @@ let flagsCache: { settings: RenderSettings; emoji: readonly EmojiClass[]; flags:
  *  nothing changed. */
 export function terminalFlags(): MarkdownFlags {
   const settings = renderSettings();
-  terminalEmoji ??= terminalCapabilities(process.env).emoji;
-  if (flagsCache?.settings !== settings || flagsCache.emoji !== terminalEmoji) {
+  const emoji = terminalEmojiClasses();
+  if (flagsCache?.settings !== settings || flagsCache.emoji !== emoji) {
     flagsCache = {
       settings,
-      emoji: terminalEmoji,
+      emoji,
       flags: {
         headingMarkers: settings.headingMarkers,
         tableMinColumnWidth: settings.tableMinColumnWidth,
         codeWrap: settings.codeWrap,
         tableRowRules: settings.tableRowRules,
         codePadding: { rows: settings.cardPadRows, columns: settings.cardPadColumns },
-        emoji: terminalEmoji,
+        emoji,
       },
     };
   }

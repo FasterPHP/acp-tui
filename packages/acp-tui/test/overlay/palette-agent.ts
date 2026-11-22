@@ -55,6 +55,8 @@ if (import.meta.main) {
         return {};
       },
       async setSessionConfigOption() {
+        // `PALETTE_AGENT_DETAILS=1`: Auggie 1.x's shape, `-32603 Internal error` with the reason in `data.details`.
+        if (process.env.PALETTE_AGENT_DETAILS === "1") throw new RequestError(-32603, "Internal error", { details: `${PALETTE_AGENT_REFUSAL}\n\nAsk your administrator` });
         throw new RequestError(-32602, PALETTE_AGENT_REFUSAL);
       },
       async extMethod(method) {

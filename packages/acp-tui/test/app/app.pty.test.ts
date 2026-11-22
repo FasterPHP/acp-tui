@@ -120,8 +120,8 @@ describe("acp-tui against fake-agent at 80x24 (task 6.2; alternate screen, phase
     const screen = s.screenText();
     const empty = `│${" ".repeat(78)}│`;
     expect(screen.slice(-9)).toEqual([`╭${"─".repeat(78)}╮`, empty, empty, empty, empty, `╰${"─".repeat(78)}╯`, "", statusRow(s), ""]);
-    // No send or newline hint (task 4.6); the hints left after the long cwd start with `shift+tab mode`.
-    expect(statusRow(s)).toStartWith(` ${cwd}  idle  shift+tab mode`);
+    // No send or newline hint (task 4.6); `basic` offers no mode, so the hints left after the long cwd start with `/ commands`.
+    expect(statusRow(s)).toStartWith(` ${cwd}  idle  / commands`);
     expect(statusRow(s)).toEndWith("connected");
 
     s.sendKeys("Ctrl+D");

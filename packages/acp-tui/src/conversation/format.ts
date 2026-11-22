@@ -12,6 +12,11 @@ import { displayWidth, fitSegments, segmentsWidth, truncateEnd, type Segment } f
 import { toolKindToken } from "../theme/tokens.ts";
 import type { ConversationGlyphs } from "./glyphs.ts";
 import { LIVE_GLYPHS } from "./live-glyphs.ts";
+import { toolTitleText } from "./tool-title.ts";
+import { answeredLabel, questionLines } from "./permission-label.ts";
+import { splitEmoji, type EmojiClass } from "../render/emoji/emoji.ts";
+import { terminalEmojiClasses } from "./markdown/context.ts";
+import { EMOJI_NAME_TOKEN } from "./markdown/emoji.ts";
 import { commandResult, resultOutputLines, toolContent } from "./command-result.ts";
 import { singleFence } from "./markdown/project.ts";
 
@@ -190,7 +195,7 @@ export function toolLine(item: ToolCallItem, width: number, glyphs: Conversation
   const duration = toolDuration(item);
   if (duration) tail.push(...(tail.length > 0 ? [gap] : []), { text: duration, token: "tool.duration" });
   tail.push(...(tail.length > 0 ? [gap] : []), { text: `#${item.index}`, token: "tool.index" });
-  const title: Segment = { text: oneLine(item.title) || toolKind(item), token: "tool.title" };
+  const title: Segment = { text: toolTitleText(item) || toolKind(item), token: "tool.title" };
   const room = width - segmentsWidth(head) - segmentsWidth(tail) - 2;
   if (room >= Math.min(displayWidth(title.text), 8)) {
     const shown = truncateEnd(title.text, room);
@@ -207,7 +212,7 @@ export function toolLine(item: ToolCallItem, width: number, glyphs: Conversation
  * (every frame is one column, as is the static glyph).
  */
 export function toolTitleShown(item: ToolCallItem, width: number, glyphs: ConversationGlyphs = LIVE_GLYPHS): boolean {
-  const title = oneLine(item.title) || toolKind(item);
+  const title = toolTitleText(item) || toolKind(item);
   return toolLine(item, width, glyphs, null).some((s) => s.token === "tool.title" && s.text === title);
 }
 
@@ -218,7 +223,7 @@ export function activityLine(item: ToolCallItem, width: number, glyphs: Conversa
     { text: `#${item.index} `, token: "tool.index" },
     { text: pad(toolKind(item), KIND_WIDTH) + " ", token: toolKindToken(item.toolKind) },
   ];
-  return fitWithTitle(head, { text: oneLine(item.title) || toolKind(item), token: "tool.title" }, [], width);
+  return fitWithTitle(head, { text: toolTitleText(item) || toolKind(item), token: "tool.title" }, [], width);
 }
 
 /** The activity region's rows (without gutters): at most `max` tools, then `+N more`. */
@@ -270,11 +275,25 @@ const OUTCOME_LABELS: Record<string, string> = {
 /** A request the agent withdrew (`$/cancel_request`; spec tui-agent-session "Permission withdrawal"). */
 export const WITHDRAWN_LABEL = "withdrawn by agent";
 
-/** Permission outcome one-liner without its gutter: `#2 permission  allow once  Edit src/x.ts`. */
-export function permissionLine(item: PermissionRecordItem, tool: ToolCallItem | null, width: number): Segment[] {
+/** Whether a record's question has line breaks to show expanded (its record is then collapsible). */
+export function permissionHasQuestion(item: PermissionRecordItem): boolean {
+  return questionLines(item.title).length > 0;
+}
+
+/** The expanded record's question, one row of segments per line (blank lines kept), the emoji of
+ *  a class in `named` drawn as their names; empty when the question is one line. */
+export function permissionQuestionRows(item: PermissionRecordItem, named: readonly EmojiClass[] = terminalEmojiClasses()): Segment[][] {
+  return questionLines(item.title).map((line) =>
+    line === "" ? [] : splitEmoji(line, named).map((p): Segment => ({ text: p.text, token: p.source === undefined ? "text" : EMOJI_NAME_TOKEN })),
+  );
+}
+
+/** Permission outcome one-liner without its gutter: `#2 permission  allow once  Edit src/x.ts`.
+ *  `expanded` leaves the question to the card below it (when it has line breaks). */
+export function permissionLine(item: PermissionRecordItem, tool: ToolCallItem | null, width: number, expanded = false): Segment[] {
   const outcome = item.outcome;
   const label =
-    outcome.type === "answered" ? (OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
+    outcome.type === "answered" ? (answeredLabel(item) ?? OUTCOME_LABELS[outcome.optionKind] ?? oneLine(outcome.optionKind)) : outcome.type === "withdrawn" ? WITHDRAWN_LABEL : outcome.type;
   const token = outcome.type === "answered" ? (outcome.optionKind.startsWith("allow") ? "tool.ok" : "tool.fail") : "muted";
   const head: Segment[] = [
     { text: tool ? `#${tool.index} ` : "", token: "muted" },
@@ -282,6 +301,7 @@ export function permissionLine(item: PermissionRecordItem, tool: ToolCallItem | 
     { text: label, token },
     { text: "  ", token: "muted" },
   ];
+  if (expanded && permissionHasQuestion(item)) return fitSegments(head.slice(0, 3), width);
   return fitWithTitle(head, { text: oneLine(item.title || tool?.title || ""), token: "text" }, [], width);
 }
 
@@ -289,12 +309,13 @@ function stopReasonLabel(reason: string): string {
   return reason.replace(/_/g, " ");
 }
 
-/** Turn-end marker without its gutter: `end turn · 1.2s · ctx 38k/200k`. */
+/** Turn-end marker without its gutter: `end turn · 1.2s · ctx 38k/200k`; `interrupted` replaces
+ *  the stop reason when the user interrupted the turn, whatever the agent answered. */
 export function turnEndLine(
   marker: Extract<MarkerItem, { markerKind: "turn_end" }>,
   glyphs: ConversationGlyphs = LIVE_GLYPHS,
 ): Segment[] {
-  const parts = [stopReasonLabel(marker.stopReason), formatDuration(marker.durationMs)];
+  const parts = [marker.interrupted ? "interrupted" : stopReasonLabel(marker.stopReason), formatDuration(marker.durationMs)];
   const usage: UsageUpdate | null = marker.usage;
   if (usage && usage.size > 0) parts.push(`ctx ${formatCount(usage.used)}/${formatCount(usage.size)}`);
   return [{ text: parts.join(glyphs.separator), token: "muted" }];

@@ -140,6 +140,11 @@ export interface KeyController {
   setSelectionProbe(probe: (() => boolean) | null): void;
   /** Whether the conversation holds a selection now. */
   hasConversationSelection(): boolean;
+  /** The session list says what its footer's message is, so the copy key copies it (spec
+   *  tui-sessions "Session list messages can be copied"); null once the list closes. */
+  setMessageSource(source: (() => string | null) | null): void;
+  /** The text of the message an open overlay shows and offers for copying, or null. */
+  messageText(): string | null;
   /** The permission card's focus stops (mvp-chrome-and-keys design D6), while it is mounted. */
   setCardStops(stops: CardStops | null): void;
   /** Shows a notice for `ms` (default `NOTICE_MS`). */
@@ -204,6 +209,7 @@ export function createKeyController(options: KeyControllerOptions): KeyControlle
   let conversation: ConversationHandle | null = null;
   let cardProbe: (() => boolean) | null = null;
   let selectionProbe: (() => boolean) | null = null;
+  let messageSource: (() => string | null) | null = null;
   let cardStops: CardStops | null = null;
   const noticeTimers = new Set<unknown>();
 
@@ -383,6 +389,10 @@ export function createKeyController(options: KeyControllerOptions): KeyControlle
       selectionProbe = probe;
     },
     hasConversationSelection: () => selectionProbe?.() ?? false,
+    setMessageSource(source) {
+      messageSource = source;
+    },
+    messageText: () => messageSource?.() ?? null,
     setCardStops(stops) {
       cardStops = stops;
     },

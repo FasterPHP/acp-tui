@@ -139,6 +139,7 @@ describe("Adjacent segments differ", () => {
     content: [],
     locations: [],
     rawOutputText: null,
+    inputText: null,
     startedAt: 0,
     endedAt: 900,
   };
