@@ -16,6 +16,7 @@ import { FINAL_RESET } from "../../src/renderer/lifecycle.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { promptText, READY, REQUIRES_ACTION } from "../pty/regions.ts";
 import { WINDOWS } from "../windows.ts";
+import pkg from "../../package.json" with { type: "json" };
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -193,7 +194,7 @@ describe("every exit path restores the terminal (task 4.1)", () => {
       expect(path.startsWith(join(state, "acp-tui", "crashes") + "/")).toBe(true);
       expect(path).toMatch(/\/\d{8}T\d{6}Z\.txt$/);
       const text = readFileSync(path, "utf8");
-      expect(text).toMatch(/^acp-tui 0\.1\.0/);
+      expect(text.startsWith(`acp-tui ${pkg.version}`)).toBe(true);
       expect(text).toContain("error: crash test hook: F12 pressed");
       expect(text).toMatch(/\n\s+at /);
       expect(text).toContain('"event":"launch"');
