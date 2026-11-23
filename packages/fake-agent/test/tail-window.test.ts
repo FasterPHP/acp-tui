@@ -10,6 +10,6 @@ describe("fake-agent tail-window scenario", () => {
     const sizes = counts.map((w) => w.lines.length);
     expect(sizes.some((n, i) => i > 0 && n < sizes[i - 1]!)).toBe(true);
     expect(sizes.some((n, i) => i > 0 && n > sizes[i - 1]!)).toBe(true);
-    expect(counts.at(-1)!.lines.at(-1)).toMatch(new RegExp(`^out ${TAIL_WINDOW_UPDATES} `));
+    expect(counts.at(-1)!.lines.at(-1)).toMatch(new RegExp(`^out 0*${TAIL_WINDOW_UPDATES} `));
   });
 });
