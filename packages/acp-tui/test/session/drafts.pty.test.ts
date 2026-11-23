@@ -9,7 +9,7 @@ import { join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
 import { promptText, READY, RUNNING } from "../pty/regions.ts";
 import { WINDOWS } from "../windows.ts";
-import { chooseSession, draftWorld, exitLines, keep, promptIs, type DraftWorld } from "./drafts-helpers.ts";
+import { chooseSession, draftWorld, exitLines, expectExitRows, keep, promptIs, type DraftWorld } from "./drafts-helpers.ts";
 
 const sessions: PtySession[] = [];
 afterEach(async () => {
@@ -27,6 +27,7 @@ const RESUME = "resume: acp-tui --resume s-0";
 const posix = test.skipIf(WINDOWS);
 
 describe("keeping a draft when a session is left (tasks 7.1)", () => {
+  // Skipped on Windows: it checks the draft file's and directory's mode bits, which Windows does not have.
   posix("Kept on Ctrl+D: the text and cursor in a 0600 file in a 0700 directory, nothing in the index, and the exit text is the resume line alone", async () => {
     const d = draftWorld();
     const s = open(d, ["-r", "s-0"]);
@@ -46,7 +47,8 @@ describe("keeping a draft when a session is left (tasks 7.1)", () => {
     expect(d.w.received("fake").map((e) => e.method)).not.toContain("session/prompt");
   }, 40000);
 
-  test("Kept on SIGHUP: closing the terminal window keeps the draft", async () => {
+  // Skipped on Windows: it sends SIGHUP with process.kill, a POSIX signal Windows cannot send (ENOSYS).
+  posix("Kept on SIGHUP: closing the terminal window keeps the draft", async () => {
     const d = draftWorld();
     const s = open(d, ["-r", "s-0"]);
     await s.waitFor(READY, 15000);
@@ -122,7 +124,7 @@ describe("keeping a draft when a session is left (tasks 7.1)", () => {
     await s.waitFor(promptIs(s, ["half a thought"]), 5000);
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
-    expect(exitLines(s)).toEqual([RESUME, "", "draft (not sent):", "half a thought"]);
+    expectExitRows(s, [RESUME, "", "draft (not sent):", "half a thought"]);
     expect(d.text("s-0")).toBe("older");
   }, 40000);
 
@@ -136,10 +138,13 @@ describe("keeping a draft when a session is left (tasks 7.1)", () => {
     await s.waitFor(promptIs(s, ["half a thought"]), 5000);
     s.sendKeys("Ctrl+D");
     expect(await s.wait(10000)).toBe(0);
-    expect(exitLines(s)).toEqual([RESUME, "", "draft (not sent):", "half a thought"]);
+    expectExitRows(s, [RESUME, "", "draft (not sent):", "half a thought"]);
   }, 40000);
 
-  test("Too large: a draft of 300 KiB is not stored and is printed in full", async () => {
+  // Skipped on Windows: the 300 KiB bracketed paste never reached the prompt box through ConPTY within
+  // 20 s on the CI runner (the box stayed empty), while a 4 KiB paste does. The limit itself is
+  // checked by drafts.test.ts ("Too large"), which runs on Windows.
+  posix("Too large: a draft of 300 KiB is not stored and is printed in full", async () => {
     const d = draftWorld();
     const s = open(d, ["-r", "s-0"], { cols: 120, rows: 40 });
     await s.waitFor(READY, 15000);

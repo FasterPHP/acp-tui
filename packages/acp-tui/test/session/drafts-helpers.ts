@@ -3,9 +3,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createDraftStore, draftFileName, type DraftStore } from "../../src/session/drafts.ts";
 import type { PtySession } from "../pty/harness.ts";
+import { expect } from "bun:test";
 import { promptText } from "../pty/regions.ts";
 import { boxRows } from "../overlay/cli.ts";
 import { listWorld, type ListWorld } from "./list-world.ts";
+import { rowsAfterPrefill, WINDOWS } from "../windows.ts";
 
 export const MINUTE = 60_000;
 
@@ -82,6 +84,27 @@ export function exitLines(s: PtySession): string[] {
   while (lines.length > 0 && lines.at(-1) === "") lines.pop();
   while (lines.length > 0 && lines[0] === "") lines.shift();
   return lines;
+}
+
+/**
+ * Expects the exit text's lines where a blank line among them matters. Elsewhere they are read from
+ * the raw output (exitLines). On Windows ConPTY rewrites the stream: it draws a blank row by moving
+ * the cursor rather than with a line feed, so the raw bytes lose it (the resume line and the label
+ * come out joined), and the lines are read from the main screen instead, below the prefilled
+ * command line with blank rows at either end dropped; a failure there shows the raw exit text.
+ * Fit for text that does not wrap and fits the screen. `onScreen` checks that reading on any platform.
+ */
+export function expectExitRows(s: PtySession, expected: readonly string[], onScreen = WINDOWS): void {
+  if (!onScreen) {
+    expect(exitLines(s)).toEqual([...expected]);
+    return;
+  }
+  expect(s.term.buffer.active.type).toBe("normal");
+  const rows = rowsAfterPrefill(s.scrollbackText());
+  while (rows.length > 0 && rows.at(-1) === "") rows.pop();
+  while (rows.length > 0 && rows[0] === "") rows.shift();
+  const raw = s.rawOutput();
+  expect(rows, `exit text read from the main screen; the raw exit text was ${JSON.stringify(raw.slice(raw.lastIndexOf("\x1b[?1049l")))}`).toEqual([...expected]);
 }
 
 /** Opens the session list with `/sessions` and chooses the entry titled `title`. */
