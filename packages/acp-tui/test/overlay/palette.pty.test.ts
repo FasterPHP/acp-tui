@@ -817,7 +817,7 @@ describe("the lists after Marcus's second look (task 12.8)", () => {
     const row = statusRow(run.s);
     expect(row).toContain("shift+tab mode");
     expect(row).not.toContain("? help");
-    expect(row).not.toContain("ctrl+d detach");
+    expect(row).toContain("ctrl+d detach");
     // Emptied again, the four hints are back.
     run.s.sendKeys("Backspace", "Backspace", "Backspace", "Backspace", "Backspace");
     await run.s.waitFor(() => statusRow(run.s).includes("shift+tab mode  / commands  ? help  ctrl+d detach"), 3000);
