@@ -14,6 +14,7 @@ import { copyFixturesScenario } from "./copy-fixtures.ts";
 import { crashScenario } from "./crash.ts";
 import { elicitationScenario } from "./elicitation.ts";
 import { fastToolsScenario } from "./fast-tools.ts";
+import { tailWindowScenario } from "./tail-window.ts";
 import { fenceFirstScenario } from "./fence-first.ts";
 import { fiveToolsScenario } from "./five-tools.ts";
 import { groupingScenario } from "./grouping.ts";
@@ -62,6 +63,7 @@ export const SCENARIOS: Readonly<Record<string, Scenario>> = {
   [markdownGalleryScenario.name]: markdownGalleryScenario,
   [fenceFirstScenario.name]: fenceFirstScenario,
   [fastToolsScenario.name]: fastToolsScenario,
+  [tailWindowScenario.name]: tailWindowScenario,
   [toolContentScenario.name]: toolContentScenario,
   [linksScenario.name]: linksScenario,
   [shortAnswerScenario.name]: shortAnswerScenario,
@@ -118,6 +120,7 @@ export {
   shortAnswerScenario,
   slowTurnScenario,
   streamLongScenario,
+  tailWindowScenario,
   toolContentScenario,
   usageWithoutCostScenario,
   viewerScenario,

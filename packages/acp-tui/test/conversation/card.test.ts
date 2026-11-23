@@ -155,7 +155,7 @@ describe("output snippets (task 9.3)", () => {
     expect(drawn.join("\n")).not.toContain("Run the full test suite");
     expect(layout.hidden).toBe(4990);
     expect(layout.marker).toBe(1);
-    expect(markerText(layout.hidden, "a")).toBe("4990 rows hidden · a or click here to show all");
+    expect(markerText(layout.hidden, "a")).toBe("4990 lines hidden · a or click here to show all");
     const shown = drawn.slice(layout.marker + 1, -1).map((t) => t.trim());
     expect(shown).toEqual(Array.from({ length: SNIPPET_ROWS }, (_, i) => `test ${4991 + i} ... ok`));
     // Padding, marker, snippet, padding.
@@ -167,16 +167,16 @@ describe("output snippets (task 9.3)", () => {
   test("the marker row underlines only the clickable word `here` (review C18), with or without a key, and when cut", () => {
     const underlined = (spans: ReturnType<typeof markerSpans>) => spans.filter((s) => s.underline).map((s) => s.text);
     const keyed = markerSpans(4990, "a", 61);
-    expect(keyed.map((s) => s.text).join("")).toBe("4990 rows hidden · a or click here to show all");
+    expect(keyed.map((s) => s.text).join("")).toBe("4990 lines hidden · a or click here to show all");
     expect(underlined(keyed)).toEqual(["here"]);
     expect(keyed.every((s) => s.token === "muted" && s.projection === "")).toBe(true);
     const keyless = markerSpans(1, null, 61);
-    expect(keyless.map((s) => s.text).join("")).toBe("1 row hidden · click here to show all");
+    expect(keyless.map((s) => s.text).join("")).toBe("1 line hidden · click here to show all");
     expect(underlined(keyless)).toEqual(["here"]);
     // Cut inside `here`: what is left of it is underlined; cut before it, nothing is.
-    const at = "4990 rows hidden · a or click ".length;
+    const at = "4990 lines hidden · a or click ".length;
     expect(underlined(markerSpans(4990, "a", at + 3))).toEqual(["he"]);
-    expect(markerSpans(4990, "a", at + 3).map((s) => s.text).join("")).toBe("4990 rows hidden · a or click he…");
+    expect(markerSpans(4990, "a", at + 3).map((s) => s.text).join("")).toBe("4990 lines hidden · a or click he…");
     expect(underlined(markerSpans(4990, "a", 20))).toEqual([]);
   });
 

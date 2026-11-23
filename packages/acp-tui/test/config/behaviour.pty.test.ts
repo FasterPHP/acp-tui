@@ -409,11 +409,11 @@ describe("rendering settings (task 4.8)", () => {
       s.sendKeys(...keys);
       await settle(s, 60);
     }
-    const marker = () => conversationRows(s).findIndex((row) => /\d+ rows hidden/.test(row));
+    const marker = () => conversationRows(s).findIndex((row) => /\d+ lines hidden/.test(row));
     // Wait for the expanded card's marker row, not for a quiet screen: under load the CLI can pause
     // after Enter for longer than `settle` waits.
     await s.waitFor(() => marker() >= 0, 15000);
-    expect(cardText(conversationRows(s)[marker()]!)).toBe("4980 rows hidden · a or click here to show all");
+    expect(cardText(conversationRows(s)[marker()]!)).toBe("4980 lines hidden · a or click here to show all");
     const shown = conversationRows(s)
       .slice(marker() + 1, marker() + 21)
       .map((row) => cardText(row).trim());
@@ -421,7 +421,7 @@ describe("rendering settings (task 4.8)", () => {
 
     cfg.write({ density: "compact", tool_output: { snippet_rows: 12 } });
     await reloaded(r);
-    await s.waitFor((p) => conversationRows(p).some((row) => row.includes("4988 rows hidden")), 1000);
+    await s.waitFor((p) => conversationRows(p).some((row) => row.includes("4988 lines hidden")), 1000);
   }, 60000);
 
   test("Heading markers shown live: a reload with markdown.heading_markers true draws `## ` before a level 2 heading", async () => {

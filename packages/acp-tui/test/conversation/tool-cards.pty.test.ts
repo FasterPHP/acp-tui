@@ -108,21 +108,21 @@ describe("tool cards (tasks 9.1 to 9.3)", () => {
     expect(rows.join("\n")).not.toContain("```");
   }, 40000);
 
-  test("Large output, Show all and Collapse restores the snippet: the marker names 4990 hidden rows and the key; `a` shows all 5000 lines and back; a click on the marker too", async () => {
+  test("Large output, Show all and Collapse restores the snippet: the marker names 4990 hidden lines and the key; `a` shows all 5000 lines and back; a click on the marker too", async () => {
     const s = await toolContent();
     await move(s, "Tab");
     await move(s, { text: "[" });
     await move(s, { text: "[" });
     expect(lineWithoutBar(s, cursorRow(s))).toMatch(/#3$/);
     const header = () => conversationRows(s).findIndex((r) => /Run the full test suite .*#3$/.test(r));
-    const marker = () => conversationRows(s).findIndex((r) => r.includes("4990 rows hidden"));
+    const marker = () => conversationRows(s).findIndex((r) => r.includes("4990 lines hidden"));
     // Expanded: the snippet's marker, then its last line, below the header.
     const snippet = () => header() >= 0 && marker() > header() && screen(s).includes("test 5000 ... ok");
     await press(s, "Enter", snippet);
     let rows = conversationRows(s);
     expect(header()).toBeGreaterThanOrEqual(0);
     expect(marker()).toBeGreaterThan(header());
-    expect(cardText(rows[marker()]!)).toBe("4990 rows hidden · a or click here to show all");
+    expect(cardText(rows[marker()]!)).toBe("4990 lines hidden · a or click here to show all");
     // Only `here` is underlined (review C18).
     const base = s.term.buffer.active.baseY;
     const markerLine = rows[marker()]!;
