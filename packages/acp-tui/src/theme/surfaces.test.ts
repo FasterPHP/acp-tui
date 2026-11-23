@@ -776,7 +776,7 @@ describe("Colour replies", () => {
   });
 
   test("other sequences and queries are ignored", () => {
-    for (const s of ["\x1b]11;?\x07", "\x1b]4;1;rgb:0000/0000/0000\x07", "\x1b]12;rgb:0000/0000/0000\x07", "\x1b]11;rgb:zz/00/00\x07", "rgb:00/00/00", ""]) {
+    for (const s of ["\x1b]11;?\x07", "\x1b]4;1;rgb:0000/0000/0000\x07", "\x1b]13;rgb:0000/0000/0000\x07", "\x1b]11;rgb:zz/00/00\x07", "rgb:00/00/00", ""]) {
       expect(parseColourReply(s)).toBeNull();
     }
   });
@@ -796,12 +796,12 @@ function fakeRenderer() {
 }
 
 describe("Colour tracker", () => {
-  test("query writes OSC 10 and 11 and resolves once both replies have arrived", async () => {
+  test("query writes OSC 10, 11 and 12 and resolves once the pair has arrived", async () => {
     const renderer = fakeRenderer();
     const writes: string[] = [];
     const tracker = createColourTracker(renderer, { write: (d) => writes.push(d) });
     const pending = tracker.query(1000);
-    expect(writes).toEqual(["\x1b]10;?\x07\x1b]11;?\x07"]);
+    expect(writes).toEqual(["\x1b]10;?\x07\x1b]11;?\x07\x1b]12;?\x07"]);
     renderer.emit("\x1b]10;rgb:bcbc/bebe/c4c4\x1b\\");
     renderer.emit("\x1b]11;rgb:1919/1a1a/1c1c\x1b\\");
     expect(await pending).toEqual(PHPSTORM_DARK);

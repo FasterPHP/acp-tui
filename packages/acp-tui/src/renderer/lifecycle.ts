@@ -58,10 +58,14 @@ export const SCROLL_REGION_RESET = "\x1b7\x1b[r\x1b8";
 /** The terminal's default cursor shape (DECSCUSR 0): the prompt box sets its own (day-two-feedback
  *  design D7), and the shell's prompt gets the terminal's back on every exit path. */
 export const CURSOR_SHAPE_RESET = "\x1b[0 q";
+/** The terminal's own cursor colour (`OSC 112`, BEL-terminated): the prompt box sets one (OpenTUI
+ *  writes `OSC 12` whenever the cursor shows) and OpenTUI's teardown leaves `OSC 12;default`
+ *  before its own `OSC 112`, so the last cursor colour sequence is ours on every exit path. */
+export const CURSOR_COLOUR_RESET = "\x1b]112\x07";
 /**
  * Written after every successful teardown, whatever it wrote (design D3):
  * mouse modes off (`destroy()` turns them off only when it owns the process
- * streams), DEC 2031 off, scroll region, attributes, cursor shape, cursor shown. Never
+ * streams), DEC 2031 off, scroll region, attributes, cursor colour, cursor shape, cursor shown. Never
  * `CSI ? 1049 l` (see above), never `CSI 2 J` or `CSI 3 J`.
  *
  * DEC 2027 (grapheme cluster mode), which OpenTUI sets at start-up, is left
@@ -69,7 +73,7 @@ export const CURSOR_SHAPE_RESET = "\x1b[0 q";
  * them implements it), and in Ghostty it is on by default, so resetting it
  * blindly would change the terminal rather than restore it.
  */
-export const FINAL_RESET = `${MOUSE_MODES_OFF}${THEME_REPORTS_OFF}${SCROLL_REGION_RESET}\x1b[0m${CURSOR_SHAPE_RESET}\x1b[?25h`;
+export const FINAL_RESET = `${MOUSE_MODES_OFF}${THEME_REPORTS_OFF}${SCROLL_REGION_RESET}\x1b[0m${CURSOR_COLOUR_RESET}${CURSOR_SHAPE_RESET}\x1b[?25h`;
 /** Leaves the alternate screen; written only by the fallback reset. */
 export const LEAVE_ALTERNATE_SCREEN = "\x1b[?1049l";
 /**

@@ -1,7 +1,8 @@
 // day-two-feedback task 7 (spec tui-layout "Prompt box cursor" and "The focused window can be told
 // apart"): the cursor's shape for a setting and a place, its DECSCUSR, and the focus follower.
 import { describe, expect, test } from "bun:test";
-import { CURSOR_SHAPE_DEFAULT, createCursorFocus, cursorAtEnd, cursorShapeSequence, promptCursorStyle } from "../../src/app/prompt-cursor.ts";
+import { CURSOR_SHAPE_DEFAULT, contrastRatio, createCursorFocus, cursorAtEnd, cursorColourFrom, cursorShapeSequence, promptCursorStyle } from "../../src/app/prompt-cursor.ts";
+import { contrastRatio as checkerContrast, expectedCursorColour } from "../pty/cursor-colour.ts";
 import { FINAL_RESET } from "../../src/renderer/lifecycle.ts";
 
 describe("cursorAtEnd", () => {
@@ -109,5 +110,57 @@ describe("createCursorFocus", () => {
     state.promptFocused = true;
     focus.promptFocusChanged();
     expect(written).toEqual(["\x1b[0 q", "\x1b[0 q"]);
+  });
+});
+
+describe("cursorColourFrom (prompt-box-feedback task 2.2, design D3)", () => {
+  test("foot's black on Tokyo Night gives the foreground", () => {
+    expect(cursorColourFrom({ foreground: "#c0caf5", background: "#1a1b26", cursor: "#000000" })).toBe("#c0caf5");
+  });
+
+  test("black on a light background is kept", () => {
+    expect(cursorColourFrom({ foreground: "#212121", background: "#fafafa", cursor: "#000000" })).toBe("#000000");
+  });
+
+  test("Omarchy's configured cursor is kept", () => {
+    expect(cursorColourFrom({ foreground: "#a9b1d6", background: "#1a1b26", cursor: "#c0caf5" })).toBe("#c0caf5");
+  });
+
+  test("a foreground that also fails gives the terminal's own colour", () => {
+    expect(cursorColourFrom({ foreground: "#1b1c27", background: "#1a1b26", cursor: "#000000" })).toBe("terminal");
+  });
+
+  test("no cursor reply: the foreground when it can be seen; no background: nothing is compared", () => {
+    expect(cursorColourFrom({ foreground: "#d4d4d4", background: "#1e1e1e" })).toBe("#d4d4d4");
+    expect(cursorColourFrom({ foreground: "#d4d4d4", background: "#1e1e1e", cursor: null })).toBe("#d4d4d4");
+    expect(cursorColourFrom({ foreground: "#d4d4d4", cursor: "#123456" })).toBe("#123456");
+    expect(cursorColourFrom({ foreground: "#d4d4d4" })).toBe("#d4d4d4");
+  });
+
+  test("nothing reported gives the terminal's own colour", () => {
+    expect(cursorColourFrom({})).toBe("terminal");
+    expect(cursorColourFrom({ cursor: "not a colour" })).toBe("terminal");
+  });
+
+  test("exactly 3:1 passes, a hair under does not", () => {
+    // Grey on white: #767676 is the WCAG 4.5:1 grey, #949494 about 3:1 (2.9 to 3.0 around it).
+    const pass = ["#949494", "#939393", "#929292"].find((c) => contrastRatio(c, "#ffffff") >= 3)!;
+    expect(cursorColourFrom({ cursor: pass, background: "#ffffff", foreground: "#000000" })).toBe(pass);
+    expect(cursorColourFrom({ cursor: "#aaaaaa", background: "#ffffff", foreground: "#000000" })).toBe("#000000");
+  });
+
+  test("agrees with the PTY checker's own copy of the rule over a grid of replies", () => {
+    const colours = ["#000000", "#ffffff", "#212121", "#fafafa", "#1a1b26", "#c0caf5", "#808080", "#ff5555", "#1b1c27"];
+    for (const foreground of colours) {
+      for (const background of colours) {
+        for (const cursor of [...colours, undefined]) {
+          expect(cursorColourFrom({ foreground, background, cursor })).toBe(expectedCursorColour({ foreground, background, ...(cursor ? { cursor } : {}) }));
+        }
+        expect(contrastRatio(foreground, background)).toBeCloseTo(checkerContrast(foreground, background), 10);
+      }
+    }
+    expect(cursorColourFrom({ foreground: "#c0caf5", cursor: "#123456" })).toBe(expectedCursorColour({ foreground: "#c0caf5", cursor: "#123456" }));
+    expect(cursorColourFrom({ foreground: "#c0caf5" })).toBe(expectedCursorColour({ foreground: "#c0caf5" }));
+    expect(cursorColourFrom({})).toBe(expectedCursorColour({}));
   });
 });

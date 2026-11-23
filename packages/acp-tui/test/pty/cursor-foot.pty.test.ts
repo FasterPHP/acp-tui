@@ -21,16 +21,12 @@ const GREYS = Array.from({ length: 16 }, (_, i) => `#${(i * 17).toString(16).pad
 const FOOT_LIGHT: OscColours = { ...REPLIES, palette: GREYS, terminator: "bel", cursorFollowsSet: true };
 
 // Skipped on Windows: ConPTY answers or swallows the terminal's colour queries itself.
-// Currently fails (the cursor stays white: foot reports the white acp-tui set, and that is adopted);
-// the cursor colour change flips `test.failing` to `test`.
-test.skipIf(WINDOWS).failing("foot with a light theme: the cursor is black, never white, and reset at exit", async () => {
+test.skipIf(WINDOWS)("foot with a light theme: the cursor is black, never white, and reset at exit", async () => {
   run = startCli({ scenario: "basic", colours: FOOT_LIGHT, cols: 101, rows: 49 });
   const s = run.session;
   await s.waitFor(READY, 15000);
-  // The colour query goes out after the first frame; its outcome is a second OSC 12 or, when
-  // nothing is adopted, nothing at all: wait for the black, and go on without it after 3 s.
-  await s.waitFor((p) => p.rawOutput().includes("\x1b]12;?\x07"), 5000);
-  await s.waitFor((p) => p.rawOutput().includes("\x1b]12;#000000\x07"), 3000).catch(() => {});
+  // The cursor's colour is chosen from the replies and written when the prompt box's cursor shows.
+  await s.waitFor((p) => p.rawOutput().includes("\x1b]12;#000000\x07"), 5000);
   s.sendKeys("Ctrl+D");
   await s.wait();
   expect(cursorColourProblems(s.rawOutput(), REPLIES, { allowTeardownDefault: true })).toEqual([]);

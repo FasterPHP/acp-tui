@@ -98,7 +98,7 @@ function Row(props: { segments: Segment[]; onMouseDown?: (event: MouseEvent, col
 }
 
 export const PromptBox: BlockComponent = (props: BlockProps) => {
-  const { store, actions, theme, clipboard, logger, launch } = useApp();
+  const { store, actions, theme, clipboard, logger, launch, cursorColour } = useApp();
   const config = useConfig();
   const { keymap, keyMap, controller } = useKeys();
   const renderer = useRenderer();
@@ -240,6 +240,9 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
     renderer.off("focus", onTerminalFocus);
   });
   createEffect(on(focused, () => cursorFocus.promptFocusChanged(), { defer: true }));
+  // OpenTUI writes the cursor's colour in the first frame that shows the cursor (./cursor-colour.ts).
+  cursorColour?.markDirty();
+  createEffect(on(focused, () => cursorColour?.markDirty(), { defer: true }));
 
   // Read at the key, so a key map reloaded from the configuration is named (spec tui-keymap "Key
   // overrides from the configuration").
@@ -374,15 +377,6 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
       remove();
       controller.setComposer(null);
     });
-    // A focused textarea sets the terminal cursor colour (OSC 12) as RGB. Use the terminal's own
-    // cursor colour when it reports one, so the cursor looks as it did before acp-tui started.
-    renderer
-      .getPalette({ timeout: 500 })
-      .then((palette) => {
-        const cursor = palette.cursorColor;
-        if (input && !input.isDestroyed && cursor && /^#[0-9a-f]{6}$/i.test(cursor)) input.cursorColor = cursor;
-      })
-      .catch(() => {});
   });
 
   const onPaste = (event: PasteEvent) => {
@@ -441,7 +435,8 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
           textColor={theme.color("text")}
           focusedTextColor={theme.color("text")}
           placeholderColor={theme.color("muted")}
-          cursorColor={theme.color("text")}
+          showCursor={cursorColour ? cursorColour.ready() : true}
+          cursorColor={cursorColour?.colour() ?? theme.color("text")}
         />
         {side(` ${PROMPT_FRAME.vertical}`)}
         <Show when={commandHint()} keyed>

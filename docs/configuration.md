@@ -375,6 +375,8 @@ The default keeps a block where you normally type, at the end of the draft, beca
 }
 ```
 
+**The cursor's colour** is the terminal's, and there is no setting for it: acp-tui asks the terminal for its foreground, background and cursor colours when it starts and takes the cursor colour the terminal reports when it can be seen against the background (a contrast ratio of at least 3 to 1, the threshold WCAG sets for interface components), else the foreground colour, else it leaves the terminal's own colour alone. So set the colour you want in the terminal's own configuration (foot's `cursor` colours, Alacritty's `colors.cursor`, and so on), and acp-tui will follow it; a cursor that was black on a dark background, foot's default for an unset cursor, is drawn in the foreground colour instead. The prompt box shows no cursor for the first moments, until the terminal has answered (at most 0.3 seconds, and behind the splash). After you switch the terminal to another colour theme, press Ctrl+L so that acp-tui asks again and picks a colour that suits the new background; a change to acp-tui's own configuration or theme file never changes it. A terminal that answers none of the questions (some IDE terminals answer only two) gets its own cursor colour back after every frame that draws the cursor, and the terminal's own colour is restored on every way of leaving acp-tui.
+
 ### Conversation
 
 | Setting | Values | Default | What it does |

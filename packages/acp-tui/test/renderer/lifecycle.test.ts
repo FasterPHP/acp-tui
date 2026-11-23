@@ -105,8 +105,10 @@ function expectRestored({ s, raw, tail }: Run) {
   // Keyboard mode: modifyOtherKeys reset, or kitty flags popped, whichever was set.
   if (raw.includes("\x1b[>5u")) expect(tail).toContain("\x1b[<u");
   else expect(raw.indexOf("\x1b[>4;0m", lastIndex(raw, /\x1b\[>4;1m/))).toBeGreaterThan(0);
+  // The terminal's own cursor colour is restored last (OSC 112 after any OSC 12 set, a failed teardown included).
+  expect(raw.lastIndexOf("\x1b]112\x07")).toBeGreaterThan(raw.lastIndexOf("\x1b]12;"));
   // The output ends with the lifecycle's own reset (scroll region kept cursor, cursor shown).
-  expect(tail).toContain("\x1b7\x1b[r\x1b8\x1b[0m\x1b[0 q\x1b[?25h");
+  expect(tail).toContain("\x1b7\x1b[r\x1b8\x1b[0m\x1b]112\x07\x1b[0 q\x1b[?25h");
   // The emulator agrees: no scroll region, cursor visible, bracketed paste off.
   const core = (s.term as unknown as { _core: { buffer: { scrollTop: number; scrollBottom: number }; coreService: { isCursorHidden: boolean } } })._core;
   expect(core.buffer.scrollTop).toBe(0);
