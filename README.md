@@ -47,7 +47,7 @@ acp-tui
 
 acp-tui starts a session in the directory you launched it from, so choose the directory by where you start it. The first time Auggie sees a directory it asks whether it may index it: answer in the permission card. Your home directory is never indexed.
 
-- Ctrl+D leaves. Your session is kept and can be resumed.
+- Ctrl+D leaves, whatever the prompt box holds. Your session is kept and can be resumed, and an unsent draft is kept with it (Delete deletes forward).
 - `acp-tui -c` continues the last session in this directory; `acp-tui -r` lists sessions to resume.
 - To use Claude Code, remove the `//` in front of the `claude` line under `agent_servers` in your configuration file (`acp-tui config --path` prints where it is), then run `acp-tui claude`. Every harness needs an entry there; the others (OpenCode, Codex and more) are commented examples too.
 - `?` in an empty prompt box opens acp-tui's commands, `/` the harness's, and F1 shows the keys.

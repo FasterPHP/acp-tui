@@ -27,7 +27,7 @@ F1 shows the keys. The ones you will use most:
 | Enter | Sends the prompt |
 | Shift+Enter | Newline in the prompt box (Ctrl+J where the terminal passes it) |
 | Esc Esc | Interrupts the agent |
-| Ctrl+D | Leaves; the session is kept |
+| Ctrl+D | Leaves, even with text in the prompt box; the session and the draft are kept |
 | Ctrl+C | Copies the selection (it does nothing otherwise) |
 | Ctrl+V | Pastes |
 | Ctrl+F or F3 | Finds in the conversation |
