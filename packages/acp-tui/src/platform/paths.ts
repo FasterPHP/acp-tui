@@ -97,6 +97,11 @@ export function stateDirectory(env: Env = process.env, platform: Platform = proc
   return pathsFor(platform).join(stateHome(env, platform), APP_DIR_NAME);
 }
 
+/** The kept drafts' directory: `drafts` beside the session index, in acp-tui's state directory. */
+export function draftsDirectory(env: Env = process.env, platform: Platform = process.platform): string {
+  return pathsFor(platform).join(stateDirectory(env, platform), "drafts");
+}
+
 /** A Windows path for comparison: normalised (either separator), upper case, no trailing
  *  separator except a root's own (`C:\`, `\\server\share\`). */
 function windowsKey(path: string): string {

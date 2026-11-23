@@ -381,6 +381,11 @@
             "block",
             "block_at_end"
           ]
+        },
+        "keep_drafts": {
+          "default": true,
+          "description": "Keep an unsent draft per session when you leave it, and put it back when the session is reopened. Drafts are kept as files in acp-tui's state directory (drafts/), and may hold anything you typed, a secret included; with false nothing is written or restored and the draft is printed below the command line at exit instead. Read only from your own file, never from a project file.",
+          "type": "boolean"
         }
       }
     },
