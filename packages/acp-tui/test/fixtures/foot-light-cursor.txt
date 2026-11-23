@@ -1,0 +1,150 @@
+# Escape sequences acp-tui wrote in foot 1.28.0 (TERM=xterm-256color, 101x49) with a light theme:
+# foreground #212121, background #fafafa, cursor #000000. The terminal's replies were not
+# recorded (the recording holds acp-tui's output only).
+# Notation: one escape sequence per line; ESC is \x1b, BEL is \x07, a backslash is \\.
+# <n> is a run of printable text of n bytes, whose content is not kept. In an OSC payload
+# <n> is a payload that is not kept: the window title (OSC 0) in the start-up segment.
+# Segments: start-up (recording bytes 128 to 652), the tail of the first frame and the palette
+# queries after it (8037 to 8290), one later frame (9919 to 9982), the teardown (13325 to the end).
+# segment: start-up
+\x1b[?2031h
+\x1b]10;?\x07
+\x1b]11;?\x07
+\x1b[>0q
+\x1b[?25l
+\x1b[s
+\x1b[6n
+\x1bP+q4d73\x1b\\
+\x1b[?1016$p
+\x1b[?2027$p
+\x1b[?2031$p
+\x1b[?1004$p
+\x1b[?2004$p
+\x1b[?2026$p
+\x1b[?u
+\x1b]99;i=opentui-notifications:p=?;\x1b\\
+\x1b]1337;Capabilities\x1b\\
+\x1b]7501;?\x1b\\
+\x1b[u
+\x1b[s
+\x1b[?1049h
+\x1b[?25l
+\x1b[>4;1m
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?1000h
+\x1b[?1002h
+\x1b[?1003h
+\x1b[?1006h
+\x1b]10;?\x07
+\x1b]11;?\x07
+\x1b[14t
+\x1b[22;0t
+\x1b]0;<9>\x07
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?1004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?1004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?1004h
+\x1b[>4;0m
+\x1b[>5u
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?1004h
+\x1b[?2027h
+\x1b[?2004h
+\x1b[?1004h
+\x1b]4;0;?\x07
+# segment: first frame tail and palette queries
+\x1b[0m
+\x1b]12;#ffffff\x07
+\x1b[1 q
+\x1b[42;3H
+\x1b[?25h
+\x1b]22;default\x1b\\
+\x1b[?2026l
+\x1b]4;0;?\x07
+\x1b]4;1;?\x07
+\x1b]4;2;?\x07
+\x1b]4;3;?\x07
+\x1b]4;4;?\x07
+\x1b]4;5;?\x07
+\x1b]4;6;?\x07
+\x1b]4;7;?\x07
+\x1b]4;8;?\x07
+\x1b]4;9;?\x07
+\x1b]4;10;?\x07
+\x1b]4;11;?\x07
+\x1b]4;12;?\x07
+\x1b]4;13;?\x07
+\x1b]4;14;?\x07
+\x1b]4;15;?\x07
+\x1b]10;?\x07
+\x1b]11;?\x07
+\x1b]12;?\x07
+\x1b]13;?\x07
+\x1b]14;?\x07
+\x1b]15;?\x07
+\x1b]16;?\x07
+\x1b]17;?\x07
+\x1b]19;?\x07
+# segment: one later frame
+\x1b[?2026h
+\x1b[?25l
+\x1b[22;48H
+\x1b[39m
+\x1b[49m
+<3>
+\x1b[0m
+\x1b[0m
+\x1b[42;3H
+\x1b[?25h
+\x1b[?2026l
+# segment: teardown
+\x1b[?2026l
+\x1b[?25h
+\x1b[0m
+\x1b]22;\x1b\\
+\x1b[<u
+\x1b[?1003l
+\x1b[?1002l
+\x1b[?1000l
+\x1b[?1006l
+\x1b[?2004l
+\x1b[?1004l
+\x1b[?1049l
+\x1b[?2031l
+\x1b]0;\x07
+\x1b]12;default\x07
+\x1b]112\x07
+\x1b[0 q
+\x1b[?25h
+\x1b[?25h
+\x1b[23;0t
+\x1b[?1000l
+\x1b[?1002l
+\x1b[?1003l
+\x1b[?1006l
+\x1b[?2031l
+\x1b7
+\x1b[r
+\x1b8
+\x1b[0m
+\x1b[0 q
+\x1b[?25h
