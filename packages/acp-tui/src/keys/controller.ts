@@ -12,6 +12,7 @@ import type { TokenName } from "../theme/index.ts";
 import type { ArmedState } from "../layout/view.ts";
 import type { Anchor } from "../conversation/view-model.ts";
 import { exitStep, INITIAL_EXIT_STATE, type ExitInput, type ExitState } from "./exit-machine.ts";
+import type { Draft } from "../session/drafts.ts";
 import { actionLabel, type KeyAction, type KeyMap } from "./keymap.ts";
 import { DEFAULT_INTERRUPT, type InterruptSetting } from "./settings.ts";
 
@@ -40,6 +41,12 @@ export interface ComposerHandle {
   /** Removes the selection from the draft and returns its text (an empty string, and nothing
    *  removed, when there was none): Ctrl+X. */
   cutSelection?(): string;
+  /** The draft as the draft store keeps it: its text, the cursor and the intact mentions; null
+   *  when the prompt box is empty (spec tui-sessions "Unsent drafts kept per session"). */
+  draft?(): Draft | null;
+  /** Puts a kept draft in the prompt box, after any text already there, with a notice then, and
+   *  starts a fresh undo history (spec tui-sessions "Drafts restored when a session is reopened"). */
+  restore?(draft: Draft): void;
 }
 
 /** What the global keys need from the conversation. */

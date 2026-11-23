@@ -82,6 +82,9 @@ import { createTerminalSignals } from "../renderer/terminal-signals.ts";
 import { attentionFromConfig, type AttentionSettings } from "../renderer/attention.ts";
 import type { KeyMap } from "../keys/keymap.ts";
 import type { InterruptSetting } from "../keys/settings.ts";
+import { createDraftKeeper } from "../session/draft-keeper.ts";
+import { createDraftStore } from "../session/drafts.ts";
+import { draftsDirectory } from "../platform/paths.ts";
 import { sessionExitState } from "../session/exit-state.ts";
 import { readConfigDirectories } from "../agent/resolve.ts";
 import { openSessionIndex } from "../session/session-index.ts";
@@ -203,6 +206,8 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
   // mvp-sessions: whether opening the session from the command line failed (then the exit text
   // names no session).
   let openFailed = false;
+  // The draft the exit text prints: the prompt box's text when it was not kept (session/draft-keeper.ts).
+  let unsent: string | null = null;
   // A notice in the prompt box's top border for a while (configuration problems, several agents
   // with the session ID, an unwritable index).
   const notice = (text: string, cut?: { readonly more: string; readonly short: string }): void => {
@@ -301,7 +306,15 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
   // The replay's drain and the agent read loop take their turns outside frames once the renderer
   // is up (renderer/frame-pace.ts; history-replay-pacing D1).
   const pace = createFramePace();
+  // Unsent drafts (session/draft-keeper.ts): kept per session when it is left, `prompt.keep_drafts`
+  // read at each use; the prompt box binds itself through the context.
+  const drafts = createDraftKeeper({
+    store: createDraftStore({ dir: draftsDirectory(), onWarning: notice }),
+    enabled: () => config.config().prompt.keep_drafts,
+    current: () => switcher.current(),
+  });
   const switcher = createSessionSwitcher({
+    drafts,
     launch,
     logger: options.logger,
     index: openSessionIndex({ onWarning: notice }),
@@ -397,7 +410,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     },
     addDirectory: (path, confirm) => switcher.addDirectory(path, confirm),
   };
-  const context: AppContextValue = { store, actions, theme, logger: options.logger, wheel, clipboard, config, scrollbar, launch: () => splashLaunch(switcher.current()?.launch ?? launch) };
+  const context: AppContextValue = { store, actions, theme, logger: options.logger, wheel, clipboard, config, scrollbar, launch: () => splashLaunch(switcher.current()?.launch ?? launch), drafts };
 
   return new Promise<number>((resolve) => {
     const run = (): void => {
@@ -411,6 +424,9 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
         onExit: async (reason) => {
           options.logger.log({ event: "exit", reason: reason.kind, ...(reason.kind === "error" && reason.uncaught ? { uncaught: true } : {}) });
           // Every agent this run started (after a switch in progress, the old one too).
+          // The prompt box's draft is read while it still exists: kept for a session that can be
+          // reopened, else left for the exit text to print.
+          unsent = drafts.leaveForExit();
           await switcher.detach();
         },
         // The resume line names the session open at exit (after a switch, the one switched to),
@@ -419,7 +435,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
         // `last-answer` and `transcript` (mvp-conversation task 7.1) wrap at the terminal's width at
         // exit.
         exitText: () => {
-          if (openFailed) return "";
+          if (openFailed) return exitText(config.config().exit.print, { session: null, draft: unsent });
           const current = switcher.current();
           const session = current?.controller.getSession() ?? null;
           const state = current?.recorder ? sessionExitState({ controller: current.controller, recorder: current.recorder, opened: current.opened }, current.launch) : null;
@@ -430,6 +446,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
             canReopen: state?.canReopen ?? false,
             hadPromptOrOpened: state ? state.hadPrompt || state.openedFromHistory : false,
             adHocCommand: state?.adHocCommand ?? null,
+            draft: unsent,
           });
         },
         exit: (code) => {

@@ -36,6 +36,11 @@ export interface MentionDraft {
   keyDown(key: KeyEvent): void;
   /** The `resource_link` blocks for `text`'s intact mentions. */
   links(text: string): ResourceLinkBlock[];
+  /** The mentions tracked now (UTF-16 ranges into the draft; ./mentions.ts). */
+  current(): readonly Mention[];
+  /** Replaces the whole draft with `text`, the cursor at UTF-16 index `cursor`, and `next` as its
+   *  mentions (a restored draft; not an edit of a mention). */
+  replaceAll(text: string, cursor: number, next: readonly Mention[]): void;
 }
 
 export interface MentionDraftOptions {
@@ -160,6 +165,22 @@ export function createMentionDraft(options: MentionDraftOptions): MentionDraft {
         // Keys of the same read may already have typed after it.
         follow();
       });
+    },
+    current: () => mentions,
+    replaceAll: (text, cursor, next) => {
+      const box = input();
+      if (!box || box.isDestroyed) return;
+      applying = true;
+      try {
+        picker.close();
+        box.replaceText(text);
+        box.cursorOffset = columnOffset(text, cursor);
+      } finally {
+        applying = false;
+      }
+      draft = text;
+      mentions = [...next];
+      highlight();
     },
     links: (text) =>
       mentionLinks(text, mentions, {
