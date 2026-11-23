@@ -7,7 +7,7 @@
 // and `interrupt: single` cancels on one press (mvp-chrome-and-keys task 3.4);
 // Ctrl+C with nothing selected does nothing (no exit, no cancel, draft kept;
 // task 3.1), another key disarms;
-// Ctrl+D with a draft and during a turn; the Tab focus cycle with a card
+// Ctrl+D during a turn (with a draft: detach.pty.test.ts); the Tab focus cycle with a card
 // open; the card's keys; a rebound detach key named in the status row.
 // Cancellation and detach are read from fake-agent's --log: detach sends
 // neither session/close nor session/cancel. Runs on the alternate screen
@@ -352,18 +352,6 @@ describe("Ctrl+C with nothing selected (mvp-chrome-and-keys task 3.1; mvp-conver
 });
 
 describe("Ctrl+D (task 8.4)", () => {
-  test("with a draft, Ctrl+D edits (deletes forward) and does not exit", async () => {
-    const run = startCli();
-    session = run.s;
-    await run.s.waitFor(READY, 10000);
-    run.s.sendKeys({ text: "abc" }, "Left", "Left");
-    await Bun.sleep(100);
-    run.s.sendKeys("Ctrl+D");
-    await run.s.waitFor((p) => promptText(p)[0] === "ac", 5000);
-    await Bun.sleep(200);
-    expect(run.s.exitCode).toBeNull();
-  }, 20000);
-
   test("Detach during a turn: first Ctrl+D asks to confirm in the status row, the confirmation lapses, a confirmed Ctrl+D detaches", async () => {
     const run = startCli("basic", 1000);
     session = run.s;
@@ -583,5 +571,19 @@ describe("key labels from the key map in use (phase-1a task 8.1)", () => {
     const sent = run.methods();
     expect(sent).not.toContain("session/cancel");
     expect(sent).not.toContain("session/close");
+  }, 20000);
+
+  test("Detach rebound: with ctrl+d unbound and ctrl+q bound, Ctrl+Q detaches with a draft before the cursor, and Ctrl+D then does nothing", async () => {
+    const run = startCli("basic", 0, { cols: 120, entry: WITH_KEYMAP, env: { ACP_TUI_TEST_KEYMAP: JSON.stringify({ global: { "ctrl+d": null, "ctrl+q": "detach" } }) } });
+    session = run.s;
+    await run.s.waitFor(READY, 10000);
+    run.s.sendKeys({ text: "abc" }, "Left", "Left");
+    await Bun.sleep(100);
+    run.s.sendKeys("Ctrl+D");
+    await Bun.sleep(300);
+    expect(run.s.exitCode).toBeNull();
+    run.s.sendKeys("Ctrl+Q");
+    expect(await run.s.wait(10000)).toBe(0);
+    expect(run.methods()).not.toContain("session/close");
   }, 20000);
 });

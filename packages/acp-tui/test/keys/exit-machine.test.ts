@@ -33,9 +33,19 @@ describe("disarming", () => {
 });
 
 describe("Ctrl+D", () => {
-  test("non-empty composer: not handled (the textarea deletes forward), disarms", () => {
-    expect(exitStep(armedInterrupt, { type: "detach", ...draft(true), now: 1100 })).toEqual({ state: INITIAL_EXIT_STATE, effect: "pass" });
-    expect(exitStep(INITIAL_EXIT_STATE, { type: "detach", ...draft(false) }).effect).toBe("pass");
+  test("a draft changes nothing: idle detaches at once, running arms, and `pass` is never returned", () => {
+    expect(exitStep(INITIAL_EXIT_STATE, { type: "detach", ...draft(false) })).toEqual({ state: INITIAL_EXIT_STATE, effect: "detach" });
+    expect(exitStep(INITIAL_EXIT_STATE, { type: "detach", ...draft(true) })).toEqual({
+      state: { armed: { kind: "detach", until: 1000 + EXIT_WINDOW_MS } },
+      effect: "arm-detach",
+    });
+    expect(exitStep(armedDetach, { type: "detach", ...draft(true), now: 1100 })).toEqual({ state: INITIAL_EXIT_STATE, effect: "detach" });
+    // Interrupt armed: Ctrl+D with a draft counts as a first press of its own.
+    expect(exitStep(armedInterrupt, { type: "detach", ...draft(true), now: 1100 }).effect).toBe("arm-detach");
+    for (const turnRunning of [false, true])
+      for (const composerEmpty of [false, true])
+        for (const armed of [INITIAL_EXIT_STATE, armedDetach, armedInterrupt])
+          expect(exitStep(armed, { type: "detach", now: 1100, composerEmpty, turnRunning }).effect).not.toBe("pass");
   });
 
   test("empty composer, idle: detach at once", () => {

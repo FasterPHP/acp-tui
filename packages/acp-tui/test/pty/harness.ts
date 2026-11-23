@@ -104,6 +104,7 @@ export const KEYS = {
   Tab: "\t",
   ShiftTab: "\x1b[Z",
   Backspace: "\x7f",
+  Delete: "\x1b[3~",
   Space: " ",
   "Ctrl+C": "\x03",
   "Ctrl+D": "\x04",

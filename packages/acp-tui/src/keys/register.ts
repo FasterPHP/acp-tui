@@ -6,7 +6,7 @@
 // COMMAND_TITLES), and each of its keys is a binding naming that command, so
 // the command palette (task 13.2) and the help card read one catalogue.
 // A matched binding calls preventDefault and stopPropagation, so the
-// Textarea's own bindings (Enter newline, Meta+Return submit, Ctrl+D delete)
+// Textarea's own bindings (Enter newline, Meta+Return submit)
 // never see a key we handle. A handler that returns false leaves the key
 // unhandled, and it reaches the focused component as usual.
 import type { KeyEvent, Renderable } from "@opentui/core";

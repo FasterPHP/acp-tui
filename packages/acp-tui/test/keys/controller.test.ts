@@ -112,11 +112,11 @@ describe("Ctrl+D through the controller", () => {
     expect(calls).toEqual(["exit"]);
   });
 
-  test("non-empty prompt box: not handled, so the textarea gets it", () => {
+  test("idle, non-empty prompt box: exits at once and handles the key, so the prompt box never sees it", () => {
     const { s, c, calls } = setup();
     s.setPromptEmpty(false);
-    expect(c.handlers.detach()).toBe(false);
-    expect(calls).toEqual([]);
+    expect(c.handlers.detach()).toBe(true);
+    expect(calls).toEqual(["exit"]);
   });
 
   test("running: arms the confirmation (turn-state), second press detaches without cancelling", () => {

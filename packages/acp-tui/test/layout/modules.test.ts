@@ -240,16 +240,18 @@ describe("hints", () => {
   test("running turn: Esc Esc interrupt alone", () => {
     expect(text("hints", view({ turnState: "running" }))).toBe("esc esc interrupt");
   });
-  test("no send or newline hint: a prompt box with a draft shows only the mode key (task 12.8: `/` and `?` are text there)", () => {
-    expect(text("hints", view({}, { promptEmpty: false }))).toBe("shift+tab mode");
+  test("no send or newline hint: a prompt box with a draft shows the mode and detach keys (task 12.8: `/` and `?` are text there)", () => {
+    expect(text("hints", view({}, { promptEmpty: false }))).toBe("shift+tab mode  ctrl+d detach");
   });
 
-  test("mode hint with a draft (task 12.8): the mode key stays while the prompt box holds a draft; the `/`, `?` and detach hints leave", () => {
+  test("mode hint with a draft (task 12.8): the mode key stays while the prompt box holds a draft; the `/` and `?` hints leave and detach stays", () => {
     const empty = text("hints", view({}, { promptEmpty: true }));
     const draft = text("hints", view({}, { promptEmpty: false }));
     expect(empty).toContain("shift+tab mode");
     expect(draft).toContain("shift+tab mode");
-    for (const gone of ["/ commands", "? help", "ctrl+d detach"]) expect(draft).not.toContain(gone);
+    for (const gone of ["/ commands", "? help"]) expect(draft).not.toContain(gone);
+    expect(draft).toContain("ctrl+d detach");
+    expect(draft).toBe("shift+tab mode  ctrl+d detach");
     // Only while idle: a running turn shows the interrupt key alone.
     expect(text("hints", view({ turnState: "running" }, { promptEmpty: false }))).toBe("esc esc interrupt");
   });

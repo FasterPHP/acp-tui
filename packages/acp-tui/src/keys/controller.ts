@@ -4,8 +4,7 @@
 // `turn-state`), and transient notices. Every key label in a notice or an
 // armed state comes from the key map in use. No OpenTUI here; `register.ts` binds these
 // handlers to keys. A handler returns false when the key is not its business,
-// so the key reaches the focused component (for example Ctrl+D deleting
-// forward in a non-empty composer).
+// so the key reaches the focused component (for example Esc in an idle prompt box).
 import type { AppActions } from "../app/context.ts";
 import { NULL_LOGGER, type DebugLogger } from "../log.ts";
 import type { SessionStore } from "../session/store.ts";
