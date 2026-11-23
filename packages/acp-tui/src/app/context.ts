@@ -13,6 +13,7 @@ import type { PromptResult, ResourceLinkBlock } from "../session/controller.ts";
 import type { CursorColour } from "./cursor-colour.ts";
 import type { SplashLaunch } from "./splash.ts";
 import type { AddDirectoryResult } from "../session/switch.ts";
+import type { DraftKeeper } from "../session/draft-keeper.ts";
 import type { SessionStore } from "../session/store.ts";
 
 export interface AppActions {
@@ -67,6 +68,9 @@ export interface AppContextValue {
   /** The prompt box cursor's colour, chosen from the terminal's replies (./cursor-colour.ts); absent
    *  in tests that do not need it, where the cursor is shown at once in the `text` token's colour. */
   readonly cursorColour?: CursorColour;
+  /** Unsent drafts kept per session (src/session/draft-keeper.ts); absent in tests that do not
+   *  need it, where no draft is kept or restored. */
+  readonly drafts?: DraftKeeper;
 }
 
 export const AppContext = createContext<AppContextValue>();

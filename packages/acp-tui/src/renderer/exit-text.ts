@@ -60,6 +60,38 @@ export interface ExitTextInput {
   readonly platform?: Platform;
   /** The terminal's width in columns when acp-tui exits (`last-answer`, `transcript`); default 80. */
   readonly width?: number;
+  /** The prompt box's draft when it was not kept (spec tui-screen "Unsent draft in the exit text");
+   *  default none. */
+  readonly draft?: string | null;
+}
+
+/** The label of the unsent draft's block. */
+export const DRAFT_LABEL = "draft (not sent):";
+
+/** The draft's lines for the exit text: sanitised as all exit text is, tabs expanded to spaces at
+ *  eight-column stops, no other control character, every line whole (never cut or wrapped). Null
+ *  for a draft with nothing in it. */
+export function draftLines(draft: string | null | undefined): string[] | null {
+  if (draft === null || draft === undefined || draft === "") return null;
+  const lines = sanitise(draft, "approval")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => {
+      let out = "";
+      let column = 0;
+      for (const char of line) {
+        if (char === "\t") {
+          const pad = 8 - (column % 8);
+          out += " ".repeat(pad);
+          column += pad;
+        } else if (!/[\u0000-\u001f\u007f-\u009f]/.test(char)) {
+          out += char;
+          column += Bun.stringWidth(char);
+        }
+      }
+      return out;
+    });
+  return lines.every((line) => line === "") ? null : lines;
 }
 
 /** The resume line without its line ending, or null when the session cannot be reopened or has nothing to reopen. */
@@ -73,15 +105,19 @@ export function resumeLine({ session, canReopen, hadPromptOrOpened, adHocCommand
 }
 
 /** The exit text to write after the final reset; empty for `none`, and for `summary` when the
- *  session cannot be resumed. */
+ *  session cannot be resumed and there is no unsent draft. The draft ends it, after one blank
+ *  line when the resume line or an exit print precedes it. */
 export function exitText(mode: ExitPrint, input: ExitTextInput): string {
   if (mode === "none") return "";
+  const lines: string[] = [];
   const resume = resumeLine(input);
-  const head = resume === null ? "" : `\r${resume}\n`;
-  if (mode === "summary") return head;
-  const { session } = input;
-  const lines = session?.order && session.items ? handBackLines(mode, { order: session.order, items: session.items }, input.width ?? 80) : null;
-  if (lines === null || lines.length === 0) return head;
-  const body = lines.map((l) => `${l}\n`).join("");
-  return resume === null ? `\r${body}` : `${head}\n${body}`;
+  if (resume !== null) lines.push(resume);
+  if (mode !== "summary") {
+    const { session } = input;
+    const body = session?.order && session.items ? handBackLines(mode, { order: session.order, items: session.items }, input.width ?? 80) : null;
+    if (body !== null && body.length > 0) lines.push(...(resume === null ? [] : [""]), ...body);
+  }
+  const draft = draftLines(input.draft);
+  if (draft !== null) lines.push(...(lines.length === 0 ? [] : [""]), DRAFT_LABEL, ...draft);
+  return lines.length === 0 ? "" : `\r${lines.map((l) => `${l}\n`).join("")}`;
 }

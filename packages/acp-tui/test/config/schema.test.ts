@@ -54,7 +54,7 @@ describe("defaults (design D2)", () => {
       exit: { print: "summary" },
       clipboard: "auto",
       selection: { copy_on_release: true },
-      prompt: { cursor: "block_at_end" },
+      prompt: { cursor: "block_at_end", keep_drafts: true },
       density: "focus",
       interrupt: "double",
       attention: { signal: "bell", long_turn_seconds: 30, title_marker: true },
