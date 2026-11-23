@@ -82,6 +82,18 @@ describe("snippets of whole lines", () => {
     expect(toolCardHeight(item, 40, false, DEFAULT_GLYPHS, false)).toBe(layout.rows.length);
   });
 
+  test("the height estimate equals the layout for fenced output with a language, first or last lines", () => {
+    for (const toolKind of ["execute", "read"] as const) {
+      for (const lang of ["", "console", "php"]) {
+        const body = Array.from({ length: 40 }, (_, i) => `${i}` + "q".repeat((i * 7) % 33)).join("\n");
+        const item = withText("```" + lang + "\n" + body + "\n```", { toolKind });
+        for (const width of [12, 30, 70]) {
+          expect(toolCardHeight(item, width, false, DEFAULT_GLYPHS, false)).toBe(toolCardLayout(item, width, false, DEFAULT_GLYPHS, false).rows.length);
+        }
+      }
+    }
+  });
+
   test("snippetCut: at least one line, never null when lines fit", () => {
     expect(snippetCut([0, 1, 2], 3, 10, true)).toBeNull();
     expect(snippetCut([0, 12, 24], 36, 10, true)).toEqual({ from: 24, to: 36, hidden: 2, lines: 3 });

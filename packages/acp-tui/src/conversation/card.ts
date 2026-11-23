@@ -487,21 +487,33 @@ function textRowCount(text: string, width: number, glyphs: ConversationGlyphs): 
 function textBlockHeight(text: string, width: number, glyphs: ConversationGlyphs, tail: boolean): number {
   const snippet = snippetRows();
   const fence = singleFence(text);
-  if (fence && fence.lang === "") {
-    const perLine = fence.code.split("\n").map((line) => codeRowCount(line, "", width, glyphs));
-    if (perLine.every((count): count is number => count !== null)) {
-      const starts: number[] = [];
-      let n = 0;
-      for (const count of perLine) {
-        starts.push(n);
-        n += count;
-      }
-      const cut = snippetCut(starts, n, snippet, tail);
-      return cut ? cut.to - cut.from + 1 : n;
+  if (fence) {
+    // Counted whole, then only the lines that fit the snippet from the cut's end. The language
+    // label takes a row of its own at the top when the first line reaches it (what the first
+    // line alone tells).
+    const n = textRowCount(text, width, glyphs);
+    if (n <= snippet) return n;
+    const code = fence.code.split("\n");
+    const first = fence.lang === "" ? 0 : codeRowCount(code[0]!, fence.lang, width, glyphs);
+    const bare = fence.lang === "" ? 0 : codeRowCount(code[0]!, "", width, glyphs);
+    if (first === null || bare === null) return laidOutHeight(text, width, glyphs, tail);
+    let shown = tail ? 0 : first - bare;
+    let kept = 0;
+    for (let k = 0; k < code.length; k++) {
+      const rows = codeRowCount(code[tail ? code.length - 1 - k : k]!, "", width, glyphs);
+      if (rows === null) return laidOutHeight(text, width, glyphs, tail);
+      if (kept > 0 && shown + rows > snippet) break;
+      shown += rows;
+      kept++;
     }
+    return kept >= code.length ? n : shown + 1;
   }
+  return laidOutHeight(text, width, glyphs, tail);
+}
+
+function laidOutHeight(text: string, width: number, glyphs: ConversationGlyphs, tail: boolean): number {
   const rows = markdownPart(text, width, glyphs, 0, "text", false, true).rows;
-  const cut = snippetCut(lineStarts(rows, 0), rows.length, snippet, tail);
+  const cut = snippetCut(lineStarts(rows, 0), rows.length, snippetRows(), tail);
   return cut ? cut.to - cut.from + 1 : rows.length;
 }
 
