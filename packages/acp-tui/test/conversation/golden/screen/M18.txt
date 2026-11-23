@@ -49,11 +49,11 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»     The second paragraph inside the item (a loose list).
  11 ││
  12 │                                                        ts  │
-    «default»     «default bg:surface.code +d»                                                   ts  
+    «default»     «#999a9e bg:surface.code»                                                   ts  
  13 │       const insideList = true;                             │
-    «default»     «default bg:surface.code +d»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                             
+    «default»     «#999a9e bg:surface.code»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                             
  14 │                                                            │
-    «default»     «default bg:surface.code +d»                                                       
+    «default»     «#999a9e bg:surface.code»                                                       
  15 ││
  16 │  3. Third parent│
     «default»  «blue»3. «default»Third parent
@@ -107,11 +107,11 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»     The second paragraph inside the item (a loose list).
  11 ││
  12 │                                                                                             ts  │
-    «default»     «default bg:surface.code +d»                                                                                        ts  
+    «default»     «#999a9e bg:surface.code»                                                                                        ts  
  13 │       const insideList = true;                                                                  │
-    «default»     «default bg:surface.code +d»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                                                                  
+    «default»     «#999a9e bg:surface.code»  «magenta bg:surface.code»const «default bg:surface.code»insideList = «cyan bg:surface.code»true«default bg:surface.code»;                                                                  
  14 │                                                                                                 │
-    «default»     «default bg:surface.code +d»                                                                                            
+    «default»     «#999a9e bg:surface.code»                                                                                            
  15 ││
  16 │  3. Third parent│
     «default»  «blue»3. «default»Third parent

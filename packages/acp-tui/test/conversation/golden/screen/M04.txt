@@ -18,11 +18,11 @@ at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
 
 at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M04 links: inline inline link (example.com), reference│
-    «default»  M04 links: inline «blue +u»inline link«default» «default +d»(example.com)«default», reference
+    «default»  M04 links: inline «blue +u»inline link«default» «#999a9e»(example.com)«default», reference
   2 │  reference link (example.com), collapsed ref (example.com),│
-    «default»  «blue +u»reference link«default» «default +d»(example.com)«default», collapsed «blue +u»ref«default» «default +d»(example.com)«default»,
+    «default»  «blue +u»reference link«default» «#999a9e»(example.com)«default», collapsed «blue +u»ref«default» «#999a9e»(example.com)«default»,
   3 │  shortcut ref (example.com), autolink│
-    «default»  shortcut «blue +u»ref«default» «default +d»(example.com)«default», autolink
+    «default»  shortcut «blue +u»ref«default» «#999a9e»(example.com)«default», autolink
   4 │  https://example.com/autolink, email autolink│
     «default»  «blue +u»https://example.com/autolink«default», email autolink
   5 │  someone@example.com, bare URL https://example.com/bare/url│
@@ -30,7 +30,7 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   6 │  and www.example.com/www, and a relative link README│
     «default»  and «blue +u»www.example.com/www«default», and a relative link «blue +u»README
   7 │  (./README.md).│
-    «default»  «default +d»(./README.md)«default».
+    «default»  «#999a9e»(./README.md)«default».
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M04 links: inline inline link (example.com), reference reference link (example.com), collapsed│
@@ -44,10 +44,10 @@ at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
 
 at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M04 links: inline inline link (example.com), reference reference link (example.com), collapsed│
-    «default»  M04 links: inline «blue +u»inline link«default» «default +d»(example.com)«default», reference «blue +u»reference link«default» «default +d»(example.com)«default», collapsed
+    «default»  M04 links: inline «blue +u»inline link«default» «#999a9e»(example.com)«default», reference «blue +u»reference link«default» «#999a9e»(example.com)«default», collapsed
   2 │  ref (example.com), shortcut ref (example.com), autolink https://example.com/autolink, email│
-    «default»  «blue +u»ref«default» «default +d»(example.com)«default», shortcut «blue +u»ref«default» «default +d»(example.com)«default», autolink «blue +u»https://example.com/autolink«default», email
+    «default»  «blue +u»ref«default» «#999a9e»(example.com)«default», shortcut «blue +u»ref«default» «#999a9e»(example.com)«default», autolink «blue +u»https://example.com/autolink«default», email
   3 │  autolink someone@example.com, bare URL https://example.com/bare/url and www.example.com/www,│
     «default»  autolink «blue +u»someone@example.com«default», bare URL «blue +u»https://example.com/bare/url«default» and «blue +u»www.example.com/www«default»,
   4 │  and a relative link README (./README.md).│
-    «default»  and a relative link «blue +u»README«default» «default +d»(./README.md)«default».
+    «default»  and a relative link «blue +u»README«default» «#999a9e»(./README.md)«default».

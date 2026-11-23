@@ -16,11 +16,11 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  M22 indented code block (four spaces):
   2 ││
   3 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
   4 │    $indented = 'code block';                               │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»$indented = 'code block';                               
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»$indented = 'code block';                               
   5 │    echo $indented;                                         │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»echo $indented;                                         
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»echo $indented;                                         
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M22 indented code block (four spaces):│
@@ -38,8 +38,8 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  M22 indented code block (four spaces):
   2 ││
   3 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
   4 │    $indented = 'code block';                                                                    │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»$indented = 'code block';                                                                    
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»$indented = 'code block';                                                                    
   5 │    echo $indented;                                                                              │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»echo $indented;                                                                              
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»echo $indented;                                                                              

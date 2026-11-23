@@ -20,11 +20,11 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  named one«blue +u»²«default».
   3 ││
   4 │  ────────│
-    «default»  «default +d»────────
+    «default»  «#999a9e»────────
   5 │  ¹ The first footnote definition.│
-    «default»  «default +d»¹ «default»The first footnote definition.
+    «default»  «#999a9e»¹ «default»The first footnote definition.
   6 │  ² A named footnote, with bold text.│
-    «default»  «default +d»² «default»A named footnote, with «default +b»bold «default»text.
+    «default»  «#999a9e»² «default»A named footnote, with «default +b»bold «default»text.
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M25 footnotes: a sentence with a numbered footnote¹ and a named one².│
@@ -42,8 +42,8 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  M25 footnotes: a sentence with a numbered footnote«blue +u»¹«default» and a named one«blue +u»²«default».
   2 ││
   3 │  ────────│
-    «default»  «default +d»────────
+    «default»  «#999a9e»────────
   4 │  ¹ The first footnote definition.│
-    «default»  «default +d»¹ «default»The first footnote definition.
+    «default»  «#999a9e»¹ «default»The first footnote definition.
   5 │  ² A named footnote, with bold text.│
-    «default»  «default +d»² «default»A named footnote, with «default +b»bold «default»text.
+    «default»  «#999a9e»² «default»A named footnote, with «default +b»bold «default»text.

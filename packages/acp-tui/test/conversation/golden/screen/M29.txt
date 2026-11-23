@@ -32,13 +32,13 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  *[HTML]: Hyper Text Markup Language
   6 ││
   7 │                                                   mermaid  │
-    «default»  «default bg:surface.code +d»                                                 mermaid  
+    «default»  «#999a9e bg:surface.code»                                                 mermaid  
   8 │    graph LR                                                │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»graph LR                                                
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»graph LR                                                
   9 │      A[Prompt] --> B{Agent}                                │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»A[Prompt] --> B{Agent}                                
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»A[Prompt] --> B{Agent}                                
  10 │      B --> C[Answer]                                       │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»B --> C[Answer]                                       
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»B --> C[Answer]                                       
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M29 other extensions: ==highlighted==, H~2~O subscript, x^2^ superscript, ++inserted++, an│
@@ -68,10 +68,10 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  *[HTML]: Hyper Text Markup Language
   5 ││
   6 │                                                                                        mermaid  │
-    «default»  «default bg:surface.code +d»                                                                                      mermaid  
+    «default»  «#999a9e bg:surface.code»                                                                                      mermaid  
   7 │    graph LR                                                                                     │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»graph LR                                                                                     
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»graph LR                                                                                     
   8 │      A[Prompt] --> B{Agent}                                                                     │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»A[Prompt] --> B{Agent}                                                                     
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»A[Prompt] --> B{Agent}                                                                     
   9 │      B --> C[Answer]                                                                            │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»B --> C[Answer]                                                                            
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»B --> C[Answer]                                                                            

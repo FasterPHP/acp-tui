@@ -10,12 +10,12 @@
 import { RGBA, TextAttributes, type TerminalColors } from "@opentui/core";
 import { deriveSurfaces, type Hues, type TerminalColours } from "./derive.ts";
 import { enforcePermissionDistinct, type ThemeAdjustment } from "./distinct.ts";
-import { effectiveStyle, isLightBackground, styleColour, tokenStyle, validateTheme } from "./style.ts";
+import { effectiveStyle, isLightBackground, mixedDim, styleColour, tokenStyle, validateTheme } from "./style.ts";
 import { SURFACE_NAMES, TOKENS, TOKEN_NAMES, type ColorValue, type LightStyle, type SurfaceName, type Theme, type TokenName } from "./tokens.ts";
 
 // The pure helpers live in style.ts (no OpenTUI), so the configuration check can use them; they are
 // re-exported here for the modules that always took them from the resolver.
-export { effectiveStyle, isLightBackground, styleColour, tokenStyle, validateTheme, withTokens } from "./style.ts";
+export { effectiveStyle, isLightBackground, mixedDim, styleColour, tokenStyle, validateTheme, withTokens } from "./style.ts";
 
 export interface ResolvedToken {
   role: "fg" | "bg";
@@ -145,6 +145,13 @@ export function resolveTheme(theme: Theme, options: ResolveOptions = {}): Resolv
       value === "derived" && surfaces && surface
         ? RGBA.fromHex(surfaces[surface])
         : colorToRGBA(value, role, options.palette);
+    // A token that is the default foreground dimmed becomes the mixed colour, with no SGR 2, while
+    // both reported colours are known and the renderer draws truecolour; else SGR 2 as before.
+    // A theme's own colour (an index or a hex value) is drawn as set.
+    if (role === "fg" && value === "default" && style.dim && terminal !== null && options.truecolour !== false) {
+      resolved.set(name, { role, color: RGBA.fromHex(mixedDim(terminal)), attributes: attributesOf({ ...style, dim: false }) });
+      continue;
+    }
     resolved.set(name, { role, color, attributes: attributesOf(style) });
   }
 

@@ -16,7 +16,7 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   2 │  and the target is another: https://bank.example│
     «default»  and the target is another: «blue +u»https://bank.example
   3 │  (evil.example) and a safe one for comparison:│
-    «default»  «default +d»(evil.example) «default»and a safe one for comparison:
+    «default»  «#999a9e»(evil.example) «default»and a safe one for comparison:
   4 │  https://example.com/same.│
     «default»  «blue +u»https://example.com/same«default».
 
@@ -30,4 +30,4 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M32 a deceptive label, where the label looks like one site and the target is another:│
     «default»  M32 a deceptive label, where the label looks like one site and the target is another:
   2 │  https://bank.example (evil.example) and a safe one for comparison: https://example.com/same.│
-    «default»  «blue +u»https://bank.example«default» «default +d»(evil.example) «default»and a safe one for comparison: «blue +u»https://example.com/same«default».
+    «default»  «blue +u»https://bank.example«default» «#999a9e»(evil.example) «default»and a safe one for comparison: «blue +u»https://example.com/same«default».
