@@ -638,6 +638,8 @@ Every token is named in the catalogue ([Appendix](#appendix-theme-tokens)); the 
 - for a surface token only, `"derived"`: the default, computed from the terminal's colours;
 - or an object, `{ "color": ..., "bold": true, "dim": true, "italic": true, "underline": true }`, a colour with attributes. A colour omitted keeps the one the token would otherwise have.
 
+On a light background the default theme draws muted text (`muted`, `hint`, `thought` and the tokens that follow them) as the default foreground dimmed. While the terminal has reported both its colours, that is drawn as a real colour, the mean of the reported foreground and background per channel (`#212121` on `#fafafa` gives `#8e8e8e`), recomputed whenever acp-tui asks the terminal for its colours again (Ctrl+L, SIGUSR2, a resize); this keeps muted text muted in terminals that dim towards black, such as foot. Without the replies (or without 24-bit colour) it is SGR 2, and on a dark background it stays bright black. A colour your theme sets for a token is drawn as set, so `"muted": 8` is never mixed.
+
 No other attribute can be set, so a theme cannot make acp-tui write escape sequences outside the safe set (strikethrough comes only from the Markdown renderer and the terminal table).
 
 A theme is checked token by token and a rejected token keeps the value it would otherwise have. An unknown token is reported with the closest known name; a value of the wrong kind (such as `"derived"` on a text token) with what the token takes; a retired token with its replacement (`surface.selected` is replaced by `surface.cursor` and `surface.selection`; `markdown.heading` by `markdown.heading.1` to `markdown.heading.6`).

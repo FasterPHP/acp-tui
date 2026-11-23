@@ -21,12 +21,12 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   3 │  │ Note│
     «default»  «blue»│ «blue +b»Note
   4 │  │ A note alert.│
-    «default»  «blue»│ «default +d»A note alert.
+    «default»  «blue»│ «#999a9e»A note alert.
   5 ││
   6 │  │ Warning│
     «default»  «bright-red»│ «bright-red +b»Warning
   7 │  │ A warning alert.│
-    «default»  «bright-red»│ «default +d»A warning alert.
+    «default»  «bright-red»│ «#999a9e»A warning alert.
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M24 GitHub alerts:│
@@ -49,9 +49,9 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   3 │  │ Note│
     «default»  «blue»│ «blue +b»Note
   4 │  │ A note alert.│
-    «default»  «blue»│ «default +d»A note alert.
+    «default»  «blue»│ «#999a9e»A note alert.
   5 ││
   6 │  │ Warning│
     «default»  «bright-red»│ «bright-red +b»Warning
   7 │  │ A warning alert.│
-    «default»  «bright-red»│ «default +d»A warning alert.
+    «default»  «bright-red»│ «#999a9e»A warning alert.

@@ -5,7 +5,7 @@
 // palettes are not the user's palette. Plain data, no OpenTUI.
 import { contrastRatio, parseHex, toHex } from "./derive.ts";
 import { RECORDED_PALETTES, SOLARIZED_LIGHT, ZED_AYU_LIGHT, type RecordedPalette } from "./palettes.fixture.ts";
-import { effectiveStyle, isLightBackground, tokenStyle } from "./style.ts";
+import { effectiveStyle, isLightBackground, mixedDim, tokenStyle } from "./style.ts";
 import { SURFACE_NAMES, TOOL_KINDS, type ColorValue, type Theme, type TokenName } from "./tokens.ts";
 
 /**
@@ -50,6 +50,9 @@ export function paletteColour(colour: ColorValue, palette: RecordedPalette, role
 export function drawnColour(theme: Theme, name: TokenName, palette: RecordedPalette): string {
   const style = effectiveStyle(tokenStyle(theme, name), isLightBackground(palette));
   const hex = paletteColour(style.color, palette);
+  // The default foreground dimmed is drawn as the palette's mix (style.ts `mixedDim`); another
+  // dimmed colour is left to the terminal's SGR 2.
+  if (style.dim && style.color === "default") return mixedDim(palette);
   return style.dim ? dimmed(hex, palette.background) : hex;
 }
 
@@ -133,7 +136,7 @@ export const SURFACE_TEXT_FLOOR = 4.5;
  *   these ratios; the capture shows the palette it reports, not the colour drawn.
  * - Solarized Light: green 2.97 and cyan 2.93 on #fdf6e3, just under 3:1; the only colours that pass
  *   there are red, orange, blue, magenta, violet and the base tones. Muted text is the body text
- *   (base00 #657b83, itself only 4.13:1) dimmed: 1.88:1 at the IDEs' half-way blend, more where a
+ *   (base00 #657b83, itself only 4.13:1) dimmed: 1.86:1 as the half-way mix, more where a
  *   terminal dims less. It is the one way to keep it between the background and the body text
  *   with the palette's own colours, since bright black is base03, the darkest tone (Marcus's
  *   review, 9 October 2026).

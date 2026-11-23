@@ -56,7 +56,7 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   9 │  Notes: First order, paid by card│
     «default»  «blue +b»Notes: «default»First order, paid by card
  10 │  ──────────────────────────────────────────────────────────│
-    «default»  «default +d»──────────────────────────────────────────────────────────
+    «default»  «#999a9e»──────────────────────────────────────────────────────────
  11 │  Identifier: 1002│
     «default»  «blue +b»Identifier: «default»1002
  12 │  Customer name: Bob Jones│
@@ -114,32 +114,32 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  M20 wide table, more than 63 columns:
   2 ││
   3 │  ╭────────────┬────────────┬─────────────┬────────────┬───────────┬────────────┬───────────────╮│
-    «default»  «default +d»╭────────────┬────────────┬─────────────┬────────────┬───────────┬────────────┬───────────────╮
+    «default»  «#999a9e»╭────────────┬────────────┬─────────────┬────────────┬───────────┬────────────┬───────────────╮
   4 │  │ Identifier │ Customer   │ Email       │ Created at │ Status    │      Total │ Notes         ││
-    «default»  «default +d»│ «blue +b»Identifier «default +d»│ «blue +b»Customer   «default +d»│ «blue +b»Email       «default +d»│ «blue +b»Created at «default +d»│ «blue +b»Status    «default +d»│      «blue +b»Total «default +d»│ «blue +b»Notes         «default +d»│
+    «default»  «#999a9e»│ «blue +b»Identifier «#999a9e»│ «blue +b»Customer   «#999a9e»│ «blue +b»Email       «#999a9e»│ «blue +b»Created at «#999a9e»│ «blue +b»Status    «#999a9e»│      «blue +b»Total «#999a9e»│ «blue +b»Notes         «#999a9e»│
   5 │  │            │ name       │ address     │            │           │      (GBP) │               ││
-    «default»  «default +d»│            │ «blue +b»name       «default +d»│ «blue +b»address     «default +d»│            │           │      «blue +b»(GBP) «default +d»│               │
+    «default»  «#999a9e»│            │ «blue +b»name       «#999a9e»│ «blue +b»address     «#999a9e»│            │           │      «blue +b»(GBP) «#999a9e»│               │
   6 │  ├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤│
-    «default»  «default +d»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
+    «default»  «#999a9e»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
   7 │  │ 1001       │ Alice      │ alice.smith │ 2026-10-04 │ active    │   1,234.56 │ First order,  ││
-    «default»  «default +d»│ «default»1001       «default +d»│ «default»Alice      «default +d»│ «blue +u»alice.smith«default» «default +d»│ «default»2026-10-04 «default +d»│ «default»active    «default +d»│   «default»1,234.56 «default +d»│ «default»First order,  «default +d»│
+    «default»  «#999a9e»│ «default»1001       «#999a9e»│ «default»Alice      «#999a9e»│ «blue +u»alice.smith«default» «#999a9e»│ «default»2026-10-04 «#999a9e»│ «default»active    «#999a9e»│   «default»1,234.56 «#999a9e»│ «default»First order,  «#999a9e»│
   8 │  │            │ Smith      │ @example.co │ 09:15      │           │            │ paid by card  ││
-    «default»  «default +d»│            │ «default»Smith      «default +d»│ «blue +u»@example.co«default» «default +d»│ «default»09:15      «default +d»│           │            │ «default»paid by card  «default +d»│
+    «default»  «#999a9e»│            │ «default»Smith      «#999a9e»│ «blue +u»@example.co«default» «#999a9e»│ «default»09:15      «#999a9e»│           │            │ «default»paid by card  «#999a9e»│
   9 │  │            │            │ m           │            │           │            │               ││
-    «default»  «default +d»│            │            │ «blue +u»m«default»           «default +d»│            │           │            │               │
+    «default»  «#999a9e»│            │            │ «blue +u»m«default»           «#999a9e»│            │           │            │               │
  10 │  ├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤│
-    «default»  «default +d»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
+    «default»  «#999a9e»├────────────┼────────────┼─────────────┼────────────┼───────────┼────────────┼───────────────┤
  11 │  │ 1002       │ Bob Jones  │ bob.jones@e │ 2026-10-04 │ suspended │      78.90 │ Awaiting a    ││
-    «default»  «default +d»│ «default»1002       «default +d»│ «default»Bob Jones  «default +d»│ «blue +u»bob.jones@e«default» «default +d»│ «default»2026-10-04 «default +d»│ «default»suspended «default +d»│      «default»78.90 «default +d»│ «default»Awaiting a    «default +d»│
+    «default»  «#999a9e»│ «default»1002       «#999a9e»│ «default»Bob Jones  «#999a9e»│ «blue +u»bob.jones@e«default» «#999a9e»│ «default»2026-10-04 «#999a9e»│ «default»suspended «#999a9e»│      «default»78.90 «#999a9e»│ «default»Awaiting a    «#999a9e»│
  12 │  │            │            │ xample.org  │ 10:30      │           │            │ reply from    ││
-    «default»  «default +d»│            │            │ «blue +u»xample.org«default»  «default +d»│ «default»10:30      «default +d»│           │            │ «default»reply from    «default +d»│
+    «default»  «#999a9e»│            │            │ «blue +u»xample.org«default»  «#999a9e»│ «default»10:30      «#999a9e»│           │            │ «default»reply from    «#999a9e»│
  13 │  │            │            │             │            │           │            │ the customer  ││
-    «default»  «default +d»│            │            │             │            │           │            │ «default»the customer  «default +d»│
+    «default»  «#999a9e»│            │            │             │            │           │            │ «default»the customer  «#999a9e»│
  14 │  │            │            │             │            │           │            │ about the     ││
-    «default»  «default +d»│            │            │             │            │           │            │ «default»about the     «default +d»│
+    «default»  «#999a9e»│            │            │             │            │           │            │ «default»about the     «#999a9e»│
  15 │  │            │            │             │            │           │            │ refund they   ││
-    «default»  «default +d»│            │            │             │            │           │            │ «default»refund they   «default +d»│
+    «default»  «#999a9e»│            │            │             │            │           │            │ «default»refund they   «#999a9e»│
  16 │  │            │            │             │            │           │            │ asked for     ││
-    «default»  «default +d»│            │            │             │            │           │            │ «default»asked for     «default +d»│
+    «default»  «#999a9e»│            │            │             │            │           │            │ «default»asked for     «#999a9e»│
  17 │  ╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯│
-    «default»  «default +d»╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯
+    «default»  «#999a9e»╰────────────┴────────────┴─────────────┴────────────┴───────────┴────────────┴───────────────╯

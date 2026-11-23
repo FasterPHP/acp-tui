@@ -642,10 +642,15 @@ describe("Resolved theme", () => {
       expect(lit.color(name).equals(flat.color(name))).toBe(true);
       expect(lit.color(name).intent).not.toBe("rgb");
     }
-    // Muted text on a light background: the default foreground, dimmed (review, 9 October 2026).
+    // Muted text on a light background: the default foreground dimmed (review, 9 October 2026),
+    // drawn as the mix of the reported colours with no SGR 2 once they are known (task 8b; the
+    // mix itself is test/theme/muted-mix.test.ts), and SGR 2 where 24-bit colour cannot be drawn.
     expect(flat.color("muted").intent).toBe("indexed");
-    expect(lit.color("muted").intent).toBe("default");
-    expect(lit.text("muted").attributes & TextAttributes.DIM).toBe(TextAttributes.DIM);
+    expect(lit.color("muted").intent).toBe("rgb");
+    expect(lit.text("muted").attributes & TextAttributes.DIM).toBe(0);
+    const plain = resolveTheme(DEFAULT_THEME, { terminal: LIGHT, truecolour: false });
+    expect(plain.color("muted").intent).toBe("default");
+    expect(plain.text("muted").attributes & TextAttributes.DIM).toBe(TextAttributes.DIM);
     expect(flat.text("muted").attributes & TextAttributes.DIM).toBe(0);
   });
 

@@ -16,9 +16,9 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   2 │  two outside it: inside the working directory│
     «default»  two outside it: «blue +u»inside the working directory
   3 │  (src/index.ts), outside the working directory│
-    «default»  «default +d»(src/index.ts)«default», outside the working directory
+    «default»  «#999a9e»(src/index.ts)«default», outside the working directory
   4 │  (../../outside/secret.txt) and absolute path (/etc/hosts).│
-    «default»  «default +d»(../../outside/secret.txt) «default»and absolute path «default +d»(/etc/hosts)«default».
+    «default»  «#999a9e»(../../outside/secret.txt) «default»and absolute path «#999a9e»(/etc/hosts)«default».
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M33 relative links, one inside the working directory and two outside it: inside the working│
@@ -32,6 +32,6 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M33 relative links, one inside the working directory and two outside it: inside the working│
     «default»  M33 relative links, one inside the working directory and two outside it: «blue +u»inside the working
   2 │  directory (src/index.ts), outside the working directory (../../outside/secret.txt) and absolute│
-    «default»  «blue +u»directory«default» «default +d»(src/index.ts)«default», outside the working directory «default +d»(../../outside/secret.txt) «default»and absolute
+    «default»  «blue +u»directory«default» «#999a9e»(src/index.ts)«default», outside the working directory «#999a9e»(../../outside/secret.txt) «default»and absolute
   3 │  path (/etc/hosts).│
-    «default»  path «default +d»(/etc/hosts)«default».
+    «default»  path «#999a9e»(/etc/hosts)«default».
