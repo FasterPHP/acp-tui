@@ -80,6 +80,11 @@ export interface ToolCallItem extends ItemBase {
   /** The latest `rawOutput` as text (a string, or the string `output` of an object, as Auggie
    *  sends it), sanitised; null when none was sent or it had another shape. */
   readonly rawOutputText: string | null;
+  /** True once a running call's output has been seen to be a moving window (an update that was
+   *  not an extension of the output before it: its first line changed, or it had fewer lines),
+   *  as Auggie 1.x sends a tail of at most 2000 lines. Kept for the rest of the call and after
+   *  it; absent or false for output that only grows. */
+  readonly outputWindow?: boolean;
   /** The `command` (kind `execute`) or else the `path` string of the latest `rawInput`, sanitised;
    *  null when none was sent or it had another shape. Names a call whose title is one bare word. */
   readonly inputText: string | null;

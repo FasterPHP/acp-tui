@@ -99,7 +99,8 @@ export function toolSummary(item: ToolCallItem): Segment[] {
   } else if (exitCode !== null) {
     out.push({ text: `exit ${exitCode}`, token: "tool.fail" });
   } else if (outputLines > 1) {
-    out.push({ text: `${outputLines} lines`, token: "tool.count" });
+    // A moving window of the output (acp-model `outputWindow`) is counted as the last lines of it.
+    out.push({ text: item.outputWindow ? `last ${outputLines} lines` : `${outputLines} lines`, token: "tool.count" });
   }
   if (terminal) {
     if (out.length > 0) out.push({ text: "  ", token: "muted" });

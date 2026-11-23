@@ -90,7 +90,7 @@ export type CardPart =
   | { readonly kind: "empty"; readonly content: number | null; readonly rows: readonly Row[] }
   /** A command result's output rows (`Output:` and the output lines, command-result.ts), cuttable
    *  like a text block; there is none when the output is empty. */
-  | { readonly kind: "result"; readonly content: number; readonly rows: readonly Row[] }
+  | { readonly kind: "result"; readonly content: number; readonly rows: readonly Row[]; readonly head: number }
   /** A command result's `Return code: <code>` row: never cut. */
   | { readonly kind: "code"; readonly content: number; readonly rows: readonly Row[] }
   /** A diff block: logical lines broken at the column. */
@@ -119,8 +119,14 @@ export interface CardLayout {
   readonly sources: readonly RowSource[];
   /** The marker row's index in `rows`, or -1. */
   readonly marker: number;
-  /** Rows the snippet hides (0 when shown in full or never cut). */
+  /** Output lines the snippet hides (0 when shown in full or never cut): lines of the output, not
+   *  screen rows, so it agrees with the collapsed line's count. */
   readonly hidden: number;
+  /** The lines of the output the cut text blocks hold (0 when nothing is hidden); the second
+   *  number of the marker of a moving window. */
+  readonly total: number;
+  /** The call's output is a moving window (acp-model `outputWindow`): the marker says `N of the last M lines hidden`. */
+  readonly windowed?: boolean;
   /** Whether some text block is longer than a snippet (so showing it in full changes the card). */
   readonly cuttable: boolean;
 }
@@ -129,18 +135,19 @@ export interface CardLayout {
  *  click is not read as aimed anywhere in the card). */
 export const MARKER_CLICK_WORD = "here";
 
-/** The marker row's text: how many rows are hidden and how to show them (the key of
- *  `expandOutput` when one is bound, and a click). */
-export function markerText(hidden: number, key: string | null): string {
-  const rows = `${hidden} ${hidden === 1 ? "row" : "rows"} hidden`;
+/** The marker row's text: how many output lines are hidden and how to show them (the key of
+ *  `expandOutput` when one is bound, and a click). For a moving window of output (`window`: the
+ *  lines it holds) the count reads `N of the last M lines hidden`. */
+export function markerText(hidden: number, key: string | null, window: number | null = null): string {
+  const rows = window !== null ? `${hidden} of the last ${window} lines hidden` : `${hidden} ${hidden === 1 ? "line" : "lines"} hidden`;
   const click = `click ${MARKER_CLICK_WORD} to show all`;
   return key ? `${rows} · ${key} or ${click}` : `${rows} · ${click}`;
 }
 
 /** The marker row's spans at `width` columns, muted decoration, with only the word `here`
  *  underlined (what is left of it when the row is cut). */
-export function markerSpans(hidden: number, key: string | null, width: number): Span[] {
-  const full = markerText(hidden, key);
+export function markerSpans(hidden: number, key: string | null, width: number, window: number | null = null): Span[] {
+  const full = markerText(hidden, key, window);
   const shown = truncateEnd(full, width);
   const kept = shown === full ? shown : shown.slice(0, -1);
   const from = full.lastIndexOf(MARKER_CLICK_WORD);
@@ -240,11 +247,16 @@ function resultRows(result: CommandResult, width: number): { output: Row[]; code
   return { output, code: labelledRows(RETURN_CODE_LABEL, String(result.code), width) };
 }
 
+/** The output lines of a command result (the `Output:` label row is not one when there are several). */
+function resultLines(result: CommandResult): number {
+  return resultOutputLines(result.output).length;
+}
+
 /** The parts of a recognised command result in content block `content`. */
 function resultParts(result: CommandResult, content: number, width: number): CardPart[] {
   const { output, code } = resultRows(result, width);
   const parts: CardPart[] = [];
-  if (output.length > 0) parts.push({ kind: "result", content, rows: output });
+  if (output.length > 0) parts.push({ kind: "result", content, rows: output, head: resultLines(result) > 1 ? 1 : 0 });
   parts.push({ kind: "code", content, rows: code });
   return parts;
 }
@@ -300,17 +312,60 @@ function toolParts(item: ToolCallItem, width: number, glyphs: ConversationGlyphs
 /** The marker row's placeholder (the drawing writes its text). */
 const MARKER_ROW: Row = { spans: [], decorative: true };
 
+/** The indices of the rows that start an output line: not a continuation of a wrapped one
+ *  (`joined`), not decoration, and not among the first `head` rows (a result's label). */
+function lineStarts(rows: readonly Row[], head: number): number[] {
+  const starts: number[] = [];
+  for (let r = head; r < rows.length; r++) {
+    const row = rows[r]!;
+    if (row.joined === undefined && row.decorative !== true) starts.push(r);
+  }
+  return starts;
+}
+
+/** How a text block of `n` rows is cut to a snippet: the rows `[from, to)` shown and the output
+ *  lines hidden and held, or null when it is not cut (it fits, or it is one line, however long). */
+export interface SnippetCut {
+  readonly from: number;
+  readonly to: number;
+  readonly hidden: number;
+  readonly lines: number;
+}
+
+/**
+ * The cut of a block of `n` rows whose output lines start at rows `starts` (`lineStarts`): whole
+ * lines, the last ones when `tail`, else the first ones, as many as fit in `snippet` rows and at
+ * least one. The rows before the first line (a result's label) count when the first lines are
+ * shown. Null when every line fits, or the block fits in the snippet.
+ */
+export function snippetCut(starts: readonly number[], n: number, snippet: number, tail: boolean): SnippetCut | null {
+  const lines = starts.length;
+  if (n <= snippet || lines === 0) return null;
+  let keep = 1;
+  for (let k = 2; k <= lines; k++) {
+    const rows = tail ? n - starts[lines - k]! : (k === lines ? n : starts[k]!);
+    if (rows > snippet) break;
+    keep = k;
+  }
+  if (keep >= lines) return null;
+  return tail
+    ? { from: starts[lines - keep]!, to: n, hidden: lines - keep, lines }
+    : { from: 0, to: starts[keep]!, hidden: lines - keep, lines };
+}
+
 /** Parts into drawn rows, cutting text blocks to snippets unless `full`. */
 function assemble(parts: readonly CardPart[], full: boolean, tail: boolean): CardLayout {
   const rows: Row[] = [];
   const sources: RowSource[] = [];
   let marker = -1;
   let hidden = 0;
+  let total = 0;
   let cuttable = false;
   const snippet = snippetRows();
   parts.forEach((part, p) => {
     const n = part.rows.length;
-    const cut = ((part.kind === "markdown" && part.content !== null) || part.kind === "result") && n > snippet;
+    const cuttablePart = (part.kind === "markdown" && part.content !== null) || part.kind === "result";
+    const cut = cuttablePart ? snippetCut(lineStarts(part.rows, part.kind === "result" ? part.head : 0), n, snippet, tail) : null;
     if (cut) cuttable = true;
     if (!cut || full) {
       part.rows.forEach((row, r) => {
@@ -319,13 +374,12 @@ function assemble(parts: readonly CardPart[], full: boolean, tail: boolean): Car
       });
       return;
     }
-    const from = tail ? n - snippet : 0;
     if (tail) {
       marker = rows.length;
       rows.push(MARKER_ROW);
       sources.push({ marker: true });
     }
-    for (let r = from; r < from + snippet; r++) {
+    for (let r = cut.from; r < cut.to; r++) {
       rows.push(part.rows[r]!);
       sources.push({ part: p, row: r });
     }
@@ -334,9 +388,10 @@ function assemble(parts: readonly CardPart[], full: boolean, tail: boolean): Car
       rows.push(MARKER_ROW);
       sources.push({ marker: true });
     }
-    hidden += n - snippet;
+    hidden += cut.hidden;
+    total += cut.lines;
   });
-  return { rows, parts, sources, marker, hidden, cuttable };
+  return { rows, parts, sources, marker, hidden, total, cuttable };
 }
 
 const toolLayouts = new WeakMap<ToolCallItem, Map<string, CardLayout>>();
@@ -368,9 +423,10 @@ function layoutKey(width: number, full: boolean, glyphs: ConversationGlyphs, tit
  */
 export function toolCardLayout(item: ToolCallItem, width: number, full = false, glyphs: ConversationGlyphs = LIVE_GLYPHS, title = true): CardLayout {
   const w = Math.max(1, width);
-  return cached(toolLayouts, item, layoutKey(w, full, glyphs, title), () =>
-    assemble(toolParts(item, w, glyphs, title), full, item.toolKind === "execute"),
-  );
+  return cached(toolLayouts, item, layoutKey(w, full, glyphs, title), () => {
+    const layout = assemble(toolParts(item, w, glyphs, title), full, item.toolKind === "execute");
+    return item.outputWindow === true ? { ...layout, windowed: true } : layout;
+  });
 }
 
 /** An expanded thought's rows at `width` (its inner width): the body as Markdown, dim, plain text
@@ -425,6 +481,42 @@ function textRowCount(text: string, width: number, glyphs: ConversationGlyphs): 
  * blocks are single fences (the height estimate of every expanded card at a density switch:
  * window/heights.ts). A test holds it equal to the layout's row count.
  */
+/** The rows a text block of `text` takes once cut to a snippet (plus its marker row), or its rows
+ *  uncut: for a single fence of printable ASCII without a language, from the rows of each line
+ *  alone; else from the laid-out rows. */
+function textBlockHeight(text: string, width: number, glyphs: ConversationGlyphs, tail: boolean): number {
+  const snippet = snippetRows();
+  const fence = singleFence(text);
+  if (fence) {
+    // Counted whole, then only the lines that fit the snippet from the cut's end. The language
+    // label takes a row of its own at the top when the first line reaches it (what the first
+    // line alone tells).
+    const n = textRowCount(text, width, glyphs);
+    if (n <= snippet) return n;
+    const code = fence.code.split("\n");
+    const first = fence.lang === "" ? 0 : codeRowCount(code[0]!, fence.lang, width, glyphs);
+    const bare = fence.lang === "" ? 0 : codeRowCount(code[0]!, "", width, glyphs);
+    if (first === null || bare === null) return laidOutHeight(text, width, glyphs, tail);
+    let shown = tail ? 0 : first - bare;
+    let kept = 0;
+    for (let k = 0; k < code.length; k++) {
+      const rows = codeRowCount(code[tail ? code.length - 1 - k : k]!, "", width, glyphs);
+      if (rows === null) return laidOutHeight(text, width, glyphs, tail);
+      if (kept > 0 && shown + rows > snippet) break;
+      shown += rows;
+      kept++;
+    }
+    return kept >= code.length ? n : shown + 1;
+  }
+  return laidOutHeight(text, width, glyphs, tail);
+}
+
+function laidOutHeight(text: string, width: number, glyphs: ConversationGlyphs, tail: boolean): number {
+  const rows = markdownPart(text, width, glyphs, 0, "text", false, true).rows;
+  const cut = snippetCut(lineStarts(rows, 0), rows.length, snippetRows(), tail);
+  return cut ? cut.to - cut.from + 1 : rows.length;
+}
+
 export function toolCardHeight(item: ToolCallItem, width: number, full = false, glyphs: ConversationGlyphs = LIVE_GLYPHS, title = true): number {
   const w = Math.max(1, width);
   const laidOut = toolLayouts.get(item)?.get(layoutKey(w, full, glyphs, title));
@@ -438,11 +530,11 @@ export function toolCardHeight(item: ToolCallItem, width: number, full = false, 
         const result = commandResult(block.text, item.toolKind, item.toolStatus);
         if (result) {
           const { output, code } = resultRows(result, w);
-          rows += (output.length > snippetRows() && !full ? snippetRows() + 1 : output.length) + code.length;
+          const cut = full ? null : snippetCut(lineStarts(output, resultLines(result) > 1 ? 1 : 0), output.length, snippetRows(), item.toolKind === "execute");
+          rows += (cut ? cut.to - cut.from + 1 : output.length) + code.length;
           break;
         }
-        const n = textRowCount(block.text, w, glyphs);
-        rows += n > snippetRows() && !full ? snippetRows() + 1 : n;
+        rows += full ? textRowCount(block.text, w, glyphs) : textBlockHeight(block.text, w, glyphs, item.toolKind === "execute");
         break;
       }
       case "diff":

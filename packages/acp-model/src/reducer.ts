@@ -155,6 +155,24 @@ function rawOutputTextOf(rawOutput: unknown): string | undefined {
   return undefined;
 }
 
+/** The lines of a call's output text as the card shows them: its text blocks joined, else the raw
+ *  output text; null when it has none. Trailing empty lines are not lines. */
+function outputLinesOf(content: readonly ToolCallItemContent[], rawOutputText: string | null): string[] | null {
+  const texts = content.flatMap((block) => (block.type === "text" ? [block.text] : []));
+  const text = content.length > 0 ? (texts.length > 0 ? texts.join("\n") : null) : rawOutputText;
+  if (text === null || text === "") return null;
+  const lines = text.split("\n");
+  while (lines.length > 0 && lines.at(-1) === "") lines.pop();
+  return lines;
+}
+
+/** Whether `next` is not an extension of `previous`: its first line differs or it has fewer lines
+ *  (a window onto the output that moved, not output that grew). */
+function movedWindow(previous: string[] | null, next: string[] | null): boolean {
+  if (previous === null || next === null || previous.length === 0 || next.length === 0) return false;
+  return next[0] !== previous[0] || next.length < previous.length;
+}
+
 function mapToolCallContent(content: readonly ToolCallContent[] | null | undefined): ToolCallItemContent[] | undefined {
   if (content == null) return undefined;
   return content.map((entry): ToolCallItemContent => {
@@ -227,16 +245,24 @@ function upsertToolCall(session: Session, fields: ToolCallFields, at: number): S
     if (item.kind !== "tool_call") return item;
     const nextStatus = fields.status ?? item.toolStatus;
     const becomesFinal = isTerminalToolStatus(nextStatus);
+    const content = fields.content != null ? (mapToolCallContent(fields.content) ?? item.content) : item.content;
+    const rawOutputText = rawOutputTextOf(fields.rawOutput) ?? item.rawOutputText;
+    // Only a running call's updates can show a window: the update that completes a call may
+    // restate its output in another shape (a command result's envelope).
+    const outputWindow =
+      item.outputWindow === true ||
+      (!becomesFinal && movedWindow(outputLinesOf(item.content, item.rawOutputText), outputLinesOf(content, rawOutputText)));
     return {
       ...item,
+      ...(outputWindow ? { outputWindow } : {}),
       title: fields.title != null ? sanitise(fields.title) : item.title,
       toolName: fields.name != null ? sanitise(fields.name) : item.toolName,
       toolKind: fields.kind != null ? fields.kind : item.toolKind,
       toolStatus: nextStatus,
       status: becomesFinal ? "final" : item.status,
-      content: fields.content != null ? (mapToolCallContent(fields.content) ?? item.content) : item.content,
+      content,
       locations: fields.locations != null ? (mapLocations(fields.locations) ?? item.locations) : item.locations,
-      rawOutputText: rawOutputTextOf(fields.rawOutput) ?? item.rawOutputText,
+      rawOutputText,
       inputText: inputTextOf(fields.rawInput, fields.kind ?? item.toolKind) ?? item.inputText,
       endedAt: item.endedAt ?? (becomesFinal ? at : null),
     };

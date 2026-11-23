@@ -30,12 +30,12 @@ for (let r = 1; r <= RUNS; r++) {
       await settle(s, 60);
     }
     s.sendKeys("Enter");
-    await s.waitFor("4990 rows hidden", 5000);
+    await s.waitFor("4990 lines hidden", 5000);
     await settle(s, 100);
     const before = frames(run).length;
     const sent = performance.now();
     s.sendKeys({ text: "a" });
-    await s.waitFor((p) => !p.screenText().join("\n").includes("4990 rows hidden"), 5000);
+    await s.waitFor((p) => !p.screenText().join("\n").includes("4990 lines hidden"), 5000);
     const shownMs = performance.now() - sent;
     await settle(s, 100);
     const toggle = frames(run).slice(before);
