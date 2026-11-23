@@ -89,6 +89,8 @@ import { SessionOpenFailure } from "../session/start.ts";
 import { createSessionStore, type SessionStore } from "../session/store.ts";
 import { createSessionSwitcher } from "../session/switch.ts";
 import { createSessionList } from "../overlay/SessionList.tsx";
+import { createCursorColour, type CursorColour } from "./cursor-colour.ts";
+import { rendererWrite } from "../renderer/write-out.ts";
 import { bindTerminalColours, createLiveTheme, createThemeRefresh, type ThemeColours } from "../theme/index.ts";
 import { createConfiguredTheme } from "../theme/configured.ts";
 import { createPalette } from "../overlay/Overlay.tsx";
@@ -214,6 +216,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
   let repainter: Repainter | null = null;
   // The terminal's colours behind the theme's surfaces (task 5.2); `refresh()` re-queries them.
   let themeColours: ThemeColours | null = null;
+  let cursorColour: CursorColour | null = null;
   // The per-terminal table (mvp-configuration design D12, renderer/capabilities.ts): the built-in
   // row of this terminal, its `terminals` entry and `ACP_TUI_CAPABILITIES` on top. Its `osc8` is
   // fixed for the run: the renderer is constructed with it (`FORCE_HYPERLINK`), and draw.ts
@@ -397,7 +400,7 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
     },
     addDirectory: (path, confirm) => switcher.addDirectory(path, confirm),
   };
-  const context: AppContextValue = { store, actions, theme, logger: options.logger, wheel, clipboard, config, scrollbar, launch: () => splashLaunch(switcher.current()?.launch ?? launch) };
+  const context: AppContextValue = { store, actions, theme, logger: options.logger, wheel, clipboard, config, scrollbar, launch: () => splashLaunch(switcher.current()?.launch ?? launch), get cursorColour() { return cursorColour ?? undefined; } };
 
   return new Promise<number>((resolve) => {
     const run = (): void => {
@@ -500,6 +503,9 @@ export function runApp(options: StartAppOptions, extras: RunAppExtras = {}): Pro
             if (theme.setTruecolour(caps.rgb)) forceFullRepaint(renderer);
           });
           themeColours = bindTerminalColours(renderer, theme);
+          // The prompt box's cursor colour follows the same queries (./cursor-colour.ts); made
+          // before the first query so it sees it.
+          cursorColour = createCursorColour({ tracker: themeColours.tracker, renderer, write: rendererWrite(renderer, options.logger), logger: options.logger });
           await themeColours.refresh();
           // Later re-queries (task 5.3): resize settle and Ctrl+L, and SIGUSR2 (always repaints).
           // `CSI ? 997 ; n n` needs no hook: OpenTUI (which enables `CSI ? 2031 h` itself)

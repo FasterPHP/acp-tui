@@ -88,7 +88,7 @@ function expectRestored(s: PtySession) {
     const at = lastIndex(raw, on);
     if (at >= 0) expect(raw.indexOf(off, at)).toBeGreaterThan(0);
   }
-  expect(raw).toContain("\x1b7\x1b[r\x1b8\x1b[0m\x1b[0 q\x1b[?25h");
+  expect(raw).toContain("\x1b7\x1b[r\x1b8\x1b[0m\x1b]112\x07\x1b[0 q\x1b[?25h");
   expect(s.mouseModesSet()).toEqual([]);
   const core = (s.term as unknown as { _core: { buffer: { scrollTop: number; scrollBottom: number }; coreService: { isCursorHidden: boolean } } })._core;
   expect(core.buffer.scrollTop).toBe(0);

@@ -4,6 +4,7 @@
 // colour as null when none arrives, and PhpStorm does not answer OSC 4. So acp-tui asks OSC 10
 // and OSC 11 itself and reads the replies through `renderer.subscribeOsc`.
 //
+// It also asks OSC 12 (the cursor colour), for the prompt box's cursor (src/app/cursor-colour.ts).
 // The tracker keeps its subscription for the life of the renderer, so replies that OpenTUI's own
 // queries provoke (it re-queries on `CSI ? 997 ; n n`) update the colours too.
 import type { CliRenderer } from "@opentui/core";
@@ -13,8 +14,8 @@ import type { LiveTheme } from "./live.ts";
 /** Start-up wait for the two replies; no reply means the flat fallback. */
 export const QUERY_TIMEOUT_MS = 300;
 
-/** The queries: foreground then background, BEL-terminated (terminals reply in kind). */
-export const COLOUR_QUERY = "\x1b]10;?\x07\x1b]11;?\x07";
+/** The queries: foreground, background, then cursor colour, BEL-terminated (terminals reply in kind). */
+export const COLOUR_QUERY = "\x1b]10;?\x07\x1b]11;?\x07\x1b]12;?\x07";
 
 /** One channel of `rgb:` in 1 to 4 hex digits, scaled to 0 to 255. */
 function channel(digits: string): number {
@@ -22,29 +23,44 @@ function channel(digits: string): number {
 }
 
 /**
- * Parses an OSC 10 or OSC 11 reply: `ESC ] 10 ; rgb:rrrr/gggg/bbbb` (1 to 4 hex digits per
+ * Parses an OSC 10, OSC 11 or OSC 12 reply: `ESC ] 10 ; rgb:rrrr/gggg/bbbb` (1 to 4 hex digits per
  * channel) or `ESC ] 11 ; #rrggbb`, ended by BEL, ST (`ESC \`) or nothing. Returns `null` for
  * anything else, including the `?` query itself.
  */
-export function parseColourReply(sequence: string): { code: 10 | 11; colour: string } | null {
-  const m = /^\x1b\](10|11);(?:rgba?:([0-9a-fA-F]{1,4})\/([0-9a-fA-F]{1,4})\/([0-9a-fA-F]{1,4})(?:\/[0-9a-fA-F]{1,4})?|#([0-9a-fA-F]{6}))(?:\x07|\x1b\\)?$/.exec(sequence);
+export function parseColourReply(sequence: string): { code: 10 | 11 | 12; colour: string } | null {
+  const m = /^\x1b\](10|11|12);(?:rgba?:([0-9a-fA-F]{1,4})\/([0-9a-fA-F]{1,4})\/([0-9a-fA-F]{1,4})(?:\/[0-9a-fA-F]{1,4})?|#([0-9a-fA-F]{6}))(?:\x07|\x1b\\)?$/.exec(sequence);
   if (!m) return null;
-  const code = m[1] === "10" ? 10 : 11;
+  const code = m[1] === "10" ? 10 : m[1] === "11" ? 11 : 12;
   if (m[5]) return { code, colour: `#${m[5].toLowerCase()}` };
   const [r, g, b] = [m[2]!, m[3]!, m[4]!].map((d) => channel(d).toString(16).padStart(2, "0"));
   return { code, colour: `#${r}${g}${b}` };
 }
 
+/** What the terminal has reported so far, each `null` while missing (or forgotten by a query). */
+export interface ColourReplies {
+  readonly foreground: string | null;
+  readonly background: string | null;
+  readonly cursor: string | null;
+}
+
 export interface ColourTracker {
   /** The latest pair of replies, or `null` while either is missing. */
   colours(): TerminalColours | null;
+  /** The cursor colour the terminal reported (`OSC 12`), or `null`: it is optional, a pair is complete without it. */
+  cursor(): string | null;
+  /** Everything reported so far, including a partial answer. */
+  replies(): ColourReplies;
+  /** Called with the wait (ms) whenever `query()` sends the queries, before any reply to them. */
+  onQuery(handler: (timeoutMs: number) => void): () => void;
+  /** Called after every colour reply (10, 11 or 12) has been taken in, whoever asked for it. */
+  onReply(handler: () => void): () => void;
   /**
    * Sends the queries and resolves with the colours once both replies have arrived, or
    * `null` at the timeout. Replies from before the call do not count: the previous pair is
    * forgotten first, so a terminal that stops answering falls back to flat.
    */
   query(timeoutMs?: number): Promise<TerminalColours | null>;
-  /** Called with the new colours whenever a complete, changed pair arrives (including from queries acp-tui did not send). */
+  /** Called with the new colours whenever a complete, changed pair arrives, or the cursor colour changes while a pair is held (including from queries acp-tui did not send). */
   onChange(handler: (colours: TerminalColours) => void): () => void;
   dispose(): void;
 }
@@ -61,16 +77,28 @@ export function createColourTracker(
   const write = options.write ?? ((data: string) => void process.stdout.write(data));
   let foreground: string | null = null;
   let background: string | null = null;
+  let cursor: string | null = null;
+  let reportedCursor: string | null = null;
   let complete: TerminalColours | null = null;
   // The last pair handed to `onChange`; a query forgets `complete` but not this, so an answer
   // equal to the previous one is not a change.
   let reported: TerminalColours | null = null;
   const handlers = new Set<(colours: TerminalColours) => void>();
   const waiters = new Set<(colours: TerminalColours) => void>();
+  const queryHandlers = new Set<(timeoutMs: number) => void>();
+  const replyHandlers = new Set<() => void>();
 
   const unsubscribe = renderer.subscribeOsc((sequence) => {
     const reply = parseColourReply(sequence);
     if (!reply) return;
+    if (reply.code === 12) {
+      cursor = reply.colour;
+      const cursorChanged = reportedCursor !== cursor;
+      reportedCursor = cursor;
+      for (const handler of [...replyHandlers]) handler();
+      if (cursorChanged && complete) for (const handler of [...handlers]) handler(complete);
+      return;
+    }
     // A second reply for a colour already held starts a new round (an unsolicited change, such
     // as OpenTUI's re-query after `CSI ? 997 ; n n`): forget the other colour, so a pair is
     // never one new colour with one old one.
@@ -81,20 +109,35 @@ export function createColourTracker(
       if (background !== null) foreground = null;
       background = reply.colour;
     }
-    if (foreground === null || background === null) return;
+    if (foreground === null || background === null) {
+      for (const handler of [...replyHandlers]) handler();
+      return;
+    }
     const next = { foreground, background };
     const changed = reported?.foreground !== next.foreground || reported?.background !== next.background;
     complete = next;
     if (changed) reported = next;
     for (const waiter of [...waiters]) waiter(next);
+    for (const handler of [...replyHandlers]) handler();
     if (changed) for (const handler of [...handlers]) handler(next);
   });
 
   return {
     colours: () => complete,
+    cursor: () => cursor,
+    replies: () => ({ foreground, background, cursor }),
+    onQuery(handler) {
+      queryHandlers.add(handler);
+      return () => void queryHandlers.delete(handler);
+    },
+    onReply(handler) {
+      replyHandlers.add(handler);
+      return () => void replyHandlers.delete(handler);
+    },
     query(timeoutMs = QUERY_TIMEOUT_MS) {
       foreground = null;
       background = null;
+      cursor = null;
       complete = null;
       return new Promise<TerminalColours | null>((resolve) => {
         const done = (colours: TerminalColours | null) => {
@@ -104,6 +147,7 @@ export function createColourTracker(
         };
         const timer = setTimeout(() => done(null), timeoutMs);
         waiters.add(done as (colours: TerminalColours) => void);
+        for (const handler of [...queryHandlers]) handler(timeoutMs);
         write(COLOUR_QUERY);
       });
     },
@@ -115,6 +159,8 @@ export function createColourTracker(
       unsubscribe();
       handlers.clear();
       waiters.clear();
+      queryHandlers.clear();
+      replyHandlers.clear();
     },
   };
 }
