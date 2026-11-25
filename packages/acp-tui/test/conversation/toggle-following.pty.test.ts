@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { PtySession } from "../pty/harness.ts";
 import { lineWithoutBar, statusRow, withoutBar } from "../pty/regions.ts";
+import { configEnv } from "../pty/config-home.ts";
 import { settle, sendPrompt, startCli, type CliRun } from "./cli.ts";
 
 let run: CliRun | undefined;
@@ -20,6 +21,8 @@ const SIZES = [
   { cols: 63, rows: 21 },
 ] as const;
 const GROUP = /^ {2}[▸▾] \d+ (?:reads?|searches|search)/;
+/** A focus gap line over a turn's calls. */
+const FOCUS_LINE = /^ {2}[▸▾] \d+ tool calls?\b/;
 /** The activity line between the conversation and the prompt box. */
 const ACTIVITY = /^ {2}(?:\d+ running\b|[✓✗] )/;
 
@@ -74,6 +77,35 @@ describe("toggling while following (design D1)", () => {
         const before = seen;
         // The screen at the moment the next call shows (the busy indicator keeps it from ever
         // being quiet).
+        let frame: { last: string | undefined; status: string; newest: number } | undefined;
+        await s.waitFor((p) => {
+          if (newest(p) <= before) return false;
+          frame = { last: conversationRows(p).at(-1), status: statusRow(p), newest: newest(p) };
+          return true;
+        }, 10000);
+        seen = frame!.newest;
+        expect(frame!.last).toMatch(new RegExp(`#${seen}$`));
+        expect(frame!.status).not.toMatch(/scrolled/);
+      }
+      expect(run.agentMethods().filter((m) => m === "session/prompt")).toHaveLength(1);
+    }, 90000);
+
+    test(`Opening the running turn's tool calls in focus at ${where}: the open gap line's last member stays on the row above the chrome and following goes on`, async () => {
+      // Every call comes with no message between, so the turn is one gap with one line.
+      run = startCli({ scenario: "fast-tools", delayScale: 2, agentArgs: ["--tools", "30"], env: configEnv({ density: "focus" }), ...size });
+      const s = run.session;
+      await sendPrompt(s, "go");
+      await s.waitFor((p) => conversationRows(p).some((l) => FOCUS_LINE.test(l)), 15000);
+      s.sendKeys("Tab");
+      await s.waitFor((p) => FOCUS_LINE.test(lineWithoutBar(p, cursorRow(p))), 5000);
+      s.sendKeys("Enter");
+      await s.waitFor((p) => conversationRows(p).some((l) => /^ {2}▾ \d+ tool calls?/.test(l)), 5000);
+      // Once the conversation overflows, each call the turn adds after the opening is the last
+      // conversation row, and the view has not left the bottom.
+      await s.waitFor((p) => overflowed(p) && newest(p) >= 12, 60000);
+      let seen = newest(s);
+      for (let i = 0; i < 3; i++) {
+        const before = seen;
         let frame: { last: string | undefined; status: string; newest: number } | undefined;
         await s.waitFor((p) => {
           if (newest(p) <= before) return false;

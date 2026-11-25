@@ -13,6 +13,7 @@ import { toolKindToken } from "../theme/tokens.ts";
 import type { ConversationGlyphs } from "./glyphs.ts";
 import { LIVE_GLYPHS } from "./live-glyphs.ts";
 import { toolTitleText } from "./tool-title.ts";
+import { isStoppedTool } from "./tool-state.ts";
 import { answeredLabel, questionLines } from "./permission-label.ts";
 import { splitEmoji, type EmojiClass } from "../render/emoji/emoji.ts";
 import { terminalEmojiClasses } from "./markdown/context.ts";
@@ -131,14 +132,13 @@ function toolKind(item: ToolCallItem): string {
 
 function statusOf(item: ToolCallItem, glyphs: ConversationGlyphs, frame: number | null): Segment {
   // A live tool is still running; a final one the turn ended on while pending is stopped.
-  const live = item.status === "live";
   switch (item.toolStatus) {
     case "completed":
       return { text: glyphs.toolStatus.ok, token: "tool.ok" };
     case "failed":
       return { text: glyphs.toolStatus.fail, token: "tool.fail" };
     default: {
-      if (!live) return { text: glyphs.toolStatus.stopped, token: "muted" };
+      if (isStoppedTool(item)) return { text: glyphs.toolStatus.stopped, token: "muted" };
       const spinner = frame === null ? glyphs.toolStatus.running : glyphs.spinner[frame % glyphs.spinner.length]!;
       return { text: spinner, token: "tool.running" };
     }

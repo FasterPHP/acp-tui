@@ -8,7 +8,7 @@
 //   density (`compact`, `verbose`, `focus`; the key map's `cycleDensity` (`v`)
 //   action switches it, and a notice names the new one), with runs of
 //   reads, searches, fetches and thoughts grouped into one expandable line in
-//   `compact` and one line per turn for tool calls and thoughts in `focus`.
+//   `compact` and one line per gap of tool calls and thoughts in `focus`.
 //   The cursor moves by entry, and jumps to the previous or next prompt or tool
 //   call (`jump`); Enter, a click or Ctrl+O toggles an entry (a
 //   group line opens and closes; Ctrl+O on a call hidden in a closed group
