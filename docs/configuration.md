@@ -55,7 +55,7 @@ A first file might be as small as this:
 {
   // keyboard only: leave the mouse to the terminal
   "mouse": "off",
-  // open sessions with each turn's tool calls behind one line
+  // open sessions with each run of tool calls between messages behind one line
   "density": "focus",
 }
 ```
@@ -384,7 +384,7 @@ Unsent drafts: when you leave a session that can be reopened (the harness can lo
 
 | Setting | Values | Default | What it does |
 | --- | --- | --- | --- |
-| `density` | `"compact"`, `"verbose"`, `"focus"` | `"focus"` | How much of the conversation a session starts by showing: `"compact"` - one line per tool call, thought or plan, runs of reads and searches grouped, failures included; `"verbose"` - everything expanded, nothing grouped; `"focus"` - each turn's tool calls, thoughts and plans behind one line, leaving the messages. The `v` key in the conversation cycles them. |
+| `density` | `"compact"`, `"verbose"`, `"focus"` | `"focus"` | How much of the conversation a session starts by showing: `"compact"` - one line per tool call, thought or plan, runs of reads and searches grouped, failures included; `"verbose"` - everything expanded, nothing grouped; `"focus"` - each run of tool calls, thoughts and plans between messages behind one line, in its place, leaving the messages. From most shown to least they are verbose, compact and focus; the `v` key in the conversation cycles them. |
 | `interrupt` | `"double"`, `"single"` | `"double"` | How Esc interrupts a running turn: `"double"` - the first Esc arms the interrupt and a second Esc cancels the turn; `"single"` - one Esc cancels the turn. |
 | `markdown.heading_markers` | boolean | `false` | Show a heading's `#` markers, muted, before its text. |
 | `markdown.table_min_column_width` | whole number from 3 | `10` | The column width below which a table switches to the record layout. |
@@ -413,6 +413,8 @@ With `interrupt` `single`, the Esc that would arm an interrupt cancels the turn 
   "cards": { "padding": { "columns": 1 } }
 }
 ```
+
+**Focus lines.** In `focus` each run of hidden items between two shown ones (a message, a user prompt or a turn-end line) is one line in the place its first item had: `▸ 3 tool calls (1 failed)`, then thoughts, plans and permissions when there are any (`▸ 5 tool calls (1 failed, 2 running) · 1 thought`), with the duration of its calls. A turn with several answers therefore has several lines, each between the answers it separates, and a line takes the blank row that separated two answers instead of adding one. Enter or a click opens one line only and shows its members directly below it; copying across a closed line copies its calls' title lines, and finding a phrase in a call behind one opens that line. The turn-end line of a turn with more than one such line adds the turn's totals in every density: `end turn · 6 tool calls (1 failed) · 1 thought · 42s`. While a turn runs, the activity line carries its count at the right (`2 tool calls (1 running) · 1 thought`), and `activity.linger_seconds` keeps it for the moment after the last call finishes.
 
 **Spacing in short panes.** Blank rows keep the conversation's neighbours apart: one above the activity bar's line, one above and one below a permission or question card, and one between the conversation and the prompt box in a layout without the activity bar; with the card's padding rows and the prompt box's padding row (below its text), they are spacing, not content. When the rows run short they give way one at a time, in this order, before the card's content is cut or the conversation goes below four rows: the row below the card, the row above the card, the activity bar's blank row, the row above the prompt box (in a layout without the activity bar), the card's padding rows, the prompt box's padding row. The card's content here is its title, its options and the first two rows of its preview; a longer preview takes the rows left (scroll it, or grow the card with Ctrl+O). So in PhpStorm's 63x21 pane a four-option permission request shows its title, two preview rows and the options with no blank rows, and a tall pane keeps every blank row. The activity bar's line keeps its row at every height, and the blank row above it is drawn at rest only where the conversation keeps its floor (`layout.conversation_min_rows`) with it, before a second empty text row in the prompt box (or while a card is docked): at 63x22 the prompt box rests at one text row with the blank row and the line above it and the conversation has 12 rows, at 63x21 the blank row gives way and the conversation keeps its 12 rows, and at 61x20 (Zed) the conversation has 11.
 
@@ -482,7 +484,7 @@ One line above the prompt box shows the tool calls in progress (`2 running: Sear
 
 | Setting | Values | Default | What it does |
 | --- | --- | --- | --- |
-| `activity.linger_seconds` | number from 0 to 5 | `1.5` | How many seconds the activity line shows the finished call muted, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off. |
+| `activity.linger_seconds` | number from 0 to 5 | `1.5` | How many seconds the activity line shows the finished call muted, with the turn's count at its right, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off. |
 
 ```jsonc config
 {
