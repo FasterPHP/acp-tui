@@ -3,8 +3,9 @@
 // pure functions over model items.
 import { describe, expect, test } from "bun:test";
 import type { Item, MarkerItem, ThoughtItem, ToolCallItem } from "acp-model";
+import { addCounts, countItems, countSegments, EMPTY_COUNTS, isRunningTool, isStoppedTool } from "../../../src/conversation/counts.ts";
 import { expandedByDefault } from "../../../src/conversation/view-model.ts";
-import { buildEntries, groupable, groupKeyItem, groupLine, groupRuns, jumpTarget, nextDensity, turnRows, type GroupEntry, type ItemLookup } from "../../../src/conversation/window/entries.ts";
+import { buildEntries, groupable, groupKeyItem, groupLine, groupRuns, jumpTarget, nextDensity, focusGaps, type GroupEntry, type ItemLookup } from "../../../src/conversation/window/entries.ts";
 
 let index = 0;
 const tool = (id: string, toolKind: ToolCallItem["toolKind"], over: Partial<ToolCallItem> = {}): ToolCallItem => ({
@@ -144,7 +145,7 @@ describe("grouping (compact)", () => {
     expect(list.keys).toEqual(["run:agent_message:1", "group:run:r1"]);
     expect(list.entries[0]!.kind).toBe("item");
     expect(groupKeyItem("group:run:r1")).toBe("r1");
-    expect(groupKeyItem("group:turn:run:thought:2")).toBe("run:thought:2");
+    expect(groupKeyItem("group:gap:run:thought:2")).toBe("run:thought:2");
     expect(groupKeyItem("run:agent_message:1")).toBeNull();
   });
 
@@ -203,7 +204,7 @@ describe("densities (task 12.5)", () => {
     expect(nextDensity("focus")).toBe("compact");
   });
 
-  test("compact groups runs; verbose shows every item; focus hides tools and thoughts behind one line per turn", () => {
+  test("compact groups runs; verbose shows every item; focus hides tools and thoughts behind one line per gap", () => {
     expect(buildEntries(m.order, m.lookup, { density: "compact", open: closed }).keys).toEqual([
       "u1",
       "group:run:t1",
@@ -218,32 +219,158 @@ describe("densities (task 12.5)", () => {
     ]);
     expect(buildEntries(m.order, m.lookup, { density: "verbose", open: closed }).keys).toEqual(m.order);
     const focus = buildEntries(m.order, m.lookup, { density: "focus", open: closed });
-    expect(focus.keys).toEqual(["u1", "group:turn:t1", "a1", "a2", "end1", "u2", "group:turn:r3", "a3"]);
-    expect((focus.entries[1] as GroupEntry).members).toEqual(["t1", "r1", "r2", "e1", "x1"]);
-    // Every hidden item is held by its turn's line.
-    expect(focus.holder.get("x1")).toBe(1);
-    expect(focus.holder.get("a2")).toBe(3);
+    // Several gaps in one turn: before the first answer, between two answers, in the next turn.
+    expect(focus.keys).toEqual(["u1", "group:gap:t1", "a1", "group:gap:e1", "a2", "end1", "u2", "group:gap:r3", "a3"]);
+    expect((focus.entries[1] as GroupEntry).members).toEqual(["t1", "r1", "r2"]);
+    expect((focus.entries[3] as GroupEntry).members).toEqual(["e1", "x1"]);
+    expect((focus.entries[1] as GroupEntry).mode).toBe("gap");
+    // Every hidden item is held by its gap's line.
+    expect(focus.holder.get("x1")).toBe(3);
+    expect(focus.holder.get("r2")).toBe(1);
+    expect(focus.holder.get("a2")).toBe(4);
   });
 
-  test("the turn line counts tool calls, failures and thoughts", () => {
+  test("a gap line counts tool calls with their states in brackets, then thoughts, and the duration; a failure belongs to its own gap", () => {
     const focus = buildEntries(m.order, m.lookup, { density: "focus", open: closed });
-    expect(groupLine(focus.entries[1] as GroupEntry, m.lookup).map((s) => s.text).join("")).toBe("▸ 4 tool calls · 1 failed · 1 thought · 0.1s");
-    const failed = groupLine(focus.entries[1] as GroupEntry, m.lookup).find((s) => s.text === "1 failed");
+    const text = (i: number) => groupLine(focus.entries[i] as GroupEntry, m.lookup).map((s) => s.text).join("");
+    expect(text(1)).toBe("▸ 2 tool calls · 1 thought · 0.1s");
+    expect(text(3)).toBe("▸ 2 tool calls (1 failed) · 0.1s");
+    const failed = groupLine(focus.entries[3] as GroupEntry, m.lookup).find((s) => s.text === "1 failed");
     expect(failed?.token).toBe("tool.fail");
   });
 
-  test("turns start at a user message and end at the turn-end line", () => {
-    const n = model(user("u"), tool("a", "read"), turnEnd("end"), tool("b", "read"), user("u2"), tool("c", "read"));
-    expect(turnRows(n.order, n.lookup).map((s) => (s.kind === "group" ? `${s.key}=${s.members.join(",")}` : s.id))).toEqual([
+  test("gaps: each maximal run of hidden items between shown ones; a marker ends a gap; a message with its own id and nothing between gets no line", () => {
+    const n = model(user("u"), tool("a", "read"), turnEnd("end"), tool("b", "read"), user("u2"), tool("c", "read"), agent("m1"), agent("m2"));
+    expect(focusGaps(n.order, n.lookup).map((s) => (s.kind === "group" ? `${s.key}=${s.members.join(",")}` : s.id))).toEqual([
       "u",
-      "group:turn:a=a",
+      "group:gap:a=a",
       "end",
-      "group:turn:b=b",
+      "group:gap:b=b",
       "u2",
-      "group:turn:c=c",
+      "group:gap:c=c",
+      "m1",
+      "m2",
     ]);
   });
 
+  test("a failure in a middle gap, a marker in the middle of a turn, and a gap that grows keeping its key", () => {
+    const n = model(user("u"), tool("r1", "read"), thought("t1"), agent("a1"), tool("x1", "execute"), tool("x2", "execute", { toolStatus: "failed" }), tool("r4", "read"), agent("a2"), tool("e1", "edit"), agent("a3"), tool("r6", "read"));
+    const focus = buildEntries(n.order, n.lookup, { density: "focus", open: closed });
+    expect(focus.keys).toEqual(["u", "group:gap:r1", "a1", "group:gap:x1", "a2", "group:gap:e1", "a3", "group:gap:r6"]);
+    const line = (i: number) => groupLine(focus.entries[i] as GroupEntry, n.lookup).map((s) => s.text).join("");
+    expect(line(3)).toBe("▸ 3 tool calls (1 failed) · 0.1s");
+    expect([1, 5, 7].map((i) => line(i).includes("failed"))).toEqual([false, false, false]);
+    // The gap grows at its end: same key, same row.
+    const grown = model(user("u"), tool("r1", "read"), thought("t1"), tool("r1b", "read"), agent("a1"));
+    const before = buildEntries(grown.order.slice(0, 3), grown.lookup, { density: "focus", open: closed });
+    const after = buildEntries(grown.order, grown.lookup, { density: "focus", open: closed });
+    expect(before.keys).toEqual(["u", "group:gap:r1"]);
+    expect(after.keys).toEqual(["u", "group:gap:r1", "a1"]);
+    expect((after.entries[1] as GroupEntry).members).toEqual(["r1", "t1", "r1b"]);
+    // An error marker splits a gap.
+    const err: Item = { id: "err", kind: "marker", status: "final", origin: "self", markerKind: "error", message: "boom" } as unknown as Item;
+    const split = model(user("u"), tool("r1", "read"), err, tool("r2", "read"));
+    expect(buildEntries(split.order, split.lookup, { density: "focus", open: closed }).keys).toEqual(["u", "group:gap:r1", "err", "group:gap:r2"]);
+  });
+
+  test("a wordless thought and a pending permission record are no members: no line where nothing was hidden", () => {
+    const pending: Item = { id: "p", kind: "permission_record", status: "final", origin: "self", toolCallId: "x", outcome: { type: "pending" } } as unknown as Item;
+    const n = model(user("u"), thought("t", { text: "  " }), pending, agent("a"));
+    expect(buildEntries(n.order, n.lookup, { density: "focus", open: closed }).keys).toEqual(["u", "a"]);
+    // Next to a real member they are left out of the count and the members.
+    const mixed = model(user("u"), thought("t", { text: "" }), tool("r", "read"), pending, agent("a"));
+    const list = buildEntries(mixed.order, mixed.lookup, { density: "focus", open: closed });
+    expect((list.entries[1] as GroupEntry).members).toEqual(["r"]);
+  });
+
+  test("spacing of focus lines: no blank row between a line and an agent message, a blank row to a user message or a turn-end line", () => {
+    // Scenario "At the start and the end of a turn": user, blank, line, answer, line, blank, turn end.
+    const t = model(user("u"), tool("r1", "read"), agent("a"), tool("r2", "read"), turnEnd("end"));
+    const list = buildEntries(t.order, t.lookup, { density: "focus", open: closed });
+    expect(list.keys).toEqual(["u", "group:gap:r1", "a", "group:gap:r2", "end"]);
+    expect(list.entries.map((e) => e.margin)).toEqual([0, 1, 0, 0, 1]);
+    // Between two messages: three consecutive rows.
+    const between = model(agent("a"), tool("r1", "read"), agent("b"));
+    expect(buildEntries(between.order, between.lookup, { density: "focus", open: closed }).entries.map((e) => e.margin)).toEqual([0, 0, 0]);
+    // Opened: the members follow directly, one blank row before the next message.
+    const open = buildEntries(
+      model(agent("a"), tool("r1", "read"), tool("r2", "read"), tool("r3", "read"), agent("b")).order,
+      model(agent("a"), tool("r1", "read"), tool("r2", "read"), tool("r3", "read"), agent("b")).lookup,
+      { density: "focus", open: () => true },
+    );
+    expect(open.keys).toEqual(["a", "group:gap:r1", "r1", "r2", "r3", "b"]);
+    expect(open.entries.map((e) => e.margin)).toEqual([0, 0, 0, 0, 0, 1]);
+    // A line after a user message or a marker keeps its blank row; an agent message after a
+    // closed line takes none, but a user message does.
+    const edges = model(user("u"), tool("r1", "read"), user("u2"), turnEnd("e0"), tool("r2", "read"), user("u3"));
+    expect(buildEntries(edges.order, edges.lookup, { density: "focus", open: closed }).entries.map((e) => e.margin)).toEqual([0, 1, 1, 1, 1, 1]);
+  });
+
+  test("compact and verbose spacing is unchanged by gaps", () => {
+    const n = model(agent("a"), tool("r1", "read"), tool("r2", "read"), agent("b"), tool("e1", "edit"), user("u"));
+    expect(buildEntries(n.order, n.lookup, { density: "compact", open: closed }).entries.map((e) => e.margin)).toEqual([0, 1, 1, 1, 1]);
+    expect(buildEntries(n.order, n.lookup, { density: "verbose", open: closed }).entries.map((e) => e.margin)).toEqual([0, 1, 0, 1, 1, 1]);
+  });
+});
+
+describe("counting items (focus-groups D3)", () => {
+  const text = (segments: { text: string }[]) => segments.map((s) => s.text).join("");
+
+  test("the form: tool calls with states in brackets in the order failed, stopped, running, then thoughts, plans, permissions", () => {
+    const counts = countItems([
+      tool("a", "read"),
+      tool("b", "read", { toolStatus: "failed" }),
+      tool("c", "read", { toolStatus: "in_progress" }),
+      tool("d", "read", { status: "live", toolStatus: "in_progress" }),
+      tool("e", "read", { status: "live", toolStatus: "pending" }),
+      thought("t1"),
+      { id: "p1", kind: "plan", status: "final", origin: "self", entries: [{ content: "x", priority: "low", status: "pending" }] } as unknown as Item,
+      { id: "k1", kind: "permission_record", status: "final", origin: "self", toolCallId: "a", outcome: { type: "selected", optionId: "x" } } as unknown as Item,
+      { id: "k2", kind: "permission_record", status: "final", origin: "self", toolCallId: "a", outcome: { type: "cancelled" } } as unknown as Item,
+    ]);
+    expect(counts).toMatchObject({ tools: 5, failed: 1, stopped: 1, running: 2, thoughts: 1, plans: 1, permissions: 2 });
+    expect(text(countSegments(counts))).toBe("5 tool calls (1 failed, 1 stopped, 2 running) · 1 thought · 1 plan · 2 permissions");
+    const segments = countSegments(counts);
+    expect(segments.find((s) => s.text === "1 failed")?.token).toBe("tool.fail");
+    expect(segments.find((s) => s.text === "2 running")?.token).toBe("tool.running");
+    expect(segments.find((s) => s.text === "1 stopped")?.token).toBe("muted");
+    expect(segments.find((s) => s.text === "5 tool calls")?.token).toBe("muted");
+  });
+
+  test("each part only when not zero, singular and plural, and nothing for nothing", () => {
+    expect(text(countSegments(EMPTY_COUNTS))).toBe("");
+    expect(text(countSegments(countItems([tool("a", "read")])))).toBe("1 tool call");
+    expect(text(countSegments(countItems([thought("t"), thought("u")])))).toBe("2 thoughts");
+    expect(text(countSegments(countItems([tool("a", "read", { toolStatus: "failed" })])))).toBe("1 tool call (1 failed)");
+  });
+
+  test("a wordless thought, an empty plan and a pending permission count for nothing", () => {
+    const none = countItems([
+      thought("t", { text: " " }),
+      { id: "p", kind: "plan", status: "final", origin: "self", entries: [] } as unknown as Item,
+      { id: "k", kind: "permission_record", status: "final", origin: "self", toolCallId: "a", outcome: { type: "pending" } } as unknown as Item,
+      agent("m"),
+    ]);
+    expect(none).toEqual(EMPTY_COUNTS);
+  });
+
+  test("options choose the states, the kinds and the separator; addCounts is incremental", () => {
+    const counts = countItems([tool("a", "read", { toolStatus: "failed" }), tool("b", "read", { toolStatus: "in_progress" }), thought("t")]);
+    expect(text(countSegments(counts, { states: ["failed"], kinds: [], separator: " | " }))).toBe("2 tool calls (1 failed)");
+    expect(text(countSegments(counts, { states: [], separator: " | " }))).toBe("2 tool calls | 1 thought");
+    expect(addCounts(addCounts(EMPTY_COUNTS, tool("a", "read")), thought("t"))).toEqual({ ...EMPTY_COUNTS, tools: 1, thoughts: 1 });
+    expect(addCounts(EMPTY_COUNTS, agent("m"))).toBe(EMPTY_COUNTS);
+  });
+
+  test("running and stopped are the live and final unfinished calls", () => {
+    expect(isRunningTool(tool("a", "read", { status: "live", toolStatus: "pending" }))).toBe(true);
+    expect(isStoppedTool(tool("a", "read", { status: "live", toolStatus: "pending" }))).toBe(false);
+    expect(isStoppedTool(tool("a", "read", { toolStatus: "in_progress" }))).toBe(true);
+    expect(isStoppedTool(tool("a", "read"))).toBe(false);
+  });
+});
+
+describe("densities, empty items", () => {
   test("items with nothing to show are left out in every density (an empty message, an open permission)", () => {
     const empty: Item = { id: "e", kind: "agent_message", status: "live", origin: "self", text: "" };
     const n = model(user("u"), empty, agent("a"));
@@ -297,9 +424,12 @@ describe("jumps between prompts and tool calls (task 3.3)", () => {
     const quiet = buildEntries(thoughts.order, thoughts.lookup, { density: "compact", open: closed });
     expect(quiet.keys).toEqual(["u", "group:run:t1", "a"]);
     expect(jumpTarget(quiet, thoughts.lookup, "u", 1, "tool")).toBeNull();
-    // In `focus` a turn's line holds its tool calls.
+    // In `focus` a gap's line holds its tool calls.
     const focus = buildEntries(m.order, m.lookup, { density: "focus", open: closed });
-    expect(jumpTarget(focus, m.lookup, "u", 1, "tool")).toBe("group:turn:r1");
+    expect(jumpTarget(focus, m.lookup, "u", 1, "tool")).toBe("group:gap:r1");
+    // A call behind a closed gap line is reached by the line; `[` from the last answer too.
+    expect(jumpTarget(focus, m.lookup, "group:gap:r1", 1, "tool")).toBe("group:gap:e1");
+    expect(jumpTarget(focus, m.lookup, "a", -1, "tool")).toBe("group:gap:r1");
   });
 
   test("the count of shown items does not depend on the density or on runs forming (the ↓ N new indicator counts items)", () => {
