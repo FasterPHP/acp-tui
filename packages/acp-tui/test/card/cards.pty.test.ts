@@ -301,7 +301,7 @@ describe("padding and gaps in a tall pane (day-one-feedback 13)", () => {
     // Blank row, activity line, blank row, card, blank row, prompt box.
     expect(screen[top - 1]).toBe("");
     expect(screen[top - 2]).toContain("awaiting permission");
-    expect(screen[top - 2]).toStartWith("  2 running");
+    expect(screen[top - 2]).toMatch(/2 tool calls \(2 running\)/);
     expect(screen[top - 3]?.trim()).toBe("");
     expect(screen[top + rows.length]).toBe("");
     expect(screen[top + rows.length + 1]).toStartWith("╭");

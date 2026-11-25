@@ -1,7 +1,7 @@
 // The "plan-running" scenario (phase-1a task 6.4): the state behind the activity bar's "Running
 // turn with a plan" scenario. Two tool calls are in progress and the plan has five entries, two
 // completed and the third in progress, so the bar reads
-// `2 running: Search routes · plan 2/5 ▸ Write the test`. The state is held for HOLD_MS (scaled
+// `Search routes · plan 2/5 ▸ Write the test` with `2 tool calls (2 running)` at the right. The state is held for HOLD_MS (scaled
 // by --delay-scale, so nothing at 0) or until the client cancels, then both tools complete, the
 // plan is finished and the turn ends. The titles are short enough for both to show in full at
 // 63 columns.

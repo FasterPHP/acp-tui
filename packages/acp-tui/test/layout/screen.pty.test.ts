@@ -152,35 +152,34 @@ describe("status row modules (task 6.2)", () => {
 });
 
 describe("activity bar (task 6.4)", () => {
-  test("running: the number of tool calls in progress and the latest one's title (five-tools)", async () => {
+  test("running: the latest tool call's title at the left and the number in progress in the count (five-tools)", async () => {
     // delay-scale 100: the five tool calls stay in progress for 5 s.
     const run = startCli("five-tools", 100, SIZE);
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    await run.s.waitFor((p) => activityRow(p) === "  5 running: Run check 5", 5000);
+    await run.s.waitFor((p) => /^ {2}Run check 5 +5 tool calls \(5 running\)$/.test(activityRow(p) ?? ""), 5000);
     // The activity bar sits directly above the prompt box, after its blank row, in place of the
     // blank row above the prompt box: the conversation gave up a row.
     const screen = run.s.screenText();
     expect(screen[12]).toBe("");
-    expect(screen[13]).toBe("  5 running: Run check 5");
+    expect(screen[13]).toMatch(/^ {2}Run check 5 +5 tool calls \(5 running\)$/);
     expect(screen[14]).toStartWith("╭");
     expect(statusRow(run.s)).toMatch(RUNNING);
   }, 20000);
 
-  test("running with a plan: 2 running with the latest title, plan 2/5 and the third entry (plan-running)", async () => {
+  test("running with a plan: the latest title, plan 2/5 and the third entry, and 2 running in the count (plan-running)", async () => {
     // delay-scale 100: plan-running holds the state for 10 s, and the test cancels it.
-    const run = startCli("plan-running", 100, SIZE);
+    // 90 columns: both titles and the plan entry fit beside the count (at 63 the entry goes first).
+    const run = startCli("plan-running", 100, { ...SIZE, cols: 90 });
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    const row = "  2 running: Search routes · plan 2/5 ▸ Write the test";
-    await run.s.waitFor((p) => activityRow(p) === row, 5000);
-    // Both titles and the plan entry fit at 63 columns, so nothing is truncated or dropped; the
-    // bar sits directly above the prompt box.
-    expect(Bun.stringWidth(row)).toBeLessThanOrEqual(SIZE.cols);
+    const row = /^ {2}Search routes · plan 2\/5 ▸ Write the test +2 tool calls \(2 running\)$/;
+    await run.s.waitFor((p) => row.test(activityRow(p) ?? ""), 5000);
+    // The bar sits directly above the prompt box.
     const screen = run.s.screenText();
-    expect(screen[13]).toBe(row);
+    expect(screen[13]).toMatch(row);
     expect(screen[14]).toStartWith("╭");
     expect(statusRow(run.s)).toMatch(RUNNING);
     // Esc twice cancels the turn: the bar goes away.
@@ -200,7 +199,7 @@ describe("activity bar (task 6.4)", () => {
     await run.s.waitFor((p) => activityRow(p) !== null, 5000);
     await run.s.flush();
     const rows = run.s.screenText();
-    const line = rows.findIndex((r) => /^ +\d+ running: /.test(r));
+    const line = rows.findIndex((r) => /^ +Search routes .* \d+ tool calls? \(\d+ running\)$/.test(r));
     expect(line).toBeGreaterThan(2);
     // The blank row (the conversation need not fill its rows at 90x24; the row counts are
     // covered by test/layout/layout.test.ts "spacing").
@@ -232,7 +231,7 @@ describe("activity bar (task 6.4)", () => {
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
     await run.s.waitFor(CARD_HEADER, 5000);
-    expect(activityRow(run.s)).toBe("  2 running: Edit src/index.ts · awaiting permission");
+    expect(activityRow(run.s)).toMatch(/^ {2}awaiting permission +2 tool calls \(2 running\) · 1 thought$/);
   }, 20000);
 
   test("idle: when the turn ends the activity line goes blank but keeps its row, so the conversation does not move (day-two-feedback 13.2)", async () => {

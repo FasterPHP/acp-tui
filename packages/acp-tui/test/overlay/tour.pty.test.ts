@@ -47,7 +47,7 @@ test("keyboard-only tour with --mouse off: expand, collapse, first and last, pal
   s.sendKeys("End");
   // The edit's line is the conversation's last, above the activity bar's blank row (kept at 63x21
   // with this card, which has no preview; day-one-feedback task group 13).
-  await s.waitFor(() => rowOf(s, /^ {2}← \S edit {5}Edit src\/index\.ts/) === rowOf(s, /running: Edit src\/index\.ts/) - 2, 3000);
+  await s.waitFor(() => rowOf(s, /^ {2}← \S edit {5}Edit src\/index\.ts/) === rowOf(s, /2 tool calls \(2 running\)/) - 2, 3000);
 
   // Up twice reaches the thought; Enter expands it in place, Enter again collapses it.
   s.sendKeys("Up", "Up", "Enter");

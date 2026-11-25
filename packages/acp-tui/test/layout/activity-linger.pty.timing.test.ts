@@ -1,5 +1,7 @@
 // day-two-feedback task 6.2 (spec tui-layout "Activity bar" scenarios "Fast tool calls do not
-// flicker", "Linger ends", "Replaced at once", "No linger"; design D6): the real CLI against
+// flicker", "Linger ends", "Replaced at once", "No linger"; design D6), with the turn's count at
+// the right of the line since focus-groups task 4.2 ("Activity line linger" "Count kept while
+// lingering"; the line between calls shows the count alone, `6 tool calls`): the real CLI against
 // fake-agent `fast-tools` at 90x30 under the PTY harness. Six tool calls, each in progress for
 // 40 ms and 250 ms apart at delay scale 1, then 3 s of silence. By default the activity line stays
 // up between them showing the finished call muted, in the same row, and goes 1.5 s after the last
@@ -12,7 +14,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { configEnv } from "../pty/config-home.ts";
 import type { PtySession } from "../pty/harness.ts";
-import { promptBox, RUNNING, statusRow } from "../pty/regions.ts";
+import { ACTIVITY_COUNT, promptBox, RUNNING, statusRow } from "../pty/regions.ts";
 import { sendPrompt, startCli } from "../conversation/cli.ts";
 
 let session: PtySession | undefined;
@@ -37,17 +39,24 @@ function boxTop(s: PtySession): number {
 interface Line {
   /** The screen row of the activity line. */
   readonly y: number;
+  /** The left of the line, the count cut off (its indent kept): a running call's title or a
+   *  finished call's `✓ <title>`; empty when the count stands alone. */
   readonly text: string;
+  /** The turn's count at the right; empty before the first call. */
+  readonly count: string;
 }
 
-/** The activity line, directly above the prompt box with the blank row above it, or null: a
- *  running count (`1 running: <title>`) or a finished call (`✓ <title>`, `✗ <title>`). */
+/** The activity line, directly above the prompt box with the blank row above it, or null while it
+ *  is blank: a running call's title or a finished call (`✓ <title>`, `✗ <title>`), with the
+ *  turn's count at the right, or the count alone. */
 function activity(s: PtySession): Line | null {
   const rows = s.screenText();
   const top = boxTop(s);
   if (top < 2) return null;
-  const text = rows[top - 1]!;
-  return /^ {2}(\d+ running\b|[✓✗] )/.test(text) && rows[top - 2] === "" ? { y: top - 1, text: text.trimEnd() } : null;
+  const text = rows[top - 1]!.trimEnd();
+  if (text === "" || rows[top - 2] !== "") return null;
+  const count = ACTIVITY_COUNT.exec(text)?.[0] ?? "";
+  return { y: top - 1, text: text.slice(0, text.length - count.length).trimEnd(), count };
 }
 
 /** Samples the screen every `every` ms for `ms`, from now. */
@@ -88,7 +97,11 @@ describe("activity bar linger (task 6.2)", () => {
     // Between calls: the finished call's glyph and title, muted.
     const lingering = captures.filter((c) => c.line!.text.startsWith("  ✓ "));
     expect(lingering.length).toBeGreaterThanOrEqual(5);
-    for (const c of lingering) expect(TITLES.some((title) => c.line!.text === `  ✓ ${title}`)).toBe(true);
+    for (const c of lingering) {
+      expect(TITLES.some((title) => c.line!.text === `  ✓ ${title}`)).toBe(true);
+      // The count stays at the right, ending the line, while the call lingers.
+      expect(c.line!.count).toMatch(/^\d+ tool calls?\b/);
+    }
     // The muted look, read from the screen: the glyph and the title in bright black.
     await run.session.flush();
     const now = activity(run.session);
@@ -101,7 +114,7 @@ describe("activity bar linger (task 6.2)", () => {
     expect(statusRow(run.session)).toMatch(RUNNING);
   }, 30000);
 
-  test("Linger ends: 1.5 s after the last call ended the activity line is blank while the turn is still running, and the prompt box has not moved", async () => {
+  test("Linger ends: 1.5 s after the last call ended the activity line shows only the count while the turn is still running, and the prompt box has not moved", async () => {
     const run = startCli({ scenario: "fast-tools", delayScale: 1, ...SIZE });
     session = run.session;
     await sendPrompt(run.session, "go");
@@ -109,23 +122,24 @@ describe("activity bar linger (task 6.2)", () => {
     await run.session.waitFor((p) => activity(p)?.text === "  ✓ Edit src/Pool.php", 5000);
     const ended = performance.now();
     const top = boxTop(run.session);
-    await run.session.waitFor((p) => activity(p) === null, 3000);
+    await run.session.waitFor((p) => activity(p)?.text === "", 3000);
     const gone = performance.now() - ended;
     expect(gone).toBeGreaterThanOrEqual(1500 - 150);
     expect(gone).toBeLessThanOrEqual(1500 + 400);
-    // Still running, in the silence: the line is blank but keeps its row (task 13.2), so the
+    // Still running, in the silence: the line shows the count alone on its row (task 13.2), so the
     // prompt box has not moved, and the turn has not ended.
+    expect(activity(run.session)?.count).toBe("6 tool calls");
     expect(statusRow(run.session)).toMatch(RUNNING);
     const rows = run.session.screenText();
     const after = boxTop(run.session);
     expect(after).toBe(top);
-    expect(rows[after - 1]).toBe("");
+    expect(rows[after - 1]!.trim()).toBe("6 tool calls");
     expect(rows[after - 2]).toBe("");
     expect(rows.join("\n")).not.toContain("Pool now releases its connections");
     await run.session.waitFor("Pool now releases its connections", 5000);
   }, 30000);
 
-  test("Replaced at once: a call that starts while the line lingers shows `1 running` and its title in the next frame, never the finished one again", async () => {
+  test("Replaced at once: a call that starts while the line lingers shows its title (and `1 running` in the count) in the next frame, never the finished one again", async () => {
     const run = startCli({ scenario: "fast-tools", delayScale: 1, ...SIZE });
     session = run.session;
     await sendPrompt(run.session, "go");
@@ -134,7 +148,9 @@ describe("activity bar linger (task 6.2)", () => {
     // The line's text over time, a change at a time: running, finished, running, finished, ... in
     // the calls' order, so each title's finished line never follows the next call's running one.
     const texts = captures.flatMap((c) => (c.line ? [c.line.text.slice(2)] : [])).filter((t, i, all) => t !== all[i - 1]);
-    const expected = TITLES.flatMap((title) => [`1 running: ${title}`, `✓ ${title}`]);
+    const expected = TITLES.flatMap((title) => [title, `✓ ${title}`]);
+    // While a title runs the count says so: one call in progress.
+    for (const c of captures) if (c.line && c.line.text !== "" && !c.line.text.startsWith("  ✓ ")) expect(c.line.count).toContain("(1 running)");
     let at = -1;
     for (const text of texts) {
       const next = expected.indexOf(text, at + 1);
@@ -145,25 +161,25 @@ describe("activity bar linger (task 6.2)", () => {
     expect(texts.filter((t) => t.startsWith("✓ ")).length).toBeGreaterThanOrEqual(4);
   }, 30000);
 
-  test("No linger: with activity.linger_seconds 0 the line goes blank between calls and a ✓ line is never shown", async () => {
+  test("No linger: with activity.linger_seconds 0 the line shows the count alone between calls and a ✓ line is never shown", async () => {
     const run = startCli({ scenario: "fast-tools", delayScale: 1, ...SIZE, env: configEnv({ density: "compact", activity: { linger_seconds: 0 } }) });
     session = run.session;
     await sendPrompt(run.session, "go");
     await firstCall(run.session);
     const captures = await sample(run.session, 5 * 250 + 40 + 400, 10);
     expect(captures.some((c) => c.line?.text.startsWith("  ✓ "))).toBe(false);
-    // Between calls the line is blank: a capture with no line while the turn runs, the prompt box
-    // on the row it always had (task 13.2).
-    expect(captures.some((c) => c.line === null && c.running)).toBe(true);
+    // Between calls the line shows the count alone: a capture with no title while the turn runs,
+    // the prompt box on the row it always had (task 13.2).
+    expect(captures.some((c) => c.line?.text === "" && c.running)).toBe(true);
     expect(new Set(captures.map((c) => c.top)).size).toBe(1);
-    const idle = captures.find((c) => c.line === null && c.running)!;
-    expect(idle.rows[idle.top - 1]).toBe("");
+    const idle = captures.find((c) => c.line?.text === "" && c.running)!;
+    expect(idle.rows[idle.top - 1]!.trim()).toBe(idle.line!.count);
     expect(idle.rows[idle.top - 2]).toBe("");
   }, 30000);
 
-  test("The row is reserved for the whole session (task 13.2): with tool calls further apart than the linger the line is blank between them and the prompt box and the conversation's rows never move", async () => {
-    // A linger of 0.2 s against calls 500 ms apart (delay scale 2): the line is blank for about
-    // 260 ms between calls, as it was absent before task 13.2.
+  test("The row is reserved for the whole session (task 13.2): with tool calls further apart than the linger the line shows the count alone between them and the prompt box and the conversation's rows never move", async () => {
+    // A linger of 0.2 s against calls 500 ms apart (delay scale 2): the line shows the count alone
+    // for about 260 ms between calls.
     const run = startCli({ scenario: "fast-tools", delayScale: 2, ...SIZE, env: configEnv({ density: "compact", activity: { linger_seconds: 0.2 } }) });
     session = run.session;
     await run.session.waitFor((p) => promptBox(p).length > 0, 10000);
@@ -172,11 +188,12 @@ describe("activity bar linger (task 6.2)", () => {
     const captures = await sample(run.session, 5 * 500 + 80 + 400, 10);
     // The prompt box never moved, from before the first call to after the last.
     expect(new Set(captures.map((c) => c.top))).toEqual(new Set([before]));
-    // The capture set covers both a line with a call and a blank line while the turn runs.
-    expect(captures.some((c) => c.line !== null)).toBe(true);
-    const blank = captures.filter((c) => c.line === null && c.running);
-    expect(blank.length).toBeGreaterThan(5);
-    // The two rows above the prompt box are the line and its blank row.
-    for (const c of blank) expect([c.rows[c.top - 1], c.rows[c.top - 2]]).toEqual(["", ""]);
+    // The capture set covers both a line with a call and the count alone while the turn runs.
+    expect(captures.some((c) => c.line !== null && c.line.text !== "")).toBe(true);
+    const alone = captures.filter((c) => c.line?.text === "" && c.running);
+    expect(alone.length).toBeGreaterThan(5);
+    // The two rows above the prompt box are the line, with the count at the right, and its blank row.
+    for (const c of alone) expect([c.rows[c.top - 1]!.trim(), c.rows[c.top - 2]]).toEqual([c.line!.count, ""]);
+    // Between calls the row above the line is blank too.
   }, 30000);
 });
