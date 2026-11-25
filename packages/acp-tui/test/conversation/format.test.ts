@@ -19,6 +19,8 @@ import {
   toolSummary,
   turnEndLine,
 } from "../../src/conversation/format.ts";
+import { EMPTY_COUNTS } from "../../src/conversation/counts.ts";
+import type { TurnTotals } from "../../src/conversation/turn-totals.ts";
 
 const text = (segments: Segment[]) => segments.map((s) => s.text).join("");
 
@@ -256,5 +258,51 @@ describe("summaries and lines", () => {
     expect(text(turnEndLine(marker))).toBe("interrupted · 1.2s · ctx 38k/200k");
     expect(text(turnEndLine({ ...marker, stopReason: "cancelled" }))).toBe("interrupted · 1.2s · ctx 38k/200k");
     expect(text(turnEndLine({ ...marker, interrupted: false, stopReason: "cancelled" }))).toBe("cancelled · 1.2s · ctx 38k/200k");
+  });
+
+  describe("totals in the turn-end line (focus-groups design D5)", () => {
+    const marker = { id: "m", status: "final" as const, origin: "self" as const, kind: "marker" as const, markerKind: "turn_end" as const, stopReason: "end_turn" as const, interrupted: false, durationMs: 1200, usage: { used: 38000, size: 200000 } };
+    const totals = (gaps: number, counts: Partial<TurnTotals["counts"]> = {}): TurnTotals => ({ gaps, counts: { ...EMPTY_COUNTS, tools: 6, failed: 1, thoughts: 1, ...counts } });
+
+    test("none or one gap: the line reads as before, whatever the counts", () => {
+      expect(text(turnEndLine(marker, undefined, totals(0)))).toBe("end turn · 1.2s · ctx 38k/200k");
+      expect(text(turnEndLine(marker, undefined, totals(1)))).toBe("end turn · 1.2s · ctx 38k/200k");
+      expect(text(turnEndLine({ ...marker, interrupted: true }, undefined, totals(1)))).toBe("interrupted · 1.2s · ctx 38k/200k");
+      expect(text(turnEndLine(marker, undefined, null))).toBe("end turn · 1.2s · ctx 38k/200k");
+    });
+
+    test("two gaps: tool calls with failed, then thoughts, between the stop reason and the duration", () => {
+      expect(text(turnEndLine(marker, undefined, totals(2)))).toBe("end turn · 6 tool calls (1 failed) · 1 thought · 1.2s · ctx 38k/200k");
+      expect(text(turnEndLine({ ...marker, usage: null }, undefined, totals(4)))).toBe("end turn · 6 tool calls (1 failed) · 1 thought · 1.2s");
+    });
+
+    test("the interrupt: stopped in brackets after the word interrupted", () => {
+      const interrupted = { ...marker, interrupted: true, stopReason: "cancelled" as const };
+      expect(text(turnEndLine(interrupted, undefined, totals(2, { tools: 2, failed: 0, stopped: 1 })))).toBe("interrupted · 2 tool calls (1 stopped) · 1 thought · 1.2s · ctx 38k/200k");
+    });
+
+    test("each part only when not zero; plans, permissions and running are left out", () => {
+      expect(text(turnEndLine(marker, undefined, totals(2, { tools: 2, failed: 0, thoughts: 0 })))).toBe("end turn · 2 tool calls · 1.2s · ctx 38k/200k");
+      expect(text(turnEndLine(marker, undefined, totals(2, { tools: 0, failed: 0, thoughts: 3 })))).toBe("end turn · 3 thoughts · 1.2s · ctx 38k/200k");
+      expect(text(turnEndLine(marker, undefined, totals(2, { tools: 0, failed: 0, thoughts: 0, plans: 2, permissions: 1 })))).toBe("end turn · 1.2s · ctx 38k/200k");
+      expect(text(turnEndLine(marker, undefined, totals(2, { running: 1 })))).toBe("end turn · 6 tool calls (1 failed) · 1 thought · 1.2s · ctx 38k/200k");
+    });
+
+    test("narrow: the context goes first, then the totals; the reason and the duration stay", () => {
+      const full = "end turn · 6 tool calls (1 failed) · 1 thought · 1.2s · ctx 38k/200k";
+      const noContext = "end turn · 6 tool calls (1 failed) · 1 thought · 1.2s";
+      expect(text(turnEndLine(marker, undefined, totals(2), displayWidth(full)))).toBe(full);
+      expect(text(turnEndLine(marker, undefined, totals(2), displayWidth(full) - 1))).toBe(noContext);
+      expect(text(turnEndLine(marker, undefined, totals(2), displayWidth(noContext)))).toBe(noContext);
+      expect(text(turnEndLine(marker, undefined, totals(2), displayWidth(noContext) - 1))).toBe("end turn · 1.2s");
+      expect(text(turnEndLine(marker, undefined, totals(2), 15))).toBe("end turn · 1.2s");
+      expect(text(turnEndLine(marker, undefined, null, 15))).toBe("end turn · 1.2s");
+      expect(text(turnEndLine(marker, undefined, null, displayWidth("end turn · 1.2s") - 1))).toBe("end turn · 1.…");
+    });
+
+    test("the failed count keeps its token", () => {
+      const failed = turnEndLine(marker, undefined, totals(2)).find((seg) => seg.text === "1 failed");
+      expect(failed?.token).toBe("tool.fail");
+    });
   });
 });

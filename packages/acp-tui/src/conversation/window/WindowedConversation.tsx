@@ -53,6 +53,7 @@ import { markdownStyles } from "../../theme/index.ts";
 import { viewerTarget } from "../content.ts";
 import { glyphsVersion, LIVE_GLYPHS } from "../live-glyphs.ts";
 import { renderSettingsKey } from "../markdown/context.ts";
+import { turnTotals } from "../turn-totals.ts";
 import { createSpinner, CursorBar, cursorFill, Gutter, ItemView, Segments, type ItemContext } from "../items.tsx";
 import { ConversationScrollBox, ScrollController } from "../scroll.ts";
 import { expandedByDefault, expandRecorded, moveCursor, type ConversationViewModel } from "../view-model.ts";
@@ -188,6 +189,13 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
       density: state.density(),
       open: (key) => state.open[key] ?? false,
     });
+  });
+
+  // The totals of each turn's end line, by marker (design focus-groups D5): one walk of the order
+  // per re-read, over the same lookup as the entries.
+  const totals = createMemo(() => {
+    const session = snapshot();
+    return turnTotals(session.order, (id) => session.items.get(id));
   });
 
   // The density is published to the store for the status row's `density` module.
@@ -785,6 +793,7 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
     vm: itemVm,
     spinner,
     width,
+    turnTotals: (id) => totals().get(id),
     selected: (id) => focused() && vm.cursor() === id,
     register(id, node) {
       if (node) nodes.set(id, node);
