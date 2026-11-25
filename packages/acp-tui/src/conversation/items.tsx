@@ -243,7 +243,7 @@ function LayoutCard(props: { layout: (inner: number) => CardLayout; id?: string;
     const prefixText = cardPrefix(ctx);
     const prefix: Span = { text: prefixText, token: "muted", fill: "surface.card", projection: "" };
     const key = ctx.outputKey?.() ?? null;
-    const marker = l.marker >= 0 ? [prefix, ...markerSpans(l.hidden, key, inner)] : null;
+    const marker = l.marker >= 0 ? [prefix, ...markerSpans(l.hidden, key, inner, l.windowed ? l.total : null)] : null;
     here = marker && props.id !== undefined ? markerHere(marker, l.marker) : null;
     const rows: Row[] = drawn.map((row, i) => (i === l.marker && marker ? { spans: marker, decorative: true } : { ...row, spans: [prefix, ...row.spans] }));
     return new StyledText(rowsToChunks(rows, displayWidth(prefixText) + inner + cardPadding().columns, theme));

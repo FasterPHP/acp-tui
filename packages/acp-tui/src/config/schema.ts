@@ -439,6 +439,12 @@ export const SECTIONS = {
         ],
         note: "Where the terminal reports focus (Zed), the terminal's default cursor is shown while another window has focus.",
       }),
+      keep_drafts: z
+        .boolean()
+        .default(true)
+        .describe(
+          "Keep an unsent draft per session when you leave it, and put it back when the session is reopened. Drafts are kept as files in acp-tui's state directory (drafts/), and may hold anything you typed, a secret included; with false nothing is written or restored and the draft is printed below the command line at exit instead. Read only from your own file, never from a project file.",
+        ),
     })
     .prefault({})
     .describe("The prompt box."),
@@ -640,7 +646,7 @@ export const PROJECT_FILE_RULES: { readonly [K in SectionName | "$schema"]: Proj
   exit: "allowed",
   clipboard: { denied: "a project file cannot decide where copied text goes" },
   selection: "allowed",
-  prompt: "allowed",
+  prompt: { entries: { keep_drafts: { denied: "a project file cannot turn on keeping what you typed on disk" } }, otherwise: "allowed" },
   density: "allowed",
   interrupt: "allowed",
   attention: "allowed",

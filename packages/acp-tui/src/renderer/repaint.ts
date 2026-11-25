@@ -26,9 +26,20 @@ interface PrivateRenderer {
   forceFullRepaintRequested: boolean;
 }
 
+const forcedListeners = new WeakMap<CliRenderer, Set<() => void>>();
+
+/** Calls `listener` whenever a full repaint is forced on `renderer` (`forceFullRepaint`); returns a remover. */
+export function onForcedRepaint(renderer: CliRenderer, listener: () => void): () => void {
+  let set = forcedListeners.get(renderer);
+  if (!set) forcedListeners.set(renderer, (set = new Set()));
+  set.add(listener);
+  return () => void set.delete(listener);
+}
+
 /** Makes the next frame write every cell, and requests that frame. */
 export function forceFullRepaint(renderer: CliRenderer): void {
   if (renderer.isDestroyed) return;
+  for (const listener of forcedListeners.get(renderer) ?? []) listener();
   (renderer as unknown as PrivateRenderer).forceFullRepaintRequested = true;
   renderer.requestRender();
 }

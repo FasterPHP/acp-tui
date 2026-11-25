@@ -55,9 +55,9 @@ describe("Legible defaults in low-contrast themes", () => {
     }
   });
 
-  test("Solarized Light's muted tokens are named at 1.88:1, under the half-way dim", () => {
+  test("Solarized Light's muted tokens are named at 1.86:1, under the half-way mix", () => {
     const failures = legibilityFailures(DEFAULT_THEME, [SOLARIZED_LIGHT], new Map());
-    for (const name of MUTED) expect(failures).toContain(`${name} on Solarized Light: 1.88:1 (floor 2:1)`);
+    for (const name of MUTED) expect(failures).toContain(`${name} on Solarized Light: 1.86:1 (floor 2:1)`);
   });
 
   test("light backgrounds take other indices where yellow fails (One Light's yellow is 1.88:1), dark ones keep the design's defaults", () => {

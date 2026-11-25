@@ -16,8 +16,8 @@
 //   at `single`, the Esc that would arm cancels instead. Idle: back to the
 //   prompt box from the conversation or the card, and in the prompt box not
 //   ours.
-// Ctrl+D: non-empty prompt box -> not ours (the textarea deletes forward);
-//   idle -> detach at once; running turn -> arm a confirmation that says
+// Ctrl+D: whatever the prompt box holds (it never edits it): idle -> detach
+//   at once; running turn (or a waiting card) -> arm a confirmation that says
 //   closing a direct agent stops its running turn; a second Ctrl+D within 2 s
 //   detaches.
 // Any other key, or the window passing, disarms. One of these keys while
@@ -96,7 +96,6 @@ export function exitStep(state: ExitState, input: ExitInput): ExitStep {
     }
 
     case "detach":
-      if (!input.composerEmpty) return { state: DISARMED, effect: "pass" };
       if (!input.turnRunning) return { state: DISARMED, effect: "detach" };
       if (armedFor(state, "detach", input.now)) return { state: DISARMED, effect: "detach" };
       return { state: { armed: { kind: "detach", until: input.now + EXIT_WINDOW_MS } }, effect: "arm-detach" };

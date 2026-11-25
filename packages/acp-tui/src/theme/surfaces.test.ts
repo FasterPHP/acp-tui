@@ -642,10 +642,15 @@ describe("Resolved theme", () => {
       expect(lit.color(name).equals(flat.color(name))).toBe(true);
       expect(lit.color(name).intent).not.toBe("rgb");
     }
-    // Muted text on a light background: the default foreground, dimmed (review, 9 October 2026).
+    // Muted text on a light background: the default foreground dimmed (review, 9 October 2026),
+    // drawn as the mix of the reported colours with no SGR 2 once they are known (task 8b; the
+    // mix itself is test/theme/muted-mix.test.ts), and SGR 2 where 24-bit colour cannot be drawn.
     expect(flat.color("muted").intent).toBe("indexed");
-    expect(lit.color("muted").intent).toBe("default");
-    expect(lit.text("muted").attributes & TextAttributes.DIM).toBe(TextAttributes.DIM);
+    expect(lit.color("muted").intent).toBe("rgb");
+    expect(lit.text("muted").attributes & TextAttributes.DIM).toBe(0);
+    const plain = resolveTheme(DEFAULT_THEME, { terminal: LIGHT, truecolour: false });
+    expect(plain.color("muted").intent).toBe("default");
+    expect(plain.text("muted").attributes & TextAttributes.DIM).toBe(TextAttributes.DIM);
     expect(flat.text("muted").attributes & TextAttributes.DIM).toBe(0);
   });
 
@@ -776,7 +781,7 @@ describe("Colour replies", () => {
   });
 
   test("other sequences and queries are ignored", () => {
-    for (const s of ["\x1b]11;?\x07", "\x1b]4;1;rgb:0000/0000/0000\x07", "\x1b]12;rgb:0000/0000/0000\x07", "\x1b]11;rgb:zz/00/00\x07", "rgb:00/00/00", ""]) {
+    for (const s of ["\x1b]11;?\x07", "\x1b]4;1;rgb:0000/0000/0000\x07", "\x1b]13;rgb:0000/0000/0000\x07", "\x1b]11;rgb:zz/00/00\x07", "rgb:00/00/00", ""]) {
       expect(parseColourReply(s)).toBeNull();
     }
   });
@@ -796,12 +801,12 @@ function fakeRenderer() {
 }
 
 describe("Colour tracker", () => {
-  test("query writes OSC 10 and 11 and resolves once both replies have arrived", async () => {
+  test("query writes OSC 10, 11 and 12 and resolves once the pair has arrived", async () => {
     const renderer = fakeRenderer();
     const writes: string[] = [];
     const tracker = createColourTracker(renderer, { write: (d) => writes.push(d) });
     const pending = tracker.query(1000);
-    expect(writes).toEqual(["\x1b]10;?\x07\x1b]11;?\x07"]);
+    expect(writes).toEqual(["\x1b]10;?\x07\x1b]11;?\x07\x1b]12;?\x07"]);
     renderer.emit("\x1b]10;rgb:bcbc/bebe/c4c4\x1b\\");
     renderer.emit("\x1b]11;rgb:1919/1a1a/1c1c\x1b\\");
     expect(await pending).toEqual(PHPSTORM_DARK);

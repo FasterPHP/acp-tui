@@ -48,13 +48,14 @@ export function hintsForKeyMap(map: KeyMap, interrupt: InterruptSetting = DEFAUL
     { key: interruptHintKey(map, interrupt), label: "interrupt", when: { turn: "running" } },
     // No send or newline hints: the splash and key help show them (mvp-chrome-and-keys design D5).
     // An idle, focused prompt box: the mode key first, so it keeps its place when the others leave,
-    // then for an empty box the agent's commands (`/`), the command palette (`?`; task 12.1) and
-    // detach. `/` and `?` are text in a draft, so their hints leave (Marcus, 11 October 2026; task 12.8).
+    // then for an empty box the agent's commands (`/`) and the command palette (`?`; task 12.1).
+    // `/` and `?` are text in a draft, so their hints leave (Marcus, 11 October 2026; task 12.8).
+    // Detach stays with a draft: Ctrl+D always leaves and the draft is kept.
     // The mode key shows only while the session offers a mode (Auggie 1.x has none).
     { key: actionLabel(map, "global", "cycleMode"), label: "mode", when: { turn: "idle", focus: "prompt", mode: true } },
     { key: actionLabel(map, "prompt", "agentCommands"), label: "commands", when: { turn: "idle", promptEmpty: true, focus: "prompt" } },
     { key: actionLabel(map, "prompt", "palette"), label: "help", when: { turn: "idle", promptEmpty: true, focus: "prompt" } },
-    { key: actionLabel(map, "global", "detach"), label: "detach", when: { turn: "idle", promptEmpty: true, focus: "prompt" } },
+    { key: actionLabel(map, "global", "detach"), label: "detach", when: { turn: "idle", focus: "prompt" } },
   ];
   return rules.filter((r): r is HintRule => r.key !== null);
 }

@@ -158,10 +158,12 @@ describe.skipIf(WINDOWS)("Agent Markdown uses theme tokens only", () => {
       const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
       return `rgb ${r};${g};${b}`;
     }));
-    // No RGB foreground at all: until the change opentui-0-6-6 a dim cell in a row's last column
-    // was given the dimmed default foreground as an RGB colour (the row-end workaround for
-    // OpenTUI #1633, removed); dim is now drawn as dim everywhere.
-    const badFg = [...new Set(printed.filter((c) => c.fg.startsWith("rgb")).map((c) => `${c.fg} on "${c.ch}"`))];
+    // No RGB foreground but the one mixed colour of muted text (the mean of the reported
+    // foreground and background, spec tui-theme "Dimmed default foreground drawn as a colour"):
+    // until the change opentui-0-6-6 a dim cell in a row's last column was given an RGB colour
+    // by the row-end workaround for OpenTUI #1633 (removed).
+    const MUTED_MIX = "rgb 153;154;158";
+    const badFg = [...new Set(printed.filter((c) => c.fg.startsWith("rgb") && c.fg !== MUTED_MIX).map((c) => `${c.fg} on "${c.ch}"`))];
     const badBg = [...new Set(printed.filter((c) => c.bg.startsWith("rgb") && !derived.has(c.bg)).map((c) => `${c.bg} under "${c.ch}"`))];
     expect(badFg).toEqual([]);
     expect(badBg).toEqual([]);
@@ -170,18 +172,18 @@ describe.skipIf(WINDOWS)("Agent Markdown uses theme tokens only", () => {
     const x = s.lineText(y).indexOf("first item");
     expect(s.cell(y, x)!.isFgRGB()).toBe(false);
     // The code block's language label (`muted`, the default foreground dimmed on a light
-    // background) is drawn with SGR 2 in the default foreground, its last letter too (tui-theme
-    // "Text attributes end with their cells", scenario "Dim in the last column"). Since the scroll
-    // bar's column and the two-column right margin, the label no longer reaches the screen's last
-    // column; the last column itself is checked in the renderer's bytes,
-    // test/renderer/row-end-reset.test.ts.
+    // background) is drawn in the mixed colour with no SGR 2, its last letter too. The "Dim in the
+    // last column" scenario (tui-theme "Text attributes end with their cells") is checked in the
+    // renderer's bytes with an explicit dim cell, test/renderer/row-end-reset.test.ts, which does
+    // not depend on the default theme's muted token.
     const labelRow = s.findLine("const answer") - 1;
     const labelAt = s.lineText(labelRow).lastIndexOf("ts");
     expect(labelAt).toBeGreaterThan(0);
     for (const at of [labelAt, labelAt + 1]) {
       const cell = s.cell(labelRow, at)!;
-      expect(cell.isDim()).not.toBe(0);
-      expect(cell.isFgDefault()).toBe(true);
+      expect(cell.isDim()).toBe(0);
+      expect(cell.isFgRGB()).toBe(true);
+      expect(cell.getFgColor()).toBe(0x999a9e);
     }
   }, 30000);
 });

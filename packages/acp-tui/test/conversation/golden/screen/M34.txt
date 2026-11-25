@@ -38,29 +38,29 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   3 │  │ Note│
     «default»  «blue»│ «blue +b»Note
   4 │  │ Useful information that users should know, with code and│
-    «default»  «blue»│ «default +d»Useful information that users should know, with «magenta»code «default +d»and
+    «default»  «blue»│ «#999a9e»Useful information that users should know, with «magenta»code «#999a9e»and
   5 │  │ a link (example.com).│
-    «default»  «blue»│ «default +d»a «blue +u»link«default» «default +d»(example.com).
+    «default»  «blue»│ «#999a9e»a «blue +u»link«default» «#999a9e»(example.com).
   6 ││
   7 │  │ Tip│
     «default»  «green»│ «green +b»Tip
   8 │  │ Helpful advice for doing things better.│
-    «default»  «green»│ «default +d»Helpful advice for doing things better.
+    «default»  «green»│ «#999a9e»Helpful advice for doing things better.
   9 ││
  10 │  │ Important│
     «default»  «magenta»│ «magenta +b»Important
  11 │  │ Key information users need to know.│
-    «default»  «magenta»│ «default +d»Key information users need to know.
+    «default»  «magenta»│ «#999a9e»Key information users need to know.
  12 ││
  13 │  │ Warning│
     «default»  «bright-red»│ «bright-red +b»Warning
  14 │  │ Urgent info that needs immediate attention.│
-    «default»  «bright-red»│ «default +d»Urgent info that needs immediate attention.
+    «default»  «bright-red»│ «#999a9e»Urgent info that needs immediate attention.
  15 ││
  16 │  │ Caution│
     «default»  «red»│ «red +b»Caution
  17 │  │ Advises about risks or negative outcomes.│
-    «default»  «red»│ «default +d»Advises about risks or negative outcomes.
+    «default»  «red»│ «#999a9e»Advises about risks or negative outcomes.
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M34 GitHub alerts, all five kinds:│
@@ -98,24 +98,24 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   3 │  │ Note│
     «default»  «blue»│ «blue +b»Note
   4 │  │ Useful information that users should know, with code and a link (example.com).│
-    «default»  «blue»│ «default +d»Useful information that users should know, with «magenta»code «default +d»and a «blue +u»link«default» «default +d»(example.com).
+    «default»  «blue»│ «#999a9e»Useful information that users should know, with «magenta»code «#999a9e»and a «blue +u»link«default» «#999a9e»(example.com).
   5 ││
   6 │  │ Tip│
     «default»  «green»│ «green +b»Tip
   7 │  │ Helpful advice for doing things better.│
-    «default»  «green»│ «default +d»Helpful advice for doing things better.
+    «default»  «green»│ «#999a9e»Helpful advice for doing things better.
   8 ││
   9 │  │ Important│
     «default»  «magenta»│ «magenta +b»Important
  10 │  │ Key information users need to know.│
-    «default»  «magenta»│ «default +d»Key information users need to know.
+    «default»  «magenta»│ «#999a9e»Key information users need to know.
  11 ││
  12 │  │ Warning│
     «default»  «bright-red»│ «bright-red +b»Warning
  13 │  │ Urgent info that needs immediate attention.│
-    «default»  «bright-red»│ «default +d»Urgent info that needs immediate attention.
+    «default»  «bright-red»│ «#999a9e»Urgent info that needs immediate attention.
  14 ││
  15 │  │ Caution│
     «default»  «red»│ «red +b»Caution
  16 │  │ Advises about risks or negative outcomes.│
-    «default»  «red»│ «default +d»Advises about risks or negative outcomes.
+    «default»  «red»│ «#999a9e»Advises about risks or negative outcomes.

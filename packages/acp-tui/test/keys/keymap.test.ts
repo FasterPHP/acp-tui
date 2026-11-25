@@ -346,6 +346,14 @@ describe("labels and hints", () => {
     expect(actionLabel(DEFAULT_KEY_MAP, "conversation", "copyItemMarkdown")).toBe("shift+y");
   });
 
+  test("Ctrl+D is bound by the global context alone, so no other context can swallow it", () => {
+    for (const context of KEY_CONTEXTS) {
+      const keys = Object.keys(DEFAULT_KEY_MAP[context]);
+      if (context === "global") expect(keys).toContain("ctrl+d");
+      else expect([context, keys.includes("ctrl+d")]).toEqual([context, false]);
+    }
+  });
+
   test("the default hints read their keys from the default key map", () => {
     expect(DEFAULT_HINTS.map((h) => `${h.key} ${h.label}`)).toEqual([
       "tab tab permission",

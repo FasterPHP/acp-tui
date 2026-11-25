@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { shellQuote } from "../../src/renderer/exit-text.ts";
 import { FINAL_RESET } from "../../src/renderer/lifecycle.ts";
-import { startPty, type PtySession } from "../pty/harness.ts";
+import { startPty, type OscColours, type PtySession } from "../pty/harness.ts";
 import { promptText, READY, REQUIRES_ACTION } from "../pty/regions.ts";
 import { WINDOWS } from "../windows.ts";
 import pkg from "../../package.json" with { type: "json" };
@@ -43,11 +43,11 @@ interface Started {
 }
 
 /** `agentArgs` are added to fake-agent's (`--load` makes the session resumable). */
-function start(opts: { scenario?: string; args?: string[]; agent?: string[]; agentArgs?: string[]; env?: Record<string, string> } = {}): Started {
+function start(opts: { scenario?: string; args?: string[]; agent?: string[]; agentArgs?: string[]; env?: Record<string, string>; colours?: OscColours } = {}): Started {
   const dir = realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-exit-")));
   const agentLog = join(dir, "agent.log");
   const agent = opts.agent ?? ["bun", FAKE_AGENT, "--scenario", opts.scenario ?? "basic", "--delay-scale", "0", "--log", agentLog, ...(opts.agentArgs ?? [])];
-  const s = startPty(["bun", CLI, "--", ...(opts.args ?? []), "--", ...agent], { cols: 100, rows: 24, cwd: dir, prefill: PREFILL, ...(opts.env ? { env: opts.env } : {}) });
+  const s = startPty(["bun", CLI, "--", ...(opts.args ?? []), "--", ...agent], { cols: 100, rows: 24, cwd: dir, prefill: PREFILL, ...(opts.env ? { env: opts.env } : {}), ...(opts.colours ? { colours: opts.colours } : {}) });
   session = s;
   return { s, dir, agentLog, agent };
 }
@@ -171,6 +171,53 @@ describe("every exit path restores the terminal (task 4.1)", () => {
     expect(sent).toContain("session/prompt");
     expect(sent).not.toContain("session/cancel");
     expect(sent).not.toContain("session/close");
+  });
+
+  // Spec tui-screen "Cursor colour restored": the prompt box set the cursor colour (the terminal
+  // answers OSC 10, 11 and 12 as a light theme), and whatever OpenTUI's teardown wrote, the last
+  // cursor colour sequence is OSC 112, written after the last OSC 12.
+  describe("cursor colour restored", () => {
+    const COLOURS: OscColours = { foreground: "#212121", background: "#fafafa", cursor: "#000000", terminator: "bel" };
+    const lastCursorColour = (s: PtySession): { kind: "set" | "reset"; at: number } | undefined => {
+      const all = [...s.rawOutput().matchAll(/\x1b\](112|12;[^\x07\x1b]*)(?:\x07|\x1b\\)/g)].filter((m) => m[1] !== "12;?");
+      const last = all.at(-1);
+      return last ? { kind: last[1] === "112" ? "reset" : "set", at: last.index } : undefined;
+    };
+    const expectReset = (s: PtySession): void => {
+      const raw = s.rawOutput();
+      const lastSet = raw.lastIndexOf("\x1b]12;#");
+      expect(lastSet).toBeGreaterThan(-1);
+      expect(lastCursorColour(s)?.kind).toBe("reset");
+      expect(lastCursorColour(s)!.at).toBeGreaterThan(lastSet);
+      expect(lastCursorColour(s)!.at).toBeGreaterThan(raw.lastIndexOf("\x1b[?1049l"));
+    };
+    const running = async (opts: Parameters<typeof start>[0] = {}): Promise<Started> => {
+      const r = start({ colours: COLOURS, ...opts });
+      await ready(r.s);
+      await r.s.waitFor((p) => p.rawOutput().includes("\x1b]12;#000000"), 5000);
+      return r;
+    };
+
+    test.skipIf(WINDOWS)("Ctrl+D", async () => {
+      const { s } = await running();
+      s.sendKeys("Ctrl+D");
+      expect(await s.wait(10000)).toBe(0);
+      expectReset(s);
+    });
+
+    test.skipIf(WINDOWS)("SIGTERM", async () => {
+      const { s } = await running();
+      s.kill("SIGTERM");
+      expect(await s.wait(10000)).toBe(143);
+      expectReset(s);
+    });
+
+    test.skipIf(WINDOWS)("an uncaught error", async () => {
+      const { s } = await running({ env: { ACP_TUI_TEST_HOOKS: "crash" } });
+      s.sendKeys({ text: F12 });
+      expect(await s.wait(10000)).toBe(1);
+      expectReset(s);
+    });
   });
 
   // Spec tui-screen "Crash report".

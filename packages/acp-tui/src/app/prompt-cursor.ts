@@ -97,3 +97,54 @@ export function createCursorFocus(options: CursorFocusOptions): CursorFocus {
     },
   };
 }
+
+/** What the terminal reported (`#rrggbb`), each `null`/absent when it did not answer. */
+export interface CursorReplies {
+  readonly foreground?: string | null;
+  readonly background?: string | null;
+  readonly cursor?: string | null;
+}
+
+/** The prompt box cursor's colour: a `#rrggbb`, or `terminal` to leave the terminal's own. */
+export type CursorColourChoice = string | "terminal";
+
+/**
+ * What a reported cursor colour needs against the background to be kept: 2:1, below WCAG 1.4.11's
+ * 3:1 for interface components, so that a colour the user chose and can see (Zed's light theme
+ * blue, 2.84:1) is kept, while a cursor that cannot be seen (foot's unset black on a dark
+ * background, about 1.2:1) is replaced.
+ */
+export const CURSOR_CONTRAST = 2;
+
+function channel(value: number): number {
+  const v = value / 255;
+  return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+}
+
+function luminance(hex: string): number {
+  return 0.2126 * channel(parseInt(hex.slice(1, 3), 16)) + 0.7152 * channel(parseInt(hex.slice(3, 5), 16)) + 0.0722 * channel(parseInt(hex.slice(5, 7), 16));
+}
+
+/** The WCAG 2 contrast ratio of two `#rrggbb` colours. */
+export function contrastRatio(a: string, b: string): number {
+  const [x, y] = [luminance(a), luminance(b)];
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+const isHex = (colour: string | null | undefined): colour is string => !!colour && /^#[0-9a-f]{6}$/i.test(colour);
+
+/**
+ * The cursor colour from the terminal's replies (spec tui-layout "Prompt box cursor colour", design
+ * D3): the reported cursor colour if it reaches 2:1 against the background, else the reported
+ * foreground if it does, else `terminal` (leave the terminal's own colour). With no background
+ * nothing can be compared, so the cursor reply, else the foreground, else `terminal`.
+ */
+export function cursorColourFrom(replies: CursorReplies): CursorColourChoice {
+  const cursor = isHex(replies.cursor) ? replies.cursor.toLowerCase() : null;
+  const foreground = isHex(replies.foreground) ? replies.foreground.toLowerCase() : null;
+  const background = isHex(replies.background) ? replies.background.toLowerCase() : null;
+  if (!background) return cursor ?? foreground ?? "terminal";
+  if (cursor && contrastRatio(cursor, background) >= CURSOR_CONTRAST) return cursor;
+  if (foreground && contrastRatio(foreground, background) >= CURSOR_CONTRAST) return foreground;
+  return "terminal";
+}

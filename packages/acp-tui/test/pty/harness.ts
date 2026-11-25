@@ -29,13 +29,24 @@ export * from "./snapshot.ts";
 export type { Vs16Width } from "./vs16.ts";
 
 /**
- * Colours the emulator reports to OSC 10 (foreground) and OSC 11 (background)
- * queries, as `#rrggbb`. A missing colour gets no reply. OSC 4 (palette) queries
- * are never answered, which is what PhpStorm's terminals do.
+ * Colours the emulator reports to OSC 10 (foreground), OSC 11 (background) and
+ * OSC 12 (cursor) queries, as `#rrggbb`. A missing colour gets no reply. OSC 4
+ * (palette) queries are answered only for the indices `palette` holds; with no
+ * `palette` they are never answered, which is what PhpStorm's terminals do.
  */
 export interface OscColours {
   foreground?: string;
   background?: string;
+  /** Answered to `OSC 12 ?`; default: no reply. */
+  cursor?: string;
+  /** `#rrggbb` per palette index, answered to `OSC 4;n;?` as `rgb:rrrr/gggg/bbbb` (as foot does); default: no reply. */
+  palette?: readonly string[];
+  /**
+   * Answer `OSC 12 ?` with the colour the child last set by `OSC 12;#rrggbb` (as foot does: it
+   * reports its current cursor colour, not the configured one), falling back to `cursor` after
+   * `OSC 112` or `OSC 12;default` and before any set. Default false: always `cursor`.
+   */
+  cursorFollowsSet?: boolean;
   /** How replies are terminated; default `st` (`ESC `). */
   terminator?: "bel" | "st";
 }
@@ -104,6 +115,7 @@ export const KEYS = {
   Tab: "\t",
   ShiftTab: "\x1b[Z",
   Backspace: "\x7f",
+  Delete: "\x1b[3~",
   Space: " ",
   "Ctrl+C": "\x03",
   "Ctrl+D": "\x04",
@@ -161,8 +173,10 @@ export class PtySession {
   private readonly startedAt = Date.now();
   private colours: OscColours | undefined;
   private readonly before: Promise<ScreenSnapshot>;
-  /** OSC numbers (4, 10, 11) the child has queried with `?`, in order. */
+  /** OSC numbers (4, 10, 11, 12) the child has queried with `?`, in order. */
   readonly oscQueries: number[] = [];
+  /** The colour the child last set with `OSC 12;#rrggbb`, until an `OSC 112` or `OSC 12;default`. */
+  private cursorSet: string | undefined;
 
   constructor(cmd: string[], opts: PtyStartOptions = {}) {
     const cols = opts.cols ?? 80;
@@ -173,10 +187,16 @@ export class PtySession {
     this.jediterm = opts.terminal === "jediterm" ? new JediTermFilter() : null;
     this.term.parser.registerOscHandler(4, (data) => {
       if (data.includes("?")) this.oscQueries.push(4);
-      return true; // consumed, never answered
+      this.answerPalette(data);
+      return true; // consumed; answered only for the indices `palette` holds
     });
-    for (const code of [10, 11] as const) {
+    this.term.parser.registerOscHandler(112, () => {
+      this.cursorSet = undefined;
+      return false;
+    });
+    for (const code of [10, 11, 12] as const) {
       this.term.parser.registerOscHandler(code, (data) => {
+        if (code === 12 && data !== "?") this.cursorSet = /^#[0-9a-fA-F]{6}$/.test(data) ? data : undefined;
         if (data !== "?") return false;
         this.oscQueries.push(code);
         this.answerColour(code);
@@ -246,18 +266,36 @@ export class PtySession {
     this.term.resize(cols, rows);
   }
 
-  private answerColour(code: 10 | 11): void {
-    const c = this.colours;
-    const hex = code === 10 ? c?.foreground : c?.background;
-    if (!hex || this.exitCodeValue !== null) return;
+  private static rgb(hex: string): string {
     const m = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(hex);
     if (!m) throw new Error(`OSC colour must be #rrggbb, got ${hex}`);
     const [r, g, b] = [m[1]!, m[2]!, m[3]!].map((h) => h.toLowerCase().repeat(2));
-    const end = c?.terminator === "bel" ? "\x07" : "\x1b\\";
-    this.proc.terminal?.write(`\x1b]${code};rgb:${r}/${g}/${b}${end}`);
+    return `rgb:${r}/${g}/${b}`;
   }
 
-  /** Changes (or, with `undefined`, removes) the colours answered to later OSC 10 and 11 queries. */
+  private answerColour(code: 10 | 11 | 12): void {
+    const c = this.colours;
+    const hex = code === 10 ? c?.foreground : code === 11 ? c?.background : c?.cursorFollowsSet && this.cursorSet ? this.cursorSet : c?.cursor;
+    if (!hex || this.exitCodeValue !== null) return;
+    const end = c?.terminator === "bel" ? "\x07" : "\x1b\\";
+    this.proc.terminal?.write(`\x1b]${code};${PtySession.rgb(hex)}${end}`);
+  }
+
+  /** `data` is `n;?` (or several pairs, `n;?;m;?`); each index in `palette` gets `OSC 4;n;rgb:...`. */
+  private answerPalette(data: string): void {
+    const palette = this.colours?.palette;
+    if (!palette || this.exitCodeValue !== null) return;
+    const parts = data.split(";");
+    const end = this.colours?.terminator === "bel" ? "\x07" : "\x1b\\";
+    for (let i = 0; i + 1 < parts.length; i += 2) {
+      if (parts[i + 1] !== "?") continue;
+      const n = Number(parts[i]);
+      const hex = Number.isInteger(n) ? palette[n] : undefined;
+      if (hex) this.proc.terminal?.write(`\x1b]4;${n};${PtySession.rgb(hex)}${end}`);
+    }
+  }
+
+  /** Changes (or, with `undefined`, removes) the colours answered to later OSC 4, 10, 11 and 12 queries. */
   setColours(colours: OscColours | undefined): void {
     this.colours = colours;
   }

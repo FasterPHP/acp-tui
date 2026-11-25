@@ -88,8 +88,8 @@ describe("a command result in an expanded card (tasks 4.2)", () => {
     const layout = card(item, 63);
     expect(layout.cuttable).toBe(true);
     expect(layout.marker).toBe(1);
-    // 401 rows (the label and 400 lines), 10 shown.
-    expect(layout.hidden).toBe(391);
+    // 401 rows (the label and 400 lines), 10 shown: 390 lines hidden (lines, not rows).
+    expect(layout.hidden).toBe(390);
     const rows = texts(layout);
     expect(rows.slice(2, 12)).toEqual(lines.slice(390).map((l) => `  ${l}`));
     expect(rows[12]).toBe("Return code: 0");

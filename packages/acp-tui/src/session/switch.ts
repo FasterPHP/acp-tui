@@ -30,6 +30,8 @@
 //   the session is still being opened; nothing is sent then. An `ad hoc`
 //   session that is not the agent in use's, and a session of an agent no
 //   longer configured, are refused with a message before anything runs.
+import type { Draft } from "./drafts.ts";
+import type { SwitchDrafts } from "./draft-keeper.ts";
 import { existsSync, realpathSync, statSync } from "node:fs";
 import type { ListSessionsResponse } from "@agentclientprotocol/sdk";
 import type { ElicitationHandler } from "../agent/client-handler.ts";
@@ -92,6 +94,9 @@ const realPath = (path: string): string => {
 };
 
 export interface SessionSwitcherOptions {
+  /** Unsent drafts (src/session/draft-keeper.ts): kept for a session left, restored for one
+   *  opened by load or resume; absent where no draft is kept. */
+  readonly drafts?: SwitchDrafts;
   /** The launch the command line asked for. */
   readonly launch: LaunchDescription;
   readonly logger?: DebugLogger;
@@ -345,6 +350,8 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
           attach: (controller, how) => {
             if (state) state = { ...state, opened: how === "open" };
             store.attach(controller);
+            // Before the history replay: the draft kept for the session being reopened.
+            if (how === "open" && found.target) options.drafts?.enter(found.launch.agentName, found.target.sessionId);
           },
         });
       } catch (error) {
@@ -380,6 +387,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       const target: LaunchDescription = withDirectories({ ...state.launch, session: { kind: "new" } }, { directory: directory() });
       // The agent has no session yet unless one was started on it since.
       const controller = state.recorder === null ? state.controller : state.controller.reuse();
+      const left = state;
       await startOn(controller, {
         launch: target,
         index,
@@ -389,7 +397,10 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
         onConnected: (c, recorder) => {
           state = { launch: target, controller: c, recorder, opened: false };
         },
-        attach: (c) => store.replace(c),
+        attach: (c) => {
+          options.drafts?.leave(left);
+          store.replace(c);
+        },
       });
     },
 
@@ -470,6 +481,7 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
       switching = true;
       let controller: ConnectedController | null = null;
       let attached = false;
+      let snapshot: Draft | null = null;
       // An error thrown while the store attaches the new session (a component of the conversation
       // that throws) is acp-tui's own fault, not a failure to open the session: see the catch.
       let storeError: { readonly error: unknown } | null = null;
@@ -496,6 +508,9 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
           },
           attach: (c, how) => {
             attached = true;
+            // The session left keeps its draft (and the box is emptied) when it can be reopened;
+            // `state` is still the old session's here (`onConnected` set the new one's launch).
+            snapshot = options.drafts?.leave(previous) ?? null;
             state = { ...state!, opened: how === "open" };
             try {
               store.replace(c);
@@ -503,6 +518,8 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
               storeError = { error };
               throw error;
             }
+            // Before the history replay: the draft kept for the session being reopened.
+            if (how === "open" && sessionTarget) options.drafts?.enter(target.agentName, sessionTarget.sessionId);
           },
         });
         if (result === null) return null;
@@ -524,7 +541,10 @@ export function createSessionSwitcher(options: SessionSwitcherOptions): SessionS
         previous.controller.activate();
         state = previous;
         // Before any session (`--resume` without an ID), back to `connecting`.
-        if (attached) store.replace(previous.recorder ? previous.controller : null);
+        if (attached) {
+          store.replace(previous.recorder ? previous.controller : null);
+          options.drafts?.rollback(snapshot);
+        }
         if (error instanceof SessionOpenFailure) return error.message;
         return entry.kind === "session" ? `cannot open session ${entry.sessionId} with ${agentLabel(target)}: ${message(error)}` : `cannot start a new session with ${agentLabel(target)}: ${message(error)}`;
       } finally {

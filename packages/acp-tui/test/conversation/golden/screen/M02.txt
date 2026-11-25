@@ -8,9 +8,9 @@ at 63x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
 
 at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M02 strikethrough: double tilde, ~single tilde~, bold and│
-    «default»  M02 strikethrough: «default +i +d»double tilde«default», ~single tilde~, «default +b +i +d»bold and
+    «default»  M02 strikethrough: «#999a9e +i»double tilde«default», ~single tilde~, «#999a9e +b +i»bold and
   2 │  struck and struck with code.│
-    «default»  «default +b +i +d»struck «default»and «default +i +d»struck with «magenta +i»code«default».
+    «default»  «#999a9e +b +i»struck «default»and «#999a9e +i»struck with «magenta +i»code«default».
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M02 strikethrough: double tilde, ~single tilde~, bold and struck and struck with code.│
@@ -18,4 +18,4 @@ at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
 
 at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   1 │  M02 strikethrough: double tilde, ~single tilde~, bold and struck and struck with code.│
-    «default»  M02 strikethrough: «default +i +d»double tilde«default», ~single tilde~, «default +b +i +d»bold and struck «default»and «default +i +d»struck with «magenta +i»code«default».
+    «default»  M02 strikethrough: «#999a9e +i»double tilde«default», ~single tilde~, «#999a9e +b +i»bold and struck «default»and «#999a9e +i»struck with «magenta +i»code«default».

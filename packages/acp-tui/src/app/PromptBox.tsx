@@ -52,6 +52,7 @@ import { displayWidth, truncateEnd, type Segment } from "../layout/segments.ts";
 import { useKeys } from "../keys/context.ts";
 import { actionLabel, commandName, type KeyAction } from "../keys/keymap.ts";
 import { CONTEXT_PRIORITY, registerContext } from "../keys/register.ts";
+import type { ComposerHandle } from "../keys/controller.ts";
 import { LIVE_CHROME_GLYPHS } from "../conversation/live-glyphs.ts";
 import { isPrimaryPress } from "../renderer/mouse.ts";
 import { rendererWrite } from "../renderer/write-out.ts";
@@ -59,8 +60,11 @@ import { NO_CLIPBOARD_REASON, pasteNotice } from "../selection/clipboard.ts";
 import { spanStyle, type TokenName } from "../theme/index.ts";
 import { useApp, useConfig } from "./context.ts";
 import { createMentionDraft } from "./mention-draft.ts";
+import type { Draft } from "../session/drafts.ts";
+import type { Mention } from "./mentions.ts";
 import { createCursorFocus, cursorAtEnd, cursorShapeSequence, promptCursorStyle } from "./prompt-cursor.ts";
 import { promptInput } from "./prompt-input.ts";
+import { indexAtColumn, columnOffset } from "./mentions.ts";
 import { FLAT_SELECTION_MARK, paintFlatSelection } from "./prompt-selection.ts";
 import { createPromptUndo } from "./prompt-undo.ts";
 
@@ -98,7 +102,7 @@ function Row(props: { segments: Segment[]; onMouseDown?: (event: MouseEvent, col
 }
 
 export const PromptBox: BlockComponent = (props: BlockProps) => {
-  const { store, actions, theme, clipboard, logger, launch } = useApp();
+  const { store, actions, theme, clipboard, logger, launch, cursorColour, drafts } = useApp();
   const config = useConfig();
   const { keymap, keyMap, controller } = useKeys();
   const renderer = useRenderer();
@@ -240,6 +244,9 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
     renderer.off("focus", onTerminalFocus);
   });
   createEffect(on(focused, () => cursorFocus.promptFocusChanged(), { defer: true }));
+  // OpenTUI writes the cursor's colour in the first frame that shows the cursor (./cursor-colour.ts).
+  cursorColour?.markDirty();
+  createEffect(on(focused, () => cursorColour?.markDirty(), { defer: true }));
 
   // Read at the key, so a key map reloaded from the configuration is named (spec tui-keymap "Key
   // overrides from the configuration").
@@ -264,6 +271,8 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
     if (result === null || (!result.accepted && result.reason === "no_session")) controller.notify(`${launch?.().harness ?? "the harness"} is still starting`, "muted");
     else if (result.accepted) {
       input.clear();
+      // The session's kept draft (restored into this box, or an older one) is no longer wanted.
+      drafts?.forget();
       // A sent prompt is not undone: the history starts afresh (the prompt history's Up recalls it).
       undo.reset();
       // Sending reads as a return to the live end: the new message and the reply stay in view.
@@ -341,7 +350,38 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
     // The file picker's keys, above the prompt context's while it is open.
     const removePicker = registerContext(keymap, keyMap, "overlay", mentions.picker.handlers, { target: input, priority: CONTEXT_PRIORITY + 1 });
     onCleanup(removePicker);
-    controller.setComposer({
+    // The draft as the store keeps it (spec tui-sessions "Unsent drafts kept per session"): the
+    // text, the cursor as a UTF-16 index and the mentions that still hold their text.
+    const draftNow = (): Draft | null => {
+      if (!input || input.isDestroyed) return null;
+      const text = input.plainText;
+      if (text === "") return null;
+      const intact = mentions.current().filter((m) => text.slice(m.start, m.end) === m.text);
+      return { text, cursor: indexAtColumn(text, input.cursorOffset), mentions: intact };
+    };
+    // A kept draft goes after the text already in the box (typed while the harness started, or
+    // carried over from a session that cannot be reopened), a blank line between, and a notice
+    // says so; in an empty box it is the whole draft. The history starts afresh either way.
+    const restoreDraft = (draft: Draft): void => {
+      if (!input || input.isDestroyed) return;
+      const existing = input.plainText;
+      const before = existing === "" ? "" : `${existing}\n\n`;
+      const shift = before.length;
+      const next: Mention[] = [...(shift === 0 ? [] : mentions.current()), ...draft.mentions.map((m) => ({ ...m, start: m.start + shift, end: m.end + shift }))];
+      mentions.replaceAll(before + draft.text, draft.cursor + shift, next);
+      setCommandHint(null);
+      undo.reset();
+      if (shift > 0) controller.notify("draft restored after your text", "muted");
+    };
+    const replaceDraft = (draft: Draft | null): void => {
+      if (!input || input.isDestroyed) return;
+      mentions.replaceAll(draft?.text ?? "", draft?.cursor ?? 0, draft?.mentions ?? []);
+      setCommandHint(null);
+      undo.reset();
+    };
+    const composer: ComposerHandle = {
+      draft: draftNow,
+      restore: restoreDraft,
       clear: () => input?.clear(),
       empty: () => (input?.plainText ?? "") === "",
       insertCommand: (text, hint) => {
@@ -361,7 +401,10 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
         undo.atomic(() => input?.deleteSelection());
         return text;
       },
-    });
+    };
+    controller.setComposer(composer);
+    const unbindDrafts = drafts?.bind({ draft: draftNow, restore: restoreDraft, clear: () => input?.clear(), replace: replaceDraft });
+    onCleanup(() => unbindDrafts?.());
     // Under the flat theme the selection is a marked colour that becomes inverse video here (see
     // ./prompt-selection.ts); with fills the textarea draws `surface.selection` itself.
     const paintSelection = (buffer: OptimizedBuffer) => {
@@ -374,15 +417,6 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
       remove();
       controller.setComposer(null);
     });
-    // A focused textarea sets the terminal cursor colour (OSC 12) as RGB. Use the terminal's own
-    // cursor colour when it reports one, so the cursor looks as it did before acp-tui started.
-    renderer
-      .getPalette({ timeout: 500 })
-      .then((palette) => {
-        const cursor = palette.cursorColor;
-        if (input && !input.isDestroyed && cursor && /^#[0-9a-f]{6}$/i.test(cursor)) input.cursorColor = cursor;
-      })
-      .catch(() => {});
   });
 
   const onPaste = (event: PasteEvent) => {
@@ -441,7 +475,8 @@ export const PromptBox: BlockComponent = (props: BlockProps) => {
           textColor={theme.color("text")}
           focusedTextColor={theme.color("text")}
           placeholderColor={theme.color("muted")}
-          cursorColor={theme.color("text")}
+          showCursor={cursorColour ? cursorColour.ready() : true}
+          cursorColor={cursorColour?.colour() ?? theme.color("text")}
         />
         {side(` ${PROMPT_FRAME.vertical}`)}
         <Show when={commandHint()} keyed>

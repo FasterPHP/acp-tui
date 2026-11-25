@@ -7,6 +7,8 @@ import { setRendererSession, type RendererSession } from "../../src/renderer/cre
 import {
   createLifecycle,
   exitCodeFor,
+  CURSOR_COLOUR_RESET,
+  CURSOR_SHAPE_RESET,
   FALLBACK_RESET,
   FINAL_RESET,
   type LifecycleOptions,
@@ -219,9 +221,16 @@ describe("lifecycle", () => {
   });
 
   test("the final reset: mouse modes off, DEC 2031 off, scroll region, attributes, cursor shape and visibility (design D3; day-two-feedback D7)", () => {
-    expect(FINAL_RESET).toBe("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?2031l\x1b7\x1b[r\x1b8\x1b[0m\x1b[0 q\x1b[?25h");
+    expect(FINAL_RESET).toBe("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?2031l\x1b7\x1b[r\x1b8\x1b[0m\x1b]112\x07\x1b[0 q\x1b[?25h");
     // Never leaves the alternate screen: destroy() has already done it once.
     expect(FINAL_RESET).not.toContain("\x1b[?1049l");
+  });
+
+  test("the cursor colour is restored (OSC 112) before the shape, in both resets (prompt-box-feedback D6)", () => {
+    for (const reset of [FINAL_RESET, FALLBACK_RESET]) {
+      expect(reset).toContain(`${CURSOR_COLOUR_RESET}${CURSOR_SHAPE_RESET}`);
+    }
+    expect(CURSOR_COLOUR_RESET).toBe("\x1b]112\x07");
   });
 
   test("the fallback reset: leave the alternate screen once, then the Phase 0 fallback and the final reset", () => {

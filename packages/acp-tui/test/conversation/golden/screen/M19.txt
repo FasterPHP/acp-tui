@@ -34,25 +34,25 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  and inline formatting:
   3 ││
   4 │  ╭──────────────────┬────────┬──────────┬─────────────────╮│
-    «default»  «default +d»╭──────────────────┬────────┬──────────┬─────────────────╮
+    «default»  «#999a9e»╭──────────────────┬────────┬──────────┬─────────────────╮
   5 │  │ Left             │ Centre │    Right │ Default         ││
-    «default»  «default +d»│ «blue +b»Left             «default +d»│ «blue +b»Centre «default +d»│    «blue +b»Right «default +d»│ «blue +b»Default         «default +d»│
+    «default»  «#999a9e»│ «blue +b»Left             «#999a9e»│ «blue +b»Centre «#999a9e»│    «blue +b»Right «#999a9e»│ «blue +b»Default         «#999a9e»│
   6 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
-    «default»  «default +d»├──────────────────┼────────┼──────────┼─────────────────┤
+    «default»  «#999a9e»├──────────────────┼────────┼──────────┼─────────────────┤
   7 │  │ a                │   b    │        c │ d               ││
-    «default»  «default +d»│ «default»a                «default +d»│   «default»b    «default +d»│        «default»c «default +d»│ «default»d               «default +d»│
+    «default»  «#999a9e»│ «default»a                «#999a9e»│   «default»b    «#999a9e»│        «default»c «#999a9e»│ «default»d               «#999a9e»│
   8 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
-    «default»  «default +d»├──────────────────┼────────┼──────────┼─────────────────┤
+    «default»  «#999a9e»├──────────────────┼────────┼──────────┼─────────────────┤
   9 │  │ bold             │ italic │     code │ struck          ││
-    «default»  «default +d»│ «default +b»bold             «default +d»│ «default +i»italic «default +d»│     «magenta»code «default +d»│ «default +i +d»struck          «default +d»│
+    «default»  «#999a9e»│ «default +b»bold             «#999a9e»│ «default +i»italic «#999a9e»│     «magenta»code «#999a9e»│ «#999a9e +i»struck          «#999a9e»│
  10 │  ├──────────────────┼────────┼──────────┼─────────────────┤│
-    «default»  «default +d»├──────────────────┼────────┼──────────┼─────────────────┤
+    «default»  «#999a9e»├──────────────────┼────────┼──────────┼─────────────────┤
  11 │  │ link             │ 日本語 │ 1,234.56 │ an | escaped    ││
-    «default»  «default +d»│ «blue +u»link«default»             «default +d»│ «default»日本語 «default +d»│ «default»1,234.56 «default +d»│ «default»an | escaped    «default +d»│
+    «default»  «#999a9e»│ «blue +u»link«default»             «#999a9e»│ «default»日本語 «#999a9e»│ «default»1,234.56 «#999a9e»│ «default»an | escaped    «#999a9e»│
  12 │  │ (example.com)    │        │          │ pipe            ││
-    «default»  «default +d»│ (example.com)    │        │          │ «default»pipe            «default +d»│
+    «default»  «#999a9e»│ (example.com)    │        │          │ «default»pipe            «#999a9e»│
  13 │  ╰──────────────────┴────────┴──────────┴─────────────────╯│
-    «default»  «default +d»╰──────────────────┴────────┴──────────┴─────────────────╯
+    «default»  «#999a9e»╰──────────────────┴────────┴──────────┴─────────────────╯
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M19 table with alignment (left, centre, right, default) and inline formatting:│
@@ -78,16 +78,16 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  M19 table with alignment (left, centre, right, default) and inline formatting:
   2 ││
   3 │  ╭────────────────────┬────────┬──────────┬───────────────────╮│
-    «default»  «default +d»╭────────────────────┬────────┬──────────┬───────────────────╮
+    «default»  «#999a9e»╭────────────────────┬────────┬──────────┬───────────────────╮
   4 │  │ Left               │ Centre │    Right │ Default           ││
-    «default»  «default +d»│ «blue +b»Left               «default +d»│ «blue +b»Centre «default +d»│    «blue +b»Right «default +d»│ «blue +b»Default           «default +d»│
+    «default»  «#999a9e»│ «blue +b»Left               «#999a9e»│ «blue +b»Centre «#999a9e»│    «blue +b»Right «#999a9e»│ «blue +b»Default           «#999a9e»│
   5 │  ├────────────────────┼────────┼──────────┼───────────────────┤│
-    «default»  «default +d»├────────────────────┼────────┼──────────┼───────────────────┤
+    «default»  «#999a9e»├────────────────────┼────────┼──────────┼───────────────────┤
   6 │  │ a                  │   b    │        c │ d                 ││
-    «default»  «default +d»│ «default»a                  «default +d»│   «default»b    «default +d»│        «default»c «default +d»│ «default»d                 «default +d»│
+    «default»  «#999a9e»│ «default»a                  «#999a9e»│   «default»b    «#999a9e»│        «default»c «#999a9e»│ «default»d                 «#999a9e»│
   7 │  │ bold               │ italic │     code │ struck            ││
-    «default»  «default +d»│ «default +b»bold               «default +d»│ «default +i»italic «default +d»│     «magenta»code «default +d»│ «default +i +d»struck            «default +d»│
+    «default»  «#999a9e»│ «default +b»bold               «#999a9e»│ «default +i»italic «#999a9e»│     «magenta»code «#999a9e»│ «#999a9e +i»struck            «#999a9e»│
   8 │  │ link (example.com) │ 日本語 │ 1,234.56 │ an | escaped pipe ││
-    «default»  «default +d»│ «blue +u»link«default» «default +d»(example.com) │ «default»日本語 «default +d»│ «default»1,234.56 «default +d»│ «default»an | escaped pipe «default +d»│
+    «default»  «#999a9e»│ «blue +u»link«default» «#999a9e»(example.com) │ «default»日本語 «#999a9e»│ «default»1,234.56 «#999a9e»│ «default»an | escaped pipe «#999a9e»│
   9 │  ╰────────────────────┴────────┴──────────┴───────────────────╯│
-    «default»  «default +d»╰────────────────────┴────────┴──────────┴───────────────────╯
+    «default»  «#999a9e»╰────────────────────┴────────┴──────────┴───────────────────╯

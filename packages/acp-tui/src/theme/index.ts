@@ -27,6 +27,6 @@ export type { Rgb, TerminalColours } from "./derive.ts";
 export { createLiveTheme } from "./live.ts";
 export type { LiveTheme, LiveThemeOptions } from "./live.ts";
 export { bindTerminalColours, COLOUR_QUERY, createColourTracker, parseColourReply, QUERY_TIMEOUT_MS } from "./terminal-colours.ts";
-export type { ColourTracker, ColourTrackerOptions, ThemeColours } from "./terminal-colours.ts";
+export type { ColourReplies, ColourTracker, ColourTrackerOptions, ThemeColours } from "./terminal-colours.ts";
 export { createThemeRefresh } from "./refresh.ts";
 export type { ThemeRefresh } from "./refresh.ts";

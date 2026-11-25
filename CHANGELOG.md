@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- Ctrl+D always leaves, whatever the prompt box holds. It no longer deletes forward when there is a draft: use Delete, or bind another key to `detach` and remove Ctrl+D under `keys`.
+
+### Prompt box
+
+- The cursor's colour comes from the terminal: acp-tui asks for its cursor, foreground and background colours at start and uses the cursor colour when it can be seen against the background, else the foreground (a dark cursor on a light theme was invisible in foot). The prompt box shows no cursor for the first moments (at most 0.3 seconds) until the terminal has answered, and `OSC 112` gives the terminal its own colour back at exit and on every fallback reset.
+- Unsent drafts are kept per session: leaving a session that can be reopened with text in the prompt box (Ctrl+D, `/exit`, a closed window, a signal or a switch) saves the text, its `@` mentions and the cursor in a private file in acp-tui's state directory, and `-c`, `-r` or the session list puts it back. It is removed when you send a prompt or leave with an empty prompt box. At most 200 drafts of 256 KiB are kept.
+- A draft that is not kept (too large, a session that cannot be reopened, or `prompt.keep_drafts` set to `false`) is printed below the command line at exit after `draft (not sent):`, unwrapped so that it can be copied back.
+- New setting `prompt.keep_drafts` (default `true`), read from your own file only. Drafts are plain files that may hold anything you typed, a secret included.
+
+### Other changes
+
+- Muted text on a light background is drawn as a mix of the terminal's foreground and background colours, so it stays legible.
+- A tool card's output note counts lines, not rows (`3 lines hidden`), and a harness that streams only the tail of an output shows `last N lines`.
+
 ## 0.3.0
 
 Auggie 1.x (`@augmentcode/auggie` 1.2, now its default install) works with the same `auggie` entry as 0.x. If you upgraded Auggie, log in again with `auggie auth login`; sessions made with 0.x cannot be opened by 1.x (import them in Auggie with `/import-legacy-sessions`).

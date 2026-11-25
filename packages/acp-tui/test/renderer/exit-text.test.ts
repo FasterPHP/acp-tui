@@ -161,3 +161,54 @@ describe("exit text: the resume line only", () => {
     expect(text).toContain("-- agent 'a b' cd");
   });
 });
+
+describe("exit text: the unsent draft (spec tui-screen \"Unsent draft in the exit text\", \"Draft printed as typed\")", () => {
+  test("Session that cannot be reopened: the label and the lines directly, and nothing else", () => {
+    expect(exitText("summary", { session, canReopen: false, hadPromptOrOpened: true, draft: "first line\nsecond line" })).toBe("\rdraft (not sent):\nfirst line\nsecond line\n");
+  });
+
+  test("Before the first answered prompt: no resume line, the draft alone", () => {
+    expect(exitText("summary", { ...reopenable, hadPromptOrOpened: false, session, draft: "explain the build" })).toBe("\rdraft (not sent):\nexplain the build\n");
+  });
+
+  test("Store turned off: the resume line, one blank line, then the draft", () => {
+    expect(exitText("summary", { ...reopenable, session, draft: "half a thought" })).toBe("\rresume: acp-tui --resume sess-42\n\ndraft (not sent):\nhalf a thought\n");
+  });
+
+  test("a kept draft adds nothing: the caller passes no draft and the text is the resume line alone", () => {
+    expect(exitText("summary", { ...reopenable, session, draft: null })).toBe("\rresume: acp-tui --resume sess-42\n");
+  });
+
+  test("Nothing under none, the draft included", () => {
+    expect(exitText("none", { session, canReopen: false, draft: "unsent" })).toBe("");
+  });
+
+  test("after an exit print the draft follows one blank line, with or without a resume line", () => {
+    const answered = { id: "sess-42", order: ["a"], items: new Map([["a", { id: "a", kind: "agent_message", text: "The answer.", status: "final", origin: "self" }]]) as never };
+    const withBody = { session: answered, draft: "d" };
+    const text = exitText("last-answer", { ...reopenable, ...withBody });
+    expect(text.endsWith("\n\ndraft (not sent):\nd\n")).toBe(true);
+    expect(text.split("\n").slice(0, 3)).toEqual(["\rresume: acp-tui --resume sess-42", "", "The answer."]);
+    const noResume = exitText("last-answer", { session: withBody.session, canReopen: false, draft: "d" });
+    expect(noResume.endsWith("\n\ndraft (not sent):\nd\n")).toBe(true);
+    expect(noResume).not.toContain("resume:");
+  });
+
+  test("Long draft in full: 400 lines, one of 300 characters, never cut or wrapped", () => {
+    const lines = Array.from({ length: 400 }, (_, i) => (i === 7 ? "w".repeat(300) : `line ${i}`));
+    const text = exitText("summary", { session, canReopen: false, width: 80, draft: lines.join("\n") });
+    expect(text.split("\n")).toEqual(["\rdraft (not sent):", ...lines, ""]);
+  });
+
+  test("Tabs and pasted escapes: tabs become spaces to the next eight-column stop, no ESC byte and no control character but the line breaks", () => {
+    const text = exitText("summary", { session, canReopen: false, draft: "a\tb\x1b]52;c;ZXZpbA==\x07\nabcdefgh\ti\u0007\u0085j" });
+    expect(text).toBe("\rdraft (not sent):\na       b\nabcdefgh        ij\n");
+    expect(text).not.toContain("\x1b");
+    expect(text).not.toContain("\t");
+  });
+
+  test("a draft of nothing printable prints nothing", () => {
+    expect(exitText("summary", { session, canReopen: false, draft: "\n\n" })).toBe("");
+    expect(exitText("summary", { session, canReopen: false, draft: "" })).toBe("");
+  });
+});

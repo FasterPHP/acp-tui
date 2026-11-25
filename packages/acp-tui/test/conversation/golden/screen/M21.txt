@@ -230,225 +230,225 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  M21 code blocks: php with the opening tag:
   2 ││
   3 │                                                       php  │
-    «default»  «default bg:surface.code +d»                                                     php  
+    «default»  «#999a9e bg:surface.code»                                                     php  
   4 │    <?php                                                   │
-    «default»  «default bg:surface.code +d»  «red bg:surface.code»<?php                                                   
+    «default»  «#999a9e bg:surface.code»  «red bg:surface.code»<?php                                                   
   5 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
   6 │    declare(strict_types=1);                                │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»declare«default bg:surface.code»(strict_types=«cyan bg:surface.code»1«default bg:surface.code»);                                
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»declare«default bg:surface.code»(strict_types=«cyan bg:surface.code»1«default bg:surface.code»);                                
   7 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
   8 │    final class Greeter                                     │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»final class «default bg:surface.code»Greeter                                     
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»final class «default bg:surface.code»Greeter                                     
   9 │    {                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»{                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»{                                                       
  10 │        public function greet(string $name): string         │
-    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»public function «blue bg:surface.code»greet«default bg:surface.code»(«bright-red bg:surface.code»string «default bg:surface.code»$name): «bright-red bg:surface.code»string         
+    «default»  «#999a9e bg:surface.code»      «magenta bg:surface.code»public function «blue bg:surface.code»greet«default bg:surface.code»(«bright-red bg:surface.code»string «default bg:surface.code»$name): «bright-red bg:surface.code»string         
  11 │        {                                                   │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»{                                                   
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»{                                                   
  12 │            // A comment                                    │
-    «default»  «default bg:surface.code +d»          «default bg:surface.code +i +d»// A comment                                    
+    «default»  «#999a9e bg:surface.code»          «#999a9e bg:surface.code +i»// A comment                                    
  13 │            return sprintf('Hello, %s!', $name);            │
-    «default»  «default bg:surface.code +d»          «magenta bg:surface.code»return «blue bg:surface.code»sprintf«default bg:surface.code»(«green bg:surface.code»'Hello, %s!'«default bg:surface.code», $name);            
+    «default»  «#999a9e bg:surface.code»          «magenta bg:surface.code»return «blue bg:surface.code»sprintf«default bg:surface.code»(«green bg:surface.code»'Hello, %s!'«default bg:surface.code», $name);            
  14 │        }                                                   │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»}                                                   
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»}                                                   
  15 │    }                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                       
  16 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  17 ││
  18 │  php without the opening tag:│
     «default»  php without the opening tag:
  19 ││
  20 │                                                       php  │
-    «default»  «default bg:surface.code +d»                                                     php  
+    «default»  «#999a9e bg:surface.code»                                                     php  
  21 │    $total = array_sum(array_map(fn (array $l): float =>↩   │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»$total = «blue bg:surface.code»array_sum«default bg:surface.code»(«blue bg:surface.code»array_map«default bg:surface.code»(«magenta bg:surface.code»fn «default bg:surface.code»(«bright-red bg:surface.code»array «default bg:surface.code»$l): «bright-red bg:surface.code»float «default bg:surface.code»=>«default bg:surface.code +d»↩   
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»$total = «blue bg:surface.code»array_sum«default bg:surface.code»(«blue bg:surface.code»array_map«default bg:surface.code»(«magenta bg:surface.code»fn «default bg:surface.code»(«bright-red bg:surface.code»array «default bg:surface.code»$l): «bright-red bg:surface.code»float «default bg:surface.code»=>«#999a9e bg:surface.code»↩   
  22 │    $l['qty'] * $l['price'], $lines));                      │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»$l[«green bg:surface.code»'qty'«default bg:surface.code»] * $l[«green bg:surface.code»'price'«default bg:surface.code»], $lines));                      
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»$l[«green bg:surface.code»'qty'«default bg:surface.code»] * $l[«green bg:surface.code»'price'«default bg:surface.code»], $lines));                      
  23 │    echo "Total: {$total}\n";                               │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»echo «green bg:surface.code»"Total: {«default bg:surface.code»$total«green bg:surface.code»}\n"«default bg:surface.code»;                               
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»echo «green bg:surface.code»"Total: {«default bg:surface.code»$total«green bg:surface.code»}\n"«default bg:surface.code»;                               
  24 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  25 ││
  26 │  ts:│
     «default»  ts:
  27 ││
  28 │                                                        ts  │
-    «default»  «default bg:surface.code +d»                                                      ts  
+    «default»  «#999a9e bg:surface.code»                                                      ts  
  29 │    interface User { id: number; name: string }             │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»interface «bright-red bg:surface.code»User «default bg:surface.code»{ id: «bright-red bg:surface.code»number«default bg:surface.code»; name: «bright-red bg:surface.code»string «default bg:surface.code»}             
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»interface «bright-red bg:surface.code»User «default bg:surface.code»{ id: «bright-red bg:surface.code»number«default bg:surface.code»; name: «bright-red bg:surface.code»string «default bg:surface.code»}             
  30 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  31 │    export async function load(id: number): Promise<User>↩  │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»export async function «blue bg:surface.code»load«default bg:surface.code»(id: «bright-red bg:surface.code»number«default bg:surface.code»): «bright-red bg:surface.code»Promise«default bg:surface.code»<«bright-red bg:surface.code»User«default bg:surface.code»>«default bg:surface.code +d»↩  
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»export async function «blue bg:surface.code»load«default bg:surface.code»(id: «bright-red bg:surface.code»number«default bg:surface.code»): «bright-red bg:surface.code»Promise«default bg:surface.code»<«bright-red bg:surface.code»User«default bg:surface.code»>«#999a9e bg:surface.code»↩  
  32 │    {                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»{                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»{                                                       
  33 │      const res = await fetch(`/users/${id}`);              │
-    «default»  «default bg:surface.code +d»    «magenta bg:surface.code»const «default bg:surface.code»res = «magenta bg:surface.code»await «blue bg:surface.code»fetch«default bg:surface.code»(«green bg:surface.code»`/users/«default bg:surface.code»${id}«green bg:surface.code»`«default bg:surface.code»);              
+    «default»  «#999a9e bg:surface.code»    «magenta bg:surface.code»const «default bg:surface.code»res = «magenta bg:surface.code»await «blue bg:surface.code»fetch«default bg:surface.code»(«green bg:surface.code»`/users/«default bg:surface.code»${id}«green bg:surface.code»`«default bg:surface.code»);              
  34 │      return (await res.json()) as User;                    │
-    «default»  «default bg:surface.code +d»    «magenta bg:surface.code»return «default bg:surface.code»(«magenta bg:surface.code»await «default bg:surface.code»res.«blue bg:surface.code»json«default bg:surface.code»()) «magenta bg:surface.code»as «bright-red bg:surface.code»User«default bg:surface.code»;                    
+    «default»  «#999a9e bg:surface.code»    «magenta bg:surface.code»return «default bg:surface.code»(«magenta bg:surface.code»await «default bg:surface.code»res.«blue bg:surface.code»json«default bg:surface.code»()) «magenta bg:surface.code»as «bright-red bg:surface.code»User«default bg:surface.code»;                    
  35 │    }                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                       
  36 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  37 ││
  38 │  json:│
     «default»  json:
  39 ││
  40 │                                                      json  │
-    «default»  «default bg:surface.code +d»                                                    json  
+    «default»  «#999a9e bg:surface.code»                                                    json  
  41 │    {                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»{                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»{                                                       
  42 │      "name": "acp-tui",                                    │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"name"«default bg:surface.code»: «green bg:surface.code»"acp-tui"«default bg:surface.code»,                                    
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"name"«default bg:surface.code»: «green bg:surface.code»"acp-tui"«default bg:surface.code»,                                    
  43 │      "private": true,                                      │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"private"«default bg:surface.code»: «cyan bg:surface.code»true«default bg:surface.code»,                                      
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"private"«default bg:surface.code»: «cyan bg:surface.code»true«default bg:surface.code»,                                      
  44 │      "tags": ["tui", "acp"],                               │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"tags"«default bg:surface.code»: [«green bg:surface.code»"tui"«default bg:surface.code», «green bg:surface.code»"acp"«default bg:surface.code»],                               
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"tags"«default bg:surface.code»: [«green bg:surface.code»"tui"«default bg:surface.code», «green bg:surface.code»"acp"«default bg:surface.code»],                               
  45 │      "count": 3,                                           │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"count"«default bg:surface.code»: «cyan bg:surface.code»3«default bg:surface.code»,                                           
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"count"«default bg:surface.code»: «cyan bg:surface.code»3«default bg:surface.code»,                                           
  46 │      "nothing": null                                       │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"nothing"«default bg:surface.code»: «cyan bg:surface.code»null                                       
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"nothing"«default bg:surface.code»: «cyan bg:surface.code»null                                       
  47 │    }                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                       
  48 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  49 ││
  50 │  bash:│
     «default»  bash:
  51 ││
  52 │                                                      bash  │
-    «default»  «default bg:surface.code +d»                                                    bash  
+    «default»  «#999a9e bg:surface.code»                                                    bash  
  53 │    #!/usr/bin/env bash                                     │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code +i +d»#!/usr/bin/env bash                                     
+    «default»  «#999a9e bg:surface.code»  «#999a9e bg:surface.code +i»#!/usr/bin/env bash                                     
  54 │    set -euo pipefail                                       │
-    «default»  «default bg:surface.code +d»  «blue bg:surface.code»set «cyan bg:surface.code»-euo «default bg:surface.code»pipefail                                       
+    «default»  «#999a9e bg:surface.code»  «blue bg:surface.code»set «cyan bg:surface.code»-euo «default bg:surface.code»pipefail                                       
  55 │    for f in *.md; do                                       │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»for «default bg:surface.code»f «magenta bg:surface.code»in «default bg:surface.code»*.md; «magenta bg:surface.code»do                                       
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»for «default bg:surface.code»f «magenta bg:surface.code»in «default bg:surface.code»*.md; «magenta bg:surface.code»do                                       
  56 │      echo "Checking $f" && grep -c '^#' "$f"               │
-    «default»  «default bg:surface.code +d»    «blue bg:surface.code»echo «green bg:surface.code»"Checking «default bg:surface.code»$f«green bg:surface.code»" «default bg:surface.code»&& «blue bg:surface.code»grep «cyan bg:surface.code»-c «green bg:surface.code»'^#' "«default bg:surface.code»$f«green bg:surface.code»"               
+    «default»  «#999a9e bg:surface.code»    «blue bg:surface.code»echo «green bg:surface.code»"Checking «default bg:surface.code»$f«green bg:surface.code»" «default bg:surface.code»&& «blue bg:surface.code»grep «cyan bg:surface.code»-c «green bg:surface.code»'^#' "«default bg:surface.code»$f«green bg:surface.code»"               
  57 │    done                                                    │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»done                                                    
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»done                                                    
  58 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  59 ││
  60 │  diff:│
     «default»  diff:
  61 ││
  62 │                                                      diff  │
-    «default»  «default bg:surface.code +d»                                                    diff  
+    «default»  «#999a9e bg:surface.code»                                                    diff  
  63 │    --- a/src/Greeter.php                                   │
-    «default»  «default bg:surface.code +d»  --- a/src/Greeter.php                                   
+    «default»  «#999a9e bg:surface.code»  --- a/src/Greeter.php                                   
  64 │    +++ b/src/Greeter.php                                   │
-    «default»  «default bg:surface.code +d»  +++ b/src/Greeter.php                                   
+    «default»  «#999a9e bg:surface.code»  +++ b/src/Greeter.php                                   
  65 │    @@ -3,3 +3,3 @@                                         │
-    «default»  «default bg:surface.code +d»  «cyan bg:surface.code»@@ -3,3 +3,3 @@                                         
+    «default»  «#999a9e bg:surface.code»  «cyan bg:surface.code»@@ -3,3 +3,3 @@                                         
  66 │     final class Greeter                                    │
-    «default»  «default bg:surface.code +d»   «default bg:surface.code»final class Greeter                                    
+    «default»  «#999a9e bg:surface.code»   «default bg:surface.code»final class Greeter                                    
  67 │    -    public function greet($name)                       │
-    «default»  «default bg:surface.code +d»  «red bg:surface.code»-    public function greet($name)                       
+    «default»  «#999a9e bg:surface.code»  «red bg:surface.code»-    public function greet($name)                       
  68 │    +    public function greet(string $name): string        │
-    «default»  «default bg:surface.code +d»  «green bg:surface.code»+    public function greet(string $name): string        
+    «default»  «#999a9e bg:surface.code»  «green bg:surface.code»+    public function greet(string $name): string        
  69 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  70 ││
  71 │  sql:│
     «default»  sql:
  72 ││
  73 │                                                       sql  │
-    «default»  «default bg:surface.code +d»                                                     sql  
+    «default»  «#999a9e bg:surface.code»                                                     sql  
  74 │    SELECT u.id, u.name, COUNT(o.id) AS orders              │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»SELECT «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name, «blue bg:surface.code»COUNT«default bg:surface.code»(«bright-red bg:surface.code»o«default bg:surface.code».id) «magenta bg:surface.code»AS «default bg:surface.code»orders              
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»SELECT «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name, «blue bg:surface.code»COUNT«default bg:surface.code»(«bright-red bg:surface.code»o«default bg:surface.code».id) «magenta bg:surface.code»AS «default bg:surface.code»orders              
  75 │    FROM users u                                            │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»FROM «bright-red bg:surface.code»users «default bg:surface.code»u                                            
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»FROM «bright-red bg:surface.code»users «default bg:surface.code»u                                            
  76 │    LEFT JOIN orders o ON o.user_id = u.id                  │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»LEFT JOIN «bright-red bg:surface.code»orders «default bg:surface.code»o «magenta bg:surface.code»ON «bright-red bg:surface.code»o«default bg:surface.code».user_id = «bright-red bg:surface.code»u«default bg:surface.code».id                  
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»LEFT JOIN «bright-red bg:surface.code»orders «default bg:surface.code»o «magenta bg:surface.code»ON «bright-red bg:surface.code»o«default bg:surface.code».user_id = «bright-red bg:surface.code»u«default bg:surface.code».id                  
  77 │    WHERE u.created_at >= '2026-01-01'                      │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»WHERE «bright-red bg:surface.code»u«default bg:surface.code».created_at >= «green bg:surface.code»'2026-01-01'                      
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»WHERE «bright-red bg:surface.code»u«default bg:surface.code».created_at >= «green bg:surface.code»'2026-01-01'                      
  78 │    GROUP BY u.id, u.name                                   │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»GROUP BY «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name                                   
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»GROUP BY «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name                                   
  79 │    ORDER BY orders DESC;                                   │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»ORDER BY «default bg:surface.code»orders «magenta bg:surface.code»DESC«default bg:surface.code»;                                   
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»ORDER BY «default bg:surface.code»orders «magenta bg:surface.code»DESC«default bg:surface.code»;                                   
  80 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  81 ││
  82 │  no language:│
     «default»  no language:
  83 ││
  84 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  85 │    A fence with no language.                               │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»A fence with no language.                               
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»A fence with no language.                               
  86 │        Indentation inside is kept.                         │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»Indentation inside is kept.                         
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»Indentation inside is kept.                         
  87 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  88 ││
  89 │  a tilde fence (python):│
     «default»  a tilde fence (python):
  90 ││
  91 │                                                    python  │
-    «default»  «default bg:surface.code +d»                                                  python  
+    «default»  «#999a9e bg:surface.code»                                                  python  
  92 │    # A tilde fence                                         │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code +i +d»# A tilde fence                                         
+    «default»  «#999a9e bg:surface.code»  «#999a9e bg:surface.code +i»# A tilde fence                                         
  93 │    print("tilde")                                          │
-    «default»  «default bg:surface.code +d»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                          
+    «default»  «#999a9e bg:surface.code»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                          
  94 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
  95 ││
  96 │  java:│
     «default»  java:
  97 ││
  98 │                                                      java  │
-    «default»  «default bg:surface.code +d»                                                    java  
+    «default»  «#999a9e bg:surface.code»                                                    java  
  99 │    public final class Account {                            │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»public final class «bright-red bg:surface.code»Account «default bg:surface.code»{                            
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»public final class «bright-red bg:surface.code»Account «default bg:surface.code»{                            
 100 │        private long id; // the account number              │
-    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»private «bright-red bg:surface.code»long «default bg:surface.code»id; «default bg:surface.code +i +d»// the account number              
+    «default»  «#999a9e bg:surface.code»      «magenta bg:surface.code»private «bright-red bg:surface.code»long «default bg:surface.code»id; «#999a9e bg:surface.code +i»// the account number              
 101 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
 102 │        public String label() {                             │
-    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»public «bright-red bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                             
+    «default»  «#999a9e bg:surface.code»      «magenta bg:surface.code»public «bright-red bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                             
 103 │            return "account-" + id;                         │
-    «default»  «default bg:surface.code +d»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                         
+    «default»  «#999a9e bg:surface.code»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                         
 104 │        }                                                   │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»}                                                   
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»}                                                   
 105 │    }                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                       
 106 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
 107 ││
 108 │  kotlin (a Gradle script):│
     «default»  kotlin (a Gradle script):
 109 ││
 110 │                                                       kts  │
-    «default»  «default bg:surface.code +d»                                                     kts  
+    «default»  «#999a9e bg:surface.code»                                                     kts  
 111 │    dependencies {                                          │
-    «default»  «default bg:surface.code +d»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                          
+    «default»  «#999a9e bg:surface.code»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                          
 112 │        implementation("org.slf4j:slf4j-api:2.0.16")        │
-    «default»  «default bg:surface.code +d»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)        
+    «default»  «#999a9e bg:surface.code»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)        
 113 │    }                                                       │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                       
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                       
 114 │                                                            │
-    «default»  «default bg:surface.code +d»                                                          
+    «default»  «#999a9e bg:surface.code»                                                          
 115 ││
 116 │  xml (a Maven dependency):│
     «default»  xml (a Maven dependency):
 117 ││
 118 │                                                       xml  │
-    «default»  «default bg:surface.code +d»                                                     xml  
+    «default»  «#999a9e bg:surface.code»                                                     xml  
 119 │    <dependency>                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                            
 120 │      <groupId>junit</groupId>                              │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                              
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                              
 121 │      <artifactId>junit</artifactId>                        │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                        
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                        
 122 │      <version>4.13.2</version>                             │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                             
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                             
 123 │    </dependency>                                           │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                           
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                           
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M21 code blocks: php with the opening tag:│
@@ -676,218 +676,218 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  M21 code blocks: php with the opening tag:
   2 ││
   3 │                                                                                            php  │
-    «default»  «default bg:surface.code +d»                                                                                          php  
+    «default»  «#999a9e bg:surface.code»                                                                                          php  
   4 │    <?php                                                                                        │
-    «default»  «default bg:surface.code +d»  «red bg:surface.code»<?php                                                                                        
+    «default»  «#999a9e bg:surface.code»  «red bg:surface.code»<?php                                                                                        
   5 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
   6 │    declare(strict_types=1);                                                                     │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»declare«default bg:surface.code»(strict_types=«cyan bg:surface.code»1«default bg:surface.code»);                                                                     
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»declare«default bg:surface.code»(strict_types=«cyan bg:surface.code»1«default bg:surface.code»);                                                                     
   7 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
   8 │    final class Greeter                                                                          │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»final class «default bg:surface.code»Greeter                                                                          
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»final class «default bg:surface.code»Greeter                                                                          
   9 │    {                                                                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»{                                                                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»{                                                                                            
  10 │        public function greet(string $name): string                                              │
-    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»public function «blue bg:surface.code»greet«default bg:surface.code»(«bright-red bg:surface.code»string «default bg:surface.code»$name): «bright-red bg:surface.code»string                                              
+    «default»  «#999a9e bg:surface.code»      «magenta bg:surface.code»public function «blue bg:surface.code»greet«default bg:surface.code»(«bright-red bg:surface.code»string «default bg:surface.code»$name): «bright-red bg:surface.code»string                                              
  11 │        {                                                                                        │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»{                                                                                        
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»{                                                                                        
  12 │            // A comment                                                                         │
-    «default»  «default bg:surface.code +d»          «default bg:surface.code +i +d»// A comment                                                                         
+    «default»  «#999a9e bg:surface.code»          «#999a9e bg:surface.code +i»// A comment                                                                         
  13 │            return sprintf('Hello, %s!', $name);                                                 │
-    «default»  «default bg:surface.code +d»          «magenta bg:surface.code»return «blue bg:surface.code»sprintf«default bg:surface.code»(«green bg:surface.code»'Hello, %s!'«default bg:surface.code», $name);                                                 
+    «default»  «#999a9e bg:surface.code»          «magenta bg:surface.code»return «blue bg:surface.code»sprintf«default bg:surface.code»(«green bg:surface.code»'Hello, %s!'«default bg:surface.code», $name);                                                 
  14 │        }                                                                                        │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»}                                                                                        
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»}                                                                                        
  15 │    }                                                                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                                                            
  16 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  17 ││
  18 │  php without the opening tag:│
     «default»  php without the opening tag:
  19 ││
  20 │                                                                                            php  │
-    «default»  «default bg:surface.code +d»                                                                                          php  
+    «default»  «#999a9e bg:surface.code»                                                                                          php  
  21 │    $total = array_sum(array_map(fn (array $l): float => $l['qty'] * $l['price'], $lines));      │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»$total = «blue bg:surface.code»array_sum«default bg:surface.code»(«blue bg:surface.code»array_map«default bg:surface.code»(«magenta bg:surface.code»fn «default bg:surface.code»(«bright-red bg:surface.code»array «default bg:surface.code»$l): «bright-red bg:surface.code»float «default bg:surface.code»=> $l[«green bg:surface.code»'qty'«default bg:surface.code»] * $l[«green bg:surface.code»'price'«default bg:surface.code»], $lines));      
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»$total = «blue bg:surface.code»array_sum«default bg:surface.code»(«blue bg:surface.code»array_map«default bg:surface.code»(«magenta bg:surface.code»fn «default bg:surface.code»(«bright-red bg:surface.code»array «default bg:surface.code»$l): «bright-red bg:surface.code»float «default bg:surface.code»=> $l[«green bg:surface.code»'qty'«default bg:surface.code»] * $l[«green bg:surface.code»'price'«default bg:surface.code»], $lines));      
  22 │    echo "Total: {$total}\n";                                                                    │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»echo «green bg:surface.code»"Total: {«default bg:surface.code»$total«green bg:surface.code»}\n"«default bg:surface.code»;                                                                    
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»echo «green bg:surface.code»"Total: {«default bg:surface.code»$total«green bg:surface.code»}\n"«default bg:surface.code»;                                                                    
  23 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  24 ││
  25 │  ts:│
     «default»  ts:
  26 ││
  27 │                                                                                             ts  │
-    «default»  «default bg:surface.code +d»                                                                                           ts  
+    «default»  «#999a9e bg:surface.code»                                                                                           ts  
  28 │    interface User { id: number; name: string }                                                  │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»interface «bright-red bg:surface.code»User «default bg:surface.code»{ id: «bright-red bg:surface.code»number«default bg:surface.code»; name: «bright-red bg:surface.code»string «default bg:surface.code»}                                                  
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»interface «bright-red bg:surface.code»User «default bg:surface.code»{ id: «bright-red bg:surface.code»number«default bg:surface.code»; name: «bright-red bg:surface.code»string «default bg:surface.code»}                                                  
  29 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  30 │    export async function load(id: number): Promise<User> {                                      │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»export async function «blue bg:surface.code»load«default bg:surface.code»(id: «bright-red bg:surface.code»number«default bg:surface.code»): «bright-red bg:surface.code»Promise«default bg:surface.code»<«bright-red bg:surface.code»User«default bg:surface.code»> {                                      
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»export async function «blue bg:surface.code»load«default bg:surface.code»(id: «bright-red bg:surface.code»number«default bg:surface.code»): «bright-red bg:surface.code»Promise«default bg:surface.code»<«bright-red bg:surface.code»User«default bg:surface.code»> {                                      
  31 │      const res = await fetch(`/users/${id}`);                                                   │
-    «default»  «default bg:surface.code +d»    «magenta bg:surface.code»const «default bg:surface.code»res = «magenta bg:surface.code»await «blue bg:surface.code»fetch«default bg:surface.code»(«green bg:surface.code»`/users/«default bg:surface.code»${id}«green bg:surface.code»`«default bg:surface.code»);                                                   
+    «default»  «#999a9e bg:surface.code»    «magenta bg:surface.code»const «default bg:surface.code»res = «magenta bg:surface.code»await «blue bg:surface.code»fetch«default bg:surface.code»(«green bg:surface.code»`/users/«default bg:surface.code»${id}«green bg:surface.code»`«default bg:surface.code»);                                                   
  32 │      return (await res.json()) as User;                                                         │
-    «default»  «default bg:surface.code +d»    «magenta bg:surface.code»return «default bg:surface.code»(«magenta bg:surface.code»await «default bg:surface.code»res.«blue bg:surface.code»json«default bg:surface.code»()) «magenta bg:surface.code»as «bright-red bg:surface.code»User«default bg:surface.code»;                                                         
+    «default»  «#999a9e bg:surface.code»    «magenta bg:surface.code»return «default bg:surface.code»(«magenta bg:surface.code»await «default bg:surface.code»res.«blue bg:surface.code»json«default bg:surface.code»()) «magenta bg:surface.code»as «bright-red bg:surface.code»User«default bg:surface.code»;                                                         
  33 │    }                                                                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                                                            
  34 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  35 ││
  36 │  json:│
     «default»  json:
  37 ││
  38 │                                                                                           json  │
-    «default»  «default bg:surface.code +d»                                                                                         json  
+    «default»  «#999a9e bg:surface.code»                                                                                         json  
  39 │    {                                                                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»{                                                                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»{                                                                                            
  40 │      "name": "acp-tui",                                                                         │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"name"«default bg:surface.code»: «green bg:surface.code»"acp-tui"«default bg:surface.code»,                                                                         
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"name"«default bg:surface.code»: «green bg:surface.code»"acp-tui"«default bg:surface.code»,                                                                         
  41 │      "private": true,                                                                           │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"private"«default bg:surface.code»: «cyan bg:surface.code»true«default bg:surface.code»,                                                                           
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"private"«default bg:surface.code»: «cyan bg:surface.code»true«default bg:surface.code»,                                                                           
  42 │      "tags": ["tui", "acp"],                                                                    │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"tags"«default bg:surface.code»: [«green bg:surface.code»"tui"«default bg:surface.code», «green bg:surface.code»"acp"«default bg:surface.code»],                                                                    
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"tags"«default bg:surface.code»: [«green bg:surface.code»"tui"«default bg:surface.code», «green bg:surface.code»"acp"«default bg:surface.code»],                                                                    
  43 │      "count": 3,                                                                                │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"count"«default bg:surface.code»: «cyan bg:surface.code»3«default bg:surface.code»,                                                                                
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"count"«default bg:surface.code»: «cyan bg:surface.code»3«default bg:surface.code»,                                                                                
  44 │      "nothing": null                                                                            │
-    «default»  «default bg:surface.code +d»    «green bg:surface.code»"nothing"«default bg:surface.code»: «cyan bg:surface.code»null                                                                            
+    «default»  «#999a9e bg:surface.code»    «green bg:surface.code»"nothing"«default bg:surface.code»: «cyan bg:surface.code»null                                                                            
  45 │    }                                                                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                                                            
  46 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  47 ││
  48 │  bash:│
     «default»  bash:
  49 ││
  50 │                                                                                           bash  │
-    «default»  «default bg:surface.code +d»                                                                                         bash  
+    «default»  «#999a9e bg:surface.code»                                                                                         bash  
  51 │    #!/usr/bin/env bash                                                                          │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code +i +d»#!/usr/bin/env bash                                                                          
+    «default»  «#999a9e bg:surface.code»  «#999a9e bg:surface.code +i»#!/usr/bin/env bash                                                                          
  52 │    set -euo pipefail                                                                            │
-    «default»  «default bg:surface.code +d»  «blue bg:surface.code»set «cyan bg:surface.code»-euo «default bg:surface.code»pipefail                                                                            
+    «default»  «#999a9e bg:surface.code»  «blue bg:surface.code»set «cyan bg:surface.code»-euo «default bg:surface.code»pipefail                                                                            
  53 │    for f in *.md; do                                                                            │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»for «default bg:surface.code»f «magenta bg:surface.code»in «default bg:surface.code»*.md; «magenta bg:surface.code»do                                                                            
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»for «default bg:surface.code»f «magenta bg:surface.code»in «default bg:surface.code»*.md; «magenta bg:surface.code»do                                                                            
  54 │      echo "Checking $f" && grep -c '^#' "$f"                                                    │
-    «default»  «default bg:surface.code +d»    «blue bg:surface.code»echo «green bg:surface.code»"Checking «default bg:surface.code»$f«green bg:surface.code»" «default bg:surface.code»&& «blue bg:surface.code»grep «cyan bg:surface.code»-c «green bg:surface.code»'^#' "«default bg:surface.code»$f«green bg:surface.code»"                                                    
+    «default»  «#999a9e bg:surface.code»    «blue bg:surface.code»echo «green bg:surface.code»"Checking «default bg:surface.code»$f«green bg:surface.code»" «default bg:surface.code»&& «blue bg:surface.code»grep «cyan bg:surface.code»-c «green bg:surface.code»'^#' "«default bg:surface.code»$f«green bg:surface.code»"                                                    
  55 │    done                                                                                         │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»done                                                                                         
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»done                                                                                         
  56 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  57 ││
  58 │  diff:│
     «default»  diff:
  59 ││
  60 │                                                                                           diff  │
-    «default»  «default bg:surface.code +d»                                                                                         diff  
+    «default»  «#999a9e bg:surface.code»                                                                                         diff  
  61 │    --- a/src/Greeter.php                                                                        │
-    «default»  «default bg:surface.code +d»  --- a/src/Greeter.php                                                                        
+    «default»  «#999a9e bg:surface.code»  --- a/src/Greeter.php                                                                        
  62 │    +++ b/src/Greeter.php                                                                        │
-    «default»  «default bg:surface.code +d»  +++ b/src/Greeter.php                                                                        
+    «default»  «#999a9e bg:surface.code»  +++ b/src/Greeter.php                                                                        
  63 │    @@ -3,3 +3,3 @@                                                                              │
-    «default»  «default bg:surface.code +d»  «cyan bg:surface.code»@@ -3,3 +3,3 @@                                                                              
+    «default»  «#999a9e bg:surface.code»  «cyan bg:surface.code»@@ -3,3 +3,3 @@                                                                              
  64 │     final class Greeter                                                                         │
-    «default»  «default bg:surface.code +d»   «default bg:surface.code»final class Greeter                                                                         
+    «default»  «#999a9e bg:surface.code»   «default bg:surface.code»final class Greeter                                                                         
  65 │    -    public function greet($name)                                                            │
-    «default»  «default bg:surface.code +d»  «red bg:surface.code»-    public function greet($name)                                                            
+    «default»  «#999a9e bg:surface.code»  «red bg:surface.code»-    public function greet($name)                                                            
  66 │    +    public function greet(string $name): string                                             │
-    «default»  «default bg:surface.code +d»  «green bg:surface.code»+    public function greet(string $name): string                                             
+    «default»  «#999a9e bg:surface.code»  «green bg:surface.code»+    public function greet(string $name): string                                             
  67 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  68 ││
  69 │  sql:│
     «default»  sql:
  70 ││
  71 │                                                                                            sql  │
-    «default»  «default bg:surface.code +d»                                                                                          sql  
+    «default»  «#999a9e bg:surface.code»                                                                                          sql  
  72 │    SELECT u.id, u.name, COUNT(o.id) AS orders                                                   │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»SELECT «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name, «blue bg:surface.code»COUNT«default bg:surface.code»(«bright-red bg:surface.code»o«default bg:surface.code».id) «magenta bg:surface.code»AS «default bg:surface.code»orders                                                   
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»SELECT «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name, «blue bg:surface.code»COUNT«default bg:surface.code»(«bright-red bg:surface.code»o«default bg:surface.code».id) «magenta bg:surface.code»AS «default bg:surface.code»orders                                                   
  73 │    FROM users u                                                                                 │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»FROM «bright-red bg:surface.code»users «default bg:surface.code»u                                                                                 
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»FROM «bright-red bg:surface.code»users «default bg:surface.code»u                                                                                 
  74 │    LEFT JOIN orders o ON o.user_id = u.id                                                       │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»LEFT JOIN «bright-red bg:surface.code»orders «default bg:surface.code»o «magenta bg:surface.code»ON «bright-red bg:surface.code»o«default bg:surface.code».user_id = «bright-red bg:surface.code»u«default bg:surface.code».id                                                       
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»LEFT JOIN «bright-red bg:surface.code»orders «default bg:surface.code»o «magenta bg:surface.code»ON «bright-red bg:surface.code»o«default bg:surface.code».user_id = «bright-red bg:surface.code»u«default bg:surface.code».id                                                       
  75 │    WHERE u.created_at >= '2026-01-01'                                                           │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»WHERE «bright-red bg:surface.code»u«default bg:surface.code».created_at >= «green bg:surface.code»'2026-01-01'                                                           
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»WHERE «bright-red bg:surface.code»u«default bg:surface.code».created_at >= «green bg:surface.code»'2026-01-01'                                                           
  76 │    GROUP BY u.id, u.name                                                                        │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»GROUP BY «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name                                                                        
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»GROUP BY «bright-red bg:surface.code»u«default bg:surface.code».id, «bright-red bg:surface.code»u«default bg:surface.code».name                                                                        
  77 │    ORDER BY orders DESC;                                                                        │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»ORDER BY «default bg:surface.code»orders «magenta bg:surface.code»DESC«default bg:surface.code»;                                                                        
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»ORDER BY «default bg:surface.code»orders «magenta bg:surface.code»DESC«default bg:surface.code»;                                                                        
  78 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  79 ││
  80 │  no language:│
     «default»  no language:
  81 ││
  82 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  83 │    A fence with no language.                                                                    │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»A fence with no language.                                                                    
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»A fence with no language.                                                                    
  84 │        Indentation inside is kept.                                                              │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»Indentation inside is kept.                                                              
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»Indentation inside is kept.                                                              
  85 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  86 ││
  87 │  a tilde fence (python):│
     «default»  a tilde fence (python):
  88 ││
  89 │                                                                                         python  │
-    «default»  «default bg:surface.code +d»                                                                                       python  
+    «default»  «#999a9e bg:surface.code»                                                                                       python  
  90 │    # A tilde fence                                                                              │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code +i +d»# A tilde fence                                                                              
+    «default»  «#999a9e bg:surface.code»  «#999a9e bg:surface.code +i»# A tilde fence                                                                              
  91 │    print("tilde")                                                                               │
-    «default»  «default bg:surface.code +d»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                                                               
+    «default»  «#999a9e bg:surface.code»  «blue bg:surface.code»print«default bg:surface.code»(«green bg:surface.code»"tilde"«default bg:surface.code»)                                                                               
  92 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
  93 ││
  94 │  java:│
     «default»  java:
  95 ││
  96 │                                                                                           java  │
-    «default»  «default bg:surface.code +d»                                                                                         java  
+    «default»  «#999a9e bg:surface.code»                                                                                         java  
  97 │    public final class Account {                                                                 │
-    «default»  «default bg:surface.code +d»  «magenta bg:surface.code»public final class «bright-red bg:surface.code»Account «default bg:surface.code»{                                                                 
+    «default»  «#999a9e bg:surface.code»  «magenta bg:surface.code»public final class «bright-red bg:surface.code»Account «default bg:surface.code»{                                                                 
  98 │        private long id; // the account number                                                   │
-    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»private «bright-red bg:surface.code»long «default bg:surface.code»id; «default bg:surface.code +i +d»// the account number                                                   
+    «default»  «#999a9e bg:surface.code»      «magenta bg:surface.code»private «bright-red bg:surface.code»long «default bg:surface.code»id; «#999a9e bg:surface.code +i»// the account number                                                   
  99 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
 100 │        public String label() {                                                                  │
-    «default»  «default bg:surface.code +d»      «magenta bg:surface.code»public «bright-red bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                                                                  
+    «default»  «#999a9e bg:surface.code»      «magenta bg:surface.code»public «bright-red bg:surface.code»String «blue bg:surface.code»label«default bg:surface.code»() {                                                                  
 101 │            return "account-" + id;                                                              │
-    «default»  «default bg:surface.code +d»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                                                              
+    «default»  «#999a9e bg:surface.code»          «magenta bg:surface.code»return «green bg:surface.code»"account-" «default bg:surface.code»+ id;                                                              
 102 │        }                                                                                        │
-    «default»  «default bg:surface.code +d»      «default bg:surface.code»}                                                                                        
+    «default»  «#999a9e bg:surface.code»      «default bg:surface.code»}                                                                                        
 103 │    }                                                                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                                                            
 104 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
 105 ││
 106 │  kotlin (a Gradle script):│
     «default»  kotlin (a Gradle script):
 107 ││
 108 │                                                                                            kts  │
-    «default»  «default bg:surface.code +d»                                                                                          kts  
+    «default»  «#999a9e bg:surface.code»                                                                                          kts  
 109 │    dependencies {                                                                               │
-    «default»  «default bg:surface.code +d»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                                                               
+    «default»  «#999a9e bg:surface.code»  «blue bg:surface.code»dependencies «default bg:surface.code»{                                                                               
 110 │        implementation("org.slf4j:slf4j-api:2.0.16")                                             │
-    «default»  «default bg:surface.code +d»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)                                             
+    «default»  «#999a9e bg:surface.code»      «blue bg:surface.code»implementation«default bg:surface.code»(«green bg:surface.code»"org.slf4j:slf4j-api:2.0.16"«default bg:surface.code»)                                             
 111 │    }                                                                                            │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»}                                                                                            
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»}                                                                                            
 112 │                                                                                                 │
-    «default»  «default bg:surface.code +d»                                                                                               
+    «default»  «#999a9e bg:surface.code»                                                                                               
 113 ││
 114 │  xml (a Maven dependency):│
     «default»  xml (a Maven dependency):
 115 ││
 116 │                                                                                            xml  │
-    «default»  «default bg:surface.code +d»                                                                                          xml  
+    «default»  «#999a9e bg:surface.code»                                                                                          xml  
 117 │    <dependency>                                                                                 │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                                                                 
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»<«red bg:surface.code»dependency«default bg:surface.code»>                                                                                 
 118 │      <groupId>junit</groupId>                                                                   │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                                                                   
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»groupId«default bg:surface.code»>junit</«red bg:surface.code»groupId«default bg:surface.code»>                                                                   
 119 │      <artifactId>junit</artifactId>                                                             │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                                                             
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»artifactId«default bg:surface.code»>junit</«red bg:surface.code»artifactId«default bg:surface.code»>                                                             
 120 │      <version>4.13.2</version>                                                                  │
-    «default»  «default bg:surface.code +d»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                                                                  
+    «default»  «#999a9e bg:surface.code»    «default bg:surface.code»<«red bg:surface.code»version«default bg:surface.code»>4.13.2</«red bg:surface.code»version«default bg:surface.code»>                                                                  
 121 │    </dependency>                                                                                │
-    «default»  «default bg:surface.code +d»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                                                                
+    «default»  «#999a9e bg:surface.code»  «default bg:surface.code»</«red bg:surface.code»dependency«default bg:surface.code»>                                                                                

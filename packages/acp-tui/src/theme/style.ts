@@ -2,7 +2,7 @@
 // look, and validating a theme's token table. No OpenTUI here, so the configuration check
 // (`config --check`, run before the app is imported) can resolve a user's theme to colours
 // without loading the renderer; resolve.ts turns these styles into OpenTUI colours.
-import { lightness, parseHex, type TerminalColours } from "./derive.ts";
+import { lightness, mix, parseHex, toHex, type TerminalColours } from "./derive.ts";
 import { SURFACE_NAMES, TOKENS, TOKEN_NAMES, type ColorValue, type LightStyle, type Theme, type TokenName, type TokenRef, type TokenStyle, type TokenValue } from "./tokens.ts";
 
 export function isRef(value: TokenValue | undefined): value is TokenRef {
@@ -42,6 +42,16 @@ export function styleColour(style: TokenStyle, lightBackground: boolean): ColorV
 /** Whether the terminal reported a background lighter than its foreground. */
 export function isLightBackground(terminal: TerminalColours | null | undefined): boolean {
   return terminal ? lightness(parseHex(terminal.background)) > lightness(parseHex(terminal.foreground)) : false;
+}
+
+/**
+ * The colour of default-foreground text dimmed, as drawn once the terminal's colours are known
+ * (spec tui-theme "Dimmed default foreground drawn as a colour"): half and half per sRGB channel,
+ * rounded, which is what PhpStorm's terminals draw for SGR 2 and a colour foot's light theme
+ * (SGR 2 towards black there) cannot lose. `toHex` rounds each channel.
+ */
+export function mixedDim(terminal: TerminalColours): string {
+  return toHex(mix(parseHex(terminal.foreground), parseHex(terminal.background), 0.5));
 }
 
 /** Returns a list of problems; empty when the theme is usable. */

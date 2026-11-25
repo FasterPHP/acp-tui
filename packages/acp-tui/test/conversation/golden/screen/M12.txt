@@ -50,7 +50,7 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   7 │  Heading level 2│
     «default»  «blue +b»Heading level 2
   8 │  ──────────────────────────────────────────────────────────│
-    «default»  «default +d»──────────────────────────────────────────────────────────
+    «default»  «#999a9e»──────────────────────────────────────────────────────────
   9 ││
  10 │  Heading level 3│
     «default»  «blue +b»Heading level 3
@@ -59,10 +59,10 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  «default +b»Heading level 4
  13 ││
  14 │  Heading level 5│
-    «default»  «default +b +i +d»Heading level 5
+    «default»  «#999a9e +b +i»Heading level 5
  15 ││
  16 │  Heading level 6│
-    «default»  «default +i +d»Heading level 6
+    «default»  «#999a9e +i»Heading level 6
  17 ││
  18 │  ####### Seven hashes is not a heading│
     «default»  ####### Seven hashes is not a heading
@@ -70,7 +70,7 @@ at 63x600, light (OSC 10 #383a42, OSC 11 #fafafa):
  20 │  Closed ATX heading│
     «default»  «blue +b»Closed ATX heading
  21 │  ──────────────────────────────────────────────────────────│
-    «default»  «default +d»──────────────────────────────────────────────────────────
+    «default»  «#999a9e»──────────────────────────────────────────────────────────
 
 at 100x600, dark (OSC 10 #bcbec4, OSC 11 #191a1c):
   1 │  M12 headings, ATX levels 1 to 6, a closed ATX heading and seven hashes:│
@@ -118,7 +118,7 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
   6 │  Heading level 2│
     «default»  «blue +b»Heading level 2
   7 │  ───────────────────────────────────────────────────────────────────────────────────────────────│
-    «default»  «default +d»───────────────────────────────────────────────────────────────────────────────────────────────
+    «default»  «#999a9e»───────────────────────────────────────────────────────────────────────────────────────────────
   8 ││
   9 │  Heading level 3│
     «default»  «blue +b»Heading level 3
@@ -127,10 +127,10 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
     «default»  «default +b»Heading level 4
  12 ││
  13 │  Heading level 5│
-    «default»  «default +b +i +d»Heading level 5
+    «default»  «#999a9e +b +i»Heading level 5
  14 ││
  15 │  Heading level 6│
-    «default»  «default +i +d»Heading level 6
+    «default»  «#999a9e +i»Heading level 6
  16 ││
  17 │  ####### Seven hashes is not a heading│
     «default»  ####### Seven hashes is not a heading
@@ -138,4 +138,4 @@ at 100x600, light (OSC 10 #383a42, OSC 11 #fafafa):
  19 │  Closed ATX heading│
     «default»  «blue +b»Closed ATX heading
  20 │  ───────────────────────────────────────────────────────────────────────────────────────────────│
-    «default»  «default +d»───────────────────────────────────────────────────────────────────────────────────────────────
+    «default»  «#999a9e»───────────────────────────────────────────────────────────────────────────────────────────────
