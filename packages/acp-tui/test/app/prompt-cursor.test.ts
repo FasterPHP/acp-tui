@@ -142,11 +142,19 @@ describe("cursorColourFrom (prompt-box-feedback task 2.2, design D3)", () => {
     expect(cursorColourFrom({ cursor: "not a colour" })).toBe("terminal");
   });
 
-  test("exactly 3:1 passes, a hair under does not", () => {
-    // Grey on white: #767676 is the WCAG 4.5:1 grey, #949494 about 3:1 (2.9 to 3.0 around it).
-    const pass = ["#949494", "#939393", "#929292"].find((c) => contrastRatio(c, "#ffffff") >= 3)!;
+  test("2:1 passes, a hair under does not", () => {
+    // Grey on white: the lightest grey that still reaches 2:1, and the next lighter one, which does not.
+    const greys = Array.from({ length: 256 }, (_, i) => `#${i.toString(16).padStart(2, "0").repeat(3)}`);
+    const pass = greys.filter((c) => contrastRatio(c, "#ffffff") >= 2).at(-1)!;
+    const fail = greys[greys.indexOf(pass) + 1]!;
+    expect(contrastRatio(fail, "#ffffff")).toBeLessThan(2);
     expect(cursorColourFrom({ cursor: pass, background: "#ffffff", foreground: "#000000" })).toBe(pass);
-    expect(cursorColourFrom({ cursor: "#aaaaaa", background: "#ffffff", foreground: "#000000" })).toBe("#000000");
+    expect(cursorColourFrom({ cursor: fail, background: "#ffffff", foreground: "#000000" })).toBe("#000000");
+  });
+
+  test("Zed's light theme cursor is kept (2.84:1), foot's unset black on a dark background is not", () => {
+    expect(cursorColourFrom({ foreground: "#5c6166", background: "#fcfcfc", cursor: "#3b9ee5" })).toBe("#3b9ee5");
+    expect(cursorColourFrom({ foreground: "#c0caf5", background: "#1a1b26", cursor: "#000000" })).toBe("#c0caf5");
   });
 
   test("agrees with the PTY checker's own copy of the rule over a grid of replies", () => {

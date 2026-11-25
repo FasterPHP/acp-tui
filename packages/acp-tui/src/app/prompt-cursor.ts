@@ -108,8 +108,13 @@ export interface CursorReplies {
 /** The prompt box cursor's colour: a `#rrggbb`, or `terminal` to leave the terminal's own. */
 export type CursorColourChoice = string | "terminal";
 
-/** The non-text contrast threshold (WCAG 1.4.11): what a cursor needs against its background. */
-export const CURSOR_CONTRAST = 3;
+/**
+ * What a reported cursor colour needs against the background to be kept: 2:1, below WCAG 1.4.11's
+ * 3:1 for interface components, so that a colour the user chose and can see (Zed's light theme
+ * blue, 2.84:1) is kept, while a cursor that cannot be seen (foot's unset black on a dark
+ * background, about 1.2:1) is replaced.
+ */
+export const CURSOR_CONTRAST = 2;
 
 function channel(value: number): number {
   const v = value / 255;
@@ -130,7 +135,7 @@ const isHex = (colour: string | null | undefined): colour is string => !!colour 
 
 /**
  * The cursor colour from the terminal's replies (spec tui-layout "Prompt box cursor colour", design
- * D3): the reported cursor colour if it reaches 3:1 against the background, else the reported
+ * D3): the reported cursor colour if it reaches 2:1 against the background, else the reported
  * foreground if it does, else `terminal` (leave the terminal's own colour). With no background
  * nothing can be compared, so the cursor reply, else the foreground, else `terminal`.
  */

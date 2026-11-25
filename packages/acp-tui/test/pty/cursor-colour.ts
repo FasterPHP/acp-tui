@@ -1,6 +1,6 @@
 // Checks the cursor colour sequences in a terminal output stream against the rule
 // that the prompt box follows the terminal (colours reported by the terminal, WCAG
-// contrast of at least 3:1 against its background). Used on a fixture recorded from a
+// contrast of at least 2:1 against its background). Used on a fixture recorded from a
 // real terminal and on the output of PTY runs.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -52,13 +52,13 @@ export function contrastRatio(a: string, b: string): number {
 }
 
 /**
- * The colour the cursor rule gives for the replies: the reported cursor colour if it reaches 3:1
+ * The colour the cursor rule gives for the replies: the reported cursor colour if it reaches 2:1
  * against the reported background, else the reported foreground if it does, else `terminal` (leave
  * the terminal's own colour). Without a background, the cursor reply, else the foreground, else `terminal`.
  */
 export function expectedCursorColour(replies: TerminalReplies): string {
   const { foreground, background, cursor } = replies;
-  const ok = (c: string | undefined): c is string => !!c && (!background || contrastRatio(c, background) >= 3);
+  const ok = (c: string | undefined): c is string => !!c && (!background || contrastRatio(c, background) >= 2);
   if (ok(cursor)) return cursor.toLowerCase();
   if (ok(foreground) && background) return foreground.toLowerCase();
   if (!background && foreground) return foreground.toLowerCase();
