@@ -11,7 +11,7 @@
 // The blank row above it (day-one-feedback: space between the conversation
 // and the running action) is the screen's (`Spacing.activityGap`), which drops
 // it in a short pane.
-import { createEffect, createMemo, createSignal, For, onCleanup } from "solid-js";
+import { For, batch, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { Item, ToolCallItem } from "acp-model";
 import { useApp, useConfig } from "../app/context.ts";
 import { addCounts, EMPTY_COUNTS, isRunningTool, type ItemCounts } from "../conversation/counts.ts";
@@ -29,9 +29,10 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
   const { store, scrollbar } = useApp();
   const config = useConfig();
   // Live tool ids, maintained from the store's item changes, so streaming text never makes
-  // this block rescan the whole session.
-  const initial = store.snapshot().order.filter((id) => isLiveTool(store.snapshot().items.get(id)));
-  const [ids, setIds] = createSignal<string[]>(initial);
+  // this block rescan the whole session. `liveIds` is current at once (the linger follows it); the
+  // signal the row reads mirrors it, with the turn's count, once per macrotask of changes (below).
+  let liveIds: string[] = store.snapshot().order.filter((id) => isLiveTool(store.snapshot().items.get(id)));
+  const [ids, setIds] = createSignal<string[]>(liveIds);
   // The call the line lingers on after the last running one has finished, until the timer ends it,
   // a call starts, or the turn ends.
   const [linger, setLinger] = createSignal<LingerCall | null>(null);
@@ -50,8 +51,32 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
   };
   // The turn's count (focus-groups D6): `turnKey` is the running turn's `startedAt`; each tool
   // call's last counted state and each counted thought are kept, so a change adjusts the totals
-  // instead of rescanning the session.
+  // instead of rescanning the session. The tally and the live ids are given to the row's signals
+  // together, once per macrotask of changes (as the conversation re-reads its snapshot), so the
+  // title and the count's running number never disagree and a burst of updates (a 5000-item turn
+  // arrives in one) draws the row once instead of once per tool call.
   const [counts, setCounts] = createSignal<ItemCounts>(EMPTY_COUNTS);
+  let tally: ItemCounts = EMPTY_COUNTS;
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  // What the changes since the last flush do to the linger: end it (a call started) or start it on
+  // the call that finished last; applied in the same batch as the ids, so no frame shows one without
+  // the other.
+  let pendingLinger: "end" | LingerCall | null = null;
+  const flush = (): void => {
+    if (flushTimer !== null) clearTimeout(flushTimer);
+    flushTimer = null;
+    const lingerAction = pendingLinger;
+    pendingLinger = null;
+    batch(() => {
+      setCounts(tally);
+      setIds(liveIds);
+      if (lingerAction === "end") endLinger();
+      else if (lingerAction !== null && store.session.state !== "idle") startLinger(lingerAction);
+    });
+  };
+  const scheduleFlush = (): void => {
+    flushTimer ??= setTimeout(flush, 0);
+  };
   let turnKey: number | null = null;
   let tools = new Map<string, { failed: boolean; running: boolean }>();
   let thoughts = new Set<string>();
@@ -61,11 +86,12 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     turnKey = key;
     tools = new Map();
     thoughts = new Set();
-    setCounts(EMPTY_COUNTS);
+    tally = EMPTY_COUNTS;
+    flush();
   };
   const count = (changes: readonly { id: string; item: Item }[]) => {
     if (turnKey === null) return;
-    let next = counts();
+    let next = tally;
     for (const c of changes) {
       const item = c.item;
       if (item.kind === "tool_call") {
@@ -81,7 +107,9 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
         next = addCounts(next, item);
       }
     }
-    if (next !== counts()) setCounts(next);
+    if (next === tally) return;
+    tally = next;
+    scheduleFlush();
   };
   const off = store.onChange((change) => {
     syncTurn();
@@ -92,7 +120,7 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     for (const c of change.items) {
       if (c.item.kind !== "tool_call") continue;
       const live = isLiveTool(c.item);
-      const current: string[] = next ?? ids();
+      const current: string[] = next ?? liveIds;
       const has = current.includes(c.id);
       if (live && !has) next = [...current, c.id];
       else if (!live && has) {
@@ -101,14 +129,16 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
       }
     }
     if (!next) return;
-    setIds(next);
+    liveIds = next;
     // A call running replaces the lingering line at once; the last one finishing starts it.
-    if (next.length > 0) endLinger();
-    else if (finished && store.session.state !== "idle") startLinger(finished);
+    if (next.length > 0) pendingLinger = "end";
+    else if (finished) pendingLinger = finished;
+    scheduleFlush();
   });
   onCleanup(() => {
     off();
     clearTimeout(lingerTimer);
+    if (flushTimer !== null) clearTimeout(flushTimer);
   });
   // The turn's end ends the linger at once.
   createEffect(() => {
