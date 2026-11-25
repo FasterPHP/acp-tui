@@ -391,7 +391,7 @@
     },
     "density": {
       "default": "focus",
-      "description": "How much of the conversation a session starts by showing: \"compact\" - one line per tool call, thought or plan, runs of reads and searches grouped, failures included; \"verbose\" - everything expanded, nothing grouped; \"focus\" - each turn's tool calls, thoughts and plans behind one line, leaving the messages. The v key in the conversation cycles them.",
+      "description": "How much of the conversation a session starts by showing: \"compact\" - one line per tool call, thought or plan, runs of reads and searches grouped, failures included; \"verbose\" - everything expanded, nothing grouped; \"focus\" - each run of tool calls, thoughts and plans between messages behind one line, in its place, leaving the messages. From most shown to least they are verbose, compact and focus; the v key in the conversation cycles them.",
       "type": "string",
       "enum": [
         "compact",
@@ -469,7 +469,7 @@
       "properties": {
         "linger_seconds": {
           "default": 1.5,
-          "description": "How many seconds the activity line shows the finished call muted, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off.",
+          "description": "How many seconds the activity line shows the finished call muted, with the turn's count at its right, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off.",
           "type": "number",
           "minimum": 0,
           "maximum": 5
