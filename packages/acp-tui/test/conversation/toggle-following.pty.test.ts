@@ -5,7 +5,7 @@
 // execute gather in one group line that grows while the turn runs. Waits end on the screen's text.
 import { afterEach, describe, expect, test } from "bun:test";
 import type { PtySession } from "../pty/harness.ts";
-import { lineWithoutBar, statusRow, withoutBar } from "../pty/regions.ts";
+import { ACTIVITY_COUNT, lineWithoutBar, statusRow, withoutBar } from "../pty/regions.ts";
 import { configEnv } from "../pty/config-home.ts";
 import { settle, sendPrompt, startCli, type CliRun } from "./cli.ts";
 
@@ -24,7 +24,7 @@ const GROUP = /^ {2}[▸▾] \d+ (?:reads?|searches|search)/;
 /** A focus gap line over a turn's calls. */
 const FOCUS_LINE = /^ {2}[▸▾] \d+ tool calls?\b/;
 /** The activity line between the conversation and the prompt box. */
-const ACTIVITY = /^ {2}(?:\d+ running\b|[✓✗] )/;
+const ACTIVITY = { test: (row: string) => !/^ {2}[▸▾] /.test(row) && ACTIVITY_COUNT.test(row) };
 
 /** The conversation's rows: down to the prompt box's top border, less the blank rows and the
  *  activity line above it. */

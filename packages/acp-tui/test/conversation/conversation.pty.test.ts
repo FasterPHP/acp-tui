@@ -126,7 +126,7 @@ describe("items in start order, updated in place (task 7.1)", () => {
     const done = lines.findIndex((l) => /^ {2}← ✓ edit .*#2$/.test(l));
     expect(running).toBeGreaterThan(0);
     expect(done).toBe(running + 1);
-    expect(activityRow(s)).toBe("  1 running: Read src/index.ts");
+    expect(activityRow(s)).toMatch(/^ {2}Read src\/index\.ts +2 tool calls \(1 running\)(?: · 1 thought)?$/);
 
     await s.waitFor(/end turn/, 10000);
     await settle(s);
