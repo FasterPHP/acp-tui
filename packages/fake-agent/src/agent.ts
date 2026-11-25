@@ -80,6 +80,8 @@ export interface FakeAgentOptions {
   readonly chunk?: number;
   /** The `--long-gap` knob: `slow-turn` waits 45 s between its tool calls instead of 3 s. */
   readonly longGap?: boolean;
+  /** The `--hold` knob: `task-messages` keeps `tm-8` in progress until `session/cancel`. */
+  readonly hold?: boolean;
   /** The `--tools` knob: how many calls `fast-tools` sends (default 6). */
   readonly tools?: number;
   /** The `--start-delay` knob: milliseconds `initialize` waits before answering (absolute, not scaled). */
@@ -142,7 +144,7 @@ export function createFakeAgent(
   conn: AgentSideConnection,
   options: FakeAgentOptions,
 ): Agent {
-  const { scenario, logger, delayScale, items, chunk, longGap, tools, startDelayMs = 0, authRequired, agentInfo, agentTitle } = options;
+  const { scenario, logger, delayScale, items, chunk, longGap, hold = false, tools, startDelayMs = 0, authRequired, agentInfo, agentTitle } = options;
   const { noInitialize = false, additionalDirectories = false, sessionDelayMs = 0, sessionHeartbeatMs, sessionPermission = false } = options;
   const sessions: FakeAgentSessionOptions = options.sessions ?? {
     load: false,
@@ -514,6 +516,7 @@ export function createFakeAgent(
         request.prompt,
         longGap,
         tools,
+        hold,
       );
       // What the turn sends is kept (with the prompt as its first update), so
       // the session can be loaded again later in this process or, with

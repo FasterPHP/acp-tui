@@ -27,6 +27,8 @@ export interface FakeAgentCliOptions {
   readonly chunk: number | undefined;
   /** `--long-gap`: `slow-turn` waits 45 s between its tool calls instead of 3 s. */
   readonly longGap: boolean;
+  /** `--hold` (only with `task-messages`): turn 2 keeps `tm-8` in progress until `session/cancel`. */
+  readonly hold: boolean;
   /** `--tools <n>`: `fast-tools` sends `n` tool calls (default 6), cycling its six kinds. */
   readonly tools: number;
   /** `--start-delay <ms>`: wait this long before answering `initialize` (a harness's start-up). Absolute, never scaled. */
@@ -154,6 +156,7 @@ export function parseArgs(
   let history = false;
   let chunk: number | undefined;
   let longGap = false;
+  let hold = false;
   let tools = DEFAULT_TOOLS;
   let startDelayMs = 0;
   let listDelayMs = 0;
@@ -217,6 +220,9 @@ export function parseArgs(
         break;
       case "--history":
         history = true;
+        break;
+      case "--hold":
+        hold = true;
         break;
       case "--long-gap":
         longGap = true;
@@ -326,6 +332,10 @@ export function parseArgs(
     }
   }
 
+  if (hold && scenario !== "task-messages") {
+    throw new Error("--hold needs --scenario task-messages");
+  }
+
   if (persist && sessionsPath === undefined) {
     throw new Error("--persist requires --sessions <file>");
   }
@@ -346,6 +356,7 @@ export function parseArgs(
     history,
     chunk,
     longGap,
+    hold,
     tools,
     startDelayMs,
     listDelayMs,

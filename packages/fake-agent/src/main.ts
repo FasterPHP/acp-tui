@@ -63,6 +63,7 @@ function main(): void {
         items: options.items,
         ...(options.chunk === undefined ? {} : { chunk: options.chunk }),
         longGap: options.longGap,
+        hold: options.hold,
         tools: options.tools,
         startDelayMs: options.startDelayMs,
         noInitialize: options.noInitialize,

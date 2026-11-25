@@ -45,6 +45,7 @@ export {
   FENCE_FIRST_TEXT,
   fenceFirstChunks,
 } from "./scenarios/fence-first.ts";
+export { TASK_MESSAGES } from "./scenarios/task-messages.ts";
 export {
   TOOL_CONTENT_BIG_OUTPUT_LINE_COUNT,
   TOOL_CONTENT_BIG_TITLE,
