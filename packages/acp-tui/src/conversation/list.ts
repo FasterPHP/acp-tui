@@ -28,20 +28,6 @@ export function spacingBefore(previous: ItemGroup | null, group: ItemGroup): num
   return group === "user" || group === "agent" || group !== previous ? 1 : 0;
 }
 
-/** The blank rows above a focus line (a gap's line): none directly under an agent message, so it
- *  takes the blank row that separated that message from what follows (design focus-groups D4);
- *  any other neighbour as for an activity item. */
-export function spacingBeforeFocusLine(previous: ItemGroup | null): number {
-  return previous === "agent" ? 0 : spacingBefore(previous, "activity");
-}
-
-/** The blank rows above an item that directly follows a CLOSED focus line: none for an agent
- *  message (the line took its blank row), as usual for any other. An open line's last member is
- *  spaced as any activity item. */
-export function spacingAfterClosedFocusLine(group: ItemGroup): number {
-  return group === "agent" ? 0 : spacingBefore("activity", group);
-}
-
 /** Whether an item has anything to show yet (an open permission is shown by the card, not here). */
 export function isRenderable(item: Item): boolean {
   switch (item.kind) {

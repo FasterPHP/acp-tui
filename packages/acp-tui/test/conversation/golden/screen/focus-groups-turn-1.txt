@@ -11,24 +11,30 @@ The turn's duration is shown as <duration>.
   5 ││
   6 │  ▸ 1 tool call · 1 thought│
     «default»  «bright-black»▸ 1 tool call · 1 thought
-  7 │  Task 1 started.│
+  7 ││
+  8 │  Task 1 started.│
     «default»  Task 1 started.
-  8 │  ▸ 3 tool calls (1 failed)│
+  9 ││
+ 10 │  ▸ 3 tool calls (1 failed)│
     «default»  «bright-black»▸ 3 tool calls («red»1 failed«bright-black»)
-  9 │  Task 1 done.│
+ 11 ││
+ 12 │  Task 1 done.│
     «default»  Task 1 done.
- 10 ││
- 11 │  Note A: the cache is warm.│
+ 13 ││
+ 14 │  Note A: the cache is warm.│
     «default»  Note A: the cache is warm.
- 12 ││
- 13 │  Note B: the lock was released.│
+ 15 ││
+ 16 │  Note B: the lock was released.│
     «default»  Note B: the lock was released.
- 14 │  ▸ 1 tool call│
-    «default»  «bright-black»▸ 1 tool call
- 15 │  Task 2 done.│
-    «default»  Task 2 done.
- 16 │  ▸ 1 tool call│
-    «default»  «bright-black»▸ 1 tool call
  17 ││
- 18 │  end turn · 6 tool calls (1 failed) · 1 thought · <duration>│
+ 18 │  ▸ 1 tool call│
+    «default»  «bright-black»▸ 1 tool call
+ 19 ││
+ 20 │  Task 2 done.│
+    «default»  Task 2 done.
+ 21 ││
+ 22 │  ▸ 1 tool call│
+    «default»  «bright-black»▸ 1 tool call
+ 23 ││
+ 24 │  end turn · 6 tool calls (1 failed) · 1 thought · <duration>│
     «default»  «bright-black»end turn · 6 tool calls («red»1 failed«bright-black») · 1 thought · <duration>

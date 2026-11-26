@@ -88,9 +88,9 @@ describe("densities switched by v (task 12.5)", () => {
     expect(lineWithoutBar(s, y)).toBe(line);
   }, 60000);
 
-  // Spec tui-conversation "Focus lines" and "Spacing of focus lines": a line per gap, taking the
-  // blank row of the answer next to it.
-  test("focus draws one line per gap in its place; no blank row between a line and an answer, one beside a user message and a turn-end line", async () => {
+  // Spec tui-conversation "Focus lines" and "Spacing of focus lines": a line per gap, with a blank
+  // row on each side.
+  test("focus draws one line per gap in its place; a blank row on each side of a line, beside an answer, a user message and a turn-end line", async () => {
     run = startCli({ scenario: "long-session", cols: 100, rows: 60 });
     const s = run.session;
     await sendPrompt(s, "history");
@@ -103,16 +103,19 @@ describe("densities switched by v (task 12.5)", () => {
     const at = (re: RegExp) => rows.findIndex((r) => re.test(r));
     const lines = rows.filter((r) => TURN_LINE.test(r));
     expect(lines.length).toBeGreaterThanOrEqual(3);
-    // The first answer follows the prompt's line directly; a blank row separates the line from the user message.
+    // A blank row separates the line from the user message above and from the first answer below.
     const first = at(/^ {2}▸ 6 tool calls \(1 failed\) · 1 thought/);
     expect(first).toBeGreaterThan(0);
     expect(rows[first - 1]).toBe("");
-    expect(rows[first + 1]).toMatch(/^ {2}I looked at src\/Http\/Request\.php/);
-    // Between two answers the line takes the blank row: both neighbours are text.
+    expect(rows[first + 1]).toBe("");
+    expect(rows[first + 2]).toMatch(/^ {2}I looked at src\/Http\/Request\.php/);
+    // Between two answers the line has a blank row on each side.
     const middle = at(/^ {2}▸ 2 tool calls$/);
     expect(middle).toBeGreaterThan(0);
-    expect(rows[middle - 1]).toMatch(/^ {2}● callers need no changes/);
-    expect(rows[middle + 1]).toMatch(/^ {2}I looked at src\/Db\/Connection\.php/);
+    expect(rows[middle - 1]).toBe("");
+    expect(rows[middle - 2]).toMatch(/^ {2}● callers need no changes/);
+    expect(rows[middle + 1]).toBe("");
+    expect(rows[middle + 2]).toMatch(/^ {2}I looked at src\/Db\/Connection\.php/);
     // After the last prompt: a blank row on each side before the turn-end line.
     const last = at(/^ {2}▸ 4 tool calls/);
     expect(rows[last - 1]).toBe("");
