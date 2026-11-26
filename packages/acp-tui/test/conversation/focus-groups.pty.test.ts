@@ -74,11 +74,11 @@ describe("turn 1 in focus (specs Focus lines, Spacing of focus lines)", () => {
     // The first sits before the first message, the middle between the first two messages, the third
     // between the second note and the last message, the fourth after it and before the end line.
     expect(first).toBeLessThan(at(T1.started));
-    expect(middle).toBe(at(T1.started) + 1);
-    expect(at(T1.done)).toBe(middle + 1);
-    expect(third).toBe(at(T1.noteB.text) + 1);
-    expect(at(T1.task2Done)).toBe(third + 1);
-    expect(last).toBe(at(T1.task2Done) + 1);
+    expect(middle).toBe(at(T1.started) + 2);
+    expect(at(T1.done)).toBe(middle + 2);
+    expect(third).toBe(at(T1.noteB.text) + 2);
+    expect(at(T1.task2Done)).toBe(third + 2);
+    expect(last).toBe(at(T1.task2Done) + 2);
     // None between the notes: only a blank row (their own spacing).
     expect(rows.slice(at(T1.noteA.text) + 1, at(T1.noteB.text))).toEqual([""]);
     // No tool line in focus.
@@ -86,23 +86,26 @@ describe("turn 1 in focus (specs Focus lines, Spacing of focus lines)", () => {
     expect(rows.some((r) => END_LINE.test(r))).toBe(true);
   }, 60000);
 
-  test("Spacing: the closed line takes no row between its two messages; opened, the members follow it and one blank row precedes the next message", async () => {
+  test("Spacing: the closed line has a blank row on each side between its two messages; opened, the members follow it and one blank row precedes the next message", async () => {
     const s = await turn1();
     const started = rowOf(s, `  ${T1.started}`);
-    // Consecutive rows: the message, the closed line, the next message.
-    expect(rowsOf(s)[started + 1]).toBe("  ▸ 3 tool calls (1 failed)");
-    expect(rowsOf(s)[started + 2]).toBe(`  ${T1.done}`);
+    // The message, a blank row, the closed line, a blank row, the next message.
+    expect(rowsOf(s)[started + 1]).toBe("");
+    expect(rowsOf(s)[started + 2]).toBe("  ▸ 3 tool calls (1 failed)");
+    expect(rowsOf(s)[started + 3]).toBe("");
+    expect(rowsOf(s)[started + 4]).toBe(`  ${T1.done}`);
 
-    s.mouseClick(10, started + 1);
-    await s.waitFor((p) => rowsOf(p)[started + 1] === "  ▾ 3 tool calls (1 failed)", 5000);
+    s.mouseClick(10, started + 2);
+    await s.waitFor((p) => rowsOf(p)[started + 2] === "  ▾ 3 tool calls (1 failed)", 5000);
     await settle(s, 100);
     const rows = rowsOf(s);
     expect(rows[started]).toBe(`  ${T1.started}`);
-    expect(rows[started + 1]).toBe("  ▾ 3 tool calls (1 failed)");
+    expect(rows[started + 1]).toBe("");
+    expect(rows[started + 2]).toBe("  ▾ 3 tool calls (1 failed)");
     // The three members on consecutive rows, then one blank row, then the next message.
-    for (const [i, id] of (["tm-2", "tm-3", "tm-4"] as const).entries()) expect(rows[started + 2 + i]).toContain(TOOLS[id].title);
-    expect(rows[started + 5]).toBe("");
-    expect(rows[started + 6]).toBe(`  ${T1.done}`);
+    for (const [i, id] of (["tm-2", "tm-3", "tm-4"] as const).entries()) expect(rows[started + 3 + i]).toContain(TOOLS[id].title);
+    expect(rows[started + 6]).toBe("");
+    expect(rows[started + 7]).toBe(`  ${T1.done}`);
   }, 60000);
 
   test("Opening one line: the other three lines stay closed", async () => {
@@ -116,7 +119,8 @@ describe("turn 1 in focus (specs Focus lines, Spacing of focus lines)", () => {
     expect(rows.filter((r) => /^ {2}▾ /.test(r))).toEqual(["  ▾ 3 tool calls (1 failed)"]);
     expect(rows.filter((r) => GAP.test(r) && r.includes("▸"))).toEqual(before);
     // The members are directly below the line, between the two messages.
-    expect(rows[middle - 1]).toBe(`  ${T1.started}`);
+    expect(rows[middle - 2]).toBe(`  ${T1.started}`);
+    expect(rows[middle - 1]).toBe("");
     expect(rows[middle + 1]).toContain(TOOLS["tm-2"].title);
     // Nothing of the closed lines' calls is drawn.
     expect(rows.some((r) => r.includes(TOOLS["tm-1"].title) || r.includes(TOOLS["tm-5"].title) || r.includes(TOOLS["tm-6"].title))).toBe(false);

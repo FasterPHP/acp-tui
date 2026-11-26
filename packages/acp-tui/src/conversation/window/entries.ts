@@ -33,7 +33,7 @@ import type { Item, ToolCallItem } from "acp-model";
 import type { Segment } from "../../layout/segments.ts";
 import { formatDuration, MIN_SHOWN_DURATION_MS } from "../format.ts";
 import { countItems, countSegments } from "../counts.ts";
-import { isRenderable, spacingAfterClosedFocusLine, spacingBefore, spacingBeforeFocusLine, groupOf, type ItemGroup } from "../list.ts";
+import { isRenderable, spacingBefore, groupOf, type ItemGroup } from "../list.ts";
 
 export type Density = "compact" | "verbose" | "focus";
 export const DENSITIES: readonly Density[] = ["compact", "verbose", "focus"];
@@ -186,22 +186,18 @@ export function buildEntries(order: readonly string[], items: ItemLookup, option
     entries.push(entry);
     previous = group;
   };
-  // A closed focus line directly above: an agent message below it takes no blank row (D4).
-  let afterClosedLine = false;
-  const margin = (group: ItemGroup) => (afterClosedLine ? spacingAfterClosedFocusLine(group) : spacingBefore(previous, group));
+  const margin = (group: ItemGroup) => spacingBefore(previous, group);
   for (const slot of slots) {
     if (slot.kind === "item") {
       const group = groupOf(items(slot.id)!);
       holder.set(slot.id, entries.length);
       push({ kind: "item", key: slot.id, margin: margin(group), group: null }, group);
-      afterClosedLine = false;
       continue;
     }
     const open = options.open(slot.key);
     const at = entries.length;
-    const lineMargin = slot.mode === "gap" ? spacingBeforeFocusLine(previous) : margin("activity");
-    push({ kind: "group", key: slot.key, mode: slot.mode, members: slot.members, open, margin: lineMargin }, "activity");
-    afterClosedLine = slot.mode === "gap" && !open;
+    // A group line, a run's or a gap's, is spaced as any activity item: a blank row on each side.
+    push({ kind: "group", key: slot.key, mode: slot.mode, members: slot.members, open, margin: margin("activity") }, "activity");
     for (const id of slot.members) {
       if (!open) {
         holder.set(id, at);

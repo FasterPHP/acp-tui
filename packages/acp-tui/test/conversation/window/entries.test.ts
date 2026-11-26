@@ -283,25 +283,21 @@ describe("densities (task 12.5)", () => {
     expect((list.entries[1] as GroupEntry).members).toEqual(["r"]);
   });
 
-  test("spacing of focus lines: no blank row between a line and an agent message, a blank row to a user message or a turn-end line", () => {
-    // Scenario "At the start and the end of a turn": user, blank, line, answer, line, blank, turn end.
+  test("spacing of focus lines: a blank row on each side, like any activity item", () => {
+    // Scenario "At the start and the end of a turn": user, blank, line, blank, answer, blank, line, blank, turn end.
     const t = model(user("u"), tool("r1", "read"), agent("a"), tool("r2", "read"), turnEnd("end"));
     const list = buildEntries(t.order, t.lookup, { density: "focus", open: closed });
     expect(list.keys).toEqual(["u", "group:gap:r1", "a", "group:gap:r2", "end"]);
-    expect(list.entries.map((e) => e.margin)).toEqual([0, 1, 0, 0, 1]);
-    // Between two messages: three consecutive rows.
+    expect(list.entries.map((e) => e.margin)).toEqual([0, 1, 1, 1, 1]);
+    // Between two messages: the first message, a blank row, the line, a blank row, the second message.
     const between = model(agent("a"), tool("r1", "read"), agent("b"));
-    expect(buildEntries(between.order, between.lookup, { density: "focus", open: closed }).entries.map((e) => e.margin)).toEqual([0, 0, 0]);
-    // Opened: the members follow directly, one blank row before the next message.
-    const open = buildEntries(
-      model(agent("a"), tool("r1", "read"), tool("r2", "read"), tool("r3", "read"), agent("b")).order,
-      model(agent("a"), tool("r1", "read"), tool("r2", "read"), tool("r3", "read"), agent("b")).lookup,
-      { density: "focus", open: () => true },
-    );
+    expect(buildEntries(between.order, between.lookup, { density: "focus", open: closed }).entries.map((e) => e.margin)).toEqual([0, 1, 1]);
+    // Opened between two messages: the members follow the line directly, then one blank row before the next message.
+    const opened = model(agent("a"), tool("r1", "read"), tool("r2", "read"), tool("r3", "read"), agent("b"));
+    const open = buildEntries(opened.order, opened.lookup, { density: "focus", open: () => true });
     expect(open.keys).toEqual(["a", "group:gap:r1", "r1", "r2", "r3", "b"]);
-    expect(open.entries.map((e) => e.margin)).toEqual([0, 0, 0, 0, 0, 1]);
-    // A line after a user message or a marker keeps its blank row; an agent message after a
-    // closed line takes none, but a user message does.
+    expect(open.entries.map((e) => e.margin)).toEqual([0, 1, 0, 0, 0, 1]);
+    // A line after a user message or a marker keeps its blank row.
     const edges = model(user("u"), tool("r1", "read"), user("u2"), turnEnd("e0"), tool("r2", "read"), user("u3"));
     expect(buildEntries(edges.order, edges.lookup, { density: "focus", open: closed }).entries.map((e) => e.margin)).toEqual([0, 1, 1, 1, 1, 1]);
   });
