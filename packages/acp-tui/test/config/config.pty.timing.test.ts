@@ -29,8 +29,11 @@ describe("Live reload (task 3.2)", () => {
     expect(before[0]).toBe("");
     // The default layout: the status row second from the bottom, with hints.
     expect(before[19]).toMatch(/\/ commands {2}\? help/);
-    const topBefore = before[1];
-    expect(topBefore).not.toBe("");
+    // The first conversation row with text: the top row can be the blank row beside a focus line.
+    const top = before.findIndex((row, i) => i >= 1 && row !== "");
+    expect(top).toBeGreaterThanOrEqual(1);
+    expect(top).toBeLessThan(18);
+    const topBefore = before[top];
 
     const saved = Date.now();
     cfg.write(
@@ -49,7 +52,8 @@ describe("Live reload (task 3.2)", () => {
     expect(after[1]).toMatch(/^ [/~]\S+ {2}idle .*scrolled.*connected$/);
     expect(after.join("\n")).not.toMatch(/commands|\? help|shift\+tab/);
     // The conversation starts below the bar, at the same entry as before.
-    expect(after[2]).toBe(topBefore);
+    expect(after.slice(2, top + 1).every((row) => row === "")).toBe(true);
+    expect(after[top + 1]).toBe(topBefore);
     expect(after[20]).toBe("");
     expect(run.events("config_reload")[0]?.["changed"]).toEqual(["layout"]);
   }, 40000);
