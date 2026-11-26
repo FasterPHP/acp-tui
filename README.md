@@ -1,8 +1,10 @@
 # acp-tui
 
-A full-screen terminal client for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP), built to be pleasant to live in inside the integrated terminals of PhpStorm, IntelliJ IDEA and Zed (it also runs in any modern terminal). It talks to an ACP agent, which it calls a harness: Auggie works out of the box, and Claude Code, OpenCode, Codex and others are one uncommented line of configuration away. One interface, whichever harness you choose.
+A terminal client for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP), designed for minimal distraction and built to be pleasant to live in inside the integrated terminals of PhpStorm, IntelliJ IDEA and Zed (it also runs in any modern terminal). It fills the terminal pane while it runs, like an editor, and leaves the pane as it was when you exit. It talks to an ACP agent, which it calls a harness: Auggie works out of the box, and Claude Code, OpenCode, Codex and others are one uncommented line of configuration away. One interface, whichever harness you choose.
 
-It gives you a windowed conversation that stays fast over thousands of items, rendered Markdown with highlighted code, tool cards and permission prompts you cannot mistake for agent text, find, selection and copy, a session list with resume, a command palette, themes that follow your terminal's colours, and a configuration file with live reload.
+By default the conversation shows the agent's answers, with tool calls, thoughts and plans folded into one-line summaries you can open. It is fully configurable: themes, glyphs, keys, the layout and the status row, from a configuration file with live reload.
+
+It gives you a conversation that stays fast over thousands of items, rendered Markdown with highlighted code, tool cards and permission prompts you cannot mistake for agent text, find, selection and copy, a session list with resume, a command palette, and themes that follow your terminal's colours.
 
 This is a preview for testers. Expect rough edges, and please report them (see [Feedback](#feedback)).
 
