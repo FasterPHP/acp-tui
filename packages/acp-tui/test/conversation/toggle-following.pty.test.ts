@@ -5,7 +5,7 @@
 // execute gather in one group line that grows while the turn runs. Waits end on the screen's text.
 import { afterEach, describe, expect, test } from "bun:test";
 import type { PtySession } from "../pty/harness.ts";
-import { ACTIVITY_COUNT, lineWithoutBar, statusRow, withoutBar } from "../pty/regions.ts";
+import { lineWithoutBar, statusRow, withoutBar } from "../pty/regions.ts";
 import { configEnv } from "../pty/config-home.ts";
 import { settle, sendPrompt, startCli, type CliRun } from "./cli.ts";
 
@@ -23,20 +23,17 @@ const SIZES = [
 const GROUP = /^ {2}[▸▾] \d+ (?:reads?|searches|search)/;
 /** A focus gap line over a turn's calls. */
 const FOCUS_LINE = /^ {2}[▸▾] \d+ tool calls?\b/;
-/** The activity line between the conversation and the prompt box. */
-const ACTIVITY = { test: (row: string) => !/^ {2}[▸▾] /.test(row) && ACTIVITY_COUNT.test(row) };
 
 /** The conversation's rows: down to the prompt box's top border, less the blank rows and the
- *  activity line above it. */
+ *  activity line above it (the row directly above the prompt box, which is reserved for the whole
+ *  session and, with one gap, shows a title alone, which no pattern tells from a conversation row). */
 function conversationRows(s: PtySession): string[] {
   const lines = withoutBar(s.screenText());
   const end = lines.findIndex((l) => l.startsWith("╭"));
-  const rows = lines.slice(0, end < 0 ? lines.length : end);
+  const rows = lines.slice(0, end < 0 ? lines.length : Math.max(0, end - 1));
   const trim = () => {
     while (rows.length > 0 && rows.at(-1) === "") rows.pop();
   };
-  trim();
-  if (rows.length > 0 && ACTIVITY.test(rows.at(-1)!)) rows.pop();
   trim();
   return rows;
 }

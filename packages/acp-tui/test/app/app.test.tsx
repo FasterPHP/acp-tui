@@ -97,10 +97,8 @@ describe("App in the test renderer", () => {
     expect(rows[2]).toMatch(/^ {2}→ [▖▘▝▗] read {5}Read a\.ts +#1$/);
     expect(rows[2]).toHaveLength(78);
     // The activity bar sits between the conversation and the prompt box while the tool runs.
-    // Right-aligned, the count ends at the conversation's right margin (column 78 of 80).
-    const activity = (await app.frame()).at(-8)!;
-    expect(activity).toMatch(/^ {2}Read a\.ts {2,}1 tool call \(1 running\)$/);
-    expect(activity).toHaveLength(78);
+    // One gap, so the title stands alone: the count is the gap line's, not repeated here.
+    expect((await app.frame()).at(-8)!.trimEnd()).toBe("  Read a.ts");
   });
 
   test("Enter submits the prompt box's text and clears it when accepted", async () => {

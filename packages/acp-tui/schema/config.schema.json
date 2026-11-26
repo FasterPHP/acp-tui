@@ -469,7 +469,7 @@
       "properties": {
         "linger_seconds": {
           "default": 1.5,
-          "description": "How many seconds the activity line shows the finished call muted, with the turn's count at its right, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off.",
+          "description": "How many seconds the activity line shows the finished call muted, with the turn's count at its right once the turn has more than one gap, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off.",
           "type": "number",
           "minimum": 0,
           "maximum": 5

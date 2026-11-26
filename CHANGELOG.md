@@ -19,7 +19,7 @@
 - A tool card's output note counts lines, not rows (`3 lines hidden`), and a harness that streams only the tail of an output shows `last N lines`.
 - `focus` density shows one line per gap of hidden tool calls, thoughts and plans, in the place of the gap, instead of one line per turn, so a turn with several answers keeps its answers apart from its calls. A line sits between the answers with a blank row on each side, like any tool line; opening one line shows only its members.
 - The turn-end line shows the turn's totals when it has more than one such gap, in every density: `end turn · 6 tool calls (1 failed) · 1 thought · 42.0s`, or `interrupted · 2 tool calls (1 stopped) · 1 thought` after an interrupt.
-- The activity line shows the running turn's count at its right (`2 tool calls (1 running) · 1 thought`), and keeps it during `activity.linger_seconds`.
+- Once a running turn has more than one such gap, the activity line shows its count at the right (`2 tool calls (1 running) · 1 thought`), and keeps it during `activity.linger_seconds`; with one gap the gap's own line shows it.
 
 ## 0.3.0
 

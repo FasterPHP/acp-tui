@@ -6,8 +6,10 @@
 // (day-two-feedback design D6): the finished call, muted (`lingerLine`), in the
 // same row. Right-aligned it carries the turn's count (focus-groups design D6),
 // kept here incrementally from the store's item changes, reset when a turn
-// starts, from the turn's first call or thought until its end; alone once
-// nothing runs or lingers. It takes no rows otherwise.
+// starts, from the turn's first call or thought until its end, and shown only
+// once the turn's hidden items form more than one gap (the turn-end line's
+// rule: with one gap the conversation's gap line carries the count); alone
+// once nothing runs or lingers. It takes no rows otherwise.
 // The blank row above it (day-one-feedback: space between the conversation
 // and the running action) is the screen's (`Spacing.activityGap`), which drops
 // it in a short pane.
@@ -16,6 +18,7 @@ import type { Item, ToolCallItem } from "acp-model";
 import { useApp, useConfig } from "../app/context.ts";
 import { addCounts, EMPTY_COUNTS, isRunningTool, type ItemCounts } from "../conversation/counts.ts";
 import { isRenderable } from "../conversation/list.ts";
+import { hiddenInFocus } from "../conversation/window/entries.ts";
 import { RIGHT_MARGIN, SCROLLBAR_COLUMNS } from "../conversation/window/WindowedConversation.tsx";
 import { toolTitleText } from "../conversation/tool-title.ts";
 import { activityBar, lingerLine, type LingerCall } from "./activity.ts";
@@ -69,6 +72,7 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     pendingLinger = null;
     batch(() => {
       setCounts(tally);
+      setMoreGaps(pendingMore);
       setIds(liveIds);
       if (lingerAction === "end") endLinger();
       else if (lingerAction !== null && store.session.state !== "idle") startLinger(lingerAction);
@@ -80,12 +84,23 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
   let turnKey: number | null = null;
   let tools = new Map<string, { failed: boolean; running: boolean }>();
   let thoughts = new Set<string>();
+  // The turn's gaps, as `focusGaps` forms them: a gap is a run of renderable hidden items; a
+  // renderable message or a marker ends it. Each item is looked at once, by id.
+  let gapSeen = new Set<string>();
+  let inGap = false;
+  let gaps = 0;
+  const [moreGaps, setMoreGaps] = createSignal(false);
+  let pendingMore = false;
   const syncTurn = () => {
     const key = store.session.turn?.startedAt ?? null;
     if (key === turnKey) return;
     turnKey = key;
     tools = new Map();
     thoughts = new Set();
+    gapSeen = new Set();
+    inGap = false;
+    gaps = 0;
+    pendingMore = false;
     tally = EMPTY_COUNTS;
     flush();
   };
@@ -94,6 +109,14 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     let next = tally;
     for (const c of changes) {
       const item = c.item;
+      if (!gapSeen.has(c.id) && isRenderable(item)) {
+        gapSeen.add(c.id);
+        if (!hiddenInFocus(item)) inGap = false;
+        else if (!inGap) {
+          inGap = true;
+          gaps += 1;
+        }
+      }
       if (item.kind === "tool_call") {
         const now = { failed: item.toolStatus === "failed", running: isRunningTool(item) };
         const was = tools.get(c.id);
@@ -107,8 +130,10 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
         next = addCounts(next, item);
       }
     }
-    if (next === tally) return;
+    const more = gaps > 1;
+    if (next === tally && more === pendingMore) return;
     tally = next;
+    pendingMore = more;
     scheduleFlush();
   };
   const off = store.onChange((change) => {
@@ -158,7 +183,7 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     const permissionOpen = store.session.openPermissionId !== null;
     // The count ends where the conversation's text does: before its right margin and scroll bar.
     const width = props.width - RIGHT_MARGIN - (scrollbar !== undefined && props.layout.scrollbar ? SCROLLBAR_COLUMNS : 0);
-    const count = running ? counts() : EMPTY_COUNTS;
+    const count = running && moreGaps() ? counts() : EMPTY_COUNTS;
     const lingering = linger();
     if (running && lingering && tools.length === 0 && plan.length === 0 && !permissionOpen) return lingerLine(lingering, width, undefined, undefined, count);
     return activityBar({ running: tools, plan, permissionOpen, count }, width);
