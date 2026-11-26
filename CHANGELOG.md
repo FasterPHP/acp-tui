@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
+
+Kept drafts, a cursor that follows the terminal's colours, and `focus` density with one line per gap of hidden work. Ctrl+D now always leaves (see Breaking changes).
 
 ### Breaking changes
 
