@@ -8,7 +8,7 @@
 //   density (`compact`, `verbose`, `focus`; the key map's `cycleDensity` (`v`)
 //   action switches it, and a notice names the new one), with runs of
 //   reads, searches, fetches and thoughts grouped into one expandable line in
-//   `compact` and one line per turn for tool calls and thoughts in `focus`.
+//   `compact` and one line per gap of tool calls and thoughts in `focus`.
 //   The cursor moves by entry, and jumps to the previous or next prompt or tool
 //   call (`jump`); Enter, a click or Ctrl+O toggles an entry (a
 //   group line opens and closes; Ctrl+O on a call hidden in a closed group
@@ -53,6 +53,7 @@ import { markdownStyles } from "../../theme/index.ts";
 import { viewerTarget } from "../content.ts";
 import { glyphsVersion, LIVE_GLYPHS } from "../live-glyphs.ts";
 import { renderSettingsKey } from "../markdown/context.ts";
+import { turnTotals } from "../turn-totals.ts";
 import { createSpinner, CursorBar, cursorFill, Gutter, ItemView, Segments, type ItemContext } from "../items.tsx";
 import { ConversationScrollBox, ScrollController } from "../scroll.ts";
 import { expandedByDefault, expandRecorded, moveCursor, type ConversationViewModel } from "../view-model.ts";
@@ -188,6 +189,13 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
       density: state.density(),
       open: (key) => state.open[key] ?? false,
     });
+  });
+
+  // The totals of each turn's end line, by marker (design focus-groups D5): one walk of the order
+  // per re-read, over the same lookup as the entries.
+  const totals = createMemo(() => {
+    const session = snapshot();
+    return turnTotals(session.order, (id) => session.items.get(id));
   });
 
   // The density is published to the store for the status row's `density` module.
@@ -785,6 +793,7 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
     vm: itemVm,
     spinner,
     width,
+    turnTotals: (id) => totals().get(id),
     selected: (id) => focused() && vm.cursor() === id,
     register(id, node) {
       if (node) nodes.set(id, node);

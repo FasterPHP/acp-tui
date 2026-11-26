@@ -97,7 +97,8 @@ describe("App in the test renderer", () => {
     expect(rows[2]).toMatch(/^ {2}→ [▖▘▝▗] read {5}Read a\.ts +#1$/);
     expect(rows[2]).toHaveLength(78);
     // The activity bar sits between the conversation and the prompt box while the tool runs.
-    expect((await app.frame()).at(-8)).toBe("  1 running: Read a.ts");
+    // One gap, so the title stands alone: the count is the gap line's, not repeated here.
+    expect((await app.frame()).at(-8)!.trimEnd()).toBe("  Read a.ts");
   });
 
   test("Enter submits the prompt box's text and clears it when accepted", async () => {

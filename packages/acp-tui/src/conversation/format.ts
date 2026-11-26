@@ -13,6 +13,9 @@ import { toolKindToken } from "../theme/tokens.ts";
 import type { ConversationGlyphs } from "./glyphs.ts";
 import { LIVE_GLYPHS } from "./live-glyphs.ts";
 import { toolTitleText } from "./tool-title.ts";
+import { isStoppedTool } from "./tool-state.ts";
+import { countSegments } from "./counts.ts";
+import type { TurnTotals } from "./turn-totals.ts";
 import { answeredLabel, questionLines } from "./permission-label.ts";
 import { splitEmoji, type EmojiClass } from "../render/emoji/emoji.ts";
 import { terminalEmojiClasses } from "./markdown/context.ts";
@@ -131,14 +134,13 @@ function toolKind(item: ToolCallItem): string {
 
 function statusOf(item: ToolCallItem, glyphs: ConversationGlyphs, frame: number | null): Segment {
   // A live tool is still running; a final one the turn ended on while pending is stopped.
-  const live = item.status === "live";
   switch (item.toolStatus) {
     case "completed":
       return { text: glyphs.toolStatus.ok, token: "tool.ok" };
     case "failed":
       return { text: glyphs.toolStatus.fail, token: "tool.fail" };
     default: {
-      if (!live) return { text: glyphs.toolStatus.stopped, token: "muted" };
+      if (isStoppedTool(item)) return { text: glyphs.toolStatus.stopped, token: "muted" };
       const spinner = frame === null ? glyphs.toolStatus.running : glyphs.spinner[frame % glyphs.spinner.length]!;
       return { text: spinner, token: "tool.running" };
     }
@@ -311,15 +313,33 @@ function stopReasonLabel(reason: string): string {
 }
 
 /** Turn-end marker without its gutter: `end turn · 1.2s · ctx 38k/200k`; `interrupted` replaces
- *  the stop reason when the user interrupted the turn, whatever the agent answered. */
+ *  the stop reason when the user interrupted the turn, whatever the agent answered. With `totals`
+ *  of a turn whose hidden items form more than one gap, its counts stand between the stop reason
+ *  and the duration (`end turn · 12 tool calls (1 failed) · 3 thoughts · 4m 10s`). With a `width`
+ *  that is short, the context goes first, then the totals; the stop reason and the duration stay. */
 export function turnEndLine(
   marker: Extract<MarkerItem, { markerKind: "turn_end" }>,
   glyphs: ConversationGlyphs = LIVE_GLYPHS,
+  totals: TurnTotals | null = null,
+  width: number = Infinity,
 ): Segment[] {
-  const parts = [marker.interrupted ? "interrupted" : stopReasonLabel(marker.stopReason), formatDuration(marker.durationMs)];
+  const separator = glyphs.separator;
   const usage: UsageUpdate | null = marker.usage;
-  if (usage && usage.size > 0) parts.push(`ctx ${formatCount(usage.used)}/${formatCount(usage.size)}`);
-  return [{ text: parts.join(glyphs.separator), token: "muted" }];
+  const reason = marker.interrupted ? "interrupted" : stopReasonLabel(marker.stopReason);
+  const counts = totals !== null && totals.gaps > 1 ? countSegments(totals.counts, { states: ["failed", "stopped"], kinds: ["thoughts"], separator }) : [];
+  const context = usage && usage.size > 0 ? `ctx ${formatCount(usage.used)}/${formatCount(usage.size)}` : null;
+  const build = (withCounts: boolean, withContext: boolean): Segment[] => {
+    const out: Segment[] = [{ text: reason, token: "muted" }];
+    if (withCounts && counts.length > 0) out.push({ text: separator, token: "muted" }, ...counts);
+    out.push({ text: separator + formatDuration(marker.durationMs), token: "muted" });
+    if (withContext && context !== null) out.push({ text: separator + context, token: "muted" });
+    return out;
+  };
+  for (const [withCounts, withContext] of [[true, true], [true, false], [false, false]] as const) {
+    const line = build(withCounts, withContext);
+    if (segmentsWidth(line) <= width) return line;
+  }
+  return fitSegments(build(false, false), width);
 }
 
 /** An expanded plan's rows without gutters: one row per entry with its status. */

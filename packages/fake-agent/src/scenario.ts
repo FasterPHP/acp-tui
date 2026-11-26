@@ -59,6 +59,8 @@ export interface ScenarioContext {
   log(method: string, params: unknown): void;
   /** The `--long-gap` knob; only `slow-turn` reads it. */
   readonly longGap: boolean;
+  /** The `--hold` knob; only `task-messages` reads it. */
+  readonly hold: boolean;
   /** The `--tools` knob (default 6); only `fast-tools` reads it. */
   readonly tools: number;
   /** The `--items` knob (default 200); only `long-session` reads it. */
@@ -147,6 +149,7 @@ export function createScenarioContext(
   prompt: readonly ContentBlock[] = [],
   longGap = false,
   tools = 6,
+  hold = false,
 ): ScenarioContext {
   return {
     sessionId,
@@ -156,6 +159,7 @@ export function createScenarioContext(
     prompt,
     longGap,
     tools,
+    hold,
     log() {},
     async send(update) {
       await conn.sessionUpdate({ sessionId, update });

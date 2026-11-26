@@ -94,7 +94,7 @@ function onSpaceOf(label: string): string {
 }
 
 /** The derived surfaces by colour (`#rrggbb` to token name), the first name for a shared value. */
-function surfaceNames(colours: AnsweredColours): Map<string, string> {
+export function surfaceNames(colours: AnsweredColours): Map<string, string> {
   const out = new Map<string, string>();
   for (const [name, value] of Object.entries(deriveSurfaces(colours))) {
     const key = String(value).toLowerCase();
@@ -104,7 +104,7 @@ function surfaceNames(colours: AnsweredColours): Map<string, string> {
 }
 
 /** One screen row as its text line and its style line; a blank row as empty bars. */
-function formatRow(s: PtySession, y: number, n: number, surfaces: ReadonlyMap<string, string>): string {
+export function formatRow(s: PtySession, y: number, n: number, surfaces: ReadonlyMap<string, string>): string {
   const absY = s.term.buffer.active.baseY + y;
   const cells: { ch: string; style: CellStyle }[] = [];
   for (let x = 0; x < s.term.cols; x++) {

@@ -1,6 +1,9 @@
 // day-two-feedback task 6.2 (spec tui-layout "Activity bar" scenarios "Fast tool calls do not
 // flicker", "Linger ends", "Replaced at once", "No linger"; design D6): the real CLI against
-// fake-agent `fast-tools` at 90x30 under the PTY harness. Six tool calls, each in progress for
+// fake-agent `fast-tools` at 90x30 under the PTY harness. Its six calls form one gap, so the line
+// never carries the turn's count (focus-groups "Activity line contents" "One gap, no count"); the
+// last test runs `task-messages`, whose messages between calls make several gaps ("Count kept
+// while lingering"). Six tool calls, each in progress for
 // 40 ms and 250 ms apart at delay scale 1, then 3 s of silence. By default the activity line stays
 // up between them showing the finished call muted, in the same row, and goes 1.5 s after the last
 // call ends while the turn still runs; `activity.linger_seconds` 0 turns that off. Since task 13.2
@@ -12,7 +15,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { configEnv } from "../pty/config-home.ts";
 import type { PtySession } from "../pty/harness.ts";
-import { promptBox, RUNNING, statusRow } from "../pty/regions.ts";
+import { ACTIVITY_COUNT, promptBox, RUNNING, statusRow } from "../pty/regions.ts";
 import { sendPrompt, startCli } from "../conversation/cli.ts";
 
 let session: PtySession | undefined;
@@ -37,17 +40,24 @@ function boxTop(s: PtySession): number {
 interface Line {
   /** The screen row of the activity line. */
   readonly y: number;
+  /** The left of the line, the count cut off (its indent kept): a running call's title or a
+   *  finished call's `✓ <title>`; empty when the count stands alone. */
   readonly text: string;
+  /** The turn's count at the right; empty before the first call. */
+  readonly count: string;
 }
 
-/** The activity line, directly above the prompt box with the blank row above it, or null: a
- *  running count (`1 running: <title>`) or a finished call (`✓ <title>`, `✗ <title>`). */
+/** The activity line, directly above the prompt box with the blank row above it, or null while it
+ *  is blank: a running call's title or a finished call (`✓ <title>`, `✗ <title>`), with the
+ *  turn's count at the right, or the count alone. */
 function activity(s: PtySession): Line | null {
   const rows = s.screenText();
   const top = boxTop(s);
   if (top < 2) return null;
-  const text = rows[top - 1]!;
-  return /^ {2}(\d+ running\b|[✓✗] )/.test(text) && rows[top - 2] === "" ? { y: top - 1, text: text.trimEnd() } : null;
+  const text = rows[top - 1]!.trimEnd();
+  if (text === "" || rows[top - 2] !== "") return null;
+  const count = ACTIVITY_COUNT.exec(text)?.[0] ?? "";
+  return { y: top - 1, text: text.slice(0, text.length - count.length).trimEnd(), count };
 }
 
 /** Samples the screen every `every` ms for `ms`, from now. */
@@ -88,7 +98,11 @@ describe("activity bar linger (task 6.2)", () => {
     // Between calls: the finished call's glyph and title, muted.
     const lingering = captures.filter((c) => c.line!.text.startsWith("  ✓ "));
     expect(lingering.length).toBeGreaterThanOrEqual(5);
-    for (const c of lingering) expect(TITLES.some((title) => c.line!.text === `  ✓ ${title}`)).toBe(true);
+    for (const c of lingering) {
+      expect(TITLES.some((title) => c.line!.text === `  ✓ ${title}`)).toBe(true);
+      // One gap: no count at the right.
+      expect(c.line!.count).toBe("");
+    }
     // The muted look, read from the screen: the glyph and the title in bright black.
     await run.session.flush();
     const now = activity(run.session);
@@ -114,7 +128,7 @@ describe("activity bar linger (task 6.2)", () => {
     expect(gone).toBeGreaterThanOrEqual(1500 - 150);
     expect(gone).toBeLessThanOrEqual(1500 + 400);
     // Still running, in the silence: the line is blank but keeps its row (task 13.2), so the
-    // prompt box has not moved, and the turn has not ended.
+    // prompt box has not moved, and the turn has not ended. The six calls are one gap: no count.
     expect(statusRow(run.session)).toMatch(RUNNING);
     const rows = run.session.screenText();
     const after = boxTop(run.session);
@@ -125,7 +139,7 @@ describe("activity bar linger (task 6.2)", () => {
     await run.session.waitFor("Pool now releases its connections", 5000);
   }, 30000);
 
-  test("Replaced at once: a call that starts while the line lingers shows `1 running` and its title in the next frame, never the finished one again", async () => {
+  test("Replaced at once: a call that starts while the line lingers shows its title in the next frame, never the finished one again", async () => {
     const run = startCli({ scenario: "fast-tools", delayScale: 1, ...SIZE });
     session = run.session;
     await sendPrompt(run.session, "go");
@@ -134,7 +148,8 @@ describe("activity bar linger (task 6.2)", () => {
     // The line's text over time, a change at a time: running, finished, running, finished, ... in
     // the calls' order, so each title's finished line never follows the next call's running one.
     const texts = captures.flatMap((c) => (c.line ? [c.line.text.slice(2)] : [])).filter((t, i, all) => t !== all[i - 1]);
-    const expected = TITLES.flatMap((title) => [`1 running: ${title}`, `✓ ${title}`]);
+    const expected = TITLES.flatMap((title) => [title, `✓ ${title}`]);
+    for (const c of captures) if (c.line) expect(c.line.count).toBe("");
     let at = -1;
     for (const text of texts) {
       const next = expected.indexOf(text, at + 1);
@@ -163,7 +178,7 @@ describe("activity bar linger (task 6.2)", () => {
 
   test("The row is reserved for the whole session (task 13.2): with tool calls further apart than the linger the line is blank between them and the prompt box and the conversation's rows never move", async () => {
     // A linger of 0.2 s against calls 500 ms apart (delay scale 2): the line is blank for about
-    // 260 ms between calls, as it was absent before task 13.2.
+    // 260 ms between calls.
     const run = startCli({ scenario: "fast-tools", delayScale: 2, ...SIZE, env: configEnv({ density: "compact", activity: { linger_seconds: 0.2 } }) });
     session = run.session;
     await run.session.waitFor((p) => promptBox(p).length > 0, 10000);
@@ -179,4 +194,22 @@ describe("activity bar linger (task 6.2)", () => {
     // The two rows above the prompt box are the line and its blank row.
     for (const c of blank) expect([c.rows[c.top - 1], c.rows[c.top - 2]]).toEqual(["", ""]);
   }, 30000);
+
+  test("Count kept while lingering (focus-groups): turn 1 of task-messages at delay scale 50 lingers on `✓ Run tm-build` in muted with `2 tool calls · 1 thought` at the right", async () => {
+    // Each call takes 1 s and is followed by a 1 s pause, inside the 1.5 s linger. By the end of
+    // tm-2 the turn has two gaps (tm-1 and a thought; "Task 1 started."; tm-2), so the count shows.
+    const run = startCli({ scenario: "task-messages", delayScale: 50, ...SIZE });
+    session = run.session;
+    await sendPrompt(run.session, "go");
+    await run.session.waitFor((p) => activity(p)?.text === "  ✓ Run tm-build", 15000);
+    const now = activity(run.session)!;
+    expect(now.count).toBe("2 tool calls · 1 thought");
+    // The glyph and the title are muted.
+    await run.session.flush();
+    const abs = run.session.term.buffer.active.baseY + now.y;
+    for (const x of [2, 4]) {
+      const cell = run.session.cell(abs, x)!;
+      expect(cell.isFgPalette() ? cell.getFgColor() : null).toBe(MUTED);
+    }
+  }, 40000);
 });

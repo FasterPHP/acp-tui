@@ -102,8 +102,9 @@ describe("permission card (task 6.5)", () => {
     const top = rowOf(run.s, CARD_HEADER);
     expect(top).toBe(8);
     expect(run.s.screenText()[top - 1]).toBe("");
-    expect(run.s.screenText()[top - 2]).toBe("  2 running: Edit src/index.ts · awaiting permission");
-    expect(activityRow(run.s)).toBe("  2 running: Edit src/index.ts · awaiting permission");
+    const activity = /^ {2}Edit src\/index\.ts · awaiting permission$/;
+    expect(run.s.screenText()[top - 2]).toMatch(activity);
+    expect(activityRow(run.s)).toMatch(activity);
     expect(run.s.screenText()[top + 6]).toStartWith("╭");
 
     // The fill covers every cell of every card row; the frame and marker use the warning colour.

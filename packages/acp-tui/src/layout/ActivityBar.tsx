@@ -4,13 +4,22 @@
 // width policy are `activityBar` (activity.ts). When the last running call
 // finishes during a turn it lingers for `activity.linger_seconds`
 // (day-two-feedback design D6): the finished call, muted (`lingerLine`), in the
-// same row. It takes no rows otherwise.
+// same row. Right-aligned it carries the turn's count (focus-groups design D6),
+// kept here incrementally from the store's item changes, reset when a turn
+// starts, from the turn's first call or thought until its end, and shown only
+// once the turn's hidden items form more than one gap (the turn-end line's
+// rule: with one gap the conversation's gap line carries the count); alone
+// once nothing runs or lingers. It takes no rows otherwise.
 // The blank row above it (day-one-feedback: space between the conversation
 // and the running action) is the screen's (`Spacing.activityGap`), which drops
 // it in a short pane.
-import { createEffect, createMemo, createSignal, For, onCleanup } from "solid-js";
-import type { ToolCallItem } from "acp-model";
+import { For, batch, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import type { Item, ToolCallItem } from "acp-model";
 import { useApp, useConfig } from "../app/context.ts";
+import { addCounts, EMPTY_COUNTS, isRunningTool, type ItemCounts } from "../conversation/counts.ts";
+import { isRenderable } from "../conversation/list.ts";
+import { hiddenInFocus } from "../conversation/window/entries.ts";
+import { RIGHT_MARGIN, SCROLLBAR_COLUMNS } from "../conversation/window/WindowedConversation.tsx";
 import { toolTitleText } from "../conversation/tool-title.ts";
 import { activityBar, lingerLine, type LingerCall } from "./activity.ts";
 import { ACTIVITY_LINE_ROWS, type BlockComponent, type BlockProps } from "./Screen.tsx";
@@ -20,12 +29,13 @@ function isLiveTool(item: { kind: string; status: string } | undefined): boolean
 }
 
 export const ActivityBar: BlockComponent = (props: BlockProps) => {
-  const { store } = useApp();
+  const { store, scrollbar } = useApp();
   const config = useConfig();
   // Live tool ids, maintained from the store's item changes, so streaming text never makes
-  // this block rescan the whole session.
-  const initial = store.snapshot().order.filter((id) => isLiveTool(store.snapshot().items.get(id)));
-  const [ids, setIds] = createSignal<string[]>(initial);
+  // this block rescan the whole session. `liveIds` is current at once (the linger follows it); the
+  // signal the row reads mirrors it, with the turn's count, once per macrotask of changes (below).
+  let liveIds: string[] = store.snapshot().order.filter((id) => isLiveTool(store.snapshot().items.get(id)));
+  const [ids, setIds] = createSignal<string[]>(liveIds);
   // The call the line lingers on after the last running one has finished, until the timer ends it,
   // a call starts, or the turn ends.
   const [linger, setLinger] = createSignal<LingerCall | null>(null);
@@ -42,14 +52,100 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     setLinger(call);
     lingerTimer = setTimeout(endLinger, seconds * 1000);
   };
+  // The turn's count (focus-groups D6): `turnKey` is the running turn's `startedAt`; each tool
+  // call's last counted state and each counted thought are kept, so a change adjusts the totals
+  // instead of rescanning the session. The tally and the live ids are given to the row's signals
+  // together, once per macrotask of changes (as the conversation re-reads its snapshot), so the
+  // title and the count's running number never disagree and a burst of updates (a 5000-item turn
+  // arrives in one) draws the row once instead of once per tool call.
+  const [counts, setCounts] = createSignal<ItemCounts>(EMPTY_COUNTS);
+  let tally: ItemCounts = EMPTY_COUNTS;
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  // What the changes since the last flush do to the linger: end it (a call started) or start it on
+  // the call that finished last; applied in the same batch as the ids, so no frame shows one without
+  // the other.
+  let pendingLinger: "end" | LingerCall | null = null;
+  const flush = (): void => {
+    if (flushTimer !== null) clearTimeout(flushTimer);
+    flushTimer = null;
+    const lingerAction = pendingLinger;
+    pendingLinger = null;
+    batch(() => {
+      setCounts(tally);
+      setMoreGaps(pendingMore);
+      setIds(liveIds);
+      if (lingerAction === "end") endLinger();
+      else if (lingerAction !== null && store.session.state !== "idle") startLinger(lingerAction);
+    });
+  };
+  const scheduleFlush = (): void => {
+    flushTimer ??= setTimeout(flush, 0);
+  };
+  let turnKey: number | null = null;
+  let tools = new Map<string, { failed: boolean; running: boolean }>();
+  let thoughts = new Set<string>();
+  // The turn's gaps, as `focusGaps` forms them: a gap is a run of renderable hidden items; a
+  // renderable message or a marker ends it. Each item is looked at once, by id.
+  let gapSeen = new Set<string>();
+  let inGap = false;
+  let gaps = 0;
+  const [moreGaps, setMoreGaps] = createSignal(false);
+  let pendingMore = false;
+  const syncTurn = () => {
+    const key = store.session.turn?.startedAt ?? null;
+    if (key === turnKey) return;
+    turnKey = key;
+    tools = new Map();
+    thoughts = new Set();
+    gapSeen = new Set();
+    inGap = false;
+    gaps = 0;
+    pendingMore = false;
+    tally = EMPTY_COUNTS;
+    flush();
+  };
+  const count = (changes: readonly { id: string; item: Item }[]) => {
+    if (turnKey === null) return;
+    let next = tally;
+    for (const c of changes) {
+      const item = c.item;
+      if (!gapSeen.has(c.id) && isRenderable(item)) {
+        gapSeen.add(c.id);
+        if (!hiddenInFocus(item)) inGap = false;
+        else if (!inGap) {
+          inGap = true;
+          gaps += 1;
+        }
+      }
+      if (item.kind === "tool_call") {
+        const now = { failed: item.toolStatus === "failed", running: isRunningTool(item) };
+        const was = tools.get(c.id);
+        if (!was) next = addCounts(next, item);
+        else if (was.failed !== now.failed || was.running !== now.running) {
+          next = { ...next, failed: next.failed + (now.failed ? 1 : 0) - (was.failed ? 1 : 0), running: next.running + (now.running ? 1 : 0) - (was.running ? 1 : 0) };
+        }
+        tools.set(c.id, now);
+      } else if (item.kind === "thought" && !thoughts.has(c.id) && isRenderable(item)) {
+        thoughts.add(c.id);
+        next = addCounts(next, item);
+      }
+    }
+    const more = gaps > 1;
+    if (next === tally && more === pendingMore) return;
+    tally = next;
+    pendingMore = more;
+    scheduleFlush();
+  };
   const off = store.onChange((change) => {
+    syncTurn();
+    count(change.items);
     let next: string[] | null = null;
     // The last call this change finished, completed or failed.
     let finished: LingerCall | null = null;
     for (const c of change.items) {
       if (c.item.kind !== "tool_call") continue;
       const live = isLiveTool(c.item);
-      const current: string[] = next ?? ids();
+      const current: string[] = next ?? liveIds;
       const has = current.includes(c.id);
       if (live && !has) next = [...current, c.id];
       else if (!live && has) {
@@ -58,18 +154,22 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
       }
     }
     if (!next) return;
-    setIds(next);
+    liveIds = next;
     // A call running replaces the lingering line at once; the last one finishing starts it.
-    if (next.length > 0) endLinger();
-    else if (finished && store.session.state !== "idle") startLinger(finished);
+    if (next.length > 0) pendingLinger = "end";
+    else if (finished) pendingLinger = finished;
+    scheduleFlush();
   });
   onCleanup(() => {
     off();
     clearTimeout(lingerTimer);
+    if (flushTimer !== null) clearTimeout(flushTimer);
   });
   // The turn's end ends the linger at once.
   createEffect(() => {
     if (store.session.state === "idle") endLinger();
+    store.session.turn?.startedAt;
+    syncTurn();
   });
 
   const row = createMemo(() => {
@@ -80,10 +180,13 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
           .filter((item): item is ToolCallItem => item?.kind === "tool_call")
       : [];
     const plan = running && store.session.turn?.planReportedThisTurn ? store.session.plan : [];
-    const built = activityBar({ running: tools, plan, permissionOpen: store.session.openPermissionId !== null }, props.width);
-    if (built || !running) return built;
+    const permissionOpen = store.session.openPermissionId !== null;
+    // The count ends where the conversation's text does: before its right margin and scroll bar.
+    const width = props.width - RIGHT_MARGIN - (scrollbar !== undefined && props.layout.scrollbar ? SCROLLBAR_COLUMNS : 0);
+    const count = running && moreGaps() ? counts() : EMPTY_COUNTS;
     const lingering = linger();
-    return lingering ? lingerLine(lingering, props.width) : null;
+    if (running && lingering && tools.length === 0 && plan.length === 0 && !permissionOpen) return lingerLine(lingering, width, undefined, undefined, count);
+    return activityBar({ running: tools, plan, permissionOpen, count }, width);
   });
   // The line keeps its row for the whole session, blank until something has run (task 13.2).
   createEffect(() => props.onHeight(ACTIVITY_LINE_ROWS));

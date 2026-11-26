@@ -30,6 +30,7 @@ import { secretEchoScenario } from "./secret-echo.ts";
 import { shortAnswerScenario } from "./short-answer.ts";
 import { slowTurnScenario } from "./slow-turn.ts";
 import { streamLongScenario } from "./stream-long.ts";
+import { taskMessagesScenario } from "./task-messages.ts";
 import { toolContentScenario } from "./tool-content.ts";
 import { linksScenario } from "./links.ts";
 import { usageWithoutCostScenario } from "./usage-without-cost.ts";
@@ -70,6 +71,7 @@ export const SCENARIOS: Readonly<Record<string, Scenario>> = {
   [secretEchoScenario.name]: secretEchoScenario,
   [commandResultsScenario.name]: commandResultsScenario,
   [usageWithoutCostScenario.name]: usageWithoutCostScenario,
+  [taskMessagesScenario.name]: taskMessagesScenario,
   [auggie1Scenario.name]: auggie1Scenario,
   [auggie1NoauthScenario.name]: auggie1NoauthScenario,
 };
@@ -121,6 +123,7 @@ export {
   slowTurnScenario,
   streamLongScenario,
   tailWindowScenario,
+  taskMessagesScenario,
   toolContentScenario,
   usageWithoutCostScenario,
   viewerScenario,

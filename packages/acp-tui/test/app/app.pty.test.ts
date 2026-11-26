@@ -162,7 +162,7 @@ describe("acp-tui against fake-agent at 80x24 (task 6.2; alternate screen, phase
     // then the spacer, the status row and the bottom margin.
     expect(screen.slice(-17)).toEqual([
       "",
-      "  2 running: Edit src/index.ts · awaiting permission",
+      "  Edit src/index.ts · awaiting permission",
       "",
       `╭─ ◊ Permission  edit  #2 ${"─".repeat(53)}╮`,
       `│${" ".repeat(78)}│`,

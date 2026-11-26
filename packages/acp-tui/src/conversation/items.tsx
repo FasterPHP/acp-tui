@@ -28,6 +28,7 @@ import { cardPadding, terminalFlags } from "./markdown/context.ts";
 import { MessageLayout } from "./markdown/layout.ts";
 import { isPrimaryPress } from "../renderer/mouse.ts";
 import type { ConversationViewModel } from "./view-model.ts";
+import { sameTotals, type TurnTotals } from "./turn-totals.ts";
 
 /** A shared spinner clock: it ticks only while some running tool line holds it. */
 export interface Spinner {
@@ -69,6 +70,8 @@ export interface ItemContext {
   /** Columns the conversation's entries are laid out in: the region's width less its right
    *  margin and the scroll bar (window/WindowedConversation.tsx). */
   readonly width: Accessor<number>;
+  /** The totals a turn-end marker draws (tracked; absent: none), by the marker's ID. */
+  readonly turnTotals?: (id: string) => TurnTotals | undefined;
   /** Whether the item is under the cursor while the conversation has focus. */
   readonly selected: (id: string) => boolean;
   /** Called with each item's root box as it mounts (the scroll controller's geometry). */
@@ -444,7 +447,10 @@ export function ItemView(props: { id: string; margin: number; ctx: ItemContext }
       case "marker": {
         // Markers arrive final and never change.
         const m = as("marker")();
-        if (m.markerKind === "turn_end") return meta("muted", () => <Segments segments={turnEndLine(m, glyphs)} theme={theme} />);
+        if (m.markerKind === "turn_end") {
+          const totals = createMemo(() => ctx.turnTotals?.(props.id), undefined, { equals: sameTotals });
+          return meta("muted", () => <Segments segments={turnEndLine(m, glyphs, totals() ?? null, width())} theme={theme} />);
+        }
         const token: TokenName = m.markerKind === "error" ? "danger" : "warning";
         const prefix = m.markerKind === "error" ? "error: " : "";
         return meta(token, () => <Segments segments={[{ text: prefix + m.text.replace(/\n+$/, ""), token }]} theme={theme} wrap width={width()} />);

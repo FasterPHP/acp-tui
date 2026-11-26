@@ -17,22 +17,22 @@
 //   it finishes, then joins the run).
 // - `verbose`: everything expanded: tool calls, thoughts and plans show their
 //   cards, and nothing is grouped.
-// - `focus`, the default (Marcus, 14 October 2026): tool calls and thoughts (with their permission records and
-//   plans) are hidden behind one line per turn, such as
-//   `▸ 12 tool calls · 3 thoughts · 1 failed`, leaving user and agent
-//   messages and the markers (turn ends, errors). A turn starts at a user
-//   message; the line sits where the turn's first hidden item was (Claude
-//   Code's VS Code focus view, parity 1.1).
+// - `focus`, the default (Marcus, 14 October 2026): each gap, a maximal run of consecutive
+//   shown tool calls, thoughts, permission records and plans, is hidden behind one line where it
+//   happened, such as `▸ 12 tool calls (1 failed) · 3 thoughts · 41.0s`, leaving user and agent
+//   messages and the markers (turn ends, errors). Any other shown item ends a gap, so a line
+//   lies between the prompt and the first answer, between two answers, or after the last one,
+//   never where nothing was hidden (design focus-groups D1).
 //
 // An explicit user toggle of an item wins in every density (design 6.2
 // "Collapsing anywhere"); a group line opens and closes like an item, and an
 // open group shows its members below it (each one line, or its card). Group
 // state is kept per group key (`group:run:<first member>` or
-// `group:turn:<first hidden item>`), which stays put as a run or turn grows at
-// the end.
-import type { Item, ThoughtItem, ToolCallItem } from "acp-model";
+// `group:gap:<first member>`), which stays put as a run or gap grows at the end.
+import type { Item, ToolCallItem } from "acp-model";
 import type { Segment } from "../../layout/segments.ts";
 import { formatDuration, MIN_SHOWN_DURATION_MS } from "../format.ts";
+import { countItems, countSegments } from "../counts.ts";
 import { isRenderable, spacingBefore, groupOf, type ItemGroup } from "../list.ts";
 
 export type Density = "compact" | "verbose" | "focus";
@@ -55,10 +55,10 @@ export interface ItemEntry {
 
 export interface GroupEntry {
   readonly kind: "group";
-  /** `group:run:<first member id>` or `group:turn:<first hidden item id>` (model ids never start
+  /** `group:run:<first member id>` or `group:gap:<first member id>` (model ids never start
    *  with `group:`; some start with `run:`). */
   readonly key: string;
-  readonly mode: "run" | "turn";
+  readonly mode: "run" | "gap";
   /** Member item ids in model order. */
   readonly members: readonly string[];
   readonly open: boolean;
@@ -114,12 +114,12 @@ export function groupable(item: Item, requested: ReadonlySet<string> = NO_REQUES
   return item.toolKind === "other" && !item.content.some((c) => c.type === "diff") && !requested.has(item.toolCallId);
 }
 
-/** Whether `focus` hides an item behind its turn's line. */
+/** Whether `focus` hides an item behind a gap's line. */
 export function hiddenInFocus(item: Item): boolean {
   return item.kind === "tool_call" || item.kind === "thought" || item.kind === "permission_record" || item.kind === "plan";
 }
 
-type Slot = { kind: "item"; id: string } | { kind: "group"; key: string; mode: "run" | "turn"; members: string[] };
+export type Slot = { kind: "item"; id: string } | { kind: "group"; key: string; mode: "run" | "gap"; members: string[] };
 
 /** Runs of two or more groupable items become groups (compact). `requested` is the tool calls
  *  that asked for permission (those named in `ids` unless given). */
@@ -146,25 +146,23 @@ export function groupRuns(
   return out;
 }
 
-/** One line per turn for the hidden items (focus); a turn starts at a user message and ends at
- *  its turn-end line. */
-export function turnRows(ids: readonly string[], items: ItemLookup): Slot[] {
+/** One line per gap for the hidden items (focus): each maximal run of consecutive shown items
+ *  that `hiddenInFocus` holds, keyed `group:gap:<first member>`. Any other shown item (a message,
+ *  a marker) ends a gap and stays an item. `ids` are shown (renderable) items in model order. */
+export function focusGaps(ids: readonly string[], items: ItemLookup): Slot[] {
   const out: Slot[] = [];
-  let group: { kind: "group"; key: string; mode: "turn"; members: string[] } | null = null;
+  let gap: { kind: "group"; key: string; mode: "gap"; members: string[] } | null = null;
   for (const id of ids) {
-    const item = items(id)!;
-    if (item.kind === "user_message") group = null;
-    if (!hiddenInFocus(item)) {
+    if (!hiddenInFocus(items(id)!)) {
       out.push({ kind: "item", id });
-      // A turn also ends at its turn-end line.
-      if (item.kind === "marker" && item.markerKind === "turn_end") group = null;
+      gap = null;
       continue;
     }
-    if (group === null) {
-      group = { kind: "group", key: `${GROUP_PREFIX}turn:${id}`, mode: "turn", members: [] };
-      out.push(group);
+    if (gap === null) {
+      gap = { kind: "group", key: `${GROUP_PREFIX}gap:${id}`, mode: "gap", members: [] };
+      out.push(gap);
     }
-    group.members.push(id);
+    gap.members.push(id);
   }
   return out;
 }
@@ -176,7 +174,7 @@ export function buildEntries(order: readonly string[], items: ItemLookup, option
     return item !== undefined && isRenderable(item);
   });
   const slots: Slot[] =
-    options.density === "compact" ? groupRuns(shown, items, permissionRequests(order, items)) : options.density === "focus" ? turnRows(shown, items) : shown.map((id) => ({ kind: "item", id }));
+    options.density === "compact" ? groupRuns(shown, items, permissionRequests(order, items)) : options.density === "focus" ? focusGaps(shown, items) : shown.map((id) => ({ kind: "item", id }));
   const entries: Entry[] = [];
   const keys: string[] = [];
   const index = new Map<string, number>();
@@ -198,6 +196,7 @@ export function buildEntries(order: readonly string[], items: ItemLookup, option
     }
     const open = options.open(slot.key);
     const at = entries.length;
+    // A group line, a run's or a gap's, is spaced as any activity item: a blank row on each side.
     push({ kind: "group", key: slot.key, mode: slot.mode, members: slot.members, open, margin: margin("activity") }, "activity");
     for (const id of slot.members) {
       if (!open) {
@@ -237,7 +236,7 @@ export const GROUP_PREFIX = "group:";
 
 /** The model item a group key was named after (its first member), or null for an item key. */
 export function groupKeyItem(key: string): string | null {
-  const match = /^group:(?:run|turn):(.*)$/s.exec(key);
+  const match = /^group:(?:run|gap):(.*)$/s.exec(key);
   return match ? match[1]! : null;
 }
 
@@ -288,14 +287,14 @@ export const GROUP_GLYPHS: GroupGlyphs = { closed: "▸", open: "▾", separator
 
 /**
  * A group's line without its gutter: the open or closed glyph, then counts and the duration.
- * A run: `▸ 5 reads · 2 searches · 1 thought · 3.1s` (kinds in first-seen order). A turn:
- * `▸ 12 tool calls · 1 failed · 3 thoughts · 1 plan · 2 permissions · 41.0s`.
+ * A run: `▸ 5 reads · 2 searches · 1 thought · 3.1s` (kinds in first-seen order). A gap:
+ * `▸ 12 tool calls (1 failed, 1 stopped) · 3 thoughts · 1 plan · 2 permissions · 41.0s`
+ * (counts.ts).
  */
 export function groupLine(entry: GroupEntry, items: ItemLookup, glyphs: GroupGlyphs = GROUP_GLYPHS): Segment[] {
   const members = entry.members.map((id) => items(id)).filter((item): item is Item => item !== undefined);
   const tools = members.filter((m): m is ToolCallItem => m.kind === "tool_call");
-  const thoughts = members.filter((m): m is ThoughtItem => m.kind === "thought").length;
-  const parts: Segment[] = [];
+  let parts: Segment[] = [];
   const add = (text: string, token: Segment["token"] = "muted") => {
     if (parts.length > 0) parts.push({ text: glyphs.separator, token: "muted" });
     parts.push({ text, token });
@@ -308,16 +307,7 @@ export function groupLine(entry: GroupEntry, items: ItemLookup, glyphs: GroupGly
     }
     for (const [noun, n] of counts) add(counted(n, noun));
   } else {
-    if (tools.length > 0) add(counted(tools.length, "tool"));
-    const failed = tools.filter((t) => t.toolStatus === "failed").length;
-    if (failed > 0) add(`${failed} failed`, "tool.fail");
-    const running = tools.filter((t) => t.status === "live" && (t.toolStatus === "pending" || t.toolStatus === "in_progress")).length;
-    if (running > 0) add(`${running} running`, "tool.running");
-    if (thoughts > 0) add(counted(thoughts, "thought"));
-    const plans = members.filter((m) => m.kind === "plan").length;
-    if (plans > 0) add(counted(plans, "plan"));
-    const permissions = members.filter((m) => m.kind === "permission_record").length;
-    if (permissions > 0) add(counted(permissions, "permission"));
+    parts = countSegments(countItems(members), { separator: glyphs.separator });
   }
   const ms = span(tools);
   if (ms !== null && ms >= MIN_SHOWN_DURATION_MS) add(formatDuration(ms));

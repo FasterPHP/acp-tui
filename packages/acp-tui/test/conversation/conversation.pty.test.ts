@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { DEFAULT_GLYPHS } from "../../src/conversation/glyphs.ts";
 import { deriveSurfaces } from "../../src/theme/index.ts";
 import type { OscColours, PtySession } from "../pty/harness.ts";
-import { activityRow, CARD_HEADER, lineWithoutBar, READY, withoutBar } from "../pty/regions.ts";
+import { activityLine, activityRow, CARD_HEADER, lineWithoutBar, READY, withoutBar } from "../pty/regions.ts";
 import { answerPermission, count, sendPrompt, settle, startCli, type CliRun } from "./cli.ts";
 import { WINDOWS } from "../windows.ts";
 
@@ -126,7 +126,7 @@ describe("items in start order, updated in place (task 7.1)", () => {
     const done = lines.findIndex((l) => /^ {2}← ✓ edit .*#2$/.test(l));
     expect(running).toBeGreaterThan(0);
     expect(done).toBe(running + 1);
-    expect(activityRow(s)).toBe("  1 running: Read src/index.ts");
+    expect(activityLine(s).trimEnd()).toBe("  Read src/index.ts");
 
     await s.waitFor(/end turn/, 10000);
     await settle(s);

@@ -453,9 +453,9 @@ export const SECTIONS = {
     values: [
       ["compact", "one line per tool call, thought or plan, runs of reads and searches grouped, failures included"],
       ["verbose", "everything expanded, nothing grouped"],
-      ["focus", "each turn's tool calls, thoughts and plans behind one line, leaving the messages"],
+      ["focus", "each run of tool calls, thoughts and plans between messages behind one line, in its place, leaving the messages"],
     ],
-    note: "The v key in the conversation cycles them.",
+    note: "From most shown to least they are verbose, compact and focus; the v key in the conversation cycles them.",
   }),
   interrupt: listed(z.enum(INTERRUPT_MODES).default("double"), {
     heading: "How Esc interrupts a running turn",
@@ -505,7 +505,7 @@ export const SECTIONS = {
         .min(0)
         .max(5)
         .default(1.5)
-        .describe("How many seconds the activity line shows the finished call muted, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off."),
+        .describe("How many seconds the activity line shows the finished call muted, with the turn's count at its right once the turn has more than one gap, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off."),
     })
     .prefault({})
     .describe("The activity bar."),
