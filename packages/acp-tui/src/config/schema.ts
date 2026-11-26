@@ -505,7 +505,7 @@ export const SECTIONS = {
         .min(0)
         .max(5)
         .default(1.5)
-        .describe("How many seconds the activity line shows the finished call muted, with the turn's count at its right, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off."),
+        .describe("How many seconds the activity line shows the finished call muted, with the turn's count at its right once the turn has more than one gap, after the last tool call in progress finishes while the turn still runs, before it goes blank (the line keeps its row either way); 0 turns the linger off."),
     })
     .prefault({})
     .describe("The activity bar."),

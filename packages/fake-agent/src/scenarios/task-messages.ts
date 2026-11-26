@@ -12,7 +12,8 @@
 //     in progress.
 //   Any later prompt repeats turn 2.
 //
-// Every tool call starts `in_progress` and then completes (tm-3 fails) with one text block. The
+// Every tool call starts `in_progress` and then completes (tm-3 fails) with one text block, and
+// the next step follows one step's pause after it (`call`). The
 // titles hold spaces, so acp-tui draws them as sent, never as a `rawInput` text. Delays are small
 // and scaled by --delay-scale, so there are none at 0.
 import type { PromptResponse } from "@agentclientprotocol/sdk";
@@ -76,6 +77,8 @@ async function call(ctx: ScenarioContext, id: ToolId): Promise<void> {
   await start(ctx, id);
   await ctx.sleep(TASK_MESSAGES.stepMs);
   await finish(ctx, id);
+  // A pause after the call, so a client's linger on the finished call can be observed.
+  await ctx.sleep(TASK_MESSAGES.stepMs);
 }
 
 async function turn1(ctx: ScenarioContext): Promise<PromptResponse> {

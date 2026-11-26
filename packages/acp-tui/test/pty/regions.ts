@@ -148,6 +148,14 @@ export function cardBody(s: PtySession): string[] {
  *  `12 tool calls (1 failed, 2 running) · 3 thoughts`, or `1 thought` before any call. */
 export const ACTIVITY_COUNT = /(?:\d+ tool calls?(?: \((?:\d+ (?:failed|running)(?:, )?)+\))?(?: · \d+ thoughts?)?|\d+ thoughts?)$/;
 
+/** The activity line's own row, whatever it shows (a title alone has no marker to match on): the
+ *  row above the card's blank row, or directly above the prompt box when no card is docked. */
+export function activityLine(s: PtySession): string {
+  const rows = s.screenText();
+  const card = rows.findIndex((r) => r.startsWith(`╭─ ${CARD_HEADER}`));
+  return (card >= 0 ? rows[card - 2] : rows[promptTop(rows) - 1]) ?? "";
+}
+
 export function activityRow(s: PtySession): string | null {
   const rows = s.screenText();
   const card = rows.findIndex((r) => r.startsWith(`╭─ ${CARD_HEADER}`));
@@ -158,7 +166,7 @@ export function activityRow(s: PtySession): string | null {
   const gap = rows[above]?.trim() === "";
   if (gap) above--;
   const row = rows[above];
-  const bar = gap ? /^ {2}(plan \d+\/\d+|awaiting permission\b)/ : /\b(running|plan \d+\/\d+|awaiting permission)\b/;
+  const bar = gap ? /^ {2}(plan \d+\/\d+|awaiting permission\b)|· awaiting permission$/ : /\b(running|plan \d+\/\d+|awaiting permission)\b/;
   const counted = row !== undefined && !/^ {2}[▸▾] /.test(row) && ACTIVITY_COUNT.test(row);
   return row !== undefined && (bar.test(row) || counted) ? row : null;
 }

@@ -63,6 +63,15 @@ describe("activity line contents (task 4.2)", () => {
     }
   }, 60000);
 
+  test("One gap, no count: turn 1 of task-messages at delay scale 50 shows the first call's title alone while it runs, before any message", async () => {
+    const run = startCli({ scenario: "task-messages", delayScale: 50, cols: 90, rows: 30 });
+    session = run.session;
+    await sendPrompt(run.session, "go");
+    await run.session.waitFor((p) => line(p) === "  Read tm-first.txt", 10000);
+    expect(run.session.screenText().join("\n")).not.toContain("Task 1 started.");
+    expect(ACTIVITY_COUNT.test(line(run.session))).toBe(false);
+  }, 30000);
+
   test("Count before anything runs: a turn that has sent only a message has a blank activity line", async () => {
     const run = startCli({ scenario: "usage-without-cost", delayScale: 6, cols: 90, rows: 30 });
     session = run.session;
@@ -93,7 +102,7 @@ describe("activity line linger with the count (task 4.2)", () => {
     const run = startCli({ scenario: "fast-tools", delayScale: 0.3, cols: 90, rows: 30, env: configEnv({ density: "compact", activity: { linger_seconds: 5 } }) });
     session = run.session;
     await sendPrompt(run.session, "go");
-    await run.session.waitFor((p) => /^ {2}✓ Edit src\/Pool\.php +6 tool calls$/.test(line(p)), 10000);
+    await run.session.waitFor((p) => /^ {2}✓ Edit src\/Pool\.php$/.test(line(p)), 10000);
     const top = boxTop(run.session);
     await run.session.waitFor("Pool now releases its connections", 10000);
     await run.session.waitFor((p) => /end turn/.test(p.screenText().join("\n")), 10000);
