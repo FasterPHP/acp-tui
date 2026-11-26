@@ -1,6 +1,7 @@
 // focus-groups task 1.1: task-messages sends two turns of plain messages (no messageId except the
 // two notes), a failure on tm-3 and a plan in turn 2; --hold keeps tm-8 running until session/cancel.
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "bun:test";
 import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { parseArgs } from "../src/cli.ts";
@@ -124,7 +125,7 @@ describe("fake-agent task-messages scenario (focus-groups task 1.1)", () => {
     expect(parseArgs(["--scenario", "task-messages", "--hold"], {}).hold).toBe(true);
     expect(parseArgs(["--scenario", "task-messages"], {}).hold).toBe(false);
     const proc = Bun.spawn({
-      cmd: ["bun", new URL("../src/main.ts", import.meta.url).pathname, "--scenario", "basic", "--hold"],
+      cmd: ["bun", fileURLToPath(new URL("../src/main.ts", import.meta.url)), "--scenario", "basic", "--hold"],
       stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",
