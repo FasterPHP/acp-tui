@@ -20,6 +20,7 @@ import { CLAUDE_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
 import type { z } from "zod";
 import { MODULE_IDS } from "../../src/layout/modules.ts";
 import { HARNESS_NOTICE, withoutHarnessNotice } from "./harness-notice.ts";
+import { WINDOWS } from "../windows.ts";
 
 // The glyph checks measure with OpenTUI's width function, which needs @opentui/core evaluated
 // (runConfigCommand loads it; the tests that call readConfiguration directly need it too).
@@ -369,12 +370,12 @@ describe("config --check (task 9.1)", async () => {
       expect(r.stdout).toContain(`/x/config.jsonc:1:${text.indexOf('"x^y"') + 1}: warning: agent_servers.a.args.1 holds "^"`);
     });
 
-    test("on Linux and macOS the same file has no warning", async () => {
+    // Not on a Windows host: there the Linux and macOS rules cannot read the file as they would at
+    // home (the temporary XDG_CONFIG_HOME is a drive-letter path, which they ignore as not absolute,
+    // and the owner check for agent_servers has no Unix owner to read), so the run says nothing
+    // about the arguments either way. The Linux and macOS runs check it.
+    test.skipIf(WINDOWS)("on Linux and macOS the same file has no warning", async () => {
       const w = world({ config: entry });
-      // On a Windows host the temporary XDG_CONFIG_HOME is a drive-letter path, which the Linux and
-      // macOS rules ignore as not absolute, so they read $HOME/.config: put the same file there too.
-      mkdirSync(join(w.home, ".config", "acp-tui"), { recursive: true });
-      writeFileSync(join(w.home, ".config", "acp-tui", "config.jsonc"), entry);
       for (const platform of ["linux", "darwin"] as const) {
         const r = await w.run(["--check"], platform);
         expect(r.code).toBe(0);
