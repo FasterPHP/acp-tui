@@ -20,7 +20,7 @@ Anything that looks wrong, feels slow or surprises you is worth a report, includ
 
 ## Keys
 
-F1 shows the keys. The ones you will use most:
+F1 (Fn+F1 on a Mac) shows the keys. The ones you will use most:
 
 | Key | Does |
 | --- | --- |

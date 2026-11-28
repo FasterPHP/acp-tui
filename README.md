@@ -24,11 +24,11 @@ Install your harness and log in to it first:
 
 | Harness | Install | Name to pass | Checked |
 | --- | --- | --- | --- |
-| Claude Code | [Claude Code](https://code.claude.com/docs), logged in; acp-tui runs the `claude-agent-acp` adapter through `bunx` | `claude` | yes (adapter 0.94.0) |
+| Claude Code | `curl -fsSL https://claude.ai/install.sh \| bash`, then run `claude` and sign in (`/login`); the ACP adapter (`claude-agent-acp`) is fetched automatically on first run | `claude` | yes (adapter 0.94.0) |
 | Codex | `npm install -g @agentclientprotocol/codex-acp` | `codex` | not yet |
 | OpenCode | `npm install -g @opencode/cli`, then `opencode auth login` | `opencode` | yes (1.19) |
 | Auggie | `npm install -g @augmentcode/auggie` (Node 20.6 or later), then `auggie auth login` | `auggie` | yes (1.2 and 0.37) |
-| Antigravity CLI | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` (PowerShell: `irm https://antigravity.google/cli/install.ps1 \| iex`), then sign in with `agy acp --login` | `agy` | not yet |
+| Antigravity CLI | `curl -fsSL https://antigravity.google/cli/install.sh \| bash`, then sign in with `agy acp --login` | `agy` | not yet |
 
 Then install acp-tui, naming your harness:
 
@@ -39,7 +39,7 @@ bun install
 bun run install-cli --harness claude
 ```
 
-`bun run install-cli` writes a small `acp-tui` command into `~/.local/bin` that runs this checkout, and creates `~/.config/acp-tui/config.jsonc` with every setting at its default and the harness you named in effect. Name several to have them all, with the first as the default (`--harness claude,codex`), or choose the default with `--default <name>`. Without `--harness` no harness is enabled: every harness in the file is a commented example, and enabling one later is removing the `//` in front of its line under `agent_servers` (`acp-tui config --path` prints where the file is). If a configuration file already exists it is never replaced: install-cli says what to add to it instead.
+`bun run install-cli` writes a small `acp-tui` command into `~/.local/bin` that runs this checkout, and creates `~/.config/acp-tui/config.jsonc` with every setting at its default and the harness you named in effect. Name several to have them all, with the first as the default (`--harness claude,codex`), or choose the default with `--default <name>`. Without `--harness` no harness is enabled: every harness in the file is a commented example, and enabling one later simply involves removing the `//` in front of its line under `agent_servers` (`acp-tui config --path` prints where the file is). If a configuration file already exists it is never replaced: install-cli says what to add to it instead.
 
 If it warns that `~/.local/bin` is not on your `PATH`, add it in your shell's start-up file:
 
@@ -67,7 +67,7 @@ acp-tui starts a session in the directory you launched it from, so choose the di
 - Ctrl+D leaves, whatever the prompt box holds. Your session is kept and can be resumed, and an unsent draft is kept with it (Delete deletes forward).
 - `acp-tui -c` continues the last session in this directory; `acp-tui -r` lists sessions to resume.
 - `acp-tui <name>` starts another configured harness. To add one later, remove the `//` in front of its line under `agent_servers` in your configuration file (`acp-tui config --path` prints where it is); every harness needs an entry there.
-- `?` in an empty prompt box opens acp-tui's commands, `/` the harness's, and F1 shows the keys.
+- `?` in an empty prompt box opens acp-tui's commands, `/` the harness's, and F1 (Fn+F1 on a Mac) shows the keys.
 - `acp-tui --help` lists the options and `acp-tui --version` says what you run.
 
 If the harness is not installed, or you have not logged in, acp-tui says so and what to run. If no harness is enabled yet, plain `acp-tui` says how to enable one; if your configuration file names a default harness that has no entry, it says so and where to copy the entry from.

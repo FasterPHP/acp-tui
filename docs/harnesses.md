@@ -9,7 +9,7 @@ acp-tui works the same way with every ACP harness. This page collects what is pa
 Checked with `claude-agent-acp` 0.94.0, the version the `claude` entry pins.
 
 - The entry runs the adapter through `bunx`, which comes with Bun and downloads it on first use; that is why its start-up timeout is 120 seconds.
-- It uses your Claude Code login, so install Claude Code and sign in once before you start it.
+- Install Claude Code with `curl -fsSL https://claude.ai/install.sh | bash`, then run `claude` and sign in once (`/login`) before you start acp-tui; it uses that login. The ACP adapter (`claude-agent-acp`) is fetched automatically on first run, so it needs no install.
 - While it runs, the terminal tab reads `claude` rather than the directory's name: Claude Code names the tab itself.
 - To choose the model, add `"env": { "ANTHROPIC_MODEL": "opus" }` to the entry.
 
@@ -32,4 +32,4 @@ Checked with Auggie 1.2.x and 0.37.x.
 
 ## Antigravity CLI
 
-Not yet checked. The `agy` entry runs `agy acp`. Install it with `curl -fsSL https://antigravity.google/cli/install.sh | bash` (macOS and Linux; the binary goes to `~/.local/bin/agy`) or, in PowerShell, `irm https://antigravity.google/cli/install.ps1 | iex`. Sign in once with an interactive `agy` or with `agy acp --login`.
+Not yet checked. The `agy` entry runs `agy acp`. Install it with `curl -fsSL https://antigravity.google/cli/install.sh | bash` (macOS and Linux; the binary goes to `~/.local/bin/agy`; [install-windows.md](install-windows.md) has the Windows line). Sign in once with an interactive `agy` or with `agy acp --login`.

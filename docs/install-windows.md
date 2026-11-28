@@ -83,7 +83,21 @@ On Windows `auggie` is a `.cmd` file made by npm, which acp-tui starts through `
 
 ### Claude Code
 
+Install Claude Code in PowerShell, then run `claude` and sign in once (`/login`):
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
 `claude-agent-acp`, which Bun downloads on first use, is a commented example in the default configuration: remove the `//` in front of the `claude` line under `agent_servers`, then run `acp-tui claude` (or plain `acp-tui` when it is the only harness enabled; with others, set `"default_agent_server": "claude"`); for a new configuration, `bun run install-cli --harness claude` does both. It uses your Claude Code login, so sign in to Claude Code first. While it runs, the terminal tab reads `claude` rather than the directory's name: Claude Code names the tab itself. Other harnesses (Codex, OpenCode and the rest) are examples too, listed with their commands in [configuration.md](configuration.md#harnesses).
+
+### Antigravity CLI
+
+Not yet checked. Install it in PowerShell, then sign in with `agy acp --login`:
+
+```powershell
+irm https://antigravity.google/cli/install.ps1 | iex
+```
 
 ## 4. Terminals
 
