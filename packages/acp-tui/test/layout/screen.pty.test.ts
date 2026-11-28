@@ -116,7 +116,7 @@ describe("status row modules (task 6.2)", () => {
     await run.s.waitFor((p) => statusRow(p).includes("ctrl+d again to detach"), 5000);
     expect(statusRow(run.s)).toMatch(/ctrl\+d again to detach and stop the turn\s+connected$/);
     // The armed state lapses after 2 s, and the state reads running again.
-    await run.s.waitFor((p) => RUNNING.test(statusRow(p)), 4000);
+    await run.s.waitFor((p) => RUNNING.test(p.screenText().join("\n")), 4000);
     expect(run.s.exitCode).toBeNull();
     run.s.sendKeys("Ctrl+D");
     await run.s.waitFor((p) => statusRow(p).includes("ctrl+d again to detach"), 5000);
@@ -158,14 +158,14 @@ describe("activity bar (task 6.4)", () => {
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    await run.s.waitFor((p) => /^ {2}Run check 5 +\d+s$/.test(activityLine(p).trimEnd()), 5000);
+    await run.s.waitFor((p) => /^ {2}(?:\w+ )?Run check 5 +running \d+s$/.test(activityLine(p).trimEnd()), 5000);
     // The activity bar sits directly above the prompt box, after its blank row, in place of the
     // blank row above the prompt box: the conversation gave up a row.
     const screen = run.s.screenText();
     expect(screen[12]).toBe("");
-    expect(screen[13]!.trimEnd()).toMatch(/^ {2}Run check 5 +\d+s$/);
+    expect(screen[13]!.trimEnd()).toMatch(/^ {2}(?:\w+ )?Run check 5 +running \d+s$/);
     expect(screen[14]).toStartWith("╭");
-    expect(statusRow(run.s)).toMatch(RUNNING);
+    expect(run.s.screenText().join("\n")).toMatch(RUNNING);
   }, 20000);
 
   test("running with a plan: the latest title, plan 2/5 and the third entry, and the run time (plan-running)", async () => {
@@ -174,13 +174,13 @@ describe("activity bar (task 6.4)", () => {
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    const row = /^ {2}Search routes · plan 2\/5 ▸ Write the test +\d+s$/;
+    const row = /^ {2}(?:\w+ )?Search routes · plan 2\/5 ▸ Write the \S+ +running \d+s$/;
     await run.s.waitFor((p) => row.test(activityRow(p) ?? ""), 5000);
     // The bar sits directly above the prompt box.
     const screen = run.s.screenText();
     expect(screen[13]).toMatch(row);
     expect(screen[14]).toStartWith("╭");
-    expect(statusRow(run.s)).toMatch(RUNNING);
+    expect(run.s.screenText().join("\n")).toMatch(RUNNING);
     // Esc twice cancels the turn: the bar goes away.
     run.s.sendKeys("Esc");
     await run.s.waitFor((p) => statusRow(p).includes("esc again to interrupt"), 5000);
@@ -198,7 +198,7 @@ describe("activity bar (task 6.4)", () => {
     await run.s.waitFor((p) => activityRow(p) !== null, 5000);
     await run.s.flush();
     const rows = run.s.screenText();
-    const line = rows.findIndex((r) => /^ +Search routes · plan \d+\/\d+/.test(r));
+    const line = rows.findIndex((r) => /^ +(?:\w+ )?Search routes · plan \d+\/\d+/.test(r));
     expect(line).toBeGreaterThan(2);
     // The blank row (the conversation need not fill its rows at 90x24; the row counts are
     // covered by test/layout/layout.test.ts "spacing").
@@ -231,7 +231,7 @@ describe("activity bar (task 6.4)", () => {
     run.s.sendKeys({ text: "go" }, "Enter");
     await run.s.waitFor(CARD_HEADER, 5000);
     // requires_action: the run time keeps ticking beside `awaiting permission`.
-    expect(activityRow(run.s)).toMatch(/^ {2}Edit src\/index\.ts · awaiting permission +\d+s$/);
+    expect(activityRow(run.s)).toMatch(/^ {2}(?:\w+ )?Edit src\/index\.ts · awaiting permission +running \d+s$/);
   }, 20000);
 
   test("idle: when the turn ends the activity line goes blank but keeps its row, so the conversation does not move (day-two-feedback 13.2)", async () => {

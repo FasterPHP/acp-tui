@@ -4,9 +4,11 @@
 // the default layout; a test with another layout reads rows itself.
 import type { PtySession } from "./harness.ts";
 
-/** Status-row states, matched on one line of the screen (`waitFor` joins lines with `\n`). */
+/** States matched on one line of the screen (`waitFor` joins lines with `\n`). */
 export const READY = /\bidle\b[^\n]*\bconnected\b/;
-export const RUNNING = /\brunning\b[^\n]*\bconnected\b/;
+/** A running turn: `running <run time>` at the right of the activity line (run-time-and-cmd-keys),
+ *  which the status row no longer says. Matched on the whole screen, never on `statusRow`. */
+export const RUNNING = /\brunning (?:\d+s|\d+m \d{2}s|\d+h \d{2}m)(?!\w)/;
 export const REQUIRES_ACTION = /\brequires_action\b[^\n]*\bconnected\b/;
 export const CARD_HEADER = "◊ Permission";
 /** The `turn-state` module while the first Esc of the double Esc has armed the interrupt. */
@@ -145,8 +147,8 @@ export function cardBody(s: PtySession): string[] {
 /** The activity bar: the row above the card, or above the prompt box when no card is docked, past
  *  the blank row between them when there is one (day-one-feedback). */
 /** The running turn's run time at the right of the activity line (change run-time-and-cmd-keys),
- *  ending the row after at least one space: `7s`, `4m 35s`, `2h 03m`. */
-export const ACTIVITY_RUN_TIME = /(?<= )(?:\d+s|\d+m \d{2}s|\d+h \d{2}m)$/;
+ *  ending the row after at least one space: `running 7s`, `4m 35s`, `2h 03m`. */
+export const ACTIVITY_RUN_TIME = /(?<= )running (?:\d+s|\d+m \d{2}s|\d+h \d{2}m)$/;
 
 /** The activity line's own row, whatever it shows (a title alone has no marker to match on): the
  *  row above the card's blank row, or directly above the prompt box when no card is docked. */

@@ -1,26 +1,32 @@
 // The activity bar's content (design 6.2, D7; spec tui-layout "Activity line run time"). Pure: at
-// the left the title of the most recently started tool call in progress, the plan's progress with
-// its current entry (`plan 2/5 ▸ <entry>`) and `awaiting permission`; at the right, ending at the
-// width given, the running turn's run time (`4m 35s`, `formatElapsed`), in `muted`. When the row is
-// too narrow the titles are truncated first, then dropped, then the plan; the run time and
-// `awaiting permission` stay. The text starts in the conversation's text column, after the gutter
+// the left the kind and title of the most recently started tool call in progress (`read src/a.ts`,
+// the kind in its `tool.kind.<kind>` token, as in the conversation's collapsed line), the plan's
+// progress with its current entry (`plan 2/5 ▸ <entry>`) and `awaiting permission`; at the right,
+// ending at the width given, `running` and the running turn's run time (`running 4m 35s`,
+// `formatElapsed`), the word in the turn-state's `running` token and the time in `muted`. When the
+// row is too narrow the titles are truncated first, then dropped (the kind stays), then the plan;
+// the run time and `awaiting permission` stay, and only when `running <time>` leaves no room for
+// them does the word `running` go before the time (run-time-and-cmd-keys design D4 and D5). The text starts in the conversation's text column, after the gutter
 // (day-one-feedback task 7.2), so it lines up with the tool glyphs above it, and at least one space
-// separates the left from the run time. The run time alone is a valid row. (The turn's count that
+// separates the left from the run time. `running <time>` alone is a valid row. (The turn's count that
 // focus-groups put at the right is gone: the gap lines and the turn-end line carry it.)
 import type { Session, ToolCallItem } from "acp-model";
 import { LIVE_GLYPHS } from "../conversation/live-glyphs.ts";
 import { toolTitleText } from "../conversation/tool-title.ts";
+import { toolKindToken } from "../theme/tokens.ts";
+import { TURN_TOKENS } from "./modules.ts";
 import { displayWidth, fitSegments, segmentsWidth, truncateEnd, type Segment } from "./segments.ts";
 
 type PlanEntry = Session["plan"][number];
 
 export interface ActivityInput {
   /** Tool calls pending or in progress, in start order. */
-  running: readonly (Pick<ToolCallItem, "title"> & { readonly inputText?: string | null })[];
+  running: readonly (Pick<ToolCallItem, "title"> &
+    Partial<Pick<ToolCallItem, "toolKind" | "toolName">> & { readonly inputText?: string | null })[];
   /** The plan reported during the running turn; empty when none (or idle). */
   plan: readonly Pick<PlanEntry, "content" | "status">[];
   permissionOpen: boolean;
-  /** The running turn's run time as drawn (`4m 35s`), or null (idle, or no turn yet). */
+  /** The running turn's run time as drawn (`4m 35s`; the row adds `running`), or null (idle, or no turn yet). */
   runTime?: string | null;
 }
 
@@ -47,10 +53,16 @@ function oneLine(text: string): string {
 
 function parts(input: ActivityInput): Record<Part["kind"], Part | null> {
   const latest = input.running.at(-1);
-  // The running part is its title alone; how many calls run is on the gap line (focus) or on each
-  // call's own row.
+  // The running part is the call's kind and title; how many calls run is on the gap line (focus)
+  // or on each call's own row.
   const title = latest ? toolTitleText(latest) : "";
-  const running: Part | null = title ? { kind: "running", head: { text: "", token: "text" }, tail: title } : null;
+  const kind = latest ? activityKind(latest) : "";
+  // A title that is only the kind (a call with no input) shows the kind once.
+  const same = title.toLowerCase() === kind.toLowerCase();
+  const running: Part | null =
+    title || kind
+      ? { kind: "running", head: { text: kind, token: toolKindToken(latest!.toolKind) }, tail: title && !same ? title : null }
+      : null;
   let plan: Part | null = null;
   if (input.plan.length > 0) {
     const done = input.plan.filter((e) => e.status === "completed").length;
@@ -63,11 +75,24 @@ function parts(input: ActivityInput): Record<Part["kind"], Part | null> {
   return { running, plan, awaiting };
 }
 
-const lead = (part: Part) => (part.kind === "plan" ? ` ${PLAN_POINTER} ` : part.kind === "running" ? "" : ": ");
+const lead = (part: Part) => (part.kind === "plan" ? ` ${PLAN_POINTER} ` : part.kind === "running" ? (part.head.text ? " " : "") : ": ");
 
-/** The run time on the activity line, in `muted`; none when there is no turn. */
-function runTimeOf(runTime: string | null | undefined): Segment[] {
-  return runTime ? [{ text: runTime, token: "muted" }] : [];
+/**
+ * The call's kind as the row names it: its ACP kind, or the harness's tool name when it sent none;
+ * empty for the catch-all `other` (and for neither), where the title alone says what it does.
+ */
+function activityKind(call: Partial<Pick<ToolCallItem, "toolKind" | "toolName">>): string {
+  const kind = oneLine(call.toolKind ?? "");
+  if (kind !== "" && kind !== "other") return kind;
+  return kind === "other" ? "" : oneLine(call.toolName ?? "");
+}
+
+/** `running <time>` on the activity line: the word in the turn-state's running token, the time in
+ *  `muted`; with `word` false the time alone (a row too narrow for both). None when no turn. */
+function runTimeOf(runTime: string | null | undefined, word = true): Segment[] {
+  if (!runTime) return [];
+  const time: Segment = { text: runTime, token: "muted" };
+  return word ? [{ text: "running ", token: TURN_TOKENS.running }, time] : [time];
 }
 
 /** `left` then spaces then `right`, `right` ending at `width`; the spaces at least one. */
@@ -121,31 +146,40 @@ function fit(list: readonly Shown[], width: number, indent: number): Segment[] |
  */
 export function activityBar(input: ActivityInput, width: number, indent: number = LIVE_GLYPHS.gutterWidth): Segment[] | null {
   const p = parts(input);
-  const right = runTimeOf(input.runTime);
+  const full = runTimeOf(input.runTime);
+  const short = runTimeOf(input.runTime, false);
+  const blank: Segment = { text: " ".repeat(indent), token: "muted" };
   if (!p.running && !p.plan && !p.awaiting) {
-    if (right.length === 0) return null;
-    return fitSegments(join([{ text: " ".repeat(indent), token: "muted" }], right, width), width);
+    if (full.length === 0) return null;
+    const right = indent + segmentsWidth(full) + 1 <= width ? full : short;
+    return fitSegments(join([blank], right, width), width);
   }
-  // Most detailed first: both titles, then the plan entry dropped, then the tool title, then the
-  // plan; the run time and `awaiting permission` always stay.
+  // Most detailed first: both titles, then the plan entry dropped, then the tool title (its kind
+  // stays), then the kind and the plan; `running <time>` and `awaiting permission` always stay,
+  // and the word `running` goes before either of them is cut.
   const attempts: [Part | null, boolean][][] = [
     [[p.running, true], [p.plan, true], [p.awaiting, false]],
     [[p.running, true], [p.plan, false], [p.awaiting, false]],
     [[p.running, false], [p.plan, false], [p.awaiting, false]],
     [[p.running, false], [p.awaiting, false]],
+    [[p.plan, false], [p.awaiting, false]],
+    [[p.awaiting, false]],
   ];
-  const room = width - (right.length > 0 ? segmentsWidth(right) + 1 : 0);
-  for (const attempt of attempts) {
-    const list = attempt.flatMap(([part, tail]) => (part && !(part.kind === "running" && !tail) ? [{ part, tail }] : []));
-    if (list.length === 0) continue;
-    const row = fit(list, room, indent);
-    if (row) return join(row, right, width);
+  for (const right of full.length > 0 ? [full, short] : [full]) {
+    const room = width - (right.length > 0 ? segmentsWidth(right) + 1 : 0);
+    for (const attempt of attempts) {
+      const list = attempt.flatMap(([part, tail]) => (part && !(part.kind === "running" && !tail && part.head.text === "") ? [{ part, tail }] : []));
+      if (list.length === 0) continue;
+      const row = fit(list, room, indent);
+      if (row) return join(row, right, width);
+    }
   }
   // Nothing fits beside the run time: `awaiting permission` (when open) is cut to the room left of
   // it, or the run time stands alone; the run time is cut only when it alone is wider than the row.
+  const right = !p.awaiting && indent + segmentsWidth(full) + 1 <= width ? full : short;
   const room2 = width - (right.length > 0 ? segmentsWidth(right) + 1 : 0);
   const left = p.awaiting && room2 > indent + 1 ? fitSegments(render([{ part: p.awaiting, tail: false }], new Map(), indent), room2) : [];
-  return fitSegments(join(left.length > 0 ? left : [{ text: " ".repeat(indent), token: "muted" }], right, width), width);
+  return fitSegments(join(left.length > 0 ? left : [blank], right, width), width);
 }
 
 /** A call that has finished, for the line that lingers after it (design D6). */
@@ -173,7 +207,8 @@ export function lingerLine(
   const head = `${" ".repeat(indent)}${glyph}`;
   const title = oneLine(call.title);
   const roomFor = (right: Segment[]) => width - displayWidth(head) - 1 - (right.length > 0 ? segmentsWidth(right) + 1 : 0);
-  const right = runTimeOf(runTime);
+  const wordy = runTimeOf(runTime);
+  const right = roomFor(wordy) >= MIN_TAIL ? wordy : runTimeOf(runTime, false);
   const room = roomFor(right);
   const text = title === "" || room < 1 ? "" : ` ${truncateEnd(title, room)}`;
   const left: Segment[] = [{ text: `${head}${text}`, token: "muted" }];

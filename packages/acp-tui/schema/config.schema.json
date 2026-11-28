@@ -1319,7 +1319,7 @@
               "additionalProperties": false
             },
             "turn-state": {
-              "description": "The turn's state: idle, running, requires_action, loading or an armed key; its format must keep {state}. {elapsed} is the running turn's run time, which the activity line shows by default (\"{state} {elapsed}\" puts it here too). Fields: {state}, {elapsed}. Default format \"{state}\", priority 100.",
+              "description": "The turn's state: idle, running, requires_action, loading or an armed key; its format must keep {state}. While a turn runs the default format shows nothing, since the activity line shows `running <run time>`; a custom format still gets `running` in {state}, and {elapsed} is the run time (\"{state} {elapsed}\" puts both here). Fields: {state}, {elapsed}. Default format \"{state}\", priority 100.",
               "type": "object",
               "properties": {
                 "format": {

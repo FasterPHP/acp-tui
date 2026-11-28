@@ -139,7 +139,8 @@ describe("prompt box (task 6.3)", () => {
     await run.s.waitFor((p) => promptText(p)[0] === "second", 5000);
     run.s.sendKeys("Enter");
     await run.s.waitFor("a turn is running: esc twice to cancel it", 5000);
-    expect(statusRow(run.s)).toMatch(/ running\b.*connected$/);
+    expect(run.s.screenText().join("\n")).toMatch(RUNNING);
+    expect(statusRow(run.s)).toMatch(/connected$/);
     // The notice sits in the middle of the prompt box's top border, after the busy indicator's track.
     expect(promptBox(run.s)[0]).toMatch(/^╭[─━╼╾╴╶ ]{11,} a turn is running: esc twice to cancel it ─+╮$/);
     expect(promptText(run.s)).toEqual(["second"]);

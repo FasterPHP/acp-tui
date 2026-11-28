@@ -99,7 +99,7 @@ describe("App in the test renderer", () => {
     // The activity bar sits between the conversation and the prompt box while the tool runs.
     // The title at the left and the turn's run time at the right (the fixture's turn started at a
     // made-up time, so only the shape of the run time is checked); no count.
-    expect((await app.frame()).at(-8)!.trimEnd()).toMatch(/^ {2}Read a\.ts +(?:\d+s|\d+m \d{2}s|\d+h \d{2}m)$/);
+    expect((await app.frame()).at(-8)!.trimEnd()).toMatch(/^ {2}(?:\w+ )?Read a\.ts +running (?:\d+s|\d+m \d{2}s|\d+h \d{2}m)$/);
   });
 
   test("Enter submits the prompt box's text and clears it when accepted", async () => {

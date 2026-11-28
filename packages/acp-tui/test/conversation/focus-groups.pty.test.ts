@@ -213,7 +213,7 @@ describe("densities (spec Turn totals in the turn-end line: `focus`, `compact` a
 
 describe("turn 2 (spec Turn totals: `interrupted`; tui-layout Activity line run time)", () => {
   /** The activity row: the running call's title and the turn's run time at the right. */
-  const activity = (s: PtySession) => rowsOf(s).find((r) => r.startsWith(`  ${TOOLS["tm-8"].title}`) && / {2,}\d+s$/.test(r));
+  const activity = (s: PtySession) => rowsOf(s).find((r) => r.includes(TOOLS["tm-8"].title) && / {2,}running \d+s$/.test(r));
 
   test("--hold: the call's title and the run time on the activity row (no count), then Esc Esc ends it `interrupted · 2 tool calls (1 stopped) · 1 thought`", async () => {
     const s = await turn1({ agentArgs: ["--hold"] });

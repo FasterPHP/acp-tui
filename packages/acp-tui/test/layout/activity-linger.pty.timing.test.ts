@@ -68,7 +68,7 @@ async function sample(s: PtySession, ms: number, every = 25): Promise<{ t: numbe
   const end = performance.now() + ms;
   while (performance.now() < end) {
     await s.flush();
-    out.push({ t: performance.now(), line: activity(s), top: boxTop(s), rows: s.screenText(), running: RUNNING.test(statusRow(s)) });
+    out.push({ t: performance.now(), line: activity(s), top: boxTop(s), rows: s.screenText(), running: RUNNING.test(s.screenText().join("\n")) });
     await Bun.sleep(every);
   }
   return out;
@@ -103,7 +103,7 @@ describe("activity bar linger (task 6.2)", () => {
     for (const c of lingering) {
       expect(TITLES.some((title) => c.line!.text === `  ✓ ${title}`)).toBe(true);
       // The run time at the right.
-      expect(c.line!.time).toMatch(/^\d+s$/);
+      expect(c.line!.time).toMatch(/^running \d+s$/);
     }
     // The muted look, read from the screen: the glyph and the title in bright black.
     await run.session.flush();
@@ -114,7 +114,7 @@ describe("activity bar linger (task 6.2)", () => {
       const cell = run.session.cell(abs, x)!;
       expect(cell.isFgPalette() ? cell.getFgColor() : null).toBe(MUTED);
     }
-    expect(statusRow(run.session)).toMatch(RUNNING);
+    expect(run.session.screenText().join("\n")).toMatch(RUNNING);
   }, 30000);
 
   test("Linger ends: 1.5 s after the last call ended the activity line shows the run time alone while the turn is still running, and the prompt box has not moved", async () => {
@@ -131,11 +131,11 @@ describe("activity bar linger (task 6.2)", () => {
     expect(gone).toBeLessThanOrEqual(1500 + 400);
     // Still running, in the silence: the line shows the run time alone on its row (task 13.2), so
     // the prompt box has not moved, and the turn has not ended.
-    expect(statusRow(run.session)).toMatch(RUNNING);
+    expect(run.session.screenText().join("\n")).toMatch(RUNNING);
     const rows = run.session.screenText();
     const after = boxTop(run.session);
     expect(after).toBe(top);
-    expect(rows[after - 1]).toMatch(/^ +\d+s$/);
+    expect(rows[after - 1]).toMatch(/^ +running \d+s$/);
     expect(rows[after - 2]).toBe("");
     expect(rows.join("\n")).not.toContain("Pool now releases its connections");
     await run.session.waitFor("Pool now releases its connections", 5000);
@@ -147,11 +147,11 @@ describe("activity bar linger (task 6.2)", () => {
     await sendPrompt(run.session, "go");
     await firstCall(run.session);
     const captures = await sample(run.session, 5 * 250 + 100, 10);
-    // The line's text over time, a change at a time: running, finished, running, finished, ... in
+    // The line's text over time, a change at a time (the kind of a running call dropped): running, finished, running, finished, ... in
     // the calls' order, so each title's finished line never follows the next call's running one.
-    const texts = captures.flatMap((c) => (!bare(c.line) ? [c.line!.text.slice(2)] : [])).filter((t, i, all) => t !== all[i - 1]);
+    const texts = captures.flatMap((c) => (!bare(c.line) ? [c.line!.text.slice(2).replace(/^[a-z]+ (?=[A-Z])/, "")] : [])).filter((t, i, all) => t !== all[i - 1]);
     const expected = TITLES.flatMap((title) => [title, `✓ ${title}`]);
-    for (const c of captures) if (c.line) expect(c.line.time).toMatch(/^\d+s$/);
+    for (const c of captures) if (c.line) expect(c.line.time).toMatch(/^running \d+s$/);
     let at = -1;
     for (const text of texts) {
       const next = expected.indexOf(text, at + 1);
@@ -174,7 +174,7 @@ describe("activity bar linger (task 6.2)", () => {
     expect(captures.some((c) => bare(c.line) && c.running)).toBe(true);
     expect(new Set(captures.map((c) => c.top)).size).toBe(1);
     const idle = captures.find((c) => bare(c.line) && c.running)!;
-    expect(idle.rows[idle.top - 1]).toMatch(/^ +\d+s$/);
+    expect(idle.rows[idle.top - 1]).toMatch(/^ +running \d+s$/);
     expect(idle.rows[idle.top - 2]).toBe("");
   }, 30000);
 
@@ -195,7 +195,7 @@ describe("activity bar linger (task 6.2)", () => {
     expect(blank.length).toBeGreaterThan(5);
     // The two rows above the prompt box are the line (the run time alone) and its blank row.
     for (const c of blank) {
-      expect(c.rows[c.top - 1]).toMatch(/^( +\d+s)?$/);
+      expect(c.rows[c.top - 1]).toMatch(/^( +running \d+s)?$/);
       expect(c.rows[c.top - 2]).toBe("");
     }
   }, 30000);
@@ -207,7 +207,7 @@ describe("activity bar linger (task 6.2)", () => {
     await sendPrompt(run.session, "go");
     await run.session.waitFor((p) => activity(p)?.text === "  ✓ Run tm-build", 15000);
     const now = activity(run.session)!;
-    expect(now.time).toMatch(/^\d+s$/);
+    expect(now.time).toMatch(/^running \d+s$/);
     expect(run.session.screenText()[now.y]).not.toMatch(/tool calls?|thoughts?/);
     // The glyph, the title and the run time are muted.
     await run.session.flush();

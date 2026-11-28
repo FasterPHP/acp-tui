@@ -42,7 +42,7 @@ async function held(cols: number, rows: number, env?: Record<string, string | un
   await run.session.waitFor("Task 2 done.", 10000);
   await run.session.waitFor(READY, 10000);
   await sendPrompt(run.session, "two");
-  await run.session.waitFor((p) => /^ {2}Run tm-final\b/.test(line(p)), 10000);
+  await run.session.waitFor((p) => /^ {2}(?:\w+ )?Run tm-final\b/.test(line(p)), 10000);
   return run;
 }
 
@@ -50,21 +50,20 @@ describe("activity line run time", () => {
   test("Run time beside the running call: the call's title at the left, the run time ending where the tool lines' index ends, no count", async () => {
     const run = await held(90, 30, configEnv({ density: "compact" }));
     const text = line(run.session);
-    expect(text).toMatch(/^ {2}Run tm-final\b.* +\d+s$/);
-    expect(text).not.toMatch(/tool calls?|thoughts?|running/);
+    expect(text).toMatch(/^ {2}(?:\w+ )?Run tm-final\b.* +running \d+s$/);
+    expect(text).not.toMatch(/tool calls?|thoughts?/);
     // Its last column is the one a tool line's index ends in.
     const tool = withoutBar(run.session.screenText()).find((l) => /^ {2}[→←] .* #\d+$/.test(l));
     expect(tool).toBeDefined();
     expect(text).toHaveLength(tool!.trimEnd().length);
-    // The status row says `running` without the time.
-    expect(statusRow(run.session)).toMatch(/ running\b/);
-    expect(statusRow(run.session)).not.toMatch(/running \d/);
+    // The status row says nothing of the running state: the word is beside the time.
+    expect(statusRow(run.session)).not.toMatch(/running/);
   });
 
   test("the run time is there in every density", async () => {
     for (const density of ["compact", "focus", "full"] as const) {
       const run = await held(90, 30, configEnv({ density }));
-      expect(line(run.session)).toMatch(/^ {2}Run tm-final\b.* +\d+s$/);
+      expect(line(run.session)).toMatch(/^ {2}(?:\w+ )?Run tm-final\b.* +running \d+s$/);
       run.session.kill("SIGTERM");
       await run.session.dispose();
       session = undefined;
@@ -88,8 +87,8 @@ describe("activity line run time", () => {
     await run.session.waitFor(READY, 15000);
     await sendPrompt(run.session, "two");
     await run.session.waitFor(RUNNING, 5000);
-    await run.session.waitFor((p) => /^ +\d+s$/.test(line(p)), 5000);
-    expect(line(run.session).trim()).toMatch(/^\d+s$/);
+    await run.session.waitFor((p) => /^ +running \d+s$/.test(line(p)), 5000);
+    expect(line(run.session).trim()).toMatch(/^running \d+s$/);
   }, 30000);
 
   test("Idle: before the first prompt and after a turn the activity line is blank", async () => {
@@ -107,7 +106,7 @@ describe("activity line run time", () => {
   test("Narrow pane: at 50 columns the call's title is truncated or dropped and the run time is still shown", async () => {
     const run = await held(50, 30, configEnv({ density: "compact" }));
     const text = line(run.session);
-    expect(text).toMatch(/ \d+s$/);
+    expect(text).toMatch(/ running \d+s$/);
     expect(text.length).toBeLessThanOrEqual(47);
   });
 });
@@ -118,7 +117,7 @@ describe("activity line linger with the run time", () => {
     const run = startCli({ scenario: "fast-tools", delayScale: 0.3, cols: 90, rows: 30, env: configEnv({ density: "compact", activity: { linger_seconds: 5 } }) });
     session = run.session;
     await sendPrompt(run.session, "go");
-    await run.session.waitFor((p) => /^ {2}✓ Edit src\/Pool\.php +\d+s$/.test(line(p)), 10000);
+    await run.session.waitFor((p) => /^ {2}✓ Edit src\/Pool\.php +running \d+s$/.test(line(p)), 10000);
     const top = boxTop(run.session);
     await run.session.waitFor("Pool now releases its connections", 10000);
     await run.session.waitFor((p) => /end turn/.test(p.screenText().join("\n")), 10000);

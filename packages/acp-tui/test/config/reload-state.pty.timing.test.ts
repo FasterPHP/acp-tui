@@ -18,7 +18,7 @@ describe("armed two-press states across a reload (task 3.5)", () => {
     const s = r.session;
     await s.waitFor(READY, 10000);
     s.sendKeys({ text: "go" }, "Enter");
-    await s.waitFor((p) => /\brunning\b/.test(statusRow(p)), 10000);
+    await s.waitFor((p) => /\brunning \d/.test(p.screenText().join("\n")), 10000);
     await Bun.sleep(300);
     s.sendKeys("Esc");
     await s.waitFor((p) => statusRow(p).includes(INTERRUPT_ARMED), 5000);

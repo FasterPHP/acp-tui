@@ -132,7 +132,8 @@ describe("connection", () => {
 describe("turn-state", () => {
   test("each state reads its name in its own token", () => {
     expect(run("turn-state", FULL_VIEW)).toEqual([{ text: "idle", token: "muted" }]);
-    expect(run("turn-state", view({ turnState: "running" }))).toEqual([{ text: "running", token: "tool.running" }]);
+    expect(run("turn-state", view({ turnState: "running" }))).toBeNull();
+    expect(run("turn-state", view({ turnState: "requires_action" }))).toEqual([{ text: "requires_action", token: "permission" }]);
     expect(run("turn-state", view({ turnState: "requires_action" }))).toEqual([{ text: "requires_action", token: "permission" }]);
   });
   test("while a session is opened: loading N by load (the items so far), opening by resume (mvp-sessions task 6.2)", () => {
@@ -141,9 +142,10 @@ describe("turn-state", () => {
     expect(run("turn-state", view({ opening: "resume" }))).toEqual([{ text: "opening", token: "tool.running" }]);
     expect(run("turn-state", view({ opening: null, loaded: 1234 }))).toEqual([{ text: "idle", token: "muted" }]);
   });
-  test("running reads `running` alone by default; the elapsed field keeps the run time for custom formats (run-time-and-cmd-keys)", () => {
+  test("running shows nothing by default (the activity line has `running <time>`); the elapsed field keeps the run time for custom formats (run-time-and-cmd-keys)", () => {
     const v = view({ turnState: "running", turnStartedAt: 1_000, now: 66_500 });
-    expect(run("turn-state", v)).toEqual([{ text: "running", token: "tool.running" }]);
+    expect(run("turn-state", v)).toBeNull();
+    expect(text("turn-state", v, { format: "{state}!" })).toBe("running!");
     expect(text("turn-state", v, { format: "{state} {elapsed}" })).toBe("running 1m 05s");
     expect(text("turn-state", v, { format: "{state} ({elapsed})" })).toBe("running (1m 05s)");
     // Idle has no run time, so the field is empty (the template keeps its literal space).

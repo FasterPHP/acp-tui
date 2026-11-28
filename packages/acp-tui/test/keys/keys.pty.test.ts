@@ -183,7 +183,7 @@ describe("Escape (phase-1a task 8.2)", () => {
     const armedAt = Date.now();
     await run.s.waitFor((p) => !statusRow(p).includes(INTERRUPT_ARMED), 4000);
     expect(Date.now() - armedAt).toBeGreaterThan(1500);
-    expect(statusRow(run.s)).toMatch(RUNNING);
+    expect(run.s.screenText().join("\n")).toMatch(RUNNING);
     expect(run.methods()).not.toContain("session/cancel");
     // The window passed: the next Esc arms again rather than cancelling.
     run.s.sendKeys("Esc");

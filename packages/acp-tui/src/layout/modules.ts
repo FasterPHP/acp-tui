@@ -179,7 +179,7 @@ function defaults(format: string, priority: number, token: TokenName, extra: Par
   return { format, priority, token, hideWhenEmpty: true, ...extra };
 }
 
-const TURN_TOKENS = { idle: "muted", running: "tool.running", requires_action: "permission" } as const satisfies Record<
+export const TURN_TOKENS = { idle: "muted", running: "tool.running", requires_action: "permission" } as const satisfies Record<
   SessionView["turnState"],
   TokenName
 >;
@@ -235,10 +235,11 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
     neverDrop: (view) => view.connection === "disconnected",
   },
   "turn-state": {
-    // `state` is what the row needs to say: the armed two-press state, else `idle`, `running` or
+    // `state` is what the row needs to say: the armed two-press state, else `idle` or
     // `requires_action`; while a session is opened by load, `loading N` (the items so far), and by
-    // resume `opening` (mvp-sessions task 6.2). The turn's run time is on the activity line
-    // (run-time-and-cmd-keys); `elapsed` keeps it for custom formats (`{state} {elapsed}`).
+    // resume `opening` (mvp-sessions task 6.2). While a turn runs the default format shows nothing:
+    // `running <run time>` is at the right of the activity line (run-time-and-cmd-keys design D4).
+    // A custom format keeps `running` in `state`, and `elapsed` the run time (`{state} {elapsed}`).
     fields: ["state", "elapsed"],
     defaults: defaults("{state}", 100, "status.fg"),
     render: (view, s) => {
@@ -249,6 +250,7 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
         : view.opening
           ? { text: view.opening === "load" ? `loading ${view.loaded ?? 0}` : "opening", token: "tool.running" as const }
           : { text: view.turnState, token: TURN_TOKENS[view.turnState] };
+      if (state.text === "running" && s.format === MODULES["turn-state"].defaults.format) return null;
       return fromTemplate(s, { state, elapsed });
     },
     neverDrop: (view) => view.turnState === "requires_action" || view.ui.armed !== null,

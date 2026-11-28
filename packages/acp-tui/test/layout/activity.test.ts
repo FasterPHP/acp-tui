@@ -21,6 +21,7 @@ const RUNNING: ActivityInput["running"] = [{ title: "Read src/Http/Router.php" }
 /** `left`, spaces, `right` ending at `width`. */
 const aligned = (left: string, right: string, width: number) => left + " ".repeat(width - displayWidth(left) - displayWidth(right)) + right;
 const RUN_TIME = "4m 35s";
+const RIGHT = `running ${RUN_TIME}`;
 
 describe("activity bar", () => {
   test("running turn with a plan: the latest title alone, and plan 2/5 ▸ the third entry", () => {
@@ -33,6 +34,22 @@ describe("activity bar", () => {
     expect(row.find((s) => s.text === "plan 2/5")?.token).toBe("muted");
     expect(row.find((s) => s.text === "awaiting permission")?.token).toBe("permission");
     expect(row.find((s) => s.text === RUN_TIME)?.token).toBe("muted");
+    expect(row.find((s) => s.text === "running ")?.token).toBe("tool.running");
+  });
+
+  test("the tool call's kind precedes its title, in its kind token", () => {
+    const row = activityBar({ running: [{ title: "src/foo.ts", toolKind: "read" }], plan: [], permissionOpen: false }, 80)!;
+    expect(row.map((s) => s.text).join("")).toBe("  read src/foo.ts");
+    expect(row.find((s) => s.text === "read")?.token).toBe("tool.kind.read");
+    expect(row.find((s) => s.text === "src/foo.ts")?.token).toBe("text");
+  });
+
+  test("a title that is only the kind shows it once; `other` and no kind show the title alone; a tool name stands in for a missing kind", () => {
+    const t = (call: ActivityInput["running"][number]) => text({ running: [call], plan: [], permissionOpen: false }, 80);
+    expect(t({ title: "execute", toolKind: "execute" })).toBe("  execute");
+    expect(t({ title: "bun test", toolKind: "other" })).toBe("  bun test");
+    expect(t({ title: "bun test" })).toBe("  bun test");
+    expect(t({ title: "bun test", toolName: "Bash" })).toBe("  Bash bun test");
   });
 
   test("awaiting permission while a request is open", () => {
@@ -83,47 +100,53 @@ describe("activity bar with the run time", () => {
       const out = row(input(), width);
       expect(displayWidth(out)).toBe(width);
       expect(out.startsWith("  Search for Route::get")).toBe(true);
-      expect(out.endsWith(` ${RUN_TIME}`)).toBe(true);
+      expect(out.endsWith(` ${RIGHT}`)).toBe(true);
     }
   });
 
-  test("no count and no running number: the title alone at the left", () => {
-    expect(row(input(), 100)).not.toMatch(/tool call|running|thought/);
-    expect(text(input(), 40)).toBe(aligned("  Search for Route::get", RUN_TIME, 40));
+  test("no count and no running number: the title alone at the left, `running <time>` at the right", () => {
+    expect(row(input(), 100)).not.toMatch(/tool call|thought/);
+    expect(text(input(), 50)).toBe(aligned("  Search for Route::get", RIGHT, 50));
   });
 
-  test("the drop order: titles truncated, then dropped, then the plan; the run time and awaiting permission stay", () => {
+  test("the drop order: titles truncated, then dropped, then the plan, then the word `running`; the time and awaiting permission stay", () => {
     const i = input({ plan: PLAN, permissionOpen: true });
-    expect(row(i, 100)).toBe(aligned("  Search for Route::get · plan 2/5 ▸ Write the controller test · awaiting permission", RUN_TIME, 100));
-    expect(row(i, 80)).toContain("▸ Write the control… · awaiting");
-    // The plan entry goes first, then the titles.
-    expect(row(i, 70)).toBe("  Search for … · plan 2/5 ▸ Write the co… · awaiting permission 4m 35s");
-    expect(row(i, 60)).toBe("  Search for Route:… · plan 2/5 · awaiting permission 4m 35s");
-    expect(row(i, 50)).toBe(aligned("  plan 2/5 · awaiting permission", RUN_TIME, 50));
-    // The plan next.
+    expect(row(i, 100)).toBe(aligned("  Search for Route::get · plan 2/5 ▸ Write the controller test · awaiting permission", RIGHT, 100));
+    expect(row(i, 80)).toContain("▸ Write the con… · awaiting");
+    expect(row(i, 70)).toBe("  Search for Route::g… · plan 2/5 · awaiting permission running 4m 35s");
+    expect(row(i, 60)).toBe(aligned("  plan 2/5 · awaiting permission", RIGHT, 60));
+    expect(row(i, 40)).toBe(aligned("  awaiting permission", RIGHT, 40));
+    // Awaiting permission is kept whole before the word `running` goes, and cut before the time is.
     expect(row(i, 30)).toBe(aligned("  awaiting permission", RUN_TIME, 30));
-    // Then awaiting permission is cut; the run time never is.
     expect(row(i, 20)).toBe("  awaiting p… 4m 35s");
     for (const width of [9, 10, 14, 16, 20]) expect(row(i, width).endsWith(` ${RUN_TIME}`)).toBe(true);
   });
 
-  test("the title is dropped before the run time", () => {
-    expect(row(input(), 30)).toBe(aligned("  Search for Route::get", RUN_TIME, 30));
-    // A title is not cut below 12 columns: at 20 it goes.
+  test("the title is dropped, then the word `running`, before the time", () => {
+    expect(row(input(), 40)).toBe(aligned("  Search for Route::get", RIGHT, 40));
+    expect(row(input(), 34)).toBe("  Search for Route… running 4m 35s");
     expect(row(input(), 26)).toBe("  Search for Route… 4m 35s");
-    expect(row(input(), 20)).toBe(aligned("", RUN_TIME, 20));
+    expect(row(input(), 20)).toBe(aligned("", RIGHT, 20));
     expect(row(input(), 12)).toBe(aligned("", RUN_TIME, 12));
   });
 
-  test("the run time alone is a valid row, right-aligned", () => {
-    expect(text({ running: [], plan: [], permissionOpen: false, runTime: "7s" }, 40)).toBe(aligned("", "7s", 40));
-    expect(text({ running: [], plan: [], permissionOpen: false, runTime: "2h 03m" }, 63)).toBe(aligned("", "2h 03m", 63));
+  test("a kind stays when its title is dropped", () => {
+    const i = input({ running: [{ title: "Search for Route::get", toolKind: "search" }] });
+    expect(row(i, 50)).toBe(aligned("  search Search for Route::get", RIGHT, 50));
+    expect(row(i, 30)).toBe(aligned("  search", RIGHT, 30));
+    expect(row(i, 20)).toBe(aligned("  search", RUN_TIME, 20));
+  });
+
+  test("`running <time>` alone is a valid row, right-aligned; too narrow, the time alone", () => {
+    expect(text({ running: [], plan: [], permissionOpen: false, runTime: "7s" }, 40)).toBe(aligned("", "running 7s", 40));
+    expect(text({ running: [], plan: [], permissionOpen: false, runTime: "2h 03m" }, 63)).toBe(aligned("", "running 2h 03m", 63));
+    expect(text({ running: [], plan: [], permissionOpen: false, runTime: "7s" }, 10)).toBe(aligned("", "7s", 10));
   });
 
   test("a plan alone keeps a space before the run time", () => {
     const out = text({ running: [], plan: PLAN, permissionOpen: false, runTime: "12s" }, 80)!;
     expect(out.startsWith("  plan 2/5 ▸ Write the controller test")).toBe(true);
-    expect(out.endsWith(" 12s")).toBe(true);
+    expect(out.endsWith(" running 12s")).toBe(true);
   });
 });
 
@@ -166,7 +189,7 @@ describe("lingerLine with the run time", () => {
   const lingered = (width: number, runTime: string | null) => lingerLine({ title: "Read src/Pool.php", failed: false }, width, 2, undefined, runTime).map((s) => s.text).join("");
 
   test("the call at the left and the run time at the right", () => {
-    expect(lingered(60, "1m 05s")).toBe(aligned("  ✓ Read src/Pool.php", "1m 05s", 60));
+    expect(lingered(60, "1m 05s")).toBe(aligned("  ✓ Read src/Pool.php", "running 1m 05s", 60));
     expect(lingered(60, null)).toBe("  ✓ Read src/Pool.php");
   });
 

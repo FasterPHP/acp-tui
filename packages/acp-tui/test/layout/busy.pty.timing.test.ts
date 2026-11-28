@@ -36,7 +36,7 @@ describe("busy indicator (task 4.3)", () => {
       await run.session.flush();
       const b = run.session.screenText();
       const atB = segment(run.session);
-      expect(statusRow(run.session)).toMatch(RUNNING);
+      expect(run.session.screenText().join("\n")).toMatch(RUNNING);
       expect(run.session.screenText().join("\n")).not.toContain("Kernel.php");
       const top = topRow(run.session);
       expect(changedRows(a, b).filter((y) => y !== top)).toEqual([]);
@@ -182,7 +182,7 @@ describe("busy indicator (task 4.3)", () => {
     await run.session.waitFor((p) => /^(━{5}|╼━{4}╾)$/.test(segment(p)?.cells ?? ""), 1500);
     expect(performance.now() - saved).toBeLessThan(1200);
     expect(segment(run.session)!.fg).toBe(BUSY);
-    expect(statusRow(run.session)).toMatch(RUNNING);
+    expect(run.session.screenText().join("\n")).toMatch(RUNNING);
     expect(run.session.screenText().join("\n")).not.toContain("Kernel.php");
     await run.session.waitFor("end turn", 6000);
   }, 30000);

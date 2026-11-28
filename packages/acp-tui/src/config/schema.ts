@@ -273,7 +273,7 @@ const MODULE_PURPOSES: Readonly<Record<ModuleId, string>> = {
   cwd: "The session directory: {cwd} and {path} with ~ for home, {basename} its last component.",
   dirs: "The session's additional directories: +2 dirs ({count}, {noun}, and {list} with ~ for home); hidden when there are none.",
   connection: "The connection to the harness.",
-  "turn-state": "The turn's state: idle, running, requires_action, loading or an armed key; its format must keep {state}. {elapsed} is the running turn's run time, which the activity line shows by default (\"{state} {elapsed}\" puts it here too).",
+  "turn-state": "The turn's state: idle, running, requires_action, loading or an armed key; its format must keep {state}. While a turn runs the default format shows nothing, since the activity line shows `running <run time>`; a custom format still gets `running` in {state}, and {elapsed} is the run time (\"{state} {elapsed}\" puts both here).",
   usage: "The context window used and its size.",
   cost: "The session's cost, as the agent reports it.",
   hints: "Key hints for what can be done now.",

@@ -12,7 +12,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { SELECTION_HELP } from "../../src/selection/help.ts";
 import { startPty, type OscColours, type PtySession } from "../pty/harness.ts";
-import { promptBox, promptText, READY, statusRow } from "../pty/regions.ts";
+import { promptBox, promptText, READY, RUNNING, statusRow } from "../pty/regions.ts";
 import { startCli, tempDir } from "../keys/cli-pty.ts";
 import { boxRows, inner, rowOf, startChrome, type ChromeRun } from "./cli.ts";
 import { HOSTILE_OSC52, PALETTE_AGENT_REFUSAL } from "./palette-agent.ts";
@@ -156,7 +156,7 @@ describe("every action in the palette (task 6.2)", () => {
     const run = start({ scenario: "slow-turn", delayScale: 1 });
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    await run.s.waitFor(() => statusRow(run.s).includes("running"), 5000);
+    await run.s.waitFor(() => RUNNING.test(run.s.screenText().join("\n")), 5000);
     run.s.sendKeys("Ctrl+P");
     await run.s.waitFor(/Commands \d+/, 3000);
     run.s.sendKeys({ text: "interrupt the" });

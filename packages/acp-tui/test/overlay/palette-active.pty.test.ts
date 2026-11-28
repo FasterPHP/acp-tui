@@ -4,7 +4,7 @@
 // against fake-agent. The pure parts are in test/overlay/palette.test.ts and list.test.ts.
 import { afterEach, describe, expect, test } from "bun:test";
 import type { PtySession } from "../pty/harness.ts";
-import { promptText, READY, statusRow } from "../pty/regions.ts";
+import { promptText, READY, RUNNING, statusRow } from "../pty/regions.ts";
 import { boxRows, inner, rowOf, startChrome, type ChromeRun } from "./cli.ts";
 
 let session: PtySession | undefined;
@@ -137,7 +137,7 @@ describe("only entries that can run now are active (task 13.12)", () => {
 
     // While a turn runs the same entry is drawn as the others are and Enter on it interrupts.
     run.s.sendKeys({ text: "go" }, "Enter");
-    await run.s.waitFor(() => statusRow(run.s).includes("running"), 5000);
+    await run.s.waitFor(() => RUNNING.test(run.s.screenText().join("\n")), 5000);
     run.s.sendKeys("Ctrl+P");
     await run.s.waitFor(/Commands \d+/, 3000);
     await run.s.flush();
