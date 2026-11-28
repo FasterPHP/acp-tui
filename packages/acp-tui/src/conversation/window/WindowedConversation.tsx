@@ -499,8 +499,8 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
   /** Ctrl+O (spec tui-conversation "Ctrl+O puts back what it opened"): the target call (behind the
    *  open permission request, else the latest) is toggled, opening the group line that hides it;
    *  pressed again on the same call, still as it was left, everything the first press changed is
-   *  put back. A press on another call first puts back the last peek, keeping a group line it
-   *  opened when the new call is behind the same line. */
+   *  put back. A press on another call, or on the call the user changed since, first puts back
+   *  what it can of the last peek, keeping a group line it opened when the target is behind it. */
   function toggleTool(): boolean {
     const target = viewerTarget(store.session);
     if (target === null) return false;
@@ -530,9 +530,9 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
       return true;
     }
     // Another call (a newer one started, or a permission request opened), or the user changed the
-    // call in between: what the last press changed is put back where it is still as it left it.
-    const owned =
-      last && last.target !== target
+    // call in between: the call is put back where it is still as the press left it, and the line
+    // the press opened stays Ctrl+O's while it still holds the target, so the next press closes it.
+    const owned = last
         ? batch((): string | null => {
             restorePeekCall(last);
             if (last.group === null) return null;

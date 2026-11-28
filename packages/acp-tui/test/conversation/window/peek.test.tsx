@@ -147,24 +147,27 @@ describe("Ctrl+O puts back what it opened (focus)", () => {
     expect(screen).toBe(opened);
   });
 
-  test("a press after the user changed the call is a first press again", async () => {
+  test("a press after the user changed the call is a first press again; the line stays Ctrl+O's", async () => {
     const app = await mount();
     app.message("m1", "Working on it.");
     app.call(1, "completed");
     app.call(2, "completed");
-    await app.frame();
+    const pristine = await app.frame();
     await app.key("o", { ctrl: true });
     // Tab: the cursor on the last entry, the call the press expanded; Enter collapses it.
     await app.key("tab");
     let screen = await app.key("return");
     expect(screen).not.toContain("output of step 2");
-    // Ctrl+O now expands the call again, and the next one collapses only the call: the line was
-    // opened by a press whose peek the user's change ended.
+    expect(line(screen)).toMatch(/▾ 2 tool calls/);
+    // Ctrl+O expands the call again, and the next one closes the call and the line the first
+    // Ctrl+O opened.
     screen = await app.key("o", { ctrl: true });
     expect(screen).toContain("output of step 2");
     screen = await app.key("o", { ctrl: true });
-    expect(line(screen)).toMatch(/▾ 2 tool calls/);
-    expect(screen).not.toContain("output of step 2");
+    expect(line(screen)).toMatch(/▸ 2 tool calls/);
+    expect(screen).not.toContain("Run step");
+    const conversation = (text: string) => text.split("\n").slice(0, text.split("\n").findIndex((r) => r.startsWith("╭")));
+    expect(conversation(screen)).toEqual(conversation(pristine));
   });
 });
 
@@ -200,5 +203,10 @@ describe("a density switch resets every entry", () => {
     // The conversation's rows (the chrome differs: the notice, the focus's hints).
     const conversation = (text: string) => text.split("\n").slice(0, text.split("\n").findIndex((r) => r.startsWith("╭")));
     expect(conversation(screen)).toEqual(conversation(pristine));
+    // On round through compact to verbose: step 3, collapsed there before, is expanded with the
+    // others (spec "The user's toggle wins").
+    await app.key("v");
+    screen = await app.key("v");
+    expect(screen).toContain("output of step 3");
   });
 });

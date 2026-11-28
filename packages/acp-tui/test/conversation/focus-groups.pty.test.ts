@@ -13,7 +13,7 @@ import { TASK_MESSAGES } from "fake-agent";
 import { currentHit, findBar, openAndType } from "../find/find-helpers.ts";
 import { configHome } from "../pty/config-home.ts";
 import type { PtySession } from "../pty/harness.ts";
-import { INTERRUPT_ARMED, READY, withoutBar } from "../pty/regions.ts";
+import { INTERRUPT_ARMED, READY, statusRow, withoutBar } from "../pty/regions.ts";
 import { localEnv, osc52Payloads } from "../selection/pty.ts";
 import { WINDOWS } from "../windows.ts";
 import { sendPrompt, settle, startCli, type CliRun } from "./cli.ts";
@@ -221,6 +221,19 @@ describe("Ctrl+O puts back what it opened, and a switch resets every entry (expa
     await press(s, "Ctrl+O");
     await s.waitFor((p) => !rowsOf(p).some((r) => r.includes(TOOLS["tm-6"].title)), 5000);
     expect(rowsOf(s).slice(0, rowOf(s, END_LINE) + 1)).toEqual(focus);
+  }, 60000);
+
+  test("Ctrl+O twice at 63x21 (PhpStorm's pane), the conversation overflowing: the rows as before, still following", async () => {
+    const s = await turn1({ cols: 63, rows: 21 });
+    const before = rowsOf(s);
+    expect(statusRow(s)).not.toMatch(/scrolled/);
+    await press(s, "Ctrl+O");
+    await s.waitFor((p) => rowsOf(p).some((r) => r.includes(TOOLS["tm-6"].title)), 5000);
+    await press(s, "Ctrl+O");
+    await s.waitFor((p) => !rowsOf(p).some((r) => r.includes(TOOLS["tm-6"].title)), 5000);
+    await settle(s, 100);
+    expect(rowsOf(s).slice(0, rowsOf(s).findIndex((r) => r.startsWith("╭")))).toEqual(before.slice(0, before.findIndex((r) => r.startsWith("╭"))));
+    expect(statusRow(s)).not.toMatch(/scrolled/);
   }, 60000);
 
   test("lines opened by a click and by Ctrl+O are closed again by v through compact and verbose back to focus", async () => {
