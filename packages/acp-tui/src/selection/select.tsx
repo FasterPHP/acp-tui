@@ -31,7 +31,7 @@
 //   painted, and a press there is not the conversation's. OpenTUI's
 //   renderer selection was not used for this; the reasons are in the Phase 1a
 //   report (S4, task 14.2).
-// - Copy (clipboard.ts): on release (`selection.copy_on_release`), and with Ctrl+C (the
+// - Copy (clipboard.ts): on release (`selection.copy_on_release`; a drag in the prompt box too, below), and with Ctrl+C (the
 //   `selection` key context, a global layer above the others): the selection;
 //   else, with the conversation focused, the item under its cursor; else
 //   nothing, and the key is consumed all the same, so it never clears the
@@ -120,6 +120,9 @@ function SelectionLayer(props: {
   let drag: { anchor: SelectionEnd; pressX: number; pressY: number; moved: boolean; x: number; y: number } | null = null;
   let click: Click | null = null;
   let swallowRelease = false;
+  // A press that began in the prompt box's text and has moved since (run-time-and-cmd-keys D8): its
+  // release copies the textarea's selection, as the conversation's does.
+  let promptDrag: { moved: boolean } | null = null;
   let autoTimer: ReturnType<typeof setInterval> | null = null;
   const conversationBox = conversationBoxFinder(renderer);
 
@@ -272,6 +275,25 @@ function SelectionLayer(props: {
 
   const onMouse: MouseIntercept = (report: MouseReport, dispatch) => {
     const { x, y } = report;
+    if (report.type === "down" && report.button === 0) {
+      const frame = controller.composer()?.frame?.();
+      promptDrag = frame && y > frame.top && y < frame.bottom ? { moved: false } : null;
+    } else if (report.type === "drag" && promptDrag) {
+      promptDrag.moved = true;
+    } else if (report.type === "up" && report.button === 0 && promptDrag) {
+      const moved = promptDrag.moved;
+      promptDrag = null;
+      if (moved) {
+        const handled = dispatch(report);
+        // The textarea owns the selection and keeps it; a bare click (no move) copies nothing, and
+        // a keyboard selection never reaches here.
+        if (copyOnRelease()) {
+          const text = controller.composer()?.selectedText?.() ?? "";
+          if (text !== "") void copyText(text, "release");
+        }
+        return handled;
+      }
+    }
     if (report.type === "down" && report.button === 0) {
       drag = null;
       swallowRelease = false;

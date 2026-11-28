@@ -293,7 +293,7 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
   }, 30000);
 
   // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
-  test.skipIf(WINDOWS)("Drag in the prompt box: `world` is drawn as selected, nothing is written to the clipboard, and Backspace leaves `hello `", async () => {
+  test.skipIf(WINDOWS)("Drag in the prompt box: `world` is drawn as selected, release copies it with the toast, the selection stays and Backspace leaves `hello `", async () => {
     const s = start({ colours: COLOURS }).session;
     await typed(s, "hello world");
     const { y, x } = where(s, "hello world");
@@ -305,12 +305,48 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
     s.mouseRelease(x + 10, y);
     const fill = deriveSurfaces(COLOURS)["surface.selection"].toLowerCase();
     await s.waitFor(() => cell(s, x + 6, y).bg === fill, 5000);
+    await s.waitFor(() => payloads(s).length === 1, 5000);
+    expect(payloads(s)).toEqual(["world"]);
+    await s.waitFor((p) => p.screenText().some((l) => l.includes("sent 5 chars to the terminal")), 5000);
     await Bun.sleep(300);
-    expect(payloads(s)).toEqual([]);
+    expect(payloads(s)).toEqual(["world"]);
+    expect(cell(s, x + 6, y).bg).toBe(fill);
     s.sendKeys("Backspace");
     await s.waitFor((p) => promptText(p)[0] === "hello", 5000);
     s.sendKeys({ text: "x" });
     await s.waitFor((p) => promptText(p)[0] === "hello x", 5000);
+  }, 30000);
+
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("A selection made with the keys never copies itself", async () => {
+    const s = start({ colours: COLOURS }).session;
+    await typed(s, "hello world");
+    const { y, x } = where(s, "hello world");
+    s.sendKeys({ text: SHIFT_LEFT.repeat(5) });
+    const fill = deriveSurfaces(COLOURS)["surface.selection"].toLowerCase();
+    await s.waitFor(() => cell(s, x + 6, y).bg === fill, 5000);
+    await Bun.sleep(500);
+    expect(payloads(s)).toEqual([]);
+  }, 30000);
+
+  // Skipped on Windows: it needs the terminal's OSC 10/11 colour replies (derived surfaces, light theme), which ConPTY never passes on (it passes only OSC 4).
+  test.skipIf(WINDOWS)("With selection.copy_on_release false a drag in the prompt box selects and copies nothing; Ctrl+C then copies it", async () => {
+    const s = start({ colours: COLOURS, config: { selection: { copy_on_release: false } } }).session;
+    await typed(s, "hello world");
+    const { y, x } = where(s, "hello world");
+    s.mousePress(x + 6, y);
+    for (let i = 7; i <= 10; i++) {
+      s.mouseMove(x + i, y, "left");
+      await Bun.sleep(15);
+    }
+    s.mouseRelease(x + 10, y);
+    const fill = deriveSurfaces(COLOURS)["surface.selection"].toLowerCase();
+    await s.waitFor(() => cell(s, x + 6, y).bg === fill, 5000);
+    await Bun.sleep(400);
+    expect(payloads(s)).toEqual([]);
+    s.sendKeys({ text: CTRL_C });
+    await s.waitFor(() => payloads(s).length === 1, 5000);
+    expect(payloads(s)).toEqual(["world"]);
   }, 30000);
 
   test("A click places the cursor and selects nothing", async () => {
@@ -319,6 +355,7 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
     const { y, x } = where(s, "hello world");
     s.mouseClick(x + 5, y);
     await Bun.sleep(300);
+    expect(payloads(s)).toEqual([]);
     s.sendKeys({ text: "_" });
     await s.waitFor((p) => promptText(p)[0] === "hello_ world", 5000);
     expect(payloads(s)).toEqual([]);

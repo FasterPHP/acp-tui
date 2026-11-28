@@ -425,7 +425,7 @@ export const SECTIONS = {
     ],
   }),
   selection: z
-    .object({ copy_on_release: z.boolean().default(true).describe("Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C. Read only from your own file, never from a project file.") })
+    .object({ copy_on_release: z.boolean().default(true).describe("Releasing a drag in the conversation, or in the prompt box, copies the selection (a selection made with the keys never copies itself); with false the selection stays highlighted until it is copied with Ctrl+C. Read only from your own file, never from a project file.") })
     .prefault({})
     .describe("Selection behaviour."),
   prompt: z

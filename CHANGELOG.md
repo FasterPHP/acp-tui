@@ -14,6 +14,7 @@
 
 ### Other changes
 
+- `selection.copy_on_release` now also copies a mouse selection in the prompt box when the drag is released, with the same toast as Ctrl+C. The selection stays, so typing replaces it as before; a selection made with the keys (Shift+arrows, Ctrl+A) never copies itself.
 - A project file can no longer set `selection.copy_on_release`, so a cloned repository cannot make a drag write the clipboard.
 
 ## 0.4.0
