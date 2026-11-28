@@ -1,8 +1,8 @@
 # acp-tui
 
-A terminal client for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP) that works with any ACP agent: Claude Code, Codex, OpenCode, Auggie, Antigravity CLI and others. acp-tui calls the agent program it launches a harness, and gives every harness the same interface, so changing harness changes nothing else.
+A terminal client for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP) that works with any ACP agent harness: Claude Code, Codex, OpenCode, Auggie, Antigravity CLI and others. acp-tui gives every agent the same interface, so changing harness changes nothing else.
 
-It is designed for minimal distraction and built to be pleasant to live in inside the integrated terminals of PhpStorm, IntelliJ IDEA and Zed (it also runs in any modern terminal). It fills the terminal pane while it runs, like an editor, and leaves the pane as it was when you exit.
+It is designed for minimal distraction and built to be pleasant to live in inside an IDE's integrated terminal: it works the same in any JetBrains (IntelliJ-based) IDE, such as PhpStorm or IntelliJ IDEA, in Zed, and in any modern terminal. It fills the terminal pane while it runs, like an editor, and leaves the pane as it was when you exit.
 
 By default the conversation shows the agent's answers, with tool calls, thoughts and plans folded into one-line summaries you can open. It is fully configurable: themes, glyphs, keys, the layout and the status row, from a configuration file with live reload.
 
@@ -39,7 +39,7 @@ bun install
 bun run install-cli --harness claude
 ```
 
-`bun run install-cli` writes a small `acp-tui` command into `~/.local/bin` that runs this checkout, and creates `~/.config/acp-tui/config.jsonc` with every setting at its default and the harness you named in effect. Name several to have them all, with the first as the default (`--harness claude,codex`), or choose the default with `--default <name>`. Without `--harness` the file has `auggie`. If a configuration file already exists it is never replaced: install-cli says what to add to it instead.
+`bun run install-cli` writes a small `acp-tui` command into `~/.local/bin` that runs this checkout, and creates `~/.config/acp-tui/config.jsonc` with every setting at its default and the harness you named in effect. Name several to have them all, with the first as the default (`--harness claude,codex`), or choose the default with `--default <name>`. Without `--harness` no harness is enabled: every harness in the file is a commented example, and enabling one later is removing the `//` in front of its line under `agent_servers` (`acp-tui config --path` prints where the file is). If a configuration file already exists it is never replaced: install-cli says what to add to it instead.
 
 If it warns that `~/.local/bin` is not on your `PATH`, add it in your shell's start-up file:
 
@@ -47,7 +47,7 @@ If it warns that `~/.local/bin` is not on your `PATH`, add it in your shell's st
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-You can also run the checkout without installing it, as `bun packages/acp-tui/src/cli.ts`: with no configuration file acp-tui behaves as if it held the default, so it starts Auggie.
+You can also run the checkout without installing it, as `bun packages/acp-tui/src/cli.ts`; it reads the same configuration file, and with none no harness is enabled, so it says how to enable one.
 
 Anything that speaks ACP can be a harness: the configuration file lists more examples (Copilot, Cursor, Goose, Qwen Code, pi), each one uncommented line away. [docs/harnesses.md](docs/harnesses.md) has notes on particular harnesses.
 
@@ -70,7 +70,7 @@ acp-tui starts a session in the directory you launched it from, so choose the di
 - `?` in an empty prompt box opens acp-tui's commands, `/` the harness's, and F1 shows the keys.
 - `acp-tui --help` lists the options and `acp-tui --version` says what you run.
 
-If the harness is not installed, or you have not logged in, acp-tui says so and what to run. If your configuration file names a default harness that has no entry, plain `acp-tui` says so and where to copy the entry from.
+If the harness is not installed, or you have not logged in, acp-tui says so and what to run. If no harness is enabled yet, plain `acp-tui` says how to enable one; if your configuration file names a default harness that has no entry, it says so and where to copy the entry from.
 
 ## Updating
 
