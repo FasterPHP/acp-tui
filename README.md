@@ -1,6 +1,6 @@
 # acp-tui
 
-A terminal client for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP) that works with any ACP agent: Claude Code, Codex, OpenCode, Auggie, Gemini CLI and others. acp-tui calls the agent program it launches a harness, and gives every harness the same interface, so changing harness changes nothing else.
+A terminal client for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP) that works with any ACP agent: Claude Code, Codex, OpenCode, Auggie, Antigravity CLI and others. acp-tui calls the agent program it launches a harness, and gives every harness the same interface, so changing harness changes nothing else.
 
 It is designed for minimal distraction and built to be pleasant to live in inside the integrated terminals of PhpStorm, IntelliJ IDEA and Zed (it also runs in any modern terminal). It fills the terminal pane while it runs, like an editor, and leaves the pane as it was when you exit.
 
@@ -28,7 +28,7 @@ Install your harness and log in to it first:
 | Codex | `npm install -g @agentclientprotocol/codex-acp` | `codex` | not yet |
 | OpenCode | `npm install -g @opencode/cli`, then `opencode auth login` | `opencode` | yes (1.19) |
 | Auggie | `npm install -g @augmentcode/auggie` (Node 20.6 or later), then `auggie auth login` | `auggie` | yes (1.2 and 0.37) |
-| Gemini CLI | `npm install -g @google/gemini-cli`, then run `gemini` once to sign in | `gemini` | not yet |
+| Antigravity CLI | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` (PowerShell: `irm https://antigravity.google/cli/install.ps1 \| iex`), then sign in with `agy acp --login` | `agy` | not yet |
 
 Then install acp-tui, naming your harness:
 

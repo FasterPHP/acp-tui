@@ -218,7 +218,7 @@ replaced, not even with --force, and --uninstall leaves it alone.
 --harness claude,codex puts those harnesses in effect in the new configuration instead of auggie,
 and makes --default (else the first one named) the harness a plain \`acp-tui\` starts. It takes
 the names of the examples in \`acp-tui config --print-default\`, such as auggie, claude, codex,
-opencode and gemini. Install the harness itself too. If the configuration already exists, it is
+opencode and agy. Install the harness itself too. If the configuration already exists, it is
 kept and install-cli says what to change in it.
 
 Every install also writes config.dist.jsonc beside it: the default configuration of this

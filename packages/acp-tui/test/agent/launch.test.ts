@@ -51,16 +51,16 @@ describe("agent/launch (task 5.2)", () => {
     }
   });
 
-  test("Gemini CLI: a PATH without gemini ends the message with its install hint, found by program", () => {
+  test("Antigravity CLI: a PATH without agy ends the message with its install hint, found by program", () => {
     try {
-      launchAgent(["gemini", "--acp"], { harness: "gemini", installHint: hintsFor("gemini", ["--acp"], "linux").installHint, env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent" } });
+      launchAgent(["agy", "acp"], { harness: "agy", installHint: hintsFor("agy", ["acp"], "linux").installHint, env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent" } });
       throw new Error("expected launchAgent to throw");
     } catch (error) {
       const failure = error as AgentLaunchError;
       expect(failure).toBeInstanceOf(AgentLaunchError);
       expect(failure.notFound).toBe(true);
-      expect(failure.message).toContain("harness 'gemini' (command 'gemini --acp')");
-      expect(failure.message).toEndWith("; gemini is not installed: install it with npm install -g @google/gemini-cli (Node 20 or later), then run gemini once to sign in");
+      expect(failure.message).toContain("harness 'agy' (command 'agy acp')");
+      expect(failure.message).toEndWith("; agy is not installed: install it with curl -fsSL https://antigravity.google/cli/install.sh | bash");
     }
   });
 

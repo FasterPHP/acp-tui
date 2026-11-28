@@ -248,20 +248,20 @@ describe("the unknown word (tui-sessions 'Directory argument and agent command a
 
 describe("example harnesses are not run as commands (tui-sessions)", () => {
   const ANY_COMMAND = {};
-  const GEMINI = "acp-tui: harness 'gemini' is not configured; uncomment its entry in /cfg/acp-tui/config.jsonc, or run acp-tui -- gemini --acp\n";
+  const AGY = "acp-tui: harness 'agy' is not configured; uncomment its entry in /cfg/acp-tui/config.jsonc, or run acp-tui -- agy acp\n";
 
-  test("Gemini not configured: with gemini on the PATH, the lone word is refused with the entry to uncomment and the -- command, and nothing starts", async () => {
-    const r = await run(["gemini"], work(), ANY_COMMAND);
+  test("Agy not configured: with agy on the PATH, the lone word is refused with the entry to uncomment and the -- command, and nothing starts", async () => {
+    const r = await run(["agy"], work(), ANY_COMMAND);
     expect(r.code).toBe(1);
-    expect(r.stderr).toBe(GEMINI);
+    expect(r.stderr).toBe(AGY);
     expect(r.started).toBe(false);
     expect(r.stdout).toBe("");
   });
 
   test("--harness, -a and --agent give the same refusal", async () => {
-    for (const argv of [["--harness", "gemini"], ["-a", "gemini"], ["--agent", "gemini"]]) {
+    for (const argv of [["--harness", "agy"], ["-a", "agy"], ["--agent", "agy"]]) {
       const r = await run(argv, work(), ANY_COMMAND);
-      expect([argv, r.code, r.stderr, r.started]).toEqual([argv, 1, GEMINI, false]);
+      expect([argv, r.code, r.stderr, r.started]).toEqual([argv, 1, AGY, false]);
     }
   });
 
@@ -272,10 +272,10 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
     expect(r.started).toBe(false);
   });
 
-  test("Arguments given: gemini --acp with no -- is refused as the example gemini, and nothing starts", async () => {
-    const r = await run(["gemini", "--acp"], work(), ANY_COMMAND);
+  test("Arguments given: agy acp with no -- is refused as the example agy, and nothing starts", async () => {
+    const r = await run(["agy", "--acp"], work(), ANY_COMMAND);
     expect(r.code).toBe(1);
-    expect(r.stderr).toBe(GEMINI);
+    expect(r.stderr).toBe(AGY);
     expect(r.started).toBe(false);
   });
 
@@ -304,10 +304,10 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
   });
 
   test("a configured harness named like an example is a harness, not refused", async () => {
-    const catalogue = () => buildAgentCatalogue(JSON.stringify({ agent_servers: { gemini: { command: "bun", args: ["g.ts"] } } }), "/cfg/acp-tui/config.jsonc");
-    const r = await run(["gemini"], work(), { ...ANY_COMMAND, catalogue });
+    const catalogue = () => buildAgentCatalogue(JSON.stringify({ agent_servers: { agy: { command: "bun", args: ["g.ts"] } } }), "/cfg/acp-tui/config.jsonc");
+    const r = await run(["agy"], work(), { ...ANY_COMMAND, catalogue });
     expect(r.code).toBe(0);
-    expect(r.launch?.agentName).toBe("gemini");
+    expect(r.launch?.agentName).toBe("agy");
   });
 
   test("a configured entry named like a well-known harness is a harness: opencode is not an example, and the parsed harness is opencode", async () => {
@@ -339,9 +339,9 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
   });
 
   test("parseArgs on its own: examples in the context are refused with the configuration file named, home as ~", () => {
-    const examples = [{ name: "gemini", commandLine: "gemini --acp" }];
-    expect(() => parse(["gemini"], work(), { examples, configPath: join(userHome(), ".config", "acp-tui", "config.jsonc") })).toThrow(
-      new CliArgumentError(`harness 'gemini' is not configured; uncomment its entry in ${join("~", ".config", "acp-tui", "config.jsonc")}, or run acp-tui -- gemini --acp`),
+    const examples = [{ name: "agy", commandLine: "agy acp" }];
+    expect(() => parse(["agy"], work(), { examples, configPath: join(userHome(), ".config", "acp-tui", "config.jsonc") })).toThrow(
+      new CliArgumentError(`harness 'agy' is not configured; uncomment its entry in ${join("~", ".config", "acp-tui", "config.jsonc")}, or run acp-tui -- agy acp`),
     );
   });
 });

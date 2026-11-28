@@ -30,6 +30,6 @@ Checked with Auggie 1.2.x and 0.37.x.
 - The first time Auggie 1.x sees a directory it asks whether it may index it: answer in the question card. Your home directory is never indexed.
 - Auggie 1.x asks for no permission unless it is given rules; [configuration.md](configuration.md#harnesses) says how to be asked before it runs commands or changes files.
 
-## Gemini CLI
+## Antigravity CLI
 
-Not yet checked. The `gemini` entry runs `gemini --acp` (`--experimental-acp` is the older, deprecated name). Install it with `npm install -g @google/gemini-cli` (Node 20 or later) and run `gemini` once to sign in. Since 18 June 2026 Gemini CLI serves Gemini Code Assist enterprise accounts only; free and Google One accounts moved to Antigravity CLI.
+Not yet checked. The `agy` entry runs `agy acp`. Install it with `curl -fsSL https://antigravity.google/cli/install.sh | bash` (macOS and Linux; the binary goes to `~/.local/bin/agy`) or, in PowerShell, `irm https://antigravity.google/cli/install.ps1 | iex`. Sign in once with an interactive `agy` or with `agy acp --login`.

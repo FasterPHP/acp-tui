@@ -53,12 +53,17 @@ export function opencodeInstallHint(platform: NodeJS.Platform = process.platform
   return `${npmProgram("npm", platform)} install -g @opencode/cli, or see opencode.ai/docs`;
 }
 
-/** How to install Gemini CLI (`@google/gemini-cli`, whose engines field asks for Node 20) and sign
- *  in: Gemini CLI has no login command, it signs in inside its own interface on its first run.
- *  `npm.cmd` and `gemini.cmd` on Windows. */
-export function geminiInstallHint(platform: NodeJS.Platform = process.platform): string {
-  return `${npmProgram("npm", platform)} install -g @google/gemini-cli (Node 20 or later), then run ${npmProgram("gemini", platform)} once to sign in`;
+/** How to install Antigravity CLI (`agy`): its own install scripts (antigravity.google/docs/getting-started,
+ *  read 28 November 2026), `curl ... | bash` on Linux and macOS and `irm ... | iex` in PowerShell. The
+ *  program is a native binary (the Windows install puts it in `%LOCALAPPDATA%\agy\bin`), not an npm shim. */
+export function agyInstallHint(platform: NodeJS.Platform = process.platform): string {
+  return platform === "win32"
+    ? "irm https://antigravity.google/cli/install.ps1 | iex"
+    : "curl -fsSL https://antigravity.google/cli/install.sh | bash";
 }
+
+/** The command that logs in to Antigravity CLI: `agy acp --login` (or sign in once in an interactive `agy`). */
+export const AGY_LOGIN_COMMAND = "agy acp --login";
 
 /** Auggie's install hint as Linux and macOS give it, for the default file's description of the entry. */
 export const AUGGIE_INSTALL_HINT = auggieInstallHint("linux");
@@ -66,8 +71,8 @@ export const AUGGIE_INSTALL_HINT = auggieInstallHint("linux");
 /** OpenCode's install hint as Linux and macOS give it, for the default file's description of the entry. */
 export const OPENCODE_INSTALL_HINT = opencodeInstallHint("linux");
 
-/** Gemini CLI's install hint as Linux and macOS give it, for the default file's description of the entry. */
-export const GEMINI_INSTALL_HINT = geminiInstallHint("linux");
+/** Antigravity CLI's install hint as Linux and macOS give it, for the default file's description of the entry. */
+export const AGY_INSTALL_HINT = agyInstallHint("linux");
 
 /** The Claude adapter runs through `bunx`, which comes with Bun. */
 export const BUN_INSTALL_HINT = "Bun from bun.sh, which provides bunx";

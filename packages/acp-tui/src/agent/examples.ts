@@ -5,7 +5,7 @@
 // also what acp-tui reads when the user has no file); the others are commented out.
 import { shortenHome } from "../layout/segments.ts";
 import { userHome, type Platform } from "../platform/paths.ts";
-import { AUGGIE_INSTALL_HINT, CLAUDE_EXAMPLE_COMMAND, CLAUDE_STARTUP_TIMEOUT_SECONDS, DEFAULT_HARNESS, GEMINI_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "./command.ts";
+import { AUGGIE_INSTALL_HINT, CLAUDE_EXAMPLE_COMMAND, CLAUDE_STARTUP_TIMEOUT_SECONDS, DEFAULT_HARNESS, AGY_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "./command.ts";
 
 /** An example's `agent_servers` entry, as the default file writes it (the setting names in camel case). */
 export interface AgentExampleEntry {
@@ -93,9 +93,9 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
     entry: { command: "pi-acp", args: [] },
   },
   {
-    name: "gemini",
-    about: `Google's Gemini CLI, installed with ${GEMINI_INSTALL_HINT}; --experimental-acp is its older, deprecated name for --acp. Since 18 June 2026 Gemini CLI serves Gemini Code Assist enterprise accounts only: free and Google One accounts moved to Antigravity CLI. Not yet checked with acp-tui. Sources: geminicli.com/docs/cli/acp-mode, github.com/google-gemini/gemini-cli and npm @google/gemini-cli 0.71.1.`,
-    entry: { command: "gemini", args: ["--acp"] },
+    name: "agy",
+    about: `Google's Antigravity CLI (agy), installed with ${AGY_INSTALL_HINT} (PowerShell: irm https://antigravity.google/cli/install.ps1 | iex); sign in once with agy or agy acp --login. Not yet checked with acp-tui. Sources: antigravity.google/docs/cli/acp and antigravity.google/docs/getting-started.`,
+    entry: { command: "agy", args: ["acp"] },
   },
   {
     name: "qwen",

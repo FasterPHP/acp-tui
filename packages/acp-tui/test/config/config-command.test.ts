@@ -159,7 +159,7 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     expect(text).toContain(`// "claude": { "command": "${CLAUDE_EXAMPLE_COMMAND[0]}", "args": [${CLAUDE_EXAMPLE_COMMAND.slice(1).map((arg) => JSON.stringify(arg)).join(", ")}], "startup_timeout_seconds": 120 },`);
     expect(text).toContain('// "codex": { "command": "codex-acp", "args": [] },');
     expect(text).toContain('// "opencode": { "command": "opencode", "args": ["acp"] },');
-    for (const name of ["auggie", "pi", "gemini", "deepseek"]) expect(text).toContain(`// "${name}": { "command": `);
+    for (const name of ["auggie", "pi", "agy", "deepseek"]) expect(text).toContain(`// "${name}": { "command": `);
     const lines = text.split("\n");
     for (const example of AGENT_EXAMPLES) {
       // The active auggie entry is not commented out; its comment names the source but is not an "Example, not active".
