@@ -179,6 +179,13 @@ describe("lingerLine", () => {
     expect(lingered("", true).text).toBe("  ✗");
   });
 
+  test("the call's kind first, as on the running line; a title that is only the kind shows it once; none for an empty kind", () => {
+    const text = (call: { title: string; kind?: string }) => lingerLine({ ...call, failed: false }, 60).map((s) => s.text).join("");
+    expect(text({ title: "src/Pool.php", kind: "read" })).toBe("  ✓ read src/Pool.php");
+    expect(text({ title: "read", kind: "read" })).toBe("  ✓ read");
+    expect(text({ title: "src/Pool.php", kind: "" })).toBe("  ✓ src/Pool.php");
+  });
+
   test("the glyph set's status glyphs: the ascii set's v and x", () => {
     expect(lingerLine({ title: "Read a", failed: false }, 40, 2, { ok: "v", fail: "x" }).map((s) => s.text).join("")).toBe("  v Read a");
     expect(lingerLine({ title: "Read a", failed: true }, 40, 2, { ok: "v", fail: "x" }).map((s) => s.text).join("")).toBe("  x Read a");

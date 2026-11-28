@@ -16,7 +16,7 @@ import type { ToolCallItem } from "acp-model";
 import { useApp, useConfig } from "../app/context.ts";
 import { RIGHT_MARGIN, SCROLLBAR_COLUMNS } from "../conversation/window/WindowedConversation.tsx";
 import { toolTitleText } from "../conversation/tool-title.ts";
-import { activityBar, lingerLine, type LingerCall } from "./activity.ts";
+import { activityBar, activityKind, lingerLine, type LingerCall } from "./activity.ts";
 import { formatElapsed } from "./modules.ts";
 import { ACTIVITY_LINE_ROWS, type BlockComponent, type BlockProps } from "./Screen.tsx";
 
@@ -82,7 +82,7 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
       if (live && !has) next = [...current, c.id];
       else if (!live && has) {
         next = current.filter((id) => id !== c.id);
-        if (c.item.toolStatus === "completed" || c.item.toolStatus === "failed") finished = { title: toolTitleText(c.item), failed: c.item.toolStatus === "failed" };
+        if (c.item.toolStatus === "completed" || c.item.toolStatus === "failed") finished = { title: toolTitleText(c.item), kind: activityKind(c.item), failed: c.item.toolStatus === "failed" };
       }
     }
     if (!next) return;

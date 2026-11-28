@@ -81,7 +81,7 @@ const lead = (part: Part) => (part.kind === "plan" ? ` ${PLAN_POINTER} ` : part.
  * The call's kind as the row names it: its ACP kind, or the harness's tool name when it sent none;
  * empty for the catch-all `other` (and for neither), where the title alone says what it does.
  */
-function activityKind(call: Partial<Pick<ToolCallItem, "toolKind" | "toolName">>): string {
+export function activityKind(call: Partial<Pick<ToolCallItem, "toolKind" | "toolName">>): string {
   const kind = oneLine(call.toolKind ?? "");
   if (kind !== "" && kind !== "other") return kind;
   return kind === "other" ? "" : oneLine(call.toolName ?? "");
@@ -185,6 +185,8 @@ export function activityBar(input: ActivityInput, width: number, indent: number 
 /** A call that has finished, for the line that lingers after it (design D6). */
 export interface LingerCall {
   readonly title: string;
+  /** The call's kind as `activityKind` names it (empty for `other`); omitted, none is shown. */
+  readonly kind?: string;
   /** The call failed: its glyph is the set's `tool.status.fail`, else `tool.status.ok`. */
   readonly failed: boolean;
 }
@@ -192,7 +194,7 @@ export interface LingerCall {
 /**
  * The line that lingers after the last running call finishes while the turn still runs
  * (day-two-feedback design D6, spec tui-layout "Activity line linger"): the finished call's status
- * glyph and title, all in `muted`, starting `indent` columns in like the running line, the title
+ * glyph, kind and title, all in `muted`, starting `indent` columns in like the running line, the title
  * truncated to the room beside the glyph and, ending at `width`, the turn's run time. Pure, so the
  * width policy is unit-tested without a renderer.
  */
@@ -205,7 +207,10 @@ export function lingerLine(
 ): Segment[] {
   const glyph = call.failed ? glyphs.fail : glyphs.ok;
   const head = `${" ".repeat(indent)}${glyph}`;
-  const title = oneLine(call.title);
+  // The kind first, as on the running line (`✓ read src/a.ts`); a title that is only the kind shows it once.
+  const bare = oneLine(call.title);
+  const kind = oneLine(call.kind ?? "");
+  const title = kind === "" ? bare : bare === "" || bare.toLowerCase() === kind.toLowerCase() ? kind : `${kind} ${bare}`;
   const roomFor = (right: Segment[]) => width - displayWidth(head) - 1 - (right.length > 0 ? segmentsWidth(right) + 1 : 0);
   const wordy = runTimeOf(runTime);
   const right = roomFor(wordy) >= MIN_TAIL ? wordy : runTimeOf(runTime, false);

@@ -117,7 +117,7 @@ describe("activity line linger with the run time", () => {
     const run = startCli({ scenario: "fast-tools", delayScale: 0.3, cols: 90, rows: 30, env: configEnv({ density: "compact", activity: { linger_seconds: 5 } }) });
     session = run.session;
     await sendPrompt(run.session, "go");
-    await run.session.waitFor((p) => /^ {2}✓ Edit src\/Pool\.php +running \d+s$/.test(line(p)), 10000);
+    await run.session.waitFor((p) => /^ {2}✓ (?:\w+ )?Edit src\/Pool\.php +running \d+s$/.test(line(p)), 10000);
     const top = boxTop(run.session);
     await run.session.waitFor("Pool now releases its connections", 10000);
     await run.session.waitFor((p) => /end turn/.test(p.screenText().join("\n")), 10000);

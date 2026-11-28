@@ -220,6 +220,28 @@ async function slow(ctx: ScenarioContext): Promise<PromptResponse> {
   return { stopReason: "end_turn" };
 }
 
+/**
+ * `late`: a `read` call that starts as a bare title with no `kind` and no `rawInput` (a call the
+ * harness announces before it has the details), which arrive in a later `tool_call_update`; the
+ * call runs for `LATE_RUN_MS`, completes, and the turn then waits for `session/cancel`
+ * (run-time-and-cmd-keys design D9).
+ */
+export const LATE_RUN_MS = 1500;
+
+async function late(ctx: ScenarioContext): Promise<PromptResponse> {
+  const toolCallId = nextCallId();
+  await ctx.send({ sessionUpdate: "tool_call", toolCallId, title: "read", status: "pending" });
+  await Bun.sleep(300);
+  await ctx.send({ sessionUpdate: "tool_call_update", toolCallId, status: "in_progress", kind: "read", rawInput: { path: "src/late-kind.ts" } });
+  await Bun.sleep(LATE_RUN_MS);
+  await ctx.send({ sessionUpdate: "tool_call_update", toolCallId, status: "completed", content: text("done\n") });
+  await new Promise<void>((resolve) => {
+    if (ctx.cancelled.aborted) return resolve();
+    ctx.cancelled.addEventListener("abort", () => resolve(), { once: true });
+  });
+  return { stopReason: "end_turn" };
+}
+
 export const auggie1Scenario: Scenario = {
   name: "auggie-1",
   harness: { sessions: true, indexing: true },
@@ -255,6 +277,7 @@ export const auggie1Scenario: Scenario = {
     const asked = ctx.prompt.map((block) => (block.type === "text" ? block.text : "")).join("").toLowerCase();
     if (asked.includes("held")) return held(ctx);
     if (asked.includes("slow")) return slow(ctx);
+    if (asked.includes("late")) return late(ctx);
     if (asked.includes("script")) return permission(ctx, AUGGIE_1_SCRIPT);
     if (asked.includes("permission")) return permission(ctx);
     if (asked.includes("tools")) return tools(ctx);

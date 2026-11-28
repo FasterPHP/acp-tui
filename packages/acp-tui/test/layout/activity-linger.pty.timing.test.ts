@@ -101,14 +101,14 @@ describe("activity bar linger (task 6.2)", () => {
     const lingering = captures.filter((c) => c.line!.text.startsWith("  ✓ "));
     expect(lingering.length).toBeGreaterThanOrEqual(5);
     for (const c of lingering) {
-      expect(TITLES.some((title) => c.line!.text === `  ✓ ${title}`)).toBe(true);
+      expect(TITLES.some((title) => c.line!.text.replace(/^(  ✓ )[a-z]+ (?=[A-Z])/, "$1") === `  ✓ ${title}`)).toBe(true);
       // The run time at the right.
       expect(c.line!.time).toMatch(/^running \d+s$/);
     }
     // The muted look, read from the screen: the glyph and the title in bright black.
     await run.session.flush();
     const now = activity(run.session);
-    expect(now?.text).toBe("  ✓ Edit src/Pool.php");
+    expect(now?.text).toBe("  ✓ edit Edit src/Pool.php");
     const abs = run.session.term.buffer.active.baseY + now!.y;
     for (const x of [2, 4]) {
       const cell = run.session.cell(abs, x)!;
@@ -122,7 +122,7 @@ describe("activity bar linger (task 6.2)", () => {
     session = run.session;
     await sendPrompt(run.session, "go");
     // The last call's finished line is the first time `Edit src/Pool.php` shows with a ✓.
-    await run.session.waitFor((p) => activity(p)?.text === "  ✓ Edit src/Pool.php", 5000);
+    await run.session.waitFor((p) => activity(p)?.text === "  ✓ edit Edit src/Pool.php", 5000);
     const ended = performance.now();
     const top = boxTop(run.session);
     await run.session.waitFor((p) => bare(activity(p)), 3000);
@@ -149,7 +149,7 @@ describe("activity bar linger (task 6.2)", () => {
     const captures = await sample(run.session, 5 * 250 + 100, 10);
     // The line's text over time, a change at a time (the kind of a running call dropped): running, finished, running, finished, ... in
     // the calls' order, so each title's finished line never follows the next call's running one.
-    const texts = captures.flatMap((c) => (!bare(c.line) ? [c.line!.text.slice(2).replace(/^[a-z]+ (?=[A-Z])/, "")] : [])).filter((t, i, all) => t !== all[i - 1]);
+    const texts = captures.flatMap((c) => (!bare(c.line) ? [c.line!.text.slice(2).replace(/^(✓ |✗ )?[a-z]+ (?=[A-Z])/, "$1")] : [])).filter((t, i, all) => t !== all[i - 1]);
     const expected = TITLES.flatMap((title) => [title, `✓ ${title}`]);
     for (const c of captures) if (c.line) expect(c.line.time).toMatch(/^running \d+s$/);
     let at = -1;
@@ -205,7 +205,7 @@ describe("activity bar linger (task 6.2)", () => {
     const run = startCli({ scenario: "task-messages", delayScale: 50, ...SIZE });
     session = run.session;
     await sendPrompt(run.session, "go");
-    await run.session.waitFor((p) => activity(p)?.text === "  ✓ Run tm-build", 15000);
+    await run.session.waitFor((p) => /^ {2}✓ (?:\w+ )?Run tm-build$/.test(activity(p)?.text ?? ""), 15000);
     const now = activity(run.session)!;
     expect(now.time).toMatch(/^running \d+s$/);
     expect(run.session.screenText()[now.y]).not.toMatch(/tool calls?|thoughts?/);

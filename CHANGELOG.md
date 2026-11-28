@@ -4,7 +4,7 @@
 
 ### Activity line and status row
 
-- The activity line shows `running` and the running turn's run time at its right (`running 7s`, `running 4m 35s`, the time in `muted`), from the prompt until the turn ends, beside the running call, the plan, `awaiting permission` or the lingering finished call, and alone when nothing else is shown. Its left names the tool call's kind before its title (`read src/foo.ts`). It replaces the turn's count there; the gap lines and the turn-end line still carry the counts.
+- The activity line shows `running` and the running turn's run time at its right (`running 7s`, `running 4m 35s`, the time in `muted`), from the prompt until the turn ends, beside the running call, the plan, `awaiting permission` or the lingering finished call, and alone when nothing else is shown. Its left names the tool call's kind before its title (`read src/foo.ts`), and so does the finished call the line lingers on (`✓ read src/foo.ts`). It replaces the turn's count there; the gap lines and the turn-end line still carry the counts.
 - The status row's `turn-state` module shows nothing while a turn runs (the word is on the activity line). A custom format still gets `running` in `{state}` and the run time in `{elapsed}`, so `"format": "{state} {elapsed}"` puts both back.
 - Elapsed times are written with a space between the units: `4m 35s`, `2h 03m`.
 
