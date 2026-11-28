@@ -367,17 +367,6 @@ export interface Io {
   stderr: (text: string) => void;
 }
 
-/** What the install says after creating a configuration with no harness enabled (no `--harness`;
- *  install-harness-choice design D7). */
-export function noHarnessNote(file: string, names: readonly string[]): string {
-  return (
-    `install-cli: note: no harness is enabled, so a plain \`acp-tui\` has nothing to start yet. ` +
-    `To enable one, uncomment its entry under agent_servers in ${file} (with more than one enabled, also set default_agent_server to the one to start by default), ` +
-    `or remove that file and run \`bun run install-cli --harness <name>\` again. ` +
-    `Harness names: ${names.join(", ")}\n`
-  );
-}
-
 /** Runs the installer; resolves to the process exit code. */
 export async function main(
   argv: readonly string[],
@@ -483,12 +472,13 @@ export async function main(
   const chosen = choice
     ? `the ${harnessList(choice.enabled)} ${choice.enabled.length === 1 ? "harness" : `harnesses (${choice.defaultName} the default)`}`
     : "no harness enabled";
-  io.stdout(
+  if (outcome.created && !choice) {
+    io.stdout((await import("../src/agent/examples.ts")).installedWithNoHarness(outcome.file));
+  } else io.stdout(
     outcome.created
       ? `install-cli: created ${outcome.file}, with ${chosen} and every setting at its default; uncomment an example to add a harness (acp-tui config --check checks it)\n`
       : `install-cli: kept the existing configuration ${outcome.file}\n`,
   );
-  if (outcome.created && !choice) io.stdout(noHarnessNote(outcome.file, module.selectableHarnesses()));
   if (!outcome.created && choice) {
     io.stderr(
       `install-cli: warning: --harness was not applied, because a configuration already exists and is never replaced. ` +

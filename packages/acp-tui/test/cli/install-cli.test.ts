@@ -740,9 +740,8 @@ describe("install-cli --harness", () => {
     const file = configFile(home);
     expect(readFileSync(file, "utf8")).toBe(commentedDefault());
     const said = out.join("");
-    expect(said).toContain(`install-cli: created ${file}, with no harness enabled and every setting at its default`);
     expect(said).toContain(
-      `install-cli: note: no harness is enabled, so a plain \`acp-tui\` has nothing to start yet. To enable one, uncomment its entry under agent_servers in ${file} (with more than one enabled, also set default_agent_server to the one to start by default), or remove that file and run \`bun run install-cli --harness <name>\` again. Harness names: ${selectableHarnesses().join(", ")}\n`,
+      `install-cli: created ${file}\n\nNo harness is enabled yet. To enable one, either:\n  - uncomment its entry under agent_servers in that file, or\n  - delete the file and run: bun run install-cli --harness <name>\n\nHarnesses: claude, codex, opencode, auggie (more examples in the file)\n`,
     );
     expect(err.join("")).toBe("");
     // A second install keeps the file and says nothing more about harnesses: the file is the user's now.
@@ -757,7 +756,7 @@ describe("install-cli --harness", () => {
     const bin = join(home, "bin");
     const { io, err } = collect();
     expect(await installMain(["--dir", bin, "--harness", "claude,nope"], io, envOf(home, bin))).toBe(2);
-    expect(err.join("")).toContain("unknown harness 'nope'; --harness takes auggie, auggie-v2, claude, opencode, codex");
+    expect(err.join("")).toContain("unknown harness 'nope'; --harness takes auggie, claude, opencode, codex");
     expect(err.join("")).toContain("nothing was installed");
     expect(existsSync(bin)).toBe(false);
     expect(existsSync(join(home, "config"))).toBe(false);

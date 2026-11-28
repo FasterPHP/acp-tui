@@ -214,7 +214,6 @@ The names in the table are examples until you uncomment them: `acp-tui agy` (or 
 | Name in the example | Harness | Command | Source |
 | --- | --- | --- | --- |
 | `auggie` | Augment Code's Auggie (`npm install -g @augmentcode/auggie`, then `auggie auth login`) | `auggie --acp`, with `additional_directory_args` `["--add-workspace", "{dir}"]` | docs.augmentcode.com/cli/acp |
-| `auggie-v2` | Auggie 1.x from its own package, for running it beside a 0.x `auggie` (`npm install -g @augmentcode/onison`) | `auggie-v2 --acp` | npm `@augmentcode/onison` |
 | `claude` | Claude Code through claude-agent-acp, with `startup_timeout_seconds` 120 | `bunx --bun @agentclientprotocol/claude-agent-acp@0.94.0` | npm `@agentclientprotocol/claude-agent-acp`; `ANTHROPIC_MODEL`: code.claude.com/docs/en/settings |
 | `codex` | OpenAI Codex through codex-acp (`npm install -g @agentclientprotocol/codex-acp`) | `codex-acp` | github.com/agentclientprotocol/codex-acp |
 | `opencode` | OpenCode (`npm install -g @opencode/cli`, then `opencode auth login`) | `opencode acp` | opencode.ai/docs/acp |

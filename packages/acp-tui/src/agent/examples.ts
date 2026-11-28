@@ -58,12 +58,6 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
     },
   },
   {
-    name: "auggie-v2",
-    about:
-      "Auggie 1.x beside a 0.x one: keep 0.x as the auggie entry above (npm install -g @augmentcode/auggie@v0-release) and run 1.x from its own package, @augmentcode/onison (npm install -g @augmentcode/onison, then auggie-v2 auth login). Most people need only the auggie entry above. Source: npm @augmentcode/onison.",
-    entry: { command: "auggie-v2", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
-  },
-  {
     name: "claude",
     about: `Claude Code through the claude-agent-acp adapter, run by bunx (which comes with Bun) and logged in with your Claude Code login. Its start-up timeout is ${CLAUDE_STARTUP_TIMEOUT_SECONDS} seconds because bunx may download the adapter first. Change args to run another version. To choose the model, add an env entry such as "env": { "ANTHROPIC_MODEL": "opus" }; CLAUDE_CODE_EXECUTABLE there runs your own Claude Code. Sources: npm @agentclientprotocol/claude-agent-acp, and code.claude.com/docs/en/settings for ANTHROPIC_MODEL.`,
     entry: { command: CLAUDE_EXAMPLE_COMMAND[0]!, args: CLAUDE_EXAMPLE_COMMAND.slice(1), startupTimeoutSeconds: CLAUDE_STARTUP_TIMEOUT_SECONDS },
@@ -180,6 +174,35 @@ export function selectableExampleNames(): string[] {
   return AGENT_EXAMPLES.filter((e) => e.selectable !== false).map((e) => e.name);
 }
 
+/** How many harnesses the messages name first; the rest are "examples in the file too". */
+const MAIN_HARNESS_COUNT = 4;
+
+/** The selectable harnesses in descending order of popularity (Marcus, 28 November 2026), for the
+ *  messages that name them. An example not listed here is appended in the file's order, so a new
+ *  example is never lost from a message. */
+export const HARNESS_POPULARITY: readonly string[] = ["claude", "codex", "opencode", "auggie", "copilot", "cursor", "goose", "qwen", "agy", "pi"];
+
+/** `a`, `a and b`, `a, b and c`. */
+function joinNames(names: readonly string[]): string {
+  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/** The selectable harness names by popularity, split into the main ones and the others. */
+export function harnessesByPopularity(): { main: string[]; more: string[] } {
+  const selectable = selectableExampleNames();
+  const known = HARNESS_POPULARITY.filter((n) => selectable.includes(n));
+  const ordered = [...known, ...selectable.filter((n) => !known.includes(n))];
+  return { main: ordered.slice(0, MAIN_HARNESS_COUNT), more: ordered.slice(MAIN_HARNESS_COUNT) };
+}
+
+/** The lines that name the harnesses, for the no-harness messages: the main list, then (when there
+ *  are others) which more are examples in the file. */
+function harnessLines(more: "in the file too" | "in the file"): string[] {
+  const { main, more: others } = harnessesByPopularity();
+  if (more === "in the file") return [`Harnesses: ${main.join(", ")}${others.length > 0 ? " (more examples in the file)" : ""}`];
+  return [`Harnesses: ${main.join(", ")}`, ...(others.length > 0 ? [`  (${joinNames(others)} ${others.length === 1 ? "is an example" : "are examples"} in the file too)`] : [])];
+}
+
 /**
  * The explanation when no harness is enabled (install-harness-choice, design D7): acp-tui is run
  * with no harness name and no command, and the user's configuration has no `agent_servers` entry
@@ -189,21 +212,38 @@ export function selectableExampleNames(): string[] {
  * an interactive first-launch prompt.
  */
 export function noHarnessEnabled(configPath: string, fileExists: boolean): string {
-  const path = withTilde(configPath);
   const how = fileExists
-    ? `To enable one, uncomment the harness's entry under agent_servers in ${path} (acp-tui config --path prints where the file is); with more than one enabled, set default_agent_server to the one acp-tui starts without a name.`
-    : `To enable one, run bun run install-cli --harness <name> in the acp-tui checkout, which writes a new configuration file at ${path} with that harness in effect; or save the output of acp-tui config --print-default there and uncomment the harness's entry.`;
+    ? ["To enable one, uncomment its entry under agent_servers in:", `  ${withTilde(configPath)}`]
+    : ["To enable one, run this in the acp-tui checkout:", "  bun run install-cli --harness <name>"];
+  return ["no harness is enabled yet.", "", ...how, "", ...harnessLines("in the file too"), "", "To run an ACP agent that has no entry:", "  acp-tui -- <command>"].join("\n");
+}
+
+/** What the install prints after creating a configuration with no harness enabled (no
+ *  `--harness`), in place of its usual "created" line. */
+export function installedWithNoHarness(file: string): string {
   return [
-    "no harness is enabled yet, so acp-tui has nothing to start.",
-    how,
-    `Harnesses with an example entry: ${selectableExampleNames().join(", ")}.`,
-    "To run any ACP agent without an entry: acp-tui -- <command>.",
-  ].join("\n");
+    `install-cli: created ${file}`,
+    "",
+    "No harness is enabled yet. To enable one, either:",
+    "  - uncomment its entry under agent_servers in that file, or",
+    "  - delete the file and run: bun run install-cli --harness <name>",
+    "",
+    ...harnessLines("in the file"),
+  ].join("\n") + "\n";
 }
 
 /** The error when several harnesses are configured and `default_agent_server` names none of them
  *  (install-harness-choice, design D7): which to set, or name one. */
 export function noDefaultChosen(names: readonly string[], configPath: string): string {
-  const list = names.map((n) => `'${n}'`).join(", ");
-  return `no default harness is set and ${names.length} harnesses are configured (${list}); set default_agent_server in ${withTilde(configPath)} to one of them, or name one: acp-tui ${names[0]}`;
+  return [
+    `no default harness is set and ${names.length} harnesses are configured.`,
+    "",
+    "To choose the one acp-tui starts, set default_agent_server in:",
+    `  ${withTilde(configPath)}`,
+    "",
+    `Harnesses: ${names.join(", ")}`,
+    "",
+    "Or name one for this run:",
+    `  acp-tui ${names[0]}`,
+  ].join("\n");
 }

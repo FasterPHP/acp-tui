@@ -26,7 +26,7 @@ describe("harnessChoice", () => {
   });
 
   test("an unknown name is refused, listing the names it takes", () => {
-    expect(() => harnessChoice(["claude", "nope"])).toThrow("unknown harness 'nope'; --harness takes auggie, auggie-v2, claude, opencode, codex, pi, agy");
+    expect(() => harnessChoice(["claude", "nope"])).toThrow("unknown harness 'nope'; --harness takes auggie, claude, opencode, codex, pi, agy");
     expect(() => harnessChoice(["x", "y"])).toThrow("unknown harnesses 'x', 'y'");
   });
 

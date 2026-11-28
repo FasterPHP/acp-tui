@@ -50,9 +50,8 @@ describe("Agent launch (tui-agent-session)", () => {
     expect(await session.wait(15000)).toBe(1);
     expect(existsSync(out)).toBe(false);
     const text = session.screenText().join(" ").replace(/\s+/g, " ");
-    expect(text).toContain("acp-tui: no harness is enabled yet, so acp-tui has nothing to start.");
-    expect(text).toContain("To enable one, run bun run install-cli --harness <name> in the acp-tui checkout");
-    expect(text).toContain("Harnesses with an example entry: auggie, auggie-v2, claude, opencode, codex, pi, agy, qwen, copilot, cursor, goose.");
+    expect(text).toContain("acp-tui: no harness is enabled yet. To enable one, run this in the acp-tui checkout: bun run install-cli --harness <name>");
+    expect(text).toContain("Harnesses: claude, codex, opencode, auggie (copilot, cursor, goose, qwen, agy and pi are examples in the file too)");
   });
 
   test("One entry and no default_agent_server: no arguments resolve to that entry, auggie --acp", async () => {

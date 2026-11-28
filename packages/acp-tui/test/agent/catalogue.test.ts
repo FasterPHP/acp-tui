@@ -99,10 +99,10 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.started).toBe(false);
     const file = shortenHome(join(home, "acp-tui", "config.jsonc"), userHome());
     expect(r.stderr).toBe(
-      "acp-tui: no harness is enabled yet, so acp-tui has nothing to start.\n" +
-        `To enable one, run bun run install-cli --harness <name> in the acp-tui checkout, which writes a new configuration file at ${file} with that harness in effect; or save the output of acp-tui config --print-default there and uncomment the harness's entry.\n` +
-        "Harnesses with an example entry: auggie, auggie-v2, claude, opencode, codex, pi, agy, qwen, copilot, cursor, goose.\n" +
-        "To run any ACP agent without an entry: acp-tui -- <command>.\n",
+      "acp-tui: no harness is enabled yet.\n\n" +
+        "To enable one, run this in the acp-tui checkout:\n  bun run install-cli --harness <name>\n\n" +
+        "Harnesses: claude, codex, opencode, auggie\n  (copilot, cursor, goose, qwen, agy and pi are examples in the file too)\n\n" +
+        "To run an ACP agent that has no entry:\n  acp-tui -- <command>\n",
     );
   });
 
@@ -124,8 +124,8 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.code).toBe(1);
     expect(r.started).toBe(false);
     const file = shortenHome(join(home, "acp-tui", "config.jsonc"), userHome());
-    expect(r.stderr).toStartWith("acp-tui: no harness is enabled yet, so acp-tui has nothing to start.\n");
-    expect(r.stderr).toContain(`To enable one, uncomment the harness's entry under agent_servers in ${file} (acp-tui config --path prints where the file is); with more than one enabled, set default_agent_server to the one acp-tui starts without a name.\n`);
+    expect(r.stderr).toStartWith("acp-tui: no harness is enabled yet.\n\n");
+    expect(r.stderr).toContain(`To enable one, uncomment its entry under agent_servers in:\n  ${file}\n\nHarnesses: claude, codex, opencode, auggie\n`);
     expect(r.stderr).not.toContain("install-cli");
   });
 
@@ -223,7 +223,9 @@ describe("Named agents (tui-sessions)", () => {
     const several = await run([], home);
     expect(several.code).toBe(1);
     expect(several.started).toBe(false);
-    expect(several.stderr).toBe(`acp-tui: no default harness is set and 2 harnesses are configured ('other', 'fake'); set default_agent_server in ${shortenHome(join(home, "acp-tui", "config.jsonc"), userHome())} to one of them, or name one: acp-tui other\n`);
+    expect(several.stderr).toBe(
+      `acp-tui: no default harness is set and 2 harnesses are configured.\n\nTo choose the one acp-tui starts, set default_agent_server in:\n  ${shortenHome(join(home, "acp-tui", "config.jsonc"), userHome())}\n\nHarnesses: other, fake\n\nOr name one for this run:\n  acp-tui other\n`,
+    );
     expect((await run(["fake"], home)).launch?.agentName).toBe("fake");
   });
 
@@ -390,5 +392,15 @@ describe("Start-up timeout setting (harness-feedback tui-config)", () => {
     expect(text).toMatch(/^\s*"agent_startup_timeout_seconds": 30,$/m);
     expect(text).toMatch(/^\s*\/\/ "claude": .*"startup_timeout_seconds": 120 \},$/m);
     expect(timeout(text.replace('// "auggie": { "command": "auggie", "args": ["--acp"], "additional_directory_args": ["--add-workspace", "{dir}"] },', '"auggie": { "command": "auggie", "args": ["--acp"], "additional_directory_args": ["--add-workspace", "{dir}"] },'), "auggie")).toBe(30);
+  });
+});
+
+describe("Harness lists by popularity (install-harness-choice D7)", () => {
+  test("the main list and the others follow the popularity order, with no auggie-v2, and an unlisted example is appended", async () => {
+    const { harnessesByPopularity } = await import("../../src/agent/examples.ts");
+    const { main, more } = harnessesByPopularity();
+    expect(main).toEqual(["claude", "codex", "opencode", "auggie"]);
+    expect(more).toEqual(["copilot", "cursor", "goose", "qwen", "agy", "pi"]);
+    expect(main.includes("agy")).toBe(false);
   });
 });
