@@ -21,23 +21,26 @@ describe("prompt box editing keys", () => {
     expect(keys("selectWordRight")).toEqual(["ctrl+shift+right", "meta+shift+right"]);
   });
 
-  test("cut, undo and redo: Ctrl+X, Ctrl+Z and Super+Z, Ctrl+Y and the Shift+Z forms", () => {
-    expect(keysFor(DEFAULT_KEY_MAP, "prompt", "cut")).toEqual(["ctrl+x"]);
+  test("cut, undo and redo: Ctrl+X and Super+X, Ctrl+Z and Super+Z, Ctrl+Y and the Shift+Z forms", () => {
+    expect(keysFor(DEFAULT_KEY_MAP, "prompt", "cut")).toEqual(["ctrl+x", "super+x"]);
     expect(keysFor(DEFAULT_KEY_MAP, "prompt", "undo")).toEqual(["ctrl+z", "super+z"]);
     // Keys are normalised to `ctrl+meta+shift+super`, so Super+Shift+Z is `shift+super+z`.
     expect(keysFor(DEFAULT_KEY_MAP, "prompt", "redo")).toEqual(["ctrl+y", "ctrl+shift+z", "shift+super+z"]);
   });
 
-  test("Select all (day-two-feedback task 13.3): Ctrl+A in the prompt context only, a palette entry, listed in key help; Home is still the line start", () => {
-    expect(keysFor(DEFAULT_KEY_MAP, "prompt", "selectAll")).toEqual(["ctrl+a"]);
+  test("Select all (day-two-feedback task 13.3): Ctrl+A (and Super+A) in the prompt context only, a palette entry, listed in key help; Home is still the line start", () => {
+    expect(keysFor(DEFAULT_KEY_MAP, "prompt", "selectAll")).toEqual(["ctrl+a", "super+a"]);
     expect(isPaletteAction("prompt", "selectAll")).toBe(true);
     expect(KEY_ACTIONS.prompt).toContain("selectAll");
-    for (const context of ["global", "selection", "conversation"] as const) expect(DEFAULT_KEY_MAP[context][normaliseKey("ctrl+a")]).toBeUndefined();
+    for (const context of ["global", "selection", "conversation"] as const) {
+      expect(DEFAULT_KEY_MAP[context][normaliseKey("ctrl+a")]).toBeUndefined();
+      expect(DEFAULT_KEY_MAP[context][normaliseKey("super+a")]).toBeUndefined();
+    }
     const entry = helpItems(DEFAULT_KEY_MAP, 60).filter((i) => i.id === "help:prompt.selectAll");
     expect(entry).toHaveLength(1);
     expect(entry[0]!.group).toBe("Prompt box");
     expect(entry[0]!.title).toBe("Select all");
-    expect(entry[0]!.keys).toEqual(["ctrl+a"]);
+    expect(entry[0]!.keys).toEqual(["ctrl+a", "super+a"]);
     expect(loadKeyMap({ prompt: { "ctrl+a": null } }).prompt[normaliseKey("ctrl+a")]).toBeUndefined();
   });
 
@@ -64,13 +67,13 @@ describe("prompt box editing keys", () => {
       expect(entry(action)).toHaveLength(1);
       expect(entry(action)[0]!.group).toBe("Prompt box");
     }
-    expect(entry("cut")[0]!.keys).toEqual(["ctrl+x"]);
+    expect(entry("cut")[0]!.keys).toEqual(["ctrl+x", "super+x"]);
     expect(entry("undo")[0]!.keys).toEqual(["ctrl+z", "super+z"]);
     expect(entry("selectWordLeft")[0]!.keys).toEqual(["ctrl+shift+left", "alt+shift+left"]);
   });
 
   test("they are rebindable like any key: an override moves cut, and null frees a key", () => {
-    const map = loadKeyMap({ prompt: { "ctrl+k": "cut", "ctrl+x": null, "ctrl+z": null } });
+    const map = loadKeyMap({ prompt: { "ctrl+k": "cut", "ctrl+x": null, "super+x": null, "ctrl+z": null } });
     expect(keysFor(map, "prompt", "cut")).toEqual(["ctrl+k"]);
     expect(keysFor(map, "prompt", "undo")).toEqual(["super+z"]);
   });

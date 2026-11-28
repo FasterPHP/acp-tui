@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Activity line and status row
+
+- The activity line shows the running turn's run time at its right (`7s`, `4m 35s`, `2h 03m`, in `muted`), from the prompt until the turn ends, beside the running call, the plan, `awaiting permission` or the lingering finished call, and alone when nothing else is shown. It replaces the turn's count there; the gap lines and the turn-end line still carry the counts.
+- The status row's `turn-state` module reads `running` without the time. Its `{elapsed}` field still holds the run time, so `"format": "{state} {elapsed}"` puts it back.
+- Elapsed times are written with a space between the units: `4m 35s`, `2h 03m`.
+
+### Keys
+
+- `super+c` copies, `super+v` pastes, `super+a` selects all in the prompt box and `super+x` cuts, beside the Ctrl keys, in a terminal that reports Cmd under the kitty keyboard protocol (Ghostty, kitty). PhpStorm and Zed keep Cmd+C, Cmd+V, Cmd+A and Cmd+X for themselves; key help and the guide name the routes there (Ctrl+C or releasing a drag, Alt+V, Ctrl+A, Ctrl+X).
+
 ## 0.4.0
 
 Kept drafts, a cursor that follows the terminal's colours, and `focus` density with one line per gap of hidden work. Ctrl+D now always leaves (see Breaking changes).

@@ -64,9 +64,9 @@ export function lineFg(s: PtySession, track: number): number | null {
   return cell?.isFgPalette() ? cell.getFgColor() : null;
 }
 
-/** The rows of two screens that differ, the elapsed time in `running Ns` ignored. */
+/** The rows of two screens that differ, the run time at the end of the activity line ignored. */
 export function changedRows(a: string[], b: string[]): number[] {
-  const norm = (row: string) => row.replace(/running \d+s/, "running Ns");
+  const norm = (row: string) => row.replace(/ (?:\d+s|\d+m \d{2}s|\d+h \d{2}m)(\s*[│█]?)$/, " N$1");
   return a.flatMap((row, y) => (norm(row) === norm(b[y] ?? "") ? [] : [y]));
 }
 

@@ -61,8 +61,23 @@
         },
         {
           "key": "super+x",
-          "how": "Cmd+X on a Mac: kept by PhpStorm for its own cut; acp-tui binds Cut to Ctrl+X only (day-two-feedback task 13.4)",
+          "how": "Cmd+X on a Mac: kept by PhpStorm for its own cut (day-two-feedback task 13.4); bound to cut beside Ctrl+X for terminals that report Cmd by the kitty keyboard protocol (run-time-and-cmd-keys)",
           "alternatives": [{ "key": "ctrl+x", "context": "prompt", "action": "cut" }, { "palette": "prompt.cut" }]
+        },
+        {
+          "key": "super+c",
+          "how": "Cmd+C on a Mac: kept by PhpStorm for its own copy (Marcus, 28 November 2026); bound to copy beside Ctrl+C for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "key": "ctrl+c", "context": "selection", "action": "copy" }, { "palette": "selection.copy" }]
+        },
+        {
+          "key": "super+v",
+          "how": "Cmd+V on a Mac: kept by PhpStorm, which pastes the clipboard itself as one bracketed paste (Marcus, 28 November 2026); bound to paste beside Ctrl+V for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "outside": "PhpStorm's own bracketed paste, for text" }, { "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "super+a",
+          "how": "Cmd+A on a Mac: kept by PhpStorm, which selects the whole terminal (Marcus, 17 October 2026 and 28 November 2026); bound to select all beside Ctrl+A for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "key": "ctrl+a", "context": "prompt", "action": "selectAll" }, { "palette": "prompt.selectAll" }]
         },
         {
           "key": "shift+f3",
@@ -129,8 +144,23 @@
         },
         {
           "key": "super+x",
-          "how": "Cmd+X on a Mac: kept by PhpStorm for its own cut; acp-tui binds Cut to Ctrl+X only (day-two-feedback task 13.4)",
+          "how": "Cmd+X on a Mac: kept by PhpStorm for its own cut (day-two-feedback task 13.4); bound to cut beside Ctrl+X for terminals that report Cmd by the kitty keyboard protocol (run-time-and-cmd-keys)",
           "alternatives": [{ "key": "ctrl+x", "context": "prompt", "action": "cut" }, { "palette": "prompt.cut" }]
+        },
+        {
+          "key": "super+c",
+          "how": "Cmd+C on a Mac: kept by PhpStorm for its own copy (Marcus, 28 November 2026); bound to copy beside Ctrl+C for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "key": "ctrl+c", "context": "selection", "action": "copy" }, { "palette": "selection.copy" }]
+        },
+        {
+          "key": "super+v",
+          "how": "Cmd+V on a Mac: kept by PhpStorm, which pastes the clipboard itself as one bracketed paste (Marcus, 28 November 2026); bound to paste beside Ctrl+V for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "outside": "PhpStorm's own bracketed paste, for text" }, { "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "super+a",
+          "how": "Cmd+A on a Mac: kept by PhpStorm, which selects the whole terminal (Marcus, 17 October 2026 and 28 November 2026); bound to select all beside Ctrl+A for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "key": "ctrl+a", "context": "prompt", "action": "selectAll" }, { "palette": "prompt.selectAll" }]
         },
         {
           "key": "shift+f3",
@@ -205,6 +235,26 @@
           "key": "ctrl+shift+z",
           "how": "Kept by the IDE: nothing reaches the terminal (day-two-feedback task 10.4, 16 October 2026: no input after the mark; Zed binds ctrl-shift-z only to editor::Redo and project_panel::Redo, and no IDE action was seen)",
           "alternatives": [{ "key": "ctrl+y", "context": "prompt", "action": "redo" }, { "palette": "prompt.redo" }]
+        },
+        {
+          "key": "super+x",
+          "how": "Cmd+X on a Mac: kept by Zed for its own cut (Marcus, 28 November 2026); bound to cut beside Ctrl+X for terminals that report Cmd by the kitty keyboard protocol (run-time-and-cmd-keys)",
+          "alternatives": [{ "key": "ctrl+x", "context": "prompt", "action": "cut" }, { "palette": "prompt.cut" }]
+        },
+        {
+          "key": "super+c",
+          "how": "Cmd+C on a Mac: kept by Zed for its own copy (Marcus, 28 November 2026); bound to copy beside Ctrl+C for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "key": "ctrl+c", "context": "selection", "action": "copy" }, { "palette": "selection.copy" }]
+        },
+        {
+          "key": "super+v",
+          "how": "Cmd+V on a Mac: kept by Zed for its own paste (Marcus, 28 November 2026); bound to paste beside Ctrl+V for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "outside": "Zed's own paste, for text" }, { "key": "meta+v", "context": "prompt", "action": "paste" }, { "palette": "prompt.paste" }]
+        },
+        {
+          "key": "super+a",
+          "how": "Cmd+A on a Mac: kept by Zed for its own select all (Marcus, 28 November 2026); bound to select all beside Ctrl+A for terminals that report Cmd (run-time-and-cmd-keys)",
+          "alternatives": [{ "key": "ctrl+a", "context": "prompt", "action": "selectAll" }, { "palette": "prompt.selectAll" }]
         },
         {
           "key": "shift+f3",

@@ -50,7 +50,8 @@ describe("busy indicator (task 4.3)", () => {
   }, 30000);
 
   // Task 5.4: the frames drawn in the gap redraw the border row alone (no more than one row of cells
-  // each: the border; the status row once a second for the elapsed time), and their own work stays
+  // each: the border; the activity line once a second for the turn's run time, change
+  // run-time-and-cmd-keys), and their own work stays
   // under S3's 2 ms idle-running figure at the 95th percentile, for each style at both sizes.
   for (const [cols, rows] of [[63, 21], [200, 50]] as const) {
     for (const style of STYLES) {

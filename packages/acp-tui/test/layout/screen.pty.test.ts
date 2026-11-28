@@ -152,29 +152,29 @@ describe("status row modules (task 6.2)", () => {
 });
 
 describe("activity bar (task 6.4)", () => {
-  test("running: the latest tool call's title alone, with no count while the turn has one gap (five-tools)", async () => {
+  test("running: the latest tool call's title at the left and the turn's run time at the right, no count (five-tools)", async () => {
     // delay-scale 100: the five tool calls stay in progress for 5 s.
     const run = startCli("five-tools", 100, SIZE);
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    await run.s.waitFor((p) => activityLine(p).trimEnd() === "  Run check 5", 5000);
+    await run.s.waitFor((p) => /^ {2}Run check 5 +\d+s$/.test(activityLine(p).trimEnd()), 5000);
     // The activity bar sits directly above the prompt box, after its blank row, in place of the
     // blank row above the prompt box: the conversation gave up a row.
     const screen = run.s.screenText();
     expect(screen[12]).toBe("");
-    expect(screen[13]!.trimEnd()).toBe("  Run check 5");
+    expect(screen[13]!.trimEnd()).toMatch(/^ {2}Run check 5 +\d+s$/);
     expect(screen[14]).toStartWith("╭");
     expect(statusRow(run.s)).toMatch(RUNNING);
   }, 20000);
 
-  test("running with a plan: the latest title, plan 2/5 and the third entry, without a count (plan-running)", async () => {
+  test("running with a plan: the latest title, plan 2/5 and the third entry, and the run time (plan-running)", async () => {
     // delay-scale 100: plan-running holds the state for 10 s, and the test cancels it.
     const run = startCli("plan-running", 100, SIZE);
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    const row = /^ {2}Search routes · plan 2\/5 ▸ Write the test$/;
+    const row = /^ {2}Search routes · plan 2\/5 ▸ Write the test +\d+s$/;
     await run.s.waitFor((p) => row.test(activityRow(p) ?? ""), 5000);
     // The bar sits directly above the prompt box.
     const screen = run.s.screenText();
@@ -230,7 +230,8 @@ describe("activity bar (task 6.4)", () => {
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
     await run.s.waitFor(CARD_HEADER, 5000);
-    expect(activityRow(run.s)).toMatch(/^ {2}Edit src\/index\.ts · awaiting permission$/);
+    // requires_action: the run time keeps ticking beside `awaiting permission`.
+    expect(activityRow(run.s)).toMatch(/^ {2}Edit src\/index\.ts · awaiting permission +\d+s$/);
   }, 20000);
 
   test("idle: when the turn ends the activity line goes blank but keeps its row, so the conversation does not move (day-two-feedback 13.2)", async () => {
@@ -238,8 +239,8 @@ describe("activity bar (task 6.4)", () => {
     session = run.s;
     await run.s.waitFor(READY, 10000);
     run.s.sendKeys({ text: "go" }, "Enter");
-    // One gap, so the line shows the running call's title and no count.
-    await run.s.waitFor((p) => activityLine(p).trim() !== "", 5000);
+    // The running call's title at the left (and the run time at the right).
+    await run.s.waitFor((p) => /^ {2}\S/.test(activityLine(p)), 5000);
     expect(run.s.screenText()[13]).toMatch(/^ {2}\S/);
     await run.s.waitFor(READY, 5000);
     await run.s.waitFor((p) => activityLine(p).trim() === "", 5000);

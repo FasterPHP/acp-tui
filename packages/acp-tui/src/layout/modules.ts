@@ -90,14 +90,15 @@ export function formatCost(amount: number, currency: string): string {
   return symbol ? `${symbol}${value}` : currency ? `${value} ${currency}` : value;
 }
 
-/** Elapsed time: `7s`, `1m05s`, `2h03m`. */
+/** Elapsed time in whole seconds, so it never flickers while it ticks: `7s`, `4m 35s`, `2h 03m`
+ *  (a space between the units, the second unit two digits). */
 export function formatElapsed(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const sec = total % 60;
-  if (h > 0) return `${h}h${String(m).padStart(2, "0")}m`;
-  if (m > 0) return `${m}m${String(sec).padStart(2, "0")}s`;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m > 0) return `${m}m ${String(sec).padStart(2, "0")}s`;
   return `${sec}s`;
 }
 
@@ -234,10 +235,10 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
     neverDrop: (view) => view.connection === "disconnected",
   },
   "turn-state": {
-    // `state` is what the row needs to say: the armed two-press state, else `idle`,
-    // `running <elapsed>` or `requires_action`; while a session is opened by load, `loading N`
-    // (the items so far), and by resume `opening` (mvp-sessions task 6.2). `elapsed` alone serves
-    // custom formats.
+    // `state` is what the row needs to say: the armed two-press state, else `idle`, `running` or
+    // `requires_action`; while a session is opened by load, `loading N` (the items so far), and by
+    // resume `opening` (mvp-sessions task 6.2). The turn's run time is on the activity line
+    // (run-time-and-cmd-keys); `elapsed` keeps it for custom formats (`{state} {elapsed}`).
     fields: ["state", "elapsed"],
     defaults: defaults("{state}", 100, "status.fg"),
     render: (view, s) => {
@@ -247,7 +248,7 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
         ? { text: armedText(armed), token: "warning" as const }
         : view.opening
           ? { text: view.opening === "load" ? `loading ${view.loaded ?? 0}` : "opening", token: "tool.running" as const }
-          : { text: view.turnState === "running" && elapsed ? `running ${elapsed}` : view.turnState, token: TURN_TOKENS[view.turnState] };
+          : { text: view.turnState, token: TURN_TOKENS[view.turnState] };
       return fromTemplate(s, { state, elapsed });
     },
     neverDrop: (view) => view.turnState === "requires_action" || view.ui.armed !== null,

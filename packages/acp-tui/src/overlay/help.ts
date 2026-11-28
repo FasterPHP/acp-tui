@@ -46,9 +46,14 @@ const KEPT: readonly { readonly key: Ref; readonly by: string; readonly routes: 
   { key: ref("prompt", "paste", "ctrl+shift+v"), by: "Kept by PhpStorm and Zed", inWindowsTerminal: "Kept by Windows Terminal", routes: [ref("prompt", "paste", "meta+v"), "the palette"] },
   // Ctrl+Shift+Z undoes in PhpStorm (it arrives as Ctrl+Z's byte) and never arrives in Zed (day-two-feedback task 12.4).
   { key: ref("prompt", "redo", "ctrl+shift+z"), by: "Kept by PhpStorm and Zed", routes: [ref("prompt", "redo", "ctrl+y"), "the palette"] },
-  // PhpStorm on macOS keeps Cmd+Z and Cmd+Shift+Z (day-two-feedback task 13.4); Cmd+X is bound to nothing.
+  // PhpStorm on macOS keeps Cmd+Z and Cmd+Shift+Z (day-two-feedback task 13.4), and PhpStorm and Zed
+  // keep Cmd+C, Cmd+V, Cmd+A and Cmd+X (run-time-and-cmd-keys): bound for terminals that report Cmd.
   { key: ref("prompt", "undo", "super+z"), by: "Kept by PhpStorm on a Mac", routes: [ref("prompt", "undo", "ctrl+z"), "the palette"] },
   { key: ref("prompt", "redo", "shift+super+z"), by: "Kept by PhpStorm on a Mac", routes: [ref("prompt", "redo", "ctrl+y"), "the palette"] },
+  { key: ref("selection", "copy", "super+c"), by: "Kept by PhpStorm and Zed on a Mac", routes: [ref("selection", "copy", "ctrl+c"), "the palette"] },
+  { key: ref("prompt", "paste", "super+v"), by: "Kept by PhpStorm and Zed on a Mac", routes: ["their own paste for text", ref("prompt", "paste", "meta+v"), "the palette"] },
+  { key: ref("prompt", "selectAll", "super+a"), by: "Kept by PhpStorm and Zed on a Mac", routes: [ref("prompt", "selectAll", "ctrl+a"), "the palette"] },
+  { key: ref("prompt", "cut", "super+x"), by: "Kept by PhpStorm and Zed on a Mac", routes: [ref("prompt", "cut", "ctrl+x"), "the palette"] },
   { key: ref("global", "palette"), by: "Kept by Zed", routes: [{ ...ref("prompt", "palette"), suffix: " in an empty prompt box" }] },
   { key: ref("global", "cycleThoughtLevel"), by: "Kept by Zed", routes: ["the effort pill", "the palette"] },
   { key: ref("global", "keyHelp"), by: "Kept by Zed", routes: ["the palette"] },
@@ -104,7 +109,7 @@ export function helpItems(map: KeyMap, inner: number, hint: NewlineHintState = n
       })
       .filter((r): r is string => r !== null);
     if (routes.length === 0) continue;
-    items.push({ id: `help:kept.${kept.key.context}.${kept.key.action}${kept.onlyInWindowsTerminal ? ".windows-terminal" : ""}`, group: ALTERNATIVES_GROUP, title: `${windowsTerminal && kept.inWindowsTerminal !== undefined ? kept.inWindowsTerminal : kept.by}: ${routes.join(", ")}`, keys: [key] });
+    items.push({ id: `help:kept.${kept.key.context}.${kept.key.action}${kept.key.key ? `.${kept.key.key}` : ""}${kept.onlyInWindowsTerminal ? ".windows-terminal" : ""}`, group: ALTERNATIVES_GROUP, title: `${windowsTerminal && kept.inWindowsTerminal !== undefined ? kept.inWindowsTerminal : kept.by}: ${routes.join(", ")}`, keys: [key] });
   }
   wrapText(SELECTION_HELP.join(" "), Math.max(8, inner), Number.MAX_SAFE_INTEGER).forEach((line, i) => {
     items.push({ id: `help:mouse.${i}`, group: MOUSE_GROUP, title: line });

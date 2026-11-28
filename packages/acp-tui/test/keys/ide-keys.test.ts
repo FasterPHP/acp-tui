@@ -76,10 +76,11 @@ describe("Alternatives for keys an IDE keeps (task 3.8)", () => {
     const keys = (t: string) => TERMINALS[t]!.kept.map((k) => k.key).sort();
     // Ctrl+Shift+V, `paste`'s second default, is kept by both IDEs (task 12.2); Ctrl+Shift+Z, `redo`'s
     // second default, by all three (day-two-feedback task 10.4).
-    // The Mac's Cmd+Z, Cmd+Shift+Z and Cmd+X, kept by PhpStorm on macOS (day-two-feedback task 13.4).
-    expect(keys("phpstorm-reworked")).toEqual(["ctrl+f", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+v", "shift+f3", "shift+super+z", "super+x", "super+z"]);
-    expect(keys("phpstorm-classic")).toEqual(["ctrl+c", "ctrl+f", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+v", "shift+f3", "shift+super+z", "super+x", "super+z"]);
-    expect(keys("zed")).toEqual(["ctrl+j", "ctrl+p", "ctrl+return", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+t", "f1", "shift+f3"]);
+    // The Mac's Cmd+Z, Cmd+Shift+Z and Cmd+X, kept by PhpStorm on macOS (day-two-feedback task 13.4),
+    // and Cmd+C, Cmd+V, Cmd+A and Cmd+X, kept by PhpStorm and Zed on macOS (Marcus, 28 November 2026).
+    expect(keys("phpstorm-reworked")).toEqual(["ctrl+f", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+v", "shift+f3", "shift+super+z", "super+a", "super+c", "super+v", "super+x", "super+z"]);
+    expect(keys("phpstorm-classic")).toEqual(["ctrl+c", "ctrl+f", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+v", "shift+f3", "shift+super+z", "super+a", "super+c", "super+v", "super+x", "super+z"]);
+    expect(keys("zed")).toEqual(["ctrl+j", "ctrl+p", "ctrl+return", "ctrl+shift+c", "ctrl+shift+v", "ctrl+shift+z", "ctrl+t", "f1", "shift+f3", "super+a", "super+c", "super+v", "super+x"]);
     // windows-support task 9.4 (Windows VM, 20 October 2026): Windows Terminal keeps Alt+Enter, its
     // paste, its own commands and Ctrl+C with a selection; IntelliJ's terminal on Windows keeps what
     // PhpStorm's reworked terminal does, minus the Mac's Cmd keys and with Ctrl+Shift+C and
@@ -99,14 +100,27 @@ describe("Alternatives for keys an IDE keeps (task 3.8)", () => {
     expect(checkAlternatives(loadKeyMap({ prompt: { "ctrl+return": null } }))).toEqual(["windows-terminal meta+return: ctrl+return is not bound to prompt.newline"]);
   });
 
-  test("The Mac's Cmd keys (task 13.4): Cmd+Z and Cmd+Shift+Z are bound by default, so their alternatives are checked; Cmd+X is bound to nothing", () => {
+  test("The Mac's Cmd keys (task 13.4, run-time-and-cmd-keys): Cmd+Z, Cmd+Shift+Z, Cmd+C, Cmd+V, Cmd+A and Cmd+X are bound by default, so their alternatives are checked", () => {
     expect(boundTo(DEFAULT_KEY_MAP, "super+z")).toEqual(["prompt.undo"]);
     expect(boundTo(DEFAULT_KEY_MAP, "shift+super+z")).toEqual(["prompt.redo"]);
-    expect(boundTo(DEFAULT_KEY_MAP, "super+x")).toEqual([]);
-    // Taking away the alternatives is reported for each PhpStorm terminal.
+    expect(boundTo(DEFAULT_KEY_MAP, "super+c")).toEqual(["selection.copy"]);
+    expect(boundTo(DEFAULT_KEY_MAP, "super+v")).toEqual(["prompt.paste"]);
+    expect(boundTo(DEFAULT_KEY_MAP, "super+a")).toEqual(["prompt.selectAll"]);
+    expect(boundTo(DEFAULT_KEY_MAP, "super+x")).toEqual(["prompt.cut"]);
+    // Taking away the alternatives is reported for each PhpStorm terminal (and Zed for the four).
     expect(checkAlternatives(loadKeyMap({ prompt: { "ctrl+z": null } }))).toEqual([
       "phpstorm-reworked super+z: ctrl+z is not bound to prompt.undo",
       "phpstorm-classic super+z: ctrl+z is not bound to prompt.undo",
+    ]);
+    expect(checkAlternatives(loadKeyMap({ prompt: { "ctrl+x": null } }))).toEqual([
+      "phpstorm-reworked super+x: ctrl+x is not bound to prompt.cut",
+      "phpstorm-classic super+x: ctrl+x is not bound to prompt.cut",
+      "zed super+x: ctrl+x is not bound to prompt.cut",
+    ]);
+    expect(checkAlternatives(loadKeyMap({ selection: { "ctrl+c": null } }))).toEqual([
+      "phpstorm-reworked super+c: ctrl+c is not bound to selection.copy",
+      "phpstorm-classic super+c: ctrl+c is not bound to selection.copy",
+      "zed super+c: ctrl+c is not bound to selection.copy",
     ]);
   });
 
@@ -118,9 +132,12 @@ describe("Alternatives for keys an IDE keeps (task 3.8)", () => {
     expect(checkAlternatives(loadKeyMap({ prompt: { "meta+v": null } }))).toEqual([
       "phpstorm-reworked ctrl+v: meta+v is not bound to prompt.paste",
       "phpstorm-reworked ctrl+shift+v: meta+v is not bound to prompt.paste",
+      "phpstorm-reworked super+v: meta+v is not bound to prompt.paste",
       "phpstorm-classic ctrl+v: meta+v is not bound to prompt.paste",
       "phpstorm-classic ctrl+shift+v: meta+v is not bound to prompt.paste",
+      "phpstorm-classic super+v: meta+v is not bound to prompt.paste",
       "zed ctrl+shift+v: meta+v is not bound to prompt.paste",
+      "zed super+v: meta+v is not bound to prompt.paste",
       "windows-terminal ctrl+v: meta+v is not bound to prompt.paste",
       "windows-terminal ctrl+shift+v: meta+v is not bound to prompt.paste",
       "intellij-windows ctrl+v: meta+v is not bound to prompt.paste",

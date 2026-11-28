@@ -182,7 +182,7 @@ describe("loadKeyMap", () => {
     }
     expect(commandName("conversation", "cycleDensity")).toBe("conversation.cycleDensity");
     // The selection layer (always mounted): Ctrl+C and Ctrl+Shift+C copy, Esc clears.
-    expect(DEFAULT_KEY_MAP.selection).toEqual({ "ctrl+c": "copy", "ctrl+shift+c": "copyRich", escape: "clear" });
+    expect(DEFAULT_KEY_MAP.selection).toEqual({ "ctrl+c": "copy", "super+c": "copy", "ctrl+shift+c": "copyRich", escape: "clear" });
     // SPIKE (phase-1a, S5): the find bar, bound only under `--spike find`.
     expect(DEFAULT_KEY_MAP.find).toEqual({
       return: "next",
@@ -246,8 +246,8 @@ const D16_CATALOGUE: readonly { context: (typeof KEY_CONTEXTS)[number]; action: 
   { context: "global", action: "find", keys: ["ctrl+f"] },
   { context: "global", action: "findNext", keys: ["f3"] },
   { context: "global", action: "findPrevious", keys: ["shift+f3"] },
-  { context: "prompt", action: "paste", keys: ["ctrl+v", "ctrl+shift+v", "meta+v"] },
-  { context: "selection", action: "copy", keys: ["ctrl+c"] },
+  { context: "prompt", action: "paste", keys: ["ctrl+v", "ctrl+shift+v", "meta+v", "super+v"] },
+  { context: "selection", action: "copy", keys: ["ctrl+c", "super+c"] },
   { context: "selection", action: "copyRich", keys: ["ctrl+shift+c"] },
   { context: "selection", action: "clear", keys: ["escape"] },
   { context: "conversation", action: "copyItem", keys: ["y"] },

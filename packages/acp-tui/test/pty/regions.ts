@@ -144,9 +144,9 @@ export function cardBody(s: PtySession): string[] {
 
 /** The activity bar: the row above the card, or above the prompt box when no card is docked, past
  *  the blank row between them when there is one (day-one-feedback). */
-/** The turn's count at the right of the activity line (focus-groups design D3, D6), ending the row:
- *  `12 tool calls (1 failed, 2 running) · 3 thoughts`, or `1 thought` before any call. */
-export const ACTIVITY_COUNT = /(?:\d+ tool calls?(?: \((?:\d+ (?:failed|running)(?:, )?)+\))?(?: · \d+ thoughts?)?|\d+ thoughts?)$/;
+/** The running turn's run time at the right of the activity line (change run-time-and-cmd-keys),
+ *  ending the row after at least one space: `7s`, `4m 35s`, `2h 03m`. */
+export const ACTIVITY_RUN_TIME = /(?<= )(?:\d+s|\d+m \d{2}s|\d+h \d{2}m)$/;
 
 /** The activity line's own row, whatever it shows (a title alone has no marker to match on): the
  *  row above the card's blank row, or directly above the prompt box when no card is docked. */
@@ -160,13 +160,13 @@ export function activityRow(s: PtySession): string | null {
   const rows = s.screenText();
   const card = rows.findIndex((r) => r.startsWith(`╭─ ${CARD_HEADER}`));
   let above = card >= 0 ? card - 1 : promptTop(rows) - 1;
-  // Past a blank row only to a line that starts as the bar's do or ends in its count (a
+  // Past a blank row only to a line that starts as the bar's do or ends in the run time (a
   // conversation row above the idle prompt box's blank row may mention `running`; a gap line
   // starts with its fold glyph).
   const gap = rows[above]?.trim() === "";
   if (gap) above--;
   const row = rows[above];
   const bar = gap ? /^ {2}(plan \d+\/\d+|awaiting permission\b)|· awaiting permission$/ : /\b(running|plan \d+\/\d+|awaiting permission)\b/;
-  const counted = row !== undefined && !/^ {2}[▸▾] /.test(row) && ACTIVITY_COUNT.test(row);
-  return row !== undefined && (bar.test(row) || counted) ? row : null;
+  const timed = row !== undefined && !/^ {2}[▸▾] /.test(row) && ACTIVITY_RUN_TIME.test(row);
+  return row !== undefined && (bar.test(row) || timed) ? row : null;
 }

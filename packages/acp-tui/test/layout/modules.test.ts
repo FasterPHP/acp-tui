@@ -141,14 +141,28 @@ describe("turn-state", () => {
     expect(run("turn-state", view({ opening: "resume" }))).toEqual([{ text: "opening", token: "tool.running" }]);
     expect(run("turn-state", view({ opening: null, loaded: 1234 }))).toEqual([{ text: "idle", token: "muted" }]);
   });
-  test("running shows the elapsed time", () => {
+  test("running reads `running` alone by default; the elapsed field keeps the run time for custom formats (run-time-and-cmd-keys)", () => {
     const v = view({ turnState: "running", turnStartedAt: 1_000, now: 66_500 });
-    expect(run("turn-state", v)).toEqual([{ text: "running 1m05s", token: "tool.running" }]);
-    expect(text("turn-state", v, { format: "{state} ({elapsed})" })).toBe("running 1m05s (1m05s)");
-    expect(formatElapsed(7_900)).toBe("7s");
-    expect(formatElapsed(3_723_000)).toBe("1h02m");
+    expect(run("turn-state", v)).toEqual([{ text: "running", token: "tool.running" }]);
+    expect(text("turn-state", v, { format: "{state} {elapsed}" })).toBe("running 1m 05s");
+    expect(text("turn-state", v, { format: "{state} ({elapsed})" })).toBe("running (1m 05s)");
+    // Idle has no run time, so the field is empty (the template keeps its literal space).
+    expect(text("turn-state", FULL_VIEW, { format: "{state} {elapsed}" })?.trimEnd()).toBe("idle");
     // requires_action keeps its name, so the state reads the same in every width.
     expect(text("turn-state", view({ turnState: "requires_action", turnStartedAt: 0, now: 5_000 }))).toBe("requires_action");
+  });
+  test("formatElapsed: whole seconds, a space between the units, the second unit two digits", () => {
+    expect(formatElapsed(0)).toBe("0s");
+    expect(formatElapsed(-500)).toBe("0s");
+    expect(formatElapsed(7_900)).toBe("7s");
+    expect(formatElapsed(59_999)).toBe("59s");
+    expect(formatElapsed(60_000)).toBe("1m 00s");
+    expect(formatElapsed(275_000)).toBe("4m 35s");
+    expect(formatElapsed(3_599_000)).toBe("59m 59s");
+    expect(formatElapsed(3_600_000)).toBe("1h 00m");
+    expect(formatElapsed(3_723_000)).toBe("1h 02m");
+    expect(formatElapsed(7_380_000)).toBe("2h 03m");
+    expect(formatElapsed(36_000_000 + 59 * 60_000)).toBe("10h 59m");
   });
   test("an armed two-press state replaces the state, names its key, in the warning token", () => {
     expect(run("turn-state", view({}, { armed: { kind: "detach", key: "ctrl+d" } }))).toEqual([{ text: "ctrl+d again to detach and stop the turn", token: "warning" }]);

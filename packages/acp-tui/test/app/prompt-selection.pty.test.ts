@@ -391,3 +391,36 @@ describe("Selection in the prompt box (tasks 8.1, 8.3 and 8.4)", () => {
     expect(payloads(s).at(-1)).toBe("world");
   }, 40000);
 });
+
+// Cmd on a Mac (`super`) where the terminal reports it under the kitty keyboard protocol (Ghostty,
+// kitty; change run-time-and-cmd-keys): CSI <code>;9u, modifier 9 being 1 + super (8). The harness's
+// terminal never answers the kitty query, so the test writes the answer (`CSI ? 5 u`) as input first.
+describe("Cmd keys under the kitty keyboard protocol", () => {
+  const SUPER_A = "\x1b[97;9u";
+  const SUPER_X = "\x1b[120;9u";
+  const SUPER_C = "\x1b[99;9u";
+
+  test("Cmd+A then Cmd+X: all the text is written to the clipboard and the box is empty", async () => {
+    const s = start().session;
+    s.write("\x1b[?5u");
+    await typed(s, "hello world");
+    s.sendKeys({ text: SUPER_A });
+    await Bun.sleep(200);
+    s.sendKeys({ text: SUPER_X });
+    await s.waitFor(() => payloads(s).length === 1, 5000);
+    expect(payloads(s)).toEqual(["hello world"]);
+    await s.waitFor((p) => promptText(p).join("") === "", 5000);
+  }, 30000);
+
+  test("Cmd+C copies the prompt box's selection and keeps the draft", async () => {
+    const s = start().session;
+    s.write("\x1b[?5u");
+    await typed(s, "hello world");
+    s.sendKeys({ text: SHIFT_LEFT.repeat(5) });
+    await Bun.sleep(200);
+    s.sendKeys({ text: SUPER_C });
+    await s.waitFor(() => payloads(s).length === 1, 5000);
+    expect(payloads(s)).toEqual(["world"]);
+    expect(promptText(s)[0]).toBe("hello world");
+  }, 30000);
+});

@@ -407,6 +407,10 @@ export const DEFAULT_KEY_MAP_INPUT = {
     "ctrl+v": "paste",
     "ctrl+shift+v": "paste",
     "meta+v": "paste",
+    // Cmd+V, Cmd+A and Cmd+X on a Mac (`super`), beside the Ctrl keys, for a terminal that reports
+    // Cmd under the kitty keyboard protocol (Ghostty, kitty); PhpStorm and Zed keep them for their
+    // own editing, so the Ctrl keys stay the routes there (ide-keys.json).
+    "super+v": "paste",
     "shift+left": "selectLeft",
     "shift+right": "selectRight",
     "shift+up": "selectUp",
@@ -416,9 +420,11 @@ export const DEFAULT_KEY_MAP_INPUT = {
     "ctrl+shift+left": "selectWordLeft",
     "ctrl+shift+right": "selectWordRight",
     "ctrl+a": "selectAll",
+    "super+a": "selectAll",
     "meta+shift+left": "selectWordLeft",
     "meta+shift+right": "selectWordRight",
     "ctrl+x": "cut",
+    "super+x": "cut",
     "ctrl+z": "undo",
     "super+z": "undo",
     "ctrl+y": "redo",
@@ -502,6 +508,8 @@ export const DEFAULT_KEY_MAP_INPUT = {
   },
   selection: {
     "ctrl+c": "copy",
+    // Cmd+C on a Mac, where the terminal reports it (kitty keyboard protocol), as for super+v.
+    "super+c": "copy",
     "ctrl+shift+c": "copyRich",
     escape: "clear",
   },

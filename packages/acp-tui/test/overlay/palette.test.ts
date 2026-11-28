@@ -129,7 +129,7 @@ describe("Key help (task 6.8)", () => {
     expect(prompt.find((i) => i.title === "Insert a newline")?.keys).toEqual(["shift+enter", "alt+enter", "ctrl+j"]);
     expect(prompt.find((i) => i.title === "Send the prompt")?.keys).toEqual(["enter"]);
     // Key help shows paste's three keys (task 12.2).
-    expect(prompt.find((i) => i.title === "Paste from the clipboard")?.keys).toEqual(["ctrl+v", "ctrl+shift+v", "alt+v"]);
+    expect(prompt.find((i) => i.title === "Paste from the clipboard")?.keys).toEqual(["ctrl+v", "ctrl+shift+v", "alt+v", "super+v"]);
     const global = items.filter((i) => i.group === "Anywhere");
     expect(global.find((i) => i.title === "Move focus to the next region")?.keys).toEqual(["tab"]);
     expect(global.find((i) => i.title === "Interrupt the running turn (press twice)")?.keys).toEqual(["esc"]);
@@ -163,6 +163,13 @@ describe("Key help (task 6.8)", () => {
     // The Mac's Cmd+Z and Cmd+Shift+Z, kept by PhpStorm on macOS (day-two-feedback task 13.4).
     expect(items.map((i) => [i.title, (i.keys ?? []).join(" ")])).toContainEqual(["Kept by PhpStorm on a Mac: ctrl+z, the palette", "super+z"]);
     expect(items.map((i) => [i.title, (i.keys ?? []).join(" ")])).toContainEqual(["Kept by PhpStorm on a Mac: ctrl+y, the palette", "shift+super+z"]);
+    // Cmd+C, Cmd+V, Cmd+A and Cmd+X, bound for terminals that report Cmd, kept by both IDEs on a Mac.
+    expect(items.map((i) => [i.title, (i.keys ?? []).join(" ")])).toContainEqual(["Kept by PhpStorm and Zed on a Mac: ctrl+c, the palette", "super+c"]);
+    expect(items.map((i) => [i.title, (i.keys ?? []).join(" ")])).toContainEqual(["Kept by PhpStorm and Zed on a Mac: their own paste for text, alt+v, the palette", "super+v"]);
+    expect(items.map((i) => [i.title, (i.keys ?? []).join(" ")])).toContainEqual(["Kept by PhpStorm and Zed on a Mac: ctrl+a, the palette", "super+a"]);
+    expect(items.map((i) => [i.title, (i.keys ?? []).join(" ")])).toContainEqual(["Kept by PhpStorm and Zed on a Mac: ctrl+x, the palette", "super+x"]);
+    // Each kept row has its own id.
+    expect(new Set(items.map((i) => i.id)).size).toBe(items.length);
     const noAltV = helpItems(loadKeyMap({ prompt: { "meta+v": null } }), 59).filter((i) => i.group === ALTERNATIVES_GROUP);
     expect(noAltV.map((i) => i.title)).toContain("Kept by PhpStorm and Zed: the palette");
     // The palette's route in Zed is `?` (task 12.1), named from the key map.
@@ -229,9 +236,9 @@ describe("Group headings say where keys work (day-two-feedback task 13.11)", () 
     // The entries show the key and nothing after it.
     const row = (title: string) => rows(items, 100).find((l) => l.includes(title))!;
     expect(row("Cycle the density")).toMatch(/Cycle the density +v │$/);
-    expect(row("Cut the selection")).toMatch(/Cut the selection +ctrl\+x │$/);
+    expect(row("Cut the selection")).toMatch(/Cut the selection +ctrl\+x super\+x │$/);
     expect(row("Find in the conversation")).toMatch(/Find in the conversation +ctrl\+f │$/);
-    expect(row("Paste from the clipboard")).toMatch(/Paste from the clipboard +ctrl\+v ctrl\+shift\+v alt\+v │$/);
+    expect(row("Paste from the clipboard")).toMatch(/Paste from the clipboard +ctrl\+v ctrl\+shift\+v alt\+v super\+v │$/);
     // The heading is not matched by the filter, as the group is not.
     expect(filterItems(items, "conversation").map((i) => i.title)).not.toContain("Cycle the density");
     expect(filterItems(items, "shortcuts")).toEqual([]);
