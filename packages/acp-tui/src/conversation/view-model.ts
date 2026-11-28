@@ -12,6 +12,8 @@
 // collapses everything, a failed tool call and thoughts included (spec
 // tui-conversation "Collapse and expand in place", tui-rendering "Thoughts":
 // acp-tui never expands an item by itself; only `verbose` expands them all).
+// A toggle lasts until the density changes, which forgets them all
+// (`clearChoices`; expand-and-density: the density applies to everything).
 //
 // Reactive reads (`expanded`, `cursor`) are Solid-tracked. The anchor and
 // the following flag belong to the scroll controller (scroll.ts); they are
@@ -56,6 +58,9 @@ export interface ConversationViewModel {
   /** Reading position, owned by the scroll controller. */
   anchor: Anchor | null;
   following: boolean;
+  /** Forgets every recorded choice and every whole output shown, keeping the cursor and the
+   *  reading position (a density switch, spec tui-conversation "Switching density"). */
+  clearChoices(): void;
   /** Forgets every recorded choice, the cursor and the reading position (another session was
    *  attached, mvp-sessions task 7.4). */
   reset(): void;
@@ -134,9 +139,14 @@ export function createConversationViewModel(): ConversationViewModel {
     setCursor: (id) => void setCursor(id),
     anchor: null,
     following: true,
+    clearChoices() {
+      batch(() => {
+        for (const id of Object.keys(explicit)) if (explicit[id] !== undefined) setExplicit(id, undefined!);
+        for (const id of Object.keys(output)) if (output[id] !== undefined) setOutput(id, undefined!);
+      });
+    },
     reset() {
-      for (const id of Object.keys(explicit)) setExplicit(id, undefined!);
-      for (const id of Object.keys(output)) setOutput(id, undefined!);
+      this.clearChoices();
       setCursor(null);
       this.anchor = null;
       this.following = true;

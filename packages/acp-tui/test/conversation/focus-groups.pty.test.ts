@@ -211,6 +211,35 @@ describe("densities (spec Turn totals in the turn-end line: `focus`, `compact` a
   }, 60000);
 });
 
+describe("Ctrl+O puts back what it opened, and a switch resets every entry (expand-and-density)", () => {
+  test("Ctrl+O twice in focus: the last line opens with its call expanded, then the screen is as it was", async () => {
+    const s = await turn1({ rows: 50 });
+    const focus = rowsOf(s).slice(0, rowOf(s, END_LINE) + 1);
+    await press(s, "Ctrl+O");
+    await s.waitFor((p) => rowsOf(p).some((r) => r.includes(TOOLS["tm-6"].title)), 5000);
+    expect(rowsOf(s).filter((r) => /^ {2}▾ /.test(r))).toEqual(["  ▾ 1 tool call"]);
+    await press(s, "Ctrl+O");
+    await s.waitFor((p) => !rowsOf(p).some((r) => r.includes(TOOLS["tm-6"].title)), 5000);
+    expect(rowsOf(s).slice(0, rowOf(s, END_LINE) + 1)).toEqual(focus);
+  }, 60000);
+
+  test("lines opened by a click and by Ctrl+O are closed again by v through compact and verbose back to focus", async () => {
+    const s = await turn1({ rows: 70 });
+    const focus = rowsOf(s).slice(0, rowOf(s, END_LINE) + 1);
+    const middle = rowOf(s, /^ {2}▸ 3 tool calls \(1 failed\)$/);
+    s.mouseClick(10, middle);
+    await s.waitFor((p) => rowsOf(p)[middle]?.startsWith("  ▾ ") === true, 5000);
+    await press(s, "Ctrl+O");
+    await s.waitFor((p) => rowsOf(p).filter((r) => /^ {2}▾ /.test(r)).length === 2, 5000);
+    await press(s, "Tab");
+    await density(s, "compact");
+    await density(s, "verbose");
+    await density(s, "focus");
+    expect(rowsOf(s).filter((r) => /^ {2}▾ /.test(r))).toEqual([]);
+    expect(rowsOf(s).slice(0, rowOf(s, END_LINE) + 1)).toEqual(focus);
+  }, 90000);
+});
+
 describe("turn 2 (spec Turn totals: `interrupted`; tui-layout Activity line contents)", () => {
   /** The activity row: the count at the right of a row above the prompt box. */
   const activity = (s: PtySession) => rowsOf(s).find((r) => /^ {2}\S.* {2,}\d+ tool calls? \(1 running\) · 1 thought$/.test(r));

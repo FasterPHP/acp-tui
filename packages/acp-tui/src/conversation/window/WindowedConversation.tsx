@@ -12,7 +12,9 @@
 //   The cursor moves by entry, and jumps to the previous or next prompt or tool
 //   call (`jump`); Enter, a click or Ctrl+O toggles an entry (a
 //   group line opens and closes; Ctrl+O on a call hidden in a closed group
-//   opens the group first).
+//   opens the group and expands the call, and a second Ctrl+O puts back what
+//   the first changed: `peek`). A density switch returns every entry to the
+//   new density's default (expand-and-density).
 // - A window (range.ts): only the entries in `[start, end)` are mounted, between
 //   a top and a bottom spacer box whose heights come from the per-item,
 //   per-width height cache (heights.ts); the tail 40 while following, growing
@@ -77,6 +79,8 @@ interface WindowState {
   /** Open group lines by key. */
   readonly open: Record<string, boolean>;
   setOpen(key: string, open: boolean): void;
+  /** Closes every group line (a density switch). */
+  closeAll(): void;
   readonly cache: HeightCache;
 }
 
@@ -87,7 +91,14 @@ function windowState(vm: ConversationViewModel, initial: Density): WindowState {
   if (!state) {
     const [density, setDensity] = createSignal<Density>(initial);
     const [open, setOpen] = createStore<Record<string, boolean>>({});
-    state = { density, setDensity, open, setOpen: (key, value) => setOpen(key, value), cache: new HeightCache() };
+    state = {
+      density,
+      setDensity,
+      open,
+      setOpen: (key, value) => setOpen(key, value),
+      closeAll: () => batch(() => Object.keys(open).forEach((key) => open[key] !== undefined && setOpen(key, undefined!))),
+      cache: new HeightCache(),
+    };
     states.set(vm, state);
   }
   return state;
@@ -175,7 +186,8 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
     return store.snapshot();
   };
 
-  /** Expanded under the density unless the user toggled the item (their choice wins). */
+  /** Expanded under the density unless the user toggled the item since the density was last
+   *  switched (their choice wins until then; a switch forgets it, `switchDensity`). */
   const expandedFor = (item: Item): boolean => {
     if (!vm.collapsible(item)) return false;
     if (vm.toggled(item.id)) return vm.expanded(item);
@@ -464,6 +476,89 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
     return true;
   }
 
+  // What the last Ctrl+O changed, so that the next one puts it back (expand-and-density design D1):
+  // the call it toggled, how that left the call (`shown`), the call's recorded choice before it
+  // (`had`, undefined for none) and the group line it opened to show the call (null for none). At
+  // most one peek exists; a density switch drops it.
+  let peek: { target: string; shown: boolean; had: boolean | undefined; group: string | null } | null = null;
+  // Bumped by every density switch, so that find's undo does not bring back a choice made in the
+  // density before (find records its expansions as choices, `expandRecorded`).
+  let choices = 0;
+
+  /** Puts back the call of `p` (its recorded choice before the press) if it is still as the press
+   *  left it; true if it was. A call left collapsed returns its output to the snippet. */
+  function restorePeekCall(p: NonNullable<typeof peek>): boolean {
+    const item = store.snapshot().items.get(p.target);
+    if (!item || expandedFor(item) !== p.shown) return false;
+    if (p.had === undefined) vm.forget(p.target);
+    else vm.setExpanded(item, p.had);
+    if (!expandedFor(item) && vm.outputShown(p.target)) vm.setOutputShown(p.target, false);
+    return true;
+  }
+
+  /** Ctrl+O (spec tui-conversation "Ctrl+O puts back what it opened"): the target call (behind the
+   *  open permission request, else the latest) is toggled, opening the group line that hides it;
+   *  pressed again on the same call, still as it was left, everything the first press changed is
+   *  put back. A press on another call first puts back the last peek, keeping a group line it
+   *  opened when the new call is behind the same line. */
+  function toggleTool(): boolean {
+    const target = viewerTarget(store.session);
+    if (target === null) return false;
+    const item = store.snapshot().items.get(target);
+    if (!item || !vm.collapsible(item)) return false;
+    const holderOf = (l: EntryList) => {
+      const at = l.holder.get(target);
+      return at === undefined ? undefined : l.entries[at];
+    };
+    /** The key of the group line the target belongs to, closed (its holder) or open (the line its
+     *  item entry is shown under); null when it belongs to none. */
+    const lineOf = (l: EntryList): string | null => {
+      const holder = holderOf(l);
+      return holder === undefined ? null : holder.kind === "group" ? holder.key : holder.group;
+    };
+    const last = peek;
+    peek = null;
+    if (last && last.target === target && expandedFor(item) === last.shown) {
+      // The second press: the call back to its choice before the first, and the line it opened
+      // closed again, keeping the line's row (the call's row leaves the list with it).
+      const close = last.group !== null && lineOf(list()) === last.group && state.open[last.group] === true;
+      scroll?.beforeToggle(close ? last.group! : target, true);
+      batch(() => {
+        restorePeekCall(last);
+        if (close) state.setOpen(last.group!, false);
+      });
+      return true;
+    }
+    // Another call (a newer one started, or a permission request opened), or the user changed the
+    // call in between: what the last press changed is put back where it is still as it left it.
+    const owned =
+      last && last.target !== target
+        ? batch((): string | null => {
+            restorePeekCall(last);
+            if (last.group === null) return null;
+            if (lineOf(list()) === last.group) return last.group;
+            if (state.open[last.group]) state.setOpen(last.group, false);
+            return null;
+          })
+        : null;
+    const had = vm.toggled(target) ? vm.expanded(item) : undefined;
+    const holder = holderOf(list());
+    if (holder?.kind === "group" && !holder.open) {
+      // A call hidden behind a closed line: the line opens and the call is shown expanded.
+      const key = holder.key;
+      batch(() => {
+        state.setOpen(key, true);
+        scroll?.beforeToggle(target, true);
+        vm.setExpanded(item, true);
+      });
+      peek = { target, shown: true, had, group: key };
+      return true;
+    }
+    if (!toggleEntry(target)) return false;
+    peek = { target, shown: expandedFor(item), had, group: owned };
+    return true;
+  }
+
   /** After paging with the conversation focused, keeps the cursor on a visible entry. */
   function keepCursorInView(direction: -1 | 1): void {
     const cursor = cursorKey();
@@ -523,6 +618,13 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
     // `verbose` 150 entries back redrew all 160 of them: 90 to 106 ms before the first frame,
     // IDE check 9.4); the window grows from there by chunks as the reader scrolls.
     const kept = batch(() => {
+      // Every entry takes the new density's default (Marcus, 28 November 2026: "the view affected
+      // everything, even those for which i've manually changed the view"): the toggles, whole
+      // outputs and open group lines of the density left are forgotten, and with them Ctrl+O's peek.
+      vm.clearChoices();
+      state.closeAll();
+      peek = null;
+      choices++;
       state.setDensity(next);
       const l = list();
       if (cursor !== null) vm.setCursor(resolveKey(cursor, l) ?? l.keys.at(-1) ?? null);
@@ -671,16 +773,7 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
       },
       first,
       last,
-      toggleTool() {
-        const target = viewerTarget(store.session);
-        if (target === null) return false;
-        // A call hidden in a closed group: open the group first.
-        const l = list();
-        const at = l.holder.get(target);
-        const holder = at === undefined ? undefined : l.entries[at];
-        if (holder?.kind === "group" && !holder.open) state.setOpen(holder.key, true);
-        return toggleEntry(target);
-      },
+      toggleTool,
       // Find (src/find/). The item may be outside the window or behind a
       // closed group line: the group is opened, then `revealKey` mounts around the item and
       // scrolls to it once the list and the geometry have caught up.
@@ -716,7 +809,9 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
           }
           revealKey(id);
           sb.requestRender();
-          return undo.length === 0 ? null : () => undo.reverse().forEach((f) => f());
+          // A density switch since forgot every choice and closed every line: nothing to put back.
+          const at0 = choices;
+          return undo.length === 0 ? null : () => at0 === choices && undo.reverse().forEach((f) => f());
         },
         scrollBy(rows) {
           sb.scrollTop += rows;
@@ -769,6 +864,7 @@ export function WindowedConversation(props: { readonly scrollbar?: boolean } = {
     setOutputShown: (id, shown) => vm.setOutputShown(id, shown),
     cursor: () => vm.cursor(),
     setCursor: (id) => vm.setCursor(id),
+    clearChoices: () => vm.clearChoices(),
     reset: () => vm.reset(),
     get anchor() {
       return vm.anchor;

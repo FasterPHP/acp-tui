@@ -292,6 +292,24 @@ describe("density (tasks 4.5 and 3.3)", () => {
     // The setting is compact now, so the compact density carries no mark.
     await s.waitFor((p) => !/density/.test(statusRow(p)) && conversationRows(p).some((row) => /#\d+$/.test(row)), 3000);
   }, 30000);
+
+  test("A changed density setting resets every entry as v does: the call Ctrl+O expanded in focus is collapsed in compact", async () => {
+    const cfg = configHome({});
+    const r = start(cfg.home, { scenario: "tool-content", cols: 80, rows: 40 });
+    const s = r.session;
+    await sendPrompt(s, "go");
+    await s.waitFor(/end turn/, 20000);
+    await settle(s);
+    const card = (p: PtySession) => conversationRows(p).some((row) => /^ {2}┃/.test(row));
+    expect(card(s)).toBe(false);
+    s.sendKeys("Ctrl+O");
+    await s.waitFor(card, 3000);
+    cfg.write({ density: "compact" });
+    expect((await reloaded(r))["changed"]).toEqual(["density"]);
+    await s.waitFor((p) => conversationRows(p).some((row) => /#\d+$/.test(row)), 3000);
+    await settle(s);
+    expect(card(s)).toBe(false);
+  }, 30000);
 });
 
 describe("interrupt (task 4.6)", () => {

@@ -32,6 +32,23 @@ function tool(overrides: Partial<ToolCallItem> = {}): ToolCallItem {
 const message = (id: string, kind: "user_message" | "agent_message", text = "hi"): Item => ({ id, status: "final", origin: "self", kind, text });
 
 describe("collapse state", () => {
+  test("clearChoices forgets every toggle and whole output, keeping the cursor and the reading position (a density switch)", () => {
+    const vm = createConversationViewModel();
+    const t = tool();
+    vm.setExpanded(t, true);
+    vm.setOutputShown(t.id, true);
+    vm.setCursor(t.id);
+    vm.anchor = { id: t.id, offset: 2 };
+    vm.following = false;
+    vm.clearChoices();
+    expect(vm.toggled(t.id)).toBe(false);
+    expect(vm.expanded(t)).toBe(false);
+    expect(vm.outputShown(t.id)).toBe(false);
+    expect(vm.cursor()).toBe(t.id);
+    expect(vm.anchor).toEqual({ id: t.id, offset: 2 });
+    expect(vm.following).toBe(false);
+  });
+
   test("tool calls, thoughts and plans collapse; messages and markers do not", () => {
     expect(collapsible(tool())).toBe(true);
     expect(collapsible({ id: "th", status: "final", origin: "self", kind: "thought", text: "x" })).toBe(true);
