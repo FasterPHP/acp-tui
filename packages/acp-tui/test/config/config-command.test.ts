@@ -371,6 +371,10 @@ describe("config --check (task 9.1)", async () => {
 
     test("on Linux and macOS the same file has no warning", async () => {
       const w = world({ config: entry });
+      // On a Windows host the temporary XDG_CONFIG_HOME is a drive-letter path, which the Linux and
+      // macOS rules ignore as not absolute, so they read $HOME/.config: put the same file there too.
+      mkdirSync(join(w.home, ".config", "acp-tui"), { recursive: true });
+      writeFileSync(join(w.home, ".config", "acp-tui", "config.jsonc"), entry);
       for (const platform of ["linux", "darwin"] as const) {
         const r = await w.run(["--check"], platform);
         expect(r.code).toBe(0);
