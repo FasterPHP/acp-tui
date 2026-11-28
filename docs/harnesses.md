@@ -19,7 +19,7 @@ Not yet checked. The `codex` entry runs `codex-acp` (`npm install -g @agentclien
 
 ## OpenCode
 
-Checked with OpenCode 1.19 and 2.1. Install it with `npm install -g @opencode/cli` (or see opencode.ai/docs) and log in once with `opencode auth login`. The entry runs `opencode acp`: without `acp` OpenCode starts its own terminal interface, which acp-tui recognises and stops.
+Checked with OpenCode 1.19; 2.x, which `@opencode/cli` installs, is not yet checked. Install it with `npm install -g @opencode/cli` (or see opencode.ai/docs) and log in once with `opencode auth login`. The entry runs `opencode acp`: without `acp` OpenCode starts its own terminal interface, which acp-tui recognises and stops.
 
 ## Auggie
 

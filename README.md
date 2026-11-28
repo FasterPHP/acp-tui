@@ -26,7 +26,7 @@ Install your harness and log in to it first:
 | --- | --- | --- | --- |
 | Claude Code | [Claude Code](https://code.claude.com/docs), logged in; acp-tui runs the `claude-agent-acp` adapter through `bunx` | `claude` | yes (adapter 0.94.0) |
 | Codex | `npm install -g @agentclientprotocol/codex-acp` | `codex` | not yet |
-| OpenCode | `npm install -g @opencode/cli`, then `opencode auth login` | `opencode` | yes (1.19 and 2.1) |
+| OpenCode | `npm install -g @opencode/cli`, then `opencode auth login` | `opencode` | yes (1.19) |
 | Auggie | `npm install -g @augmentcode/auggie` (Node 20.6 or later), then `auggie auth login` | `auggie` | yes (1.2 and 0.37) |
 | Gemini CLI | `npm install -g @google/gemini-cli`, then run `gemini` once to sign in | `gemini` | not yet |
 
