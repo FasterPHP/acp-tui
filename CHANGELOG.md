@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Other changes
+
+- Ctrl+O pressed again puts back what it opened: in `focus` the latest call's line closes with the call, instead of staying open. A newer call started between the presses takes over, and a line you opened yourself stays open.
+- Switching the density (`v`, the palette or the `density` setting) returns every tool call, thought and line to the new density's default, so the calls and lines you opened or closed by hand follow the switch too.
+
 ## 0.4.0
 
 Kept drafts, a cursor that follows the terminal's colours, and `focus` density with one line per gap of hidden work. Ctrl+D now always leaves (see Breaking changes).
