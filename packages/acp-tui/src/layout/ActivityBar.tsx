@@ -102,6 +102,12 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     if (store.session.state === "idle") endLinger();
   });
 
+  // The run time as drawn, from the store's view; a string memo, so the row is recomputed once a
+  // second while the turn runs, not on every other change to the view (scrolling, focus).
+  const runTime = createMemo(() => {
+    const view = store.view();
+    return store.session.state !== "idle" && view.turnStartedAt !== null ? formatElapsed(view.now - view.turnStartedAt) : null;
+  });
   const row = createMemo(() => {
     const running = store.session.state !== "idle";
     const tools = running
@@ -113,11 +119,10 @@ export const ActivityBar: BlockComponent = (props: BlockProps) => {
     const permissionOpen = store.session.openPermissionId !== null;
     // The run time ends where the conversation's text does: before its right margin and scroll bar.
     const width = props.width - RIGHT_MARGIN - (scrollbar !== undefined && props.layout.scrollbar ? SCROLLBAR_COLUMNS : 0);
-    const view = store.view();
-    const runTime = running && view.turnStartedAt !== null ? formatElapsed(view.now - view.turnStartedAt) : null;
+    const time = running ? runTime() : null;
     const lingering = linger();
-    if (running && lingering && tools.length === 0 && plan.length === 0 && !permissionOpen) return lingerLine(lingering, width, undefined, undefined, runTime);
-    return activityBar({ running: tools, plan, permissionOpen, runTime }, width);
+    if (running && lingering && tools.length === 0 && plan.length === 0 && !permissionOpen) return lingerLine(lingering, width, undefined, undefined, time);
+    return activityBar({ running: tools, plan, permissionOpen, runTime: time }, width);
   });
   // The line keeps its row for the whole session, blank until something has run (task 13.2).
   createEffect(() => props.onHeight(ACTIVITY_LINE_ROWS));
