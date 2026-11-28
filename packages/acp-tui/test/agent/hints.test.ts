@@ -2,7 +2,7 @@
 // not installed" and "Harness needs a login"): the program is the command's base name, or the
 // Claude adapter's package among the arguments, whatever the entry is called.
 import { describe, expect, test } from "bun:test";
-import { AUGGIE_INSTALL_HINT, BUN_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "../../src/agent/command.ts";
+import { AUGGIE_INSTALL_HINT, BUN_INSTALL_HINT, GEMINI_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "../../src/agent/command.ts";
 import { CLAUDE_ADAPTER_PACKAGE_NAME, commandBaseName, hintsFor, PROGRAM_HINTS, programHints, programOf } from "../../src/agent/hints.ts";
 
 describe("commandBaseName", () => {
@@ -79,9 +79,15 @@ describe("hintsFor", () => {
     expect(hints.loginHint).toBeUndefined();
   });
 
+  test("gemini: an install hint that says to sign in on the first run, and no login command (Gemini CLI has none)", () => {
+    expect(hintsFor("gemini", ["--acp"], "linux")).toEqual({ shortName: "gemini", installHint: GEMINI_INSTALL_HINT });
+    expect(GEMINI_INSTALL_HINT).toBe("npm install -g @google/gemini-cli (Node 20 or later), then run gemini once to sign in");
+    expect(hintsFor("C:\\npm\\gemini.cmd", ["--acp"], "win32").installHint).toBe("npm.cmd install -g @google/gemini-cli (Node 20 or later), then run gemini.cmd once to sign in");
+  });
+
   test("an unknown program, or one only named like a known one, has none", () => {
     expect(hintsFor("my-auggie", ["--acp"], "linux")).toEqual({});
-    expect(hintsFor("gemini", ["--acp"], "linux")).toEqual({});
+    expect(hintsFor("qwen", ["--acp"], "linux")).toEqual({});
     expect(hintsFor("auggie-wrapper", [], "linux")).toEqual({});
   });
 });

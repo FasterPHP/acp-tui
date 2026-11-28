@@ -7,7 +7,8 @@
 // updates the command and nothing needs reinstalling; it is needed again only if the checkout
 // moves. A regular file also satisfies the PhpStorm "AI Agents" plugin's resolver.
 //
-//   bun run install-cli [--dir <path>] [--force]     install (default ~/.local/bin)
+//   bun run install-cli [--dir <path>] [--force] [--harness <name>[,<name>...] [--default <name>]]
+//                                                    install (default ~/.local/bin)
 //   bun run install-cli --uninstall [--dir <path>]   remove the stub it wrote
 //
 // It overwrites a file only if the file carries its own marker or is the phase-1a launcher
@@ -21,6 +22,15 @@
 // already at that path is kept, whatever it is (an exclusive create, so not even a dangling
 // symlink is written through), and `--force` does not change that: it is about the stub only.
 // `--uninstall` leaves the configuration alone.
+//
+// `--harness` (install-harness-choice; tui-config "Harness choice at install") chooses the harnesses
+// in effect in the file it creates: the same commented default with those examples uncommented and
+// `default_agent_server` set to `--default`, else the first name given (src/config/harness-choice.ts
+// checks the names, default-file.ts renders the file). It is checked before anything is written: an
+// unknown name, a `--default` that is not among them or given without `--harness`, and either with
+// `--uninstall`, exit 2 and write nothing. When the configuration already exists it is kept as
+// always, the command is still installed, and a warning says what to change in the file by hand;
+// the exit status stays 0, so rerunning the same line to repoint the command does not fail.
 //
 // Every install also writes `config.dist.jsonc` beside the configuration (interface-feedback D4;
 // tui-config "Default configuration beside the user's file"): three `//` header lines naming the
@@ -56,6 +66,7 @@ import { dirname, join, resolve } from "node:path";
 import { configDirectory, pathsFor, pathWithin, windowsProfile, type Platform } from "../src/platform/paths.ts";
 import { envValue } from "../src/agent/which.ts";
 import { renameOver } from "../src/platform/replace-file.ts";
+import type { HarnessChoice } from "../src/config/harness-choice.ts";
 
 const MARKER_TEXT = "acp-tui-install-cli: written by `bun run install-cli`; rerun it to repoint, do not edit.";
 
@@ -141,6 +152,9 @@ interface Parsed {
   force: boolean;
   uninstall: boolean;
   help: boolean;
+  /** Each `--harness` value as given (a name or a comma-separated list). */
+  harness: string[];
+  default?: string;
 }
 
 /**
@@ -153,10 +167,22 @@ export function defaultDirectory(env: Record<string, string | undefined>, platfo
 }
 
 function parse(argv: readonly string[], dir: string): Parsed {
-  const parsed: Parsed = { dir, force: false, uninstall: false, help: false };
+  const parsed: Parsed = { dir, force: false, uninstall: false, help: false, harness: [] };
+  const value = (i: number, flag: string, what: string): string => {
+    const next = argv[i];
+    if (next === undefined || next === "" || next.startsWith("--")) throw new Error(`${flag} needs ${what}`);
+    return next;
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
     if (arg === "--force") parsed.force = true;
+    else if (arg === "--harness") parsed.harness.push(value(++i, "--harness", "a harness name, or names separated by commas"));
+    else if (arg.startsWith("--harness=")) parsed.harness.push(arg.slice("--harness=".length));
+    else if (arg === "--default") parsed.default = value(++i, "--default", "a harness name");
+    else if (arg.startsWith("--default=")) {
+      parsed.default = arg.slice("--default=".length);
+      if (parsed.default === "") throw new Error("--default needs a harness name");
+    }
     else if (arg === "--uninstall") parsed.uninstall = true;
     else if (arg === "--help" || arg === "-h") parsed.help = true;
     else if (arg === "--dir") {
@@ -166,10 +192,14 @@ function parse(argv: readonly string[], dir: string): Parsed {
     } else if (arg.startsWith("--dir=")) parsed.dir = resolve(arg.slice("--dir=".length));
     else throw new Error(`unknown argument ${arg}`);
   }
+  if (parsed.uninstall && (parsed.harness.length > 0 || parsed.default !== undefined)) {
+    throw new Error("--harness and --default choose what a new configuration holds; --uninstall takes only --dir");
+  }
+  if (parsed.default !== undefined && parsed.harness.length === 0) throw new Error("--default needs --harness, naming the harnesses to put in effect");
   return parsed;
 }
 
-const HELP = `Usage: bun run install-cli [--dir <path>] [--force]
+const HELP = `Usage: bun run install-cli [--dir <path>] [--force] [--harness <name>[,<name>...] [--default <name>]]
        bun run install-cli --uninstall [--dir <path>]
 
 Installs an \`acp-tui\` command (default directory ~/.local/bin) that runs this checkout's
@@ -182,8 +212,14 @@ where Bun's installer already put a directory on your PATH.
 
 It also creates your configuration file, $XDG_CONFIG_HOME/acp-tui/config.jsonc (else
 ~/.config/acp-tui/config.jsonc; on Windows %APPDATA%\\acp-tui\\config.jsonc), with the auggie
-harness and every setting at its default, when there is none. An existing configuration is never replaced, not
-even with --force, and --uninstall leaves it alone.
+harness and every setting at its default, when there is none. An existing configuration is never
+replaced, not even with --force, and --uninstall leaves it alone.
+
+--harness claude,codex puts those harnesses in effect in the new configuration instead of auggie,
+and makes --default (else the first one named) the harness a plain \`acp-tui\` starts. It takes
+the names of the examples in \`acp-tui config --print-default\`, such as auggie, claude, codex,
+opencode and gemini. Install the harness itself too. If the configuration already exists, it is
+kept and install-cli says what to change in it.
 
 Every install also writes config.dist.jsonc beside it: the default configuration of this
 version, never read by acp-tui, for comparison with your config.jsonc (or run
@@ -230,7 +266,7 @@ function safeRealpath(path: string): string {
 /** The package's configuration modules, imported when needed (see the header). */
 async function configModules(): Promise<{
   userConfigFile: (env: Record<string, string | undefined>) => string;
-  commentedDefault: () => string;
+  commentedDefault: (platform?: NodeJS.Platform, choice?: HarnessChoice) => string;
 }> {
   const sources = await import("../src/config/sources.ts");
   const defaults = await import("../src/config/default-file.ts");
@@ -245,7 +281,7 @@ export type ConfigOutcome = { created: true; file: string } | { created: false; 
  * acp-tui's session index: an agent entry's `env` may hold a key, and acp-tui refuses the file's
  * agents when it or its directory is writable by group or others.
  */
-export async function createConfiguration(env: Record<string, string | undefined>): Promise<ConfigOutcome> {
+export async function createConfiguration(env: Record<string, string | undefined>, choice?: HarnessChoice): Promise<ConfigOutcome> {
   const { userConfigFile, commentedDefault } = await configModules();
   const file = userConfigFile(env);
   if (lstatOrNull(file)) return { created: false, file };
@@ -257,7 +293,7 @@ export async function createConfiguration(env: Record<string, string | undefined
   try {
     // "wx": create only, failing on anything already there (a file, a directory, or a symlink,
     // dangling or not), so a configuration that appears in the meantime is not replaced either.
-    writeFileSync(file, commentedDefault(), { flag: "wx", mode: 0o600 });
+    writeFileSync(file, commentedDefault(process.platform, choice), { flag: "wx", mode: 0o600 });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "EEXIST") return { created: false, file };
     throw error;
@@ -347,6 +383,19 @@ export async function main(
     io.stdout(HELP);
     return 0;
   }
+  // The harness choice is checked before anything is written (see the header).
+  let choice: HarnessChoice | undefined;
+  let harnessList: ((names: readonly string[]) => string) | undefined;
+  if (parsed.harness.length > 0) {
+    const module = await import("../src/config/harness-choice.ts");
+    harnessList = module.harnessList;
+    try {
+      choice = module.harnessChoice(module.splitHarnessNames(parsed.harness), parsed.default);
+    } catch (error) {
+      io.stderr(`install-cli: ${error instanceof Error ? error.message : String(error)}; nothing was installed\n`);
+      return 2;
+    }
+  }
 
   // On Windows an old `sh` stub named `acp-tui` (from before this script wrote `.cmd` files) is a
   // different file and is never touched.
@@ -410,7 +459,7 @@ export async function main(
 
   let outcome: ConfigOutcome;
   try {
-    outcome = await createConfiguration(env);
+    outcome = await createConfiguration(env, choice);
   } catch (error) {
     io.stderr(
       `install-cli: the command is installed, but the configuration file was not created: ${error instanceof Error ? error.message : String(error)}\n` +
@@ -418,11 +467,23 @@ export async function main(
     );
     return 1;
   }
+  const chosen =
+    choice && harnessList
+      ? `the ${harnessList(choice.enabled)} ${choice.enabled.length === 1 ? "harness" : `harnesses (${choice.defaultName} the default)`}`
+      : "the auggie harness";
   io.stdout(
     outcome.created
-      ? `install-cli: created ${outcome.file}, with the auggie harness and every setting at its default; uncomment an example to add a harness (acp-tui config --check checks it)\n`
+      ? `install-cli: created ${outcome.file}, with ${chosen} and every setting at its default; uncomment an example to add a harness (acp-tui config --check checks it)\n`
       : `install-cli: kept the existing configuration ${outcome.file}\n`,
   );
+  if (!outcome.created && choice && harnessList) {
+    io.stderr(
+      `install-cli: warning: --harness was not applied, because a configuration already exists and is never replaced. ` +
+        `To use ${harnessList(choice.enabled)}, add ${choice.enabled.length === 1 ? "its entry" : "their entries"} under agent_servers in ${outcome.file} ` +
+        `(the lines are in ${DIST_FILE_NAME} beside it, or in acp-tui config --print-default) and set "default_agent_server": "${choice.defaultName}"; ` +
+        `or move the file away and run install-cli again\n`,
+    );
+  }
   const dist = await writeDistConfiguration(join(dirname(outcome.file), DIST_FILE_NAME));
   if (dist.stdout) io.stdout(dist.stdout);
   if (dist.stderr) io.stderr(dist.stderr);

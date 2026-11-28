@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { OPENCODE_INSTALL_HINT } from "../../src/agent/command.ts";
 import { AgentLaunchError, launchAgent } from "../../src/agent/launch.ts";
+import { hintsFor } from "../../src/agent/hints.ts";
 import { AgentStartupError } from "../../src/agent/connection.ts";
 import { startSession } from "../../src/session/controller.ts";
 
@@ -47,6 +48,19 @@ describe("agent/launch (task 5.2)", () => {
       expect(failure.notFound).toBe(true);
       expect(failure.message).toContain("harness 'opencode' (command 'opencode acp')");
       expect(failure.message).toEndWith("; opencode is not installed: install it with npm install -g @opencode/cli, or see opencode.ai/docs");
+    }
+  });
+
+  test("Gemini CLI: a PATH without gemini ends the message with its install hint, found by program", () => {
+    try {
+      launchAgent(["gemini", "--acp"], { harness: "gemini", installHint: hintsFor("gemini", ["--acp"], "linux").installHint, env: { PATH: "/usr/bin:/bin", HOME: "/nonexistent" } });
+      throw new Error("expected launchAgent to throw");
+    } catch (error) {
+      const failure = error as AgentLaunchError;
+      expect(failure).toBeInstanceOf(AgentLaunchError);
+      expect(failure.notFound).toBe(true);
+      expect(failure.message).toContain("harness 'gemini' (command 'gemini --acp')");
+      expect(failure.message).toEndWith("; gemini is not installed: install it with npm install -g @google/gemini-cli (Node 20 or later), then run gemini once to sign in");
     }
   });
 

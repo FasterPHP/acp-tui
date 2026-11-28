@@ -53,11 +53,21 @@ export function opencodeInstallHint(platform: NodeJS.Platform = process.platform
   return `${npmProgram("npm", platform)} install -g @opencode/cli, or see opencode.ai/docs`;
 }
 
+/** How to install Gemini CLI (`@google/gemini-cli`, whose engines field asks for Node 20) and sign
+ *  in: Gemini CLI has no login command, it signs in inside its own interface on its first run.
+ *  `npm.cmd` and `gemini.cmd` on Windows. */
+export function geminiInstallHint(platform: NodeJS.Platform = process.platform): string {
+  return `${npmProgram("npm", platform)} install -g @google/gemini-cli (Node 20 or later), then run ${npmProgram("gemini", platform)} once to sign in`;
+}
+
 /** Auggie's install hint as Linux and macOS give it, for the default file's description of the entry. */
 export const AUGGIE_INSTALL_HINT = auggieInstallHint("linux");
 
 /** OpenCode's install hint as Linux and macOS give it, for the default file's description of the entry. */
 export const OPENCODE_INSTALL_HINT = opencodeInstallHint("linux");
+
+/** Gemini CLI's install hint as Linux and macOS give it, for the default file's description of the entry. */
+export const GEMINI_INSTALL_HINT = geminiInstallHint("linux");
 
 /** The Claude adapter runs through `bunx`, which comes with Bun. */
 export const BUN_INSTALL_HINT = "Bun from bun.sh, which provides bunx";

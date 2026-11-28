@@ -5,7 +5,7 @@
 // and login hints cannot be settings, so they stay here, keyed by the program the entry (or an ad
 // hoc command) runs, whatever the entry is called: the command's base name, or for the Claude
 // adapter run through `bunx` or `npx`, the package among the arguments.
-import { auggieInstallHint, auggieLoginCommand, BUN_INSTALL_HINT, opencodeInstallHint } from "./command.ts";
+import { auggieInstallHint, auggieLoginCommand, BUN_INSTALL_HINT, geminiInstallHint, opencodeInstallHint } from "./command.ts";
 
 /** What acp-tui can tell the user about a program it knows. */
 export interface ProgramHints {
@@ -24,12 +24,16 @@ export const CLAUDE_ADAPTER_PACKAGE_NAME = "@agentclientprotocol/claude-agent-ac
 
 /** The programs acp-tui knows, by name, with the commands as the user types them on `platform`
  *  (on Windows `npm.cmd` and `auggie.cmd`, src/agent/command.ts). The Claude adapter has no login
- *  hint: Claude Code logs in inside its own interface (`/login`), and the adapter's message says so. */
+ *  hint: Claude Code logs in inside its own interface (`/login`), and the adapter's message says so;
+ *  nor has Gemini CLI, which signs in on its first run. */
 export function programHints(platform: NodeJS.Platform = process.platform): Readonly<Record<string, ProgramHints>> {
   return {
     auggie: { shortName: "auggie", installHint: auggieInstallHint(platform), loginHint: auggieLoginCommand(platform) },
     opencode: { shortName: "opencode", installHint: opencodeInstallHint(platform), loginHint: "opencode auth login" },
     "claude-agent-acp": { shortName: "claude", installHint: BUN_INSTALL_HINT },
+    // No login hint: Gemini CLI signs in inside its own interface (install-harness-choice), which the
+    // install hint says.
+    gemini: { shortName: "gemini", installHint: geminiInstallHint(platform) },
   };
 }
 

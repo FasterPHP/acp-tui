@@ -5,7 +5,7 @@
 // also what acp-tui reads when the user has no file); the others are commented out.
 import { shortenHome } from "../layout/segments.ts";
 import { userHome, type Platform } from "../platform/paths.ts";
-import { AUGGIE_INSTALL_HINT, CLAUDE_EXAMPLE_COMMAND, CLAUDE_STARTUP_TIMEOUT_SECONDS, DEFAULT_HARNESS, OPENCODE_INSTALL_HINT } from "./command.ts";
+import { AUGGIE_INSTALL_HINT, CLAUDE_EXAMPLE_COMMAND, CLAUDE_STARTUP_TIMEOUT_SECONDS, DEFAULT_HARNESS, GEMINI_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "./command.ts";
 
 /** An example's `agent_servers` entry, as the default file writes it (the setting names in camel case). */
 export interface AgentExampleEntry {
@@ -23,12 +23,17 @@ export interface AgentExampleEntry {
 /** One agent example: what it is and where its command is documented, and its entry. */
 export interface AgentExample {
   readonly name: string;
+  /** What it is, as a sentence's start that reads after "Example, not active:" and after "The
+   *  default harness," (the default file adds whichever applies). */
   readonly about: string;
   readonly entry: AgentExampleEntry;
   /** In effect in the default configuration (`auggie` only); every other example is commented out. */
   readonly active?: boolean;
   /** A commented alternative written below an active entry, with what it changes. */
   readonly suggestion?: { readonly about: string; readonly entry: AgentExampleEntry };
+  /** False for an example that cannot be put in effect as written (its entry holds a placeholder to
+   *  replace), so `install-cli --harness` does not offer it. */
+  readonly selectable?: false;
 }
 
 /** Auggie's arguments for additional directories (`additional_directory_args`): `--add-workspace`
@@ -45,7 +50,7 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
     name: "auggie",
     active: true,
-    about: `The default harness, Auggie, installed with ${AUGGIE_INSTALL_HINT}. This one entry runs either generation, whichever your npm installed: acp-tui recognises 0.x and 1.x when Auggie starts and logs you in with the matching command (auggie auth login for 1.x, auggie login for 0.x). To choose a thinking effort at start-up, add --thinking <effort> to args for 1.x, or --reasoning-effort <effort> for 0.x. Auggie 1.x asks for no permission unless it is given rules: to be asked before it runs commands or changes files, add "--permission", "bash:ask-user", "--permission", "write:ask-user", "--permission", "edit:ask-user" to args (not checked with 0.x, so keep them out of an entry that may run it). Auggie 1.x indexes a directory only once it is allowed: acp-tui asks, and on your yes restarts Auggie with --allow-indexing, which Auggie saves as a lasting rule. additional_directory_args is the template acp-tui uses to pass each additional directory to a harness that does not take them through ACP, here as --add-workspace: the entry's additional_directories, a project's, --add-dir and /add-dir. Source: docs.augmentcode.com/cli/acp.`,
+    about: `Auggie, installed with ${AUGGIE_INSTALL_HINT}. This one entry runs either generation, whichever your npm installed: acp-tui recognises 0.x and 1.x when Auggie starts and logs you in with the matching command (auggie auth login for 1.x, auggie login for 0.x). To choose a thinking effort at start-up, add --thinking <effort> to args for 1.x, or --reasoning-effort <effort> for 0.x. Auggie 1.x asks for no permission unless it is given rules: to be asked before it runs commands or changes files, add "--permission", "bash:ask-user", "--permission", "write:ask-user", "--permission", "edit:ask-user" to args (not checked with 0.x, so keep them out of an entry that may run it). Auggie 1.x indexes a directory only once it is allowed: acp-tui asks, and on your yes restarts Auggie with --allow-indexing, which Auggie saves as a lasting rule. additional_directory_args is the template acp-tui uses to pass each additional directory to a harness that does not take them through ACP, here as --add-workspace: the entry's additional_directories, a project's, --add-dir and /add-dir. Source: docs.augmentcode.com/cli/acp.`,
     entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
     suggestion: {
       about:
@@ -80,6 +85,7 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
     about:
       'DeepSeek has no ACP agent of its own, so reach it through a harness such as OpenCode. Connect DeepSeek in OpenCode with /connect, then give this entry an OpenCode config file that sets "model" to a DeepSeek model, which /models lists. Sources: opencode.ai/docs/providers and opencode.ai/docs/config for OPENCODE_CONFIG.',
     entry: { command: "opencode", args: ["acp"], env: { OPENCODE_CONFIG: "/home/you/.config/opencode/deepseek.json" } },
+    selectable: false,
   },
   {
     name: "pi",
@@ -88,7 +94,7 @@ export const AGENT_EXAMPLES: readonly AgentExample[] = [
   },
   {
     name: "gemini",
-    about: "Google's Gemini CLI. Source: geminicli.com/docs/cli/acp-mode.",
+    about: `Google's Gemini CLI, installed with ${GEMINI_INSTALL_HINT}; --experimental-acp is its older, deprecated name for --acp. Since 18 June 2026 Gemini CLI serves Gemini Code Assist enterprise accounts only: free and Google One accounts moved to Antigravity CLI. Not yet checked with acp-tui. Sources: geminicli.com/docs/cli/acp-mode, github.com/google-gemini/gemini-cli and npm @google/gemini-cli 0.71.1.`,
     entry: { command: "gemini", args: ["--acp"] },
   },
   {

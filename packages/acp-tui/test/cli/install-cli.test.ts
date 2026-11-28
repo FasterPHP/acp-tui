@@ -39,6 +39,7 @@ import {
   shellQuote,
 } from "../../scripts/install-cli.ts";
 import { commentedDefault } from "../../src/config/default-file.ts";
+import { harnessChoice } from "../../src/config/harness-choice.ts";
 import { WINDOWS } from "../windows.ts";
 import { mergeEnvironment } from "../../src/agent/which.ts";
 
@@ -676,5 +677,126 @@ describe("install-cli on Windows (platform injected)", () => {
     expect(await installMain(["--uninstall", "--dir", bin], removed.io, winEnv(home), "win32")).toBe(0);
     expect(existsSync(dist)).toBe(false);
     expect(readFileSync(join(home, "config/acp-tui/config.jsonc"), "utf8")).toBe(commentedDefault());
+  });
+});
+
+// install-harness-choice: `--harness <name>[,<name>...] [--default <name>]` (spec tui-config "Harness
+// choice at install"). In process, with the configuration under a temporary XDG_CONFIG_HOME, except
+// the end-to-end run through `bun run install-cli` and the installed command.
+describe("install-cli --harness", () => {
+  const collect = () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    return { out, err, io: { stdout: (t: string) => void out.push(t), stderr: (t: string) => void err.push(t) } };
+  };
+  const envOf = (home: string, bin: string) => ({ HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, "config"), PATH: bin, Path: bin });
+  const configFile = (home: string) => join(home, "config/acp-tui/config.jsonc");
+  const stubIn = (bin: string) => join(bin, WINDOWS ? "acp-tui.cmd" : "acp-tui");
+
+  // Skipped on Windows: it runs the POSIX sh stub it installs.
+  test.skipIf(WINDOWS)("through `bun run install-cli`: claude and codex in effect, codex the default; the file checks clean and the dist file stays the plain default", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const result = await run(["bun", "run", "install-cli", "--dir", bin, "--harness", "claude,codex", "--default", "codex"], { cwd: ROOT, env: { HOME: home } });
+    expect(result.code).toBe(0);
+    const file = configIn(home);
+    expect(readFileSync(file, "utf8")).toBe(commentedDefault(process.platform, harnessChoice(["claude", "codex"], "codex")));
+    expect(statSync(file).mode & 0o777).toBe(0o600);
+    expect(result.stdout).toContain(`created ${file}, with the claude and codex harnesses (codex the default) and every setting at its default`);
+    expect(readFileSync(join(dirname(file), DIST_FILE_NAME), "utf8")).toBe(distContent(JSON.parse(readFileSync(join(ROOT, "packages/acp-tui/package.json"), "utf8")).version, commentedDefault()));
+    const checked = await run([join(bin, "acp-tui"), "config", "--check"], { cwd: home, env: { HOME: home } });
+    expect(checked.code).toBe(0);
+  }, 30000);
+
+  test("one harness: --default is the one named; the message names it", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const { io, out, err } = collect();
+    expect(await installMain(["--dir", bin, "--harness=claude"], io, envOf(home, bin))).toBe(0);
+    expect(readFileSync(configFile(home), "utf8")).toBe(commentedDefault(process.platform, harnessChoice(["claude"])));
+    expect(out.join("")).toContain("with the claude harness and every setting at its default");
+    expect(err.join("")).toBe("");
+  });
+
+  test("--harness auggie gives exactly the default file", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    expect(await installMain(["--dir", bin, "--harness", "auggie"], collect().io, envOf(home, bin))).toBe(0);
+    expect(readFileSync(configFile(home), "utf8")).toBe(commentedDefault());
+  });
+
+  test("an unknown name exits 2, lists the names it takes, and writes neither the command nor the configuration", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const { io, err } = collect();
+    expect(await installMain(["--dir", bin, "--harness", "claude,nope"], io, envOf(home, bin))).toBe(2);
+    expect(err.join("")).toContain("unknown harness 'nope'; --harness takes auggie, auggie-v2, claude, opencode, codex");
+    expect(err.join("")).toContain("nothing was installed");
+    expect(existsSync(bin)).toBe(false);
+    expect(existsSync(join(home, "config"))).toBe(false);
+  });
+
+  test("bad combinations exit 2 and write nothing", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const cases: [string[], string][] = [
+      [["--default", "claude"], "--default needs --harness"],
+      [["--harness", "claude", "--default", "codex"], "--default codex is not among the harnesses given with --harness (claude)"],
+      [["--uninstall", "--harness", "claude"], "--uninstall takes only --dir"],
+      [["--uninstall", "--default", "claude", "--harness", "claude"], "--uninstall takes only --dir"],
+      [["--harness"], "--harness needs a harness name"],
+      [["--harness", "--force"], "--harness needs a harness name"],
+      [["--harness="], "separated by commas"],
+      [["--harness", "claude,,codex"], "separated by commas"],
+      [["--harness", "claude", "--default="], "--default needs a harness name"],
+    ];
+    for (const [args, message] of cases) {
+      const { io, err } = collect();
+      expect(await installMain(["--dir", bin, ...args], io, envOf(home, bin))).toBe(2);
+      expect(err.join("")).toContain(message);
+    }
+    expect(existsSync(bin)).toBe(false);
+    expect(existsSync(join(home, "config"))).toBe(false);
+  });
+
+  test("repeated --harness values add up, first occurrence kept", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    expect(await installMain(["--dir", bin, "--harness", "opencode", "--harness", "claude,opencode"], collect().io, envOf(home, bin))).toBe(0);
+    expect(readFileSync(configFile(home), "utf8")).toBe(commentedDefault(process.platform, harnessChoice(["opencode", "claude"])));
+  });
+
+  test("an existing configuration is kept, the command installed, exit 0, and a warning says what to change", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    mkdirSync(join(home, "config/acp-tui"), { recursive: true });
+    writeFileSync(configFile(home), "{}\n");
+    const { io, out, err } = collect();
+    expect(await installMain(["--dir", bin, "--harness", "claude,codex"], io, envOf(home, bin))).toBe(0);
+    expect(readFileSync(configFile(home), "utf8")).toBe("{}\n");
+    expect(classify(readFileSync(stubIn(bin), "utf8"))).toBe("stub");
+    expect(out.join("")).toContain(`kept the existing configuration ${configFile(home)}`);
+    const warning = err.join("");
+    expect(warning).toContain("--harness was not applied, because a configuration already exists and is never replaced");
+    expect(warning).toContain(`To use claude and codex, add their entries under agent_servers in ${configFile(home)}`);
+    expect(warning).toContain(`(the lines are in ${DIST_FILE_NAME} beside it`);
+    expect(warning).toContain('set "default_agent_server": "claude"');
+  });
+
+  test("on Windows (platform injected): acp-tui.cmd, and the chosen configuration under %APPDATA%-style XDG_CONFIG_HOME", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const { io, out } = collect();
+    expect(await installMain(["--dir", bin, "--harness", "claude"], io, { USERPROFILE: home, XDG_CONFIG_HOME: join(home, "config"), Path: bin }, "win32")).toBe(0);
+    expect(classify(readFileSync(join(bin, "acp-tui.cmd"), "utf8"))).toBe("stub");
+    expect(readFileSync(configFile(home), "utf8")).toBe(commentedDefault(process.platform, harnessChoice(["claude"])));
+    expect(out.join("")).toContain("with the claude harness");
+  });
+
+  test("--help describes --harness and --default", async () => {
+    const { io, out } = collect();
+    expect(await installMain(["--help"], io, {})).toBe(0);
+    expect(out.join("")).toContain("[--harness <name>[,<name>...] [--default <name>]]");
+    expect(out.join("")).toContain("--harness claude,codex puts those harnesses in effect");
   });
 });

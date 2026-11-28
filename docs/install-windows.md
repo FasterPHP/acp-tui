@@ -37,7 +37,7 @@ The checkout works with `core.autocrlf` set either way (`true` is Git for Window
 bun run install-cli
 ```
 
-On Windows this writes `acp-tui.cmd` into `%USERPROFILE%\.bun\bin` (use `--dir <path>` for another directory). It is a small batch file that holds the checkout's path and the path of the Bun that ran the install, and runs the checkout's `packages\acp-tui\src\cli.ts`; a `git pull` updates the command, so run `install-cli` again only if you move the checkout or install another Bun. It prints the file's path, warns if the directory is not on your `PATH`, and creates your configuration file (below) when there is none.
+On Windows this writes `acp-tui.cmd` into `%USERPROFILE%\.bun\bin` (use `--dir <path>` for another directory). It is a small batch file that holds the checkout's path and the path of the Bun that ran the install, and runs the checkout's `packages\acp-tui\src\cli.ts`; a `git pull` updates the command, so run `install-cli` again only if you move the checkout or install another Bun. It prints the file's path, warns if the directory is not on your `PATH`, and creates your configuration file (below) when there is none, with Auggie as its harness. To start with another harness, name it: `bun run install-cli --harness claude` (several separated by commas, the first the default, or `--default <name>`). An existing configuration file is never replaced; install-cli then says what to add to it.
 
 Open a new PowerShell window (the command is not found by windows that were open before the install) and check it from a directory that is not the checkout:
 
@@ -83,7 +83,7 @@ On Windows `auggie` is a `.cmd` file made by npm, which acp-tui starts through `
 
 ### Claude Code
 
-`claude-agent-acp`, which Bun downloads on first use, is a commented example in the default configuration: remove the `//` in front of the `claude` line under `agent_servers`, then run `acp-tui claude` (or set `"default_agent_server": "claude"` to start it with a bare `acp-tui`). It uses your Claude Code login, so sign in to Claude Code first. While it runs, the terminal tab reads `claude` rather than the directory's name: Claude Code names the tab itself. Other harnesses (Codex, OpenCode and the rest) are examples too, listed with their commands in [configuration.md](configuration.md#harnesses).
+`claude-agent-acp`, which Bun downloads on first use, is a commented example in the default configuration: remove the `//` in front of the `claude` line under `agent_servers`, then run `acp-tui claude` (or set `"default_agent_server": "claude"` to start it with a bare `acp-tui`); for a new configuration, `bun run install-cli --harness claude` does both. It uses your Claude Code login, so sign in to Claude Code first. While it runs, the terminal tab reads `claude` rather than the directory's name: Claude Code names the tab itself. Other harnesses (Codex, OpenCode and the rest) are examples too, listed with their commands in [configuration.md](configuration.md#harnesses).
 
 ## 4. Terminals
 

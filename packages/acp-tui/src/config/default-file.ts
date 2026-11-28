@@ -27,6 +27,7 @@ import { KEY_ACTIONS, KEY_CONTEXTS } from "../keys/keymap.ts";
 import { AGENT_EXAMPLES, type AgentExample } from "../agent/examples.ts";
 import { TERMINAL_TABLE, type TerminalCapabilities } from "../renderer/capabilities.ts";
 import { describeSchema } from "./load.ts";
+import { harnessList, isShippedChoice, shippedChoice, type HarnessChoice } from "./harness-choice.ts";
 import {
   AgentServerSchema,
   defaultConfig,
@@ -187,21 +188,31 @@ function agentLine(name: string, entry: AgentExample["entry"]): string {
   return `${JSON.stringify(name)}: { "command": ${JSON.stringify(entry.command)}, "args": ${list(entry.args)}${env}${directories}${own}${timeout} },`;
 }
 
-/** An example's lines: in effect (`auggie`, with its commented alternative) or commented out. */
-function exampleLines(example: AgentExample, indent: string): string[] {
-  if (example.active !== true) return [...comment(`${EXAMPLE} ${example.about}`, indent), ...commentedOut([agentLine(example.name, example.entry)], indent)];
+/** What one rendering puts in effect: the harness choice (install-harness-choice), and whether it
+ *  is the shipped one, which keeps every line of the default as it is. */
+interface Rendering {
+  readonly choice: HarnessChoice;
+  readonly shipped: boolean;
+}
+
+/** An example's lines: in effect (with its commented alternative, `auggie`'s) or commented out. The
+ *  default harness's comment starts "The default harness,"; another entry in effect starts with its
+ *  own words. */
+function exampleLines(example: AgentExample, indent: string, ctx: Rendering): string[] {
+  if (!ctx.choice.enabled.includes(example.name)) return [...comment(`${EXAMPLE} ${example.about}`, indent), ...commentedOut([agentLine(example.name, example.entry)], indent)];
   const suggestion = example.suggestion;
+  const about = example.name === ctx.choice.defaultName ? `The default harness, ${example.about}` : example.about.charAt(0).toUpperCase() + example.about.slice(1);
   return [
-    ...comment(example.about, indent),
+    ...comment(about, indent),
     `${indent}${agentLine(example.name, example.entry)}`,
     ...(suggestion ? [...comment(`${EXAMPLE} ${suggestion.about}`, indent), ...commentedOut([agentLine(example.name, suggestion.entry)], indent)] : []),
   ];
 }
 
-type Special = (key: string, schema: AnySchema, indent: string) => string[];
+type Special = (key: string, schema: AnySchema, indent: string, ctx: Rendering) => string[];
 
 const SPECIALS: Readonly<Record<string, Special>> = {
-  agent_servers: (key, schema, indent) => {
+  agent_servers: (key, schema, indent, ctx) => {
     const inner = indent + STEP;
     const fields = objectShape(AgentServerSchema as unknown as AnySchema)!;
     return [
@@ -210,11 +221,13 @@ const SPECIALS: Readonly<Record<string, Special>> = {
       ...(["command", "args", "env", "additional_directory_args", "additional_directories"] as const).flatMap((field) => fieldLines(field, fields[field]!, indent)),
       ...comment('The harness runs in the session directory, so give paths in "command" and "args" as absolute paths.', indent),
       ...comment(
-        "Each harness needs an entry here: acp-tui launches nothing else by name. The default configuration has one, auggie, in effect; every entry after it is an example, not active: install the harness, then remove the // in front of its line to add it.",
+        ctx.shipped
+          ? "Each harness needs an entry here: acp-tui launches nothing else by name. The default configuration has one, auggie, in effect; every entry after it is an example, not active: install the harness, then remove the // in front of its line to add it."
+          : `Each harness needs an entry here: acp-tui launches nothing else by name. This file was written with the ${ctx.choice.enabled.length === 1 ? "harness" : "harnesses"} you chose in effect, ${harnessList(ctx.choice.enabled)}; every other entry is an example, not active: install the harness, then remove the // in front of its line to add it.`,
         indent,
       ),
       `${indent}"${key}": {`,
-      ...AGENT_EXAMPLES.flatMap((example, i) => [...(i > 0 ? [""] : []), ...exampleLines(example, inner)]),
+      ...AGENT_EXAMPLES.flatMap((example, i) => [...(i > 0 ? [""] : []), ...exampleLines(example, inner, ctx)]),
       `${indent}},`,
     ];
   },
@@ -311,15 +324,15 @@ const SPECIALS: Readonly<Record<string, Special>> = {
 };
 
 /** The lines of one setting at `indent` (with its comment), its default `value`. */
-function setting(path: string, key: string, schema: AnySchema, value: unknown, indent: string): string[] {
+function setting(path: string, key: string, schema: AnySchema, value: unknown, indent: string, ctx: Rendering): string[] {
   const special = SPECIALS[path];
-  if (special) return special(key, schema, indent);
+  if (special) return special(key, schema, indent, ctx);
   const shape = objectShape(schema);
   const isRecord = defOf(unwrap(schema)).type === "record";
   if (shape && !isRecord && isPlainObject(value)) {
     const lines = [...comment(describeOf(schema) ?? "", indent), `${indent}"${key}": {`];
     for (const [field, fieldSchema] of Object.entries(shape)) {
-      if (field in value || SPECIALS[`${path}.${field}`]) lines.push(...setting(`${path}.${field}`, field, fieldSchema, value[field], indent + STEP));
+      if (field in value || SPECIALS[`${path}.${field}`]) lines.push(...setting(`${path}.${field}`, field, fieldSchema, value[field], indent + STEP, ctx));
     }
     lines.push(`${indent}},`);
     return lines;
@@ -343,9 +356,14 @@ const LOCATION: Readonly<Record<"posix" | "win32", { readonly file: string; read
 export type FileHeader = readonly { readonly heading: string; readonly paragraphs: readonly string[] }[];
 
 /** The header: a title, then sections, each a heading and its paragraphs (task 12.7), naming the
- *  platform's location. */
-export function defaultFileHeader(platform: NodeJS.Platform = process.platform): FileHeader {
+ *  platform's location. With a harness choice other than the shipped one, "Making changes" says
+ *  that the harness lines differ from the default. */
+export function defaultFileHeader(platform: NodeJS.Platform = process.platform, choice?: HarnessChoice): FileHeader {
   const location = LOCATION[platform === "win32" ? "win32" : "posix"];
+  const asPrinted =
+    choice === undefined || isShippedChoice(choice)
+      ? "Lines that are not commented out are in effect. Each holds its setting's built-in default, so this file as printed changes nothing: acp-tui behaves as it does with no file. Edit a value to change that setting."
+      : `Lines that are not commented out are in effect. Each holds its setting's built-in default, except the harnesses: install-cli wrote this file with ${harnessList(choice.enabled)} in effect under agent_servers and default_agent_server set to ${choice.defaultName}, where acp-tui with no file has auggie alone. Edit a value to change that setting.`;
   return [
     {
       heading: "acp-tui configuration",
@@ -356,7 +374,7 @@ export function defaultFileHeader(platform: NodeJS.Platform = process.platform):
     {
       heading: "Making changes",
       paragraphs: [
-        "Lines that are not commented out are in effect. Each holds its setting's built-in default, so this file as printed changes nothing: acp-tui behaves as it does with no file. Edit a value to change that setting.",
+        asPrinted,
         'Lines commented out with // are not in effect. Some show the value acp-tui uses while a setting is absent: uncomment one and change it to replace that value. The others are examples, each introduced by "Example, not active": uncomment one to use it.',
         "Delete whatever you do not need: a setting that is absent keeps its default. The exception is agent_servers: a harness works only while it has an entry there.",
       ],
@@ -395,9 +413,9 @@ export const DEFAULT_FILE_HEADER: FileHeader = defaultFileHeader("linux");
 
 /** The header as comment lines: each heading with a blank comment line after it, and one between
  *  sections. */
-function headerLines(platform: NodeJS.Platform): string[] {
+function headerLines(platform: NodeJS.Platform, choice: HarnessChoice): string[] {
   const lines: string[] = [];
-  defaultFileHeader(platform).forEach(({ heading, paragraphs }, i) => {
+  defaultFileHeader(platform, choice).forEach(({ heading, paragraphs }, i) => {
     if (i > 0) lines.push(blank(""));
     lines.push(...comment(heading, ""), blank(""));
     for (const paragraph of paragraphs) lines.push(...comment(paragraph, ""));
@@ -405,13 +423,20 @@ function headerLines(platform: NodeJS.Platform): string[] {
   return lines;
 }
 
-/** The commented default configuration file; its header names `platform`'s location. */
-export function commentedDefault(platform: NodeJS.Platform = process.platform): string {
-  const defaults = defaultConfig() as unknown as Record<SectionName, unknown>;
-  const lines: string[] = [...headerLines(platform), "{"];
+/**
+ * The commented default configuration file; its header names `platform`'s location. With a harness
+ * choice (install-harness-choice; `harness-choice.ts` builds and checks it), the chosen examples are
+ * in effect under `agent_servers` instead of `auggie`, and `default_agent_server` is the chosen
+ * default; the shipped choice, or none, gives exactly what `acp-tui config --print-default` prints.
+ */
+export function commentedDefault(platform: NodeJS.Platform = process.platform, choice?: HarnessChoice): string {
+  const chosen = choice ?? shippedChoice();
+  const ctx: Rendering = { choice: chosen, shipped: isShippedChoice(chosen) };
+  const defaults = { ...(defaultConfig() as unknown as Record<SectionName, unknown>), default_agent_server: chosen.defaultName } as Record<SectionName, unknown>;
+  const lines: string[] = [...headerLines(platform, chosen), "{"];
   (Object.keys(SECTIONS) as SectionName[]).forEach((section, i) => {
     if (i > 0) lines.push("");
-    lines.push(...setting(section, section, SECTIONS[section] as unknown as AnySchema, defaults[section], STEP));
+    lines.push(...setting(section, section, SECTIONS[section] as unknown as AnySchema, defaults[section], STEP, ctx));
   });
   lines.push("}");
   return `${lines.join("\n")}\n`;
