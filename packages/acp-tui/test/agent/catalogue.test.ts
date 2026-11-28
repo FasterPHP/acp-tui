@@ -102,7 +102,7 @@ describe("Named agents (tui-sessions)", () => {
       "acp-tui: no harness is enabled yet.\n\n" +
         "To enable one, run this in the acp-tui checkout:\n  bun run install-cli --harness <name>\n\n" +
         "Harnesses: claude, codex, opencode, auggie\n  (copilot, cursor, goose, qwen, agy and pi are examples in the file too)\n\n" +
-        "To run an ACP agent that has no entry:\n  acp-tui -- <command>\n",
+        "To run an ACP agent that has no entry, put the command that\nstarts it in ACP mode after --, for example:\n  acp-tui -- my-agent --acp\n",
     );
   });
 

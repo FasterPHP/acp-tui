@@ -215,7 +215,7 @@ export function noHarnessEnabled(configPath: string, fileExists: boolean): strin
   const how = fileExists
     ? ["To enable one, uncomment its entry under agent_servers in:", `  ${withTilde(configPath)}`]
     : ["To enable one, run this in the acp-tui checkout:", "  bun run install-cli --harness <name>"];
-  return ["no harness is enabled yet.", "", ...how, "", ...harnessLines("in the file too"), "", "To run an ACP agent that has no entry:", "  acp-tui -- <command>"].join("\n");
+  return ["no harness is enabled yet.", "", ...how, "", ...harnessLines("in the file too"), "", "To run an ACP agent that has no entry, put the command that", "starts it in ACP mode after --, for example:", "  acp-tui -- my-agent --acp"].join("\n");
 }
 
 /** What the install prints after creating a configuration with no harness enabled (no
