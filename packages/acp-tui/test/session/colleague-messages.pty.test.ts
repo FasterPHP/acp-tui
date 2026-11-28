@@ -8,6 +8,8 @@ import { join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
 import { READY } from "../pty/regions.ts";
 import { FAKE_AGENT, listBody, listWorld, type ListWorld } from "./list-world.ts";
+import { commentedDefault } from "../../src/config/default-file.ts";
+import { harnessChoice } from "../../src/config/harness-choice.ts";
 
 let session: PtySession | null = null;
 afterEach(async () => {
@@ -42,10 +44,11 @@ describe.skipIf(process.platform === "win32")("Harness needs a login", () => {
     expect(w.events("auth_required")).toMatchObject([{ phase: "new" }]);
   }, 40000);
 
-  test("Login hint added: the default configuration's auggie answering a bare Authentication required gets the login step", async () => {
+  test("Login hint added: the auggie entry install-cli --harness auggie writes, answering a bare Authentication required, gets the login step", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     shimProgram(w, "auggie", ["--scenario", "basic", "--auth-required=bare"]);
+    writeFileSync(join(w.base, "config", "acp-tui", "config.jsonc"), commentedDefault(process.platform, harnessChoice(["auggie"])));
     const s = (session = w.start([], { cwd: repo, cols: 220, rows: 30 }));
     expect(await s.wait(20000)).toBe(1);
     const text = s.screenText().join(" ").replace(/\s+/g, " ");

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+No harness is enabled by default any more: you name yours when you install (see Breaking changes).
+
+### Breaking changes
+
+- A fresh install enables no harness. The default configuration has every harness, `auggie` included, as a commented example and no `default_agent_server`, and acp-tui with no configuration file reads it so: plain `acp-tui` stops and says how to enable one instead of starting Auggie. Install with `bun run install-cli --harness <name>` (`auggie`, `claude`, `codex`, `opencode`, `agy` and the other examples), or uncomment the harness's entry under `agent_servers` in your file (`acp-tui config --path` prints where it is). An existing configuration file is unaffected: it is yours and is never rewritten.
+
+### Other changes
+
+- `bun run install-cli --harness <name>[,<name>...] [--default <name>]` writes a new configuration with those harnesses in effect and the default chosen; without `--harness` the new file enables none, and the install says how to enable one. An existing file is kept, with a warning saying what to add to it.
+- Without `default_agent_server`, the only configured harness is the default; with several, `auggie` if it is one of them (as before), else plain `acp-tui` asks you to set `default_agent_server` or to name one. `acp-tui config --check` gives a notice when no harness is enabled, and a warning when several are and none is the default.
+- The Gemini CLI example is replaced by Antigravity CLI (`agy acp`), with its install and login hints.
+
 ## 0.4.0
 
 Kept drafts, a cursor that follows the terminal's colours, and `focus` density with one line per gap of hidden work. Ctrl+D now always leaves (see Breaking changes).

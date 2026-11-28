@@ -5,13 +5,14 @@
 // walking the schema, so it cannot disagree with validation or the JSON Schema.
 //
 // The output loads without problems and gives exactly the configuration acp-tui uses with no file
-// (test/config/config-command.test.ts): the built-in defaults, plus the one harness entry in effect,
-// `auggie` (configured-harnesses, design D1: acp-tui reads an absent file as these lines). So a
+// (test/config/config-command.test.ts): the built-in defaults, with no harness in effect and no
+// `default_agent_server` (install-harness-choice, design D7: acp-tui reads an absent file so). So a
 // setting with no default, whose absence is its meaning (the layout's `margins`, `screen`, `prompt`
 // and `modules`, which keep the default layout's; `terminals` entries; key contexts), is shown
 // commented out with the value acp-tui uses without it, and objects of names (`theme.tokens`,
 // `glyphs.overrides`, `keys`) are empty, with commented examples, each introduced as "Example, not
-// active"; `agent_servers` holds `auggie` and commented examples.
+// active"; `agent_servers` holds only commented examples, and `default_agent_server` is a commented
+// example line.
 //
 // Task 12.7 (Marcus, 13 October 2026): the header is in sections with headings; a setting whose
 // values each need a meaning (`valueListOf`) prints a heading line and one line per value
@@ -195,18 +196,20 @@ interface Rendering {
   readonly shipped: boolean;
 }
 
-/** An example's lines: in effect (with its commented alternative, `auggie`'s) or commented out. The
- *  default harness's comment starts "The default harness,"; another entry in effect starts with its
- *  own words. */
+/** An example's lines: in effect or commented out, followed by its commented alternative
+ *  (`auggie`'s), whose comment says how to use it in place of the line above. The default harness's
+ *  comment starts "The default harness,"; another entry in effect starts with its own words. */
 function exampleLines(example: AgentExample, indent: string, ctx: Rendering): string[] {
-  if (!ctx.choice.enabled.includes(example.name)) return [...comment(`${EXAMPLE} ${example.about}`, indent), ...commentedOut([agentLine(example.name, example.entry)], indent)];
+  const active = ctx.choice.enabled.includes(example.name);
   const suggestion = example.suggestion;
+  const [first, ...rest] = suggestion?.about.split(". ") ?? [];
+  const instead = active
+    ? `to use it, put // in front of the ${example.name} line above and remove it from this one`
+    : `to use it, remove the // in front of this line rather than the one above`;
+  const alternative = suggestion ? [...comment(`${EXAMPLE} ${[`${first}; ${instead}`, ...rest].join(". ")}`, indent), ...commentedOut([agentLine(example.name, suggestion.entry)], indent)] : [];
+  if (!active) return [...comment(`${EXAMPLE} ${example.about}`, indent), ...commentedOut([agentLine(example.name, example.entry)], indent), ...alternative];
   const about = example.name === ctx.choice.defaultName ? `The default harness, ${example.about}` : example.about.charAt(0).toUpperCase() + example.about.slice(1);
-  return [
-    ...comment(about, indent),
-    `${indent}${agentLine(example.name, example.entry)}`,
-    ...(suggestion ? [...comment(`${EXAMPLE} ${suggestion.about}`, indent), ...commentedOut([agentLine(example.name, suggestion.entry)], indent)] : []),
-  ];
+  return [...comment(about, indent), `${indent}${agentLine(example.name, example.entry)}`, ...alternative];
 }
 
 type Special = (key: string, schema: AnySchema, indent: string, ctx: Rendering) => string[];
@@ -222,7 +225,7 @@ const SPECIALS: Readonly<Record<string, Special>> = {
       ...comment('The harness runs in the session directory, so give paths in "command" and "args" as absolute paths.', indent),
       ...comment(
         ctx.shipped
-          ? "Each harness needs an entry here: acp-tui launches nothing else by name. The default configuration has one, auggie, in effect; every entry after it is an example, not active: install the harness, then remove the // in front of its line to add it."
+          ? "Each harness needs an entry here: acp-tui launches nothing else by name. The default configuration has none in effect: every entry is an example, not active. Install the harness, then remove the // in front of its line to enable it; with more than one enabled, set default_agent_server below to the one acp-tui starts without a harness name."
           : `Each harness needs an entry here: acp-tui launches nothing else by name. This file was written with the ${ctx.choice.enabled.length === 1 ? "harness" : "harnesses"} you chose in effect, ${harnessList(ctx.choice.enabled)}; every other entry is an example, not active: install the harness, then remove the // in front of its line to add it.`,
         indent,
       ),
@@ -230,6 +233,14 @@ const SPECIALS: Readonly<Record<string, Special>> = {
       ...AGENT_EXAMPLES.flatMap((example, i) => [...(i > 0 ? [""] : []), ...exampleLines(example, inner, ctx)]),
       `${indent}},`,
     ];
+  },
+
+  // Not set by default (install-harness-choice D7): a commented example line, unless the harness
+  // choice names a default, which is then in effect.
+  default_agent_server: (key, schema, indent, ctx) => {
+    const name = ctx.choice.defaultName;
+    if (name !== null) return [...leafComment(schema, indent), `${indent}"${key}": ${JSON.stringify(name)},`];
+    return [...leafComment(schema, indent), ...comment(`${EXAMPLE} claude as the default harness, once its entry above is enabled.`, indent), ...commentedOut([`"${key}": "claude",`], indent)];
   },
 
   // Read only from a project file (configured-harnesses D8), so this file names it without setting it.
@@ -363,7 +374,7 @@ export function defaultFileHeader(platform: NodeJS.Platform = process.platform, 
   const asPrinted =
     choice === undefined || isShippedChoice(choice)
       ? "Lines that are not commented out are in effect. Each holds its setting's built-in default, so this file as printed changes nothing: acp-tui behaves as it does with no file. Edit a value to change that setting."
-      : `Lines that are not commented out are in effect. Each holds its setting's built-in default, except the harnesses: install-cli wrote this file with ${harnessList(choice.enabled)} in effect under agent_servers and default_agent_server set to ${choice.defaultName}, where acp-tui with no file has auggie alone. Edit a value to change that setting.`;
+      : `Lines that are not commented out are in effect. Each holds its setting's built-in default, except the harnesses: install-cli wrote this file with ${harnessList(choice.enabled)} in effect under agent_servers and default_agent_server set to ${choice.defaultName}, where the default configuration has none. Edit a value to change that setting.`;
   return [
     {
       heading: "acp-tui configuration",
@@ -426,13 +437,13 @@ function headerLines(platform: NodeJS.Platform, choice: HarnessChoice): string[]
 /**
  * The commented default configuration file; its header names `platform`'s location. With a harness
  * choice (install-harness-choice; `harness-choice.ts` builds and checks it), the chosen examples are
- * in effect under `agent_servers` instead of `auggie`, and `default_agent_server` is the chosen
+ * in effect under `agent_servers` (the default has none), and `default_agent_server` is the chosen
  * default; the shipped choice, or none, gives exactly what `acp-tui config --print-default` prints.
  */
 export function commentedDefault(platform: NodeJS.Platform = process.platform, choice?: HarnessChoice): string {
   const chosen = choice ?? shippedChoice();
   const ctx: Rendering = { choice: chosen, shipped: isShippedChoice(chosen) };
-  const defaults = { ...(defaultConfig() as unknown as Record<SectionName, unknown>), default_agent_server: chosen.defaultName } as Record<SectionName, unknown>;
+  const defaults = defaultConfig() as unknown as Record<SectionName, unknown>;
   const lines: string[] = [...headerLines(platform, chosen), "{"];
   (Object.keys(SECTIONS) as SectionName[]).forEach((section, i) => {
     if (i > 0) lines.push("");

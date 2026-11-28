@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
 import { launchArgv } from "../../src/agent/resolve.ts";
 import { CliArgumentError, main, parseArgs, type CliContext, type StartAppOptions } from "../../src/cli.ts";
+import { withoutHarnessNotice } from "../config/harness-notice.ts";
 
 const FAKE_COMMAND = ["bun", "packages/fake-agent/src/main.ts", "--scenario", "basic"];
 
@@ -226,7 +227,7 @@ describe("Directory argument and agent command are told apart (tui-sessions)", (
     // mvp-configuration task 9.1: the subcommand runs (the test preload's empty configuration).
     const r = await run(["config", "--check"], dir);
     expect(r.code).toBe(0);
-    expect(r.stdout).toBe("no configuration problems\n");
+    expect(withoutHarnessNotice(r.stdout)).toBe("no configuration problems");
     expect(r.stderr).toBe("");
     expect(r.started).toBe(false);
   });

@@ -3,12 +3,13 @@
 // "Configured harnesses only"): the `agent_servers` entries of the user's configuration file,
 // `$XDG_CONFIG_HOME/acp-tui/config.jsonc` (`~/.config` when XDG_CONFIG_HOME is unset or not
 // absolute, `%APPDATA%` on Windows), in Zed's shape: `command` a string, `args` an array of
-// strings, `env` an object of strings. There are no built-in harnesses: when the file does not
-// exist, the loader reads it as the default configuration's active lines (the `auggie` entry and
-// `default_agent_server` `auggie`, design D1); a file that exists is taken as written.
+// strings, `env` an object of strings. There are no built-in harnesses, and since
+// install-harness-choice (Marcus, 28 November 2026: "no default") the default configuration enables
+// none: with no file there is no harness, and a file that exists is taken as written.
 // `default_agent_server` (once `default_agent`) names the agent launched when neither a harness
 // name nor an agent command is given; a name with no entry is kept, and launching by it fails
-// (design D3).
+// (configured-harnesses design D3). Without it, the only entry is launched, or with several the
+// `auggie` entry when there is one (as before), else none (install-harness-choice design D7).
 //
 // The file is read by the configuration loader (src/config/load.ts). A broken file never stops
 // acp-tui: a syntax error, an `agent_servers` that is not an object or an invalid entry is a
@@ -26,11 +27,9 @@ import { parseConfigText, type ParsedSource } from "../config/load.ts";
 import { formatProblem } from "../config/problems.ts";
 import { AgentServerSchema } from "../config/schema.ts";
 import { readConfigFile, userConfigFile } from "../config/sources.ts";
-import { defaultNotConfigured, exampleHarnesses, exampleRefusal } from "./examples.ts";
-import { DEFAULT_HARNESS, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "./command.ts";
+import { defaultNotConfigured, exampleHarnesses, exampleRefusal, noDefaultChosen, noHarnessEnabled } from "./examples.ts";
+import { DEFAULT_STARTUP_TIMEOUT_SECONDS, LEGACY_DEFAULT_HARNESS } from "./command.ts";
 import { hintsFor } from "./hints.ts";
-
-export { DEFAULT_HARNESS };
 
 /** A launchable agent: its name, the command and its arguments, and environment added to acp-tui's own. */
 export interface AgentEntry {
@@ -59,9 +58,11 @@ export interface AgentCatalogue {
   readonly agents: ReadonlyMap<string, AgentEntry>;
   /** Configured entries that cannot be launched, by name, with the problem. */
   readonly invalid: ReadonlyMap<string, string>;
-  /** The agent launched without a harness name or an agent command: `default_agent_server` (by
-   *  default `auggie`), whether or not it names an entry; `findDefaultAgent` says when it does not. */
-  readonly defaultAgent: string;
+  /** `default_agent_server` as the file sets it, whether or not it names an entry, else null (the
+   *  default: `findDefaultAgent` then picks the only entry, or says what to set). */
+  readonly defaultAgent: string | null;
+  /** Whether the user's file exists (it decides how the no-harness message says to enable one). */
+  readonly fileExists?: boolean;
   /** Every problem found in the file, as messages for the user (empty when the file is fine or
    *  absent). */
   readonly problems: readonly string[];
@@ -117,7 +118,7 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
   }
   const invalid = new Map(Object.entries(source.invalidAgents));
   const chosen = source.sections.default_agent_server;
-  const defaultAgent = typeof chosen === "string" && chosen !== "" ? chosen : DEFAULT_HARNESS;
+  const defaultAgent = typeof chosen === "string" && chosen !== "" ? chosen : null;
   // The error that kept `agent_servers` out, if one did: the whole file, or that section.
   const blocking = source.problems.find((p) => p.severity === "error" && (p.path === "" || p.path === "agent_servers"));
   return {
@@ -125,6 +126,7 @@ export function catalogueFromSource(source: ParsedSource, options: { refused?: s
     agents,
     invalid,
     defaultAgent,
+    fileExists: source.status !== "absent",
     startupTimeoutSetting: setting,
     problems: source.problems.map(formatProblem),
     refused: options.refused ?? null,
@@ -140,8 +142,8 @@ export function buildAgentCatalogue(text: string | null, path: string, options: 
   return catalogueFromSource(source, options);
 }
 
-/** Reads the user's configuration file into a catalogue. A missing file gives the default
- *  configuration's `auggie` entry, with no problem. */
+/** Reads the user's configuration file into a catalogue. A missing file gives no harness, with no
+ *  problem. */
 export function loadAgentCatalogue(options: { env?: Readonly<Record<string, string | undefined>>; path?: string } = {}): AgentCatalogue {
   const path = options.path ?? configFilePath(options.env);
   const read = readConfigFile(path, { checkWriters: true, ...(options.env ? { env: options.env } : {}) });
@@ -177,11 +179,41 @@ export function findAgent(catalogue: AgentCatalogue, name: string): AgentEntry {
   throw new AgentNameError(`${quote(name)} is not a known harness (${list}; harnesses are defined in agent_servers in ${catalogue.path})${why}`);
 }
 
-/** The default harness's entry (`default_agent_server`); throws `AgentNameError` with the message of
- *  configured-harnesses design D3 when it names no entry at all, and as `findAgent` does for an
- *  invalid entry or a refused file. */
+/** Why the file gave no entries, when the catalogue knows: a refused file or a file problem. */
+function whyNone(catalogue: AgentCatalogue): string {
+  if (catalogue.refused) return `harness commands are not read from a file other users can write (${catalogue.refused})`;
+  if (catalogue.fileProblem) return `the configuration file has a problem: ${catalogue.fileProblem}`;
+  return "";
+}
+
+/**
+ * The name launched without a harness name or an agent command, or null when there is none to
+ * launch: `default_agent_server` when the file sets it; else the only configured entry (valid or
+ * not); else, with several, `auggie` when one of them is (the default before install-harness-choice,
+ * so a file written then is unaffected); else null.
+ */
+export function defaultAgentName(catalogue: AgentCatalogue): string | null {
+  if (catalogue.defaultAgent !== null) return catalogue.defaultAgent;
+  const names = [...catalogue.agents.keys(), ...catalogue.invalid.keys()];
+  if (names.length === 1) return names[0]!;
+  if (names.includes(LEGACY_DEFAULT_HARNESS)) return LEGACY_DEFAULT_HARNESS;
+  return null;
+}
+
+/** The default harness's entry; throws `AgentNameError` with the message of configured-harnesses
+ *  design D3 when `default_agent_server` names no entry at all, with the no-harness explanation
+ *  when nothing is configured (install-harness-choice design D7, its reason first when the file
+ *  was refused or has a problem), with which to set when several are and none is the default, and
+ *  as `findAgent` does for an invalid entry. */
 export function findDefaultAgent(catalogue: AgentCatalogue): AgentEntry {
-  const name = catalogue.defaultAgent;
+  const name = defaultAgentName(catalogue);
+  if (name === null) {
+    const names = [...catalogue.agents.keys(), ...catalogue.invalid.keys()];
+    if (names.length > 1) throw new AgentNameError(noDefaultChosen(names, catalogue.path));
+    const why = whyNone(catalogue);
+    const message = noHarnessEnabled(catalogue.path, catalogue.fileExists ?? true);
+    throw new AgentNameError(why === "" ? message : `${why}\n${message}`);
+  }
   if (!catalogue.agents.has(name) && !catalogue.invalid.has(name) && !catalogue.refused && !catalogue.fileProblem) {
     throw new AgentNameError(defaultNotConfigured(name, catalogue.path));
   }

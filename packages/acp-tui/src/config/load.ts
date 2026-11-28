@@ -23,7 +23,6 @@
 // Pure: no file is read here (see sources.ts and store.ts).
 import { findNodeAtLocation, parseTree, printParseErrorCode, type Node, type ParseError } from "jsonc-parser";
 import type { z } from "zod";
-import { defaultHarnessSections } from "../agent/examples.ts";
 import { checkOverrides, type GlyphSetName } from "../conversation/glyphs.ts";
 import { resolveDirectories } from "./directories.ts";
 import { formatProblem, suggest, type ConfigProblem, type ProblemSeverity } from "./problems.ts";
@@ -547,10 +546,10 @@ function checkGlyphSection(loader: Loader, value: unknown): unknown {
 export function parseConfigText(source: string | null, file: string, options: ParseOptions = {}): ParsedSource {
   const kind = options.kind ?? "user";
   const empty = { file, kind, sections: {}, rejected: [], invalidAgents: {}, notices: [] } as const;
-  // No user file: acp-tui behaves as if it held the default file's active harness lines, `auggie`
-  // and `default_agent_server` (configured-harnesses, design D1; every other active line of the
-  // default is the schema's default already). A project file's absence adds nothing.
-  if (source === null) return { ...empty, ...(kind === "user" ? { sections: defaultHarnessSections() } : {}), status: "absent", problems: [] };
+  // No file: acp-tui behaves as if it held the default file's active lines, which are the schema's
+  // defaults; since install-harness-choice (design D7) that includes no harness and no
+  // `default_agent_server`. A project file's absence adds nothing either.
+  if (source === null) return { ...empty, status: "absent", problems: [] };
   // readConfigFile drops a byte order mark already; text from elsewhere (a test's reader) too.
   const text = withoutBom(source);
 

@@ -16,6 +16,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { withoutHarnessNotice } from "../config/harness-notice.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -104,7 +105,7 @@ describe("docs/configuration.md examples", () => {
       } else {
         expect(code, message).toBe(0);
         if (block.expect === "warns") expect(out, message).toContain("warning:");
-        else expect(out.trim(), message).toBe("no configuration problems");
+        else expect(withoutHarnessNotice(out), message).toBe("no configuration problems");
       }
     };
 

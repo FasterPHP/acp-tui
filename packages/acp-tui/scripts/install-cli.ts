@@ -26,7 +26,9 @@
 // `--harness` (install-harness-choice; tui-config "Harness choice at install") chooses the harnesses
 // in effect in the file it creates: the same commented default with those examples uncommented and
 // `default_agent_server` set to `--default`, else the first name given (src/config/harness-choice.ts
-// checks the names, default-file.ts renders the file). It is checked before anything is written: an
+// checks the names, default-file.ts renders the file). Without it the file enables no harness
+// (Marcus, 28 November 2026: "no default"), and the install says how to enable one: uncomment its
+// entry, or remove the new file and rerun with `--harness`. It is checked before anything is written: an
 // unknown name, a `--default` that is not among them or given without `--harness`, and either with
 // `--uninstall`, exit 2 and write nothing. When the configuration already exists it is kept as
 // always, the command is still installed, and a warning says what to change in the file by hand;
@@ -211,14 +213,15 @@ On Windows the command is acp-tui.cmd and the default directory is %USERPROFILE%
 where Bun's installer already put a directory on your PATH.
 
 It also creates your configuration file, $XDG_CONFIG_HOME/acp-tui/config.jsonc (else
-~/.config/acp-tui/config.jsonc; on Windows %APPDATA%\\acp-tui\\config.jsonc), with the auggie
-harness and every setting at its default, when there is none. An existing configuration is never
+~/.config/acp-tui/config.jsonc; on Windows %APPDATA%\\acp-tui\\config.jsonc), with every setting
+at its default, when there is none. Without --harness it enables no harness: every harness is
+a commented example, which you uncomment to enable. An existing configuration is never
 replaced, not even with --force, and --uninstall leaves it alone.
 
---harness claude,codex puts those harnesses in effect in the new configuration instead of auggie,
-and makes --default (else the first one named) the harness a plain \`acp-tui\` starts. It takes
-the names of the examples in \`acp-tui config --print-default\`, such as auggie, claude, codex,
-opencode and agy. Install the harness itself too. If the configuration already exists, it is
+--harness claude,codex puts those harnesses in effect in the new configuration, and makes
+--default (else the first one named) the harness a plain \`acp-tui\` starts. It takes the names
+of the examples in \`acp-tui config --print-default\`, such as auggie, claude, codex, opencode
+and agy. Install the harness itself too. If the configuration already exists, it is
 kept and install-cli says what to change in it.
 
 Every install also writes config.dist.jsonc beside it: the default configuration of this
@@ -364,6 +367,17 @@ export interface Io {
   stderr: (text: string) => void;
 }
 
+/** What the install says after creating a configuration with no harness enabled (no `--harness`;
+ *  install-harness-choice design D7). */
+export function noHarnessNote(file: string, names: readonly string[]): string {
+  return (
+    `install-cli: note: no harness is enabled, so a plain \`acp-tui\` has nothing to start yet. ` +
+    `To enable one, uncomment its entry under agent_servers in ${file} (with more than one enabled, also set default_agent_server to the one to start by default), ` +
+    `or remove that file and run \`bun run install-cli --harness <name>\` again. ` +
+    `Harness names: ${names.join(", ")}\n`
+  );
+}
+
 /** Runs the installer; resolves to the process exit code. */
 export async function main(
   argv: readonly string[],
@@ -385,10 +399,9 @@ export async function main(
   }
   // The harness choice is checked before anything is written (see the header).
   let choice: HarnessChoice | undefined;
-  let harnessList: ((names: readonly string[]) => string) | undefined;
+  const module = await import("../src/config/harness-choice.ts");
+  const harnessList = module.harnessList;
   if (parsed.harness.length > 0) {
-    const module = await import("../src/config/harness-choice.ts");
-    harnessList = module.harnessList;
     try {
       choice = module.harnessChoice(module.splitHarnessNames(parsed.harness), parsed.default);
     } catch (error) {
@@ -467,16 +480,16 @@ export async function main(
     );
     return 1;
   }
-  const chosen =
-    choice && harnessList
-      ? `the ${harnessList(choice.enabled)} ${choice.enabled.length === 1 ? "harness" : `harnesses (${choice.defaultName} the default)`}`
-      : "the auggie harness";
+  const chosen = choice
+    ? `the ${harnessList(choice.enabled)} ${choice.enabled.length === 1 ? "harness" : `harnesses (${choice.defaultName} the default)`}`
+    : "no harness enabled";
   io.stdout(
     outcome.created
       ? `install-cli: created ${outcome.file}, with ${chosen} and every setting at its default; uncomment an example to add a harness (acp-tui config --check checks it)\n`
       : `install-cli: kept the existing configuration ${outcome.file}\n`,
   );
-  if (!outcome.created && choice && harnessList) {
+  if (outcome.created && !choice) io.stdout(noHarnessNote(outcome.file, module.selectableHarnesses()));
+  if (!outcome.created && choice) {
     io.stderr(
       `install-cli: warning: --harness was not applied, because a configuration already exists and is never replaced. ` +
         `To use ${harnessList(choice.enabled)}, add ${choice.enabled.length === 1 ? "its entry" : "their entries"} under agent_servers in ${outcome.file} ` +

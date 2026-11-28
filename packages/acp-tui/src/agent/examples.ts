@@ -1,11 +1,12 @@
 // The agent examples of `acp-tui config --print-default` (mvp-configuration task 12.7;
 // configured-harnesses, design D1 and D2), kept apart from the default file's builder so the
 // command line, the loader and the catalogue can name them without loading the layout and rendering
-// modules. One example is in effect in the default configuration, `auggie` (`DEFAULT_AGENT_SERVERS`,
-// also what acp-tui reads when the user has no file); the others are commented out.
+// modules. Since install-harness-choice (Marcus, 28 November 2026: "no default") none is in effect in
+// the default configuration: every example is commented out, and acp-tui with no file has no
+// harness. `bun run install-cli --harness <name>` puts the chosen ones in effect.
 import { shortenHome } from "../layout/segments.ts";
 import { userHome, type Platform } from "../platform/paths.ts";
-import { AUGGIE_INSTALL_HINT, CLAUDE_EXAMPLE_COMMAND, CLAUDE_STARTUP_TIMEOUT_SECONDS, DEFAULT_HARNESS, AGY_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "./command.ts";
+import { AUGGIE_INSTALL_HINT, CLAUDE_EXAMPLE_COMMAND, CLAUDE_STARTUP_TIMEOUT_SECONDS, AGY_INSTALL_HINT, OPENCODE_INSTALL_HINT } from "./command.ts";
 
 /** An example's `agent_servers` entry, as the default file writes it (the setting names in camel case). */
 export interface AgentExampleEntry {
@@ -27,9 +28,8 @@ export interface AgentExample {
    *  default harness," (the default file adds whichever applies). */
   readonly about: string;
   readonly entry: AgentExampleEntry;
-  /** In effect in the default configuration (`auggie` only); every other example is commented out. */
-  readonly active?: boolean;
-  /** A commented alternative written below an active entry, with what it changes. */
+  /** A commented alternative written below the entry, with what it changes (the default file adds
+   *  how to use it instead, which depends on whether the entry above is in effect). */
   readonly suggestion?: { readonly about: string; readonly entry: AgentExampleEntry };
   /** False for an example that cannot be put in effect as written (its entry holds a placeholder to
    *  replace), so `install-cli --harness` does not offer it. */
@@ -49,12 +49,11 @@ export const AUGGIE_DIRECTORY_ARGS: readonly string[] = ["--add-workspace", "{di
 export const AGENT_EXAMPLES: readonly AgentExample[] = [
   {
     name: "auggie",
-    active: true,
     about: `Auggie, installed with ${AUGGIE_INSTALL_HINT}. This one entry runs either generation, whichever your npm installed: acp-tui recognises 0.x and 1.x when Auggie starts and logs you in with the matching command (auggie auth login for 1.x, auggie login for 0.x). To choose a thinking effort at start-up, add --thinking <effort> to args for 1.x, or --reasoning-effort <effort> for 0.x. Auggie 1.x asks for no permission unless it is given rules: to be asked before it runs commands or changes files, add "--permission", "bash:ask-user", "--permission", "write:ask-user", "--permission", "edit:ask-user" to args (not checked with 0.x, so keep them out of an entry that may run it). Auggie 1.x indexes a directory only once it is allowed: acp-tui asks, and on your yes restarts Auggie with --allow-indexing, which Auggie saves as a lasting rule. additional_directory_args is the template acp-tui uses to pass each additional directory to a harness that does not take them through ACP, here as --add-workspace: the entry's additional_directories, a project's, --add-dir and /add-dir. Source: docs.augmentcode.com/cli/acp.`,
     entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS },
     suggestion: {
       about:
-        "the same with a directory; to use it, put // in front of the auggie line above and remove it from this one. additional_directories gives Auggie's context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours (a directory that does not exist is a warning and left out). Auggie indexes that folder in the background, so start-up is not delayed. Writing --add-workspace <dir> in args also works, but bypasses acp-tui: that directory is not shown in the dirs module of the status row (+N dirs) and is not deduplicated with the others.",
+        "the same with a directory. additional_directories gives Auggie's context engine one more directory in every session: the folder that holds all your projects lets it answer about any of them, whichever project you start in; replace /path/to/projects with yours (a directory that does not exist is a warning and left out). Auggie indexes that folder in the background, so start-up is not delayed. Writing --add-workspace <dir> in args also works, but bypasses acp-tui: that directory is not shown in the dirs module of the status row (+N dirs) and is not deduplicated with the others.",
       entry: { command: "auggie", args: ["--acp"], additionalDirectoryArgs: AUGGIE_DIRECTORY_ARGS, additionalDirectories: ["/path/to/projects"] },
     },
   },
@@ -132,26 +131,12 @@ export function exampleServerEntry(entry: AgentExampleEntry): Record<string, unk
   };
 }
 
-/** The `agent_servers` entries in effect in the default configuration: `auggie` alone. acp-tui reads
- *  them, with `default_agent_server` `DEFAULT_HARNESS`, when the user has no configuration file
- *  (spec tui-config "Configuration without a file"). A fresh object each call, so no caller can
- *  change another's. */
-export function defaultAgentServers(): Record<string, Record<string, unknown>> {
-  return Object.fromEntries(AGENT_EXAMPLES.filter((e) => e.active === true).map((e) => [e.name, exampleServerEntry(e.entry)]));
-}
-
-/** The active part of the default configuration that concerns harnesses, as loaded sections. */
-export function defaultHarnessSections(): { agent_servers: Record<string, Record<string, unknown>>; default_agent_server: string } {
-  return { agent_servers: defaultAgentServers(), default_agent_server: DEFAULT_HARNESS };
-}
-
 /** An example harness a word or `--harness` may name, for the refusal "Example harnesses are not
- *  run as commands": its name, whether the default configuration has it in effect, and, for an
- *  example whose entry is only a command and arguments, the command line that runs it. */
+ *  run as commands": its name and, for an example whose entry is only a command and arguments, the
+ *  command line that runs it. */
 export interface ExampleHarness {
   readonly name: string;
   readonly commandLine: string | null;
-  readonly active?: boolean;
 }
 
 /** Whether an entry is only a command and its arguments, so `acp-tui -- <command line>` does the same. */
@@ -164,7 +149,6 @@ export function exampleHarnesses(taken: readonly string[]): ExampleHarness[] {
   return AGENT_EXAMPLES.filter((e) => !taken.includes(e.name)).map((e) => ({
     name: e.name,
     commandLine: plainEntry(e.entry) ? [e.entry.command, ...e.entry.args].join(" ") : null,
-    ...(e.active === true ? { active: true } : {}),
   }));
 }
 
@@ -178,15 +162,48 @@ export function withTilde(path: string, home: string | null = userHome(), platfo
 /** Where the user finds an entry to copy, named after "add its entry to <file>". */
 export const DEFAULT_ENTRIES_HINT = "(see config.dist.jsonc or acp-tui config --print-default)";
 
-/** The refusal for an example's name: the entry to uncomment (for the default's own `auggie`, to
- *  add), and for an example of a command and arguments alone the `--` command that runs it. */
+/** The refusal for an example's name: the entry to uncomment, and for an example of a command and
+ *  arguments alone the `--` command that runs it. */
 export function exampleRefusal(example: ExampleHarness, configPath: string): string {
   const alternative = example.commandLine !== null ? `, or run acp-tui -- ${example.commandLine}` : "";
-  const fix = example.active === true ? `add its entry to ${withTilde(configPath)} ${DEFAULT_ENTRIES_HINT}` : `uncomment its entry in ${withTilde(configPath)}`;
-  return `harness '${example.name}' is not configured; ${fix}${alternative}`;
+  return `harness '${example.name}' is not configured; uncomment its entry in ${withTilde(configPath)}${alternative}`;
 }
 
 /** The error for a default harness with no entry (configured-harnesses, design D3). */
 export function defaultNotConfigured(name: string, configPath: string): string {
   return `default harness '${name}' is not configured; add its entry to ${withTilde(configPath)} ${DEFAULT_ENTRIES_HINT}`;
+}
+
+/** The names `bun run install-cli --harness` takes, in the default file's order: every example
+ *  except one whose entry needs editing first (`selectable: false`). */
+export function selectableExampleNames(): string[] {
+  return AGENT_EXAMPLES.filter((e) => e.selectable !== false).map((e) => e.name);
+}
+
+/**
+ * The explanation when no harness is enabled (install-harness-choice, design D7): acp-tui is run
+ * with no harness name and no command, and the user's configuration has no `agent_servers` entry
+ * (or there is no file). `fileExists` chooses the way to enable one: with no file, `bun run
+ * install-cli --harness <name>` writes a new one; with a file, its entry is uncommented there (the
+ * install never changes an existing file). The follow-up `harness-setup` change replaces this with
+ * an interactive first-launch prompt.
+ */
+export function noHarnessEnabled(configPath: string, fileExists: boolean): string {
+  const path = withTilde(configPath);
+  const how = fileExists
+    ? `To enable one, uncomment the harness's entry under agent_servers in ${path} (acp-tui config --path prints where the file is); with more than one enabled, set default_agent_server to the one acp-tui starts without a name.`
+    : `To enable one, run bun run install-cli --harness <name> in the acp-tui checkout, which writes a new configuration file at ${path} with that harness in effect; or save the output of acp-tui config --print-default there and uncomment the harness's entry.`;
+  return [
+    "no harness is enabled yet, so acp-tui has nothing to start.",
+    how,
+    `Harnesses with an example entry: ${selectableExampleNames().join(", ")}.`,
+    "To run any ACP agent without an entry: acp-tui -- <command>.",
+  ].join("\n");
+}
+
+/** The error when several harnesses are configured and `default_agent_server` names none of them
+ *  (install-harness-choice, design D7): which to set, or name one. */
+export function noDefaultChosen(names: readonly string[], configPath: string): string {
+  const list = names.map((n) => `'${n}'`).join(", ");
+  return `no default harness is set and ${names.length} harnesses are configured (${list}); set default_agent_server in ${withTilde(configPath)} to one of them, or name one: acp-tui ${names[0]}`;
 }

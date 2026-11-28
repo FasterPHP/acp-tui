@@ -16,6 +16,7 @@ import { startCli } from "../conversation/cli.ts";
 import { startPty, type PtySession } from "../pty/harness.ts";
 import { READY } from "../pty/regions.ts";
 import { WINDOWS } from "../windows.ts";
+import { HARNESS_NOTICE, withoutHarnessNotice } from "./harness-notice.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
 const CLI = join(ROOT, "packages/acp-tui/src/cli.ts");
@@ -65,7 +66,7 @@ describe("subcommands on the command line (task 9.1)", () => {
     mkdirSync(join(w.cwd, "config"));
     const r = await run(["config", "--check"], w);
     expect(r.code).toBe(0);
-    expect(r.text).toContain("no configuration problems");
+    expect(withoutHarnessNotice(r.text)).toBe("no configuration problems");
     expectMainScreenOnly(r.raw);
   }, 30000);
 
@@ -130,7 +131,7 @@ describe("subcommands on the command line (task 9.1)", () => {
   }, 30000);
 
   // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.
-  test.skipIf(WINDOWS)("Default loads as the default: config --print-default saved as the user's file, config --check reports no problem (task 9.2)", async () => {
+  test.skipIf(WINDOWS)("Default loads as the default: config --print-default saved as the user's file, config --check reports only the notice that no harness is enabled (task 9.2, install-harness-choice)", async () => {
     const w = world();
     const printed = await run(["config", "--print-default"], w);
     expect(printed.code).toBe(0);
@@ -138,7 +139,8 @@ describe("subcommands on the command line (task 9.1)", () => {
     writeFileSync(join(w.dir, "config.jsonc"), printed.text);
     const r = await run(["config", "--check"], w);
     expect(r.code).toBe(0);
-    expect(r.text).toBe("no configuration problems\n");
+    expect(r.text).toMatch(HARNESS_NOTICE);
+    expect(withoutHarnessNotice(r.text)).toBe("no configuration problems");
   }, 30000);
 
   // Skipped on Windows: it reads raw bytes of the PTY stream (sequences, modes or titles), which ConPTY rewrites.

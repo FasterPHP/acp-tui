@@ -117,11 +117,11 @@ Harnesses:
   harness with a model is the agent you talk to. ACP and Zed call the
   harness an agent, which is why harnesses are configured under
   agent_servers.
-  A harness works once it has an agent_servers entry: the default
-  configuration has "auggie" (auggie --acp), and "acp-tui config
-  --print-default" shows examples (claude, opencode and others). Name
-  it first ("acp-tui auggie -r") or with --harness; without one, acp-tui
-  launches default_agent_server. Any other command runs only after "--".
+  A harness works once it has an agent_servers entry: the default enables
+  none; "acp-tui config --print-default" shows examples to uncomment
+  (auggie, claude, opencode, ...). Name it first ("acp-tui auggie -r") or
+  with --harness; else acp-tui launches default_agent_server, or the only
+  entry. Any other command runs only after "--".
   A new session starts in the directory argument, else in the launch one.
 
 Options:

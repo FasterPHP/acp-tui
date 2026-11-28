@@ -85,14 +85,34 @@ describe("the configuration file's path", () => {
 });
 
 describe("Named agents (tui-sessions)", () => {
-  test("Auggie by default: without a configuration file, the default configuration's auggie entry only, no problem", () => {
-    const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: configHome(null) } });
-    expect([...catalogue.agents.keys()]).toEqual(["auggie"]);
+  test("No harness by default (install-harness-choice D7): without a configuration file, no entry and no default, no problem, and starting with no name explains how to enable one", async () => {
+    const home = configHome(null);
+    const catalogue = loadAgentCatalogue({ env: { XDG_CONFIG_HOME: home } });
+    expect([...catalogue.agents.keys()]).toEqual([]);
+    expect(catalogue.defaultAgent).toBeNull();
+    expect(catalogue.fileExists).toBe(false);
+    expect(catalogue.problems).toEqual([]);
+    expect(() => findAgent(catalogue, "auggie")).toThrow(/harness 'auggie' is not configured; uncomment its entry in /);
+    expect(() => findAgent(catalogue, "claude")).toThrow(/harness 'claude' is not configured; uncomment its entry in /);
+    const r = await run([], home);
+    expect(r.code).toBe(1);
+    expect(r.started).toBe(false);
+    const file = shortenHome(join(home, "acp-tui", "config.jsonc"), userHome());
+    expect(r.stderr).toBe(
+      "acp-tui: no harness is enabled yet, so acp-tui has nothing to start.\n" +
+        `To enable one, run bun run install-cli --harness <name> in the acp-tui checkout, which writes a new configuration file at ${file} with that harness in effect; or save the output of acp-tui config --print-default there and uncomment the harness's entry.\n` +
+        "Harnesses with an example entry: auggie, auggie-v2, claude, opencode, codex, pi, agy, qwen, copilot, cursor, goose.\n" +
+        "To run any ACP agent without an entry: acp-tui -- <command>.\n",
+    );
+  });
+
+  test("The auggie entry, once enabled: its command, template and hints", () => {
+    const catalogue = buildAgentCatalogue(`{ "agent_servers": { "auggie": { "command": "auggie", "args": ["--acp"], "additional_directory_args": ["--add-workspace", "{dir}"] } } }`, "/c.jsonc");
     expect(launchArgv(findAgent(catalogue, "auggie"))).toEqual(["auggie", "--acp"]);
     expect(findAgent(catalogue, "auggie")).toMatchObject({ additionalDirectoryArgs: ["--add-workspace", "{dir}"], startupTimeoutSeconds: 30, installHint: auggieInstallHint(), loginHint: auggieLoginCommand() });
-    expect(catalogue.defaultAgent).toBe("auggie");
-    expect(catalogue.problems).toEqual([]);
-    expect(() => findAgent(catalogue, "claude")).toThrow(/harness 'claude' is not configured; uncomment its entry in /);
+    // The only entry is the default when default_agent_server is not set.
+    expect(catalogue.defaultAgent).toBeNull();
+    expect(findDefaultAgent(catalogue).name).toBe("auggie");
   });
 
   test("Existing file without entries: a file with no agent_servers has no harnesses, and starting with no name fails", async () => {
@@ -101,9 +121,12 @@ describe("Named agents (tui-sessions)", () => {
     expect([...catalogue.agents.keys()]).toEqual([]);
     expect(catalogue.problems).toEqual([]);
     const r = await run([], home);
-    expect(r.code).not.toBe(0);
+    expect(r.code).toBe(1);
     expect(r.started).toBe(false);
-    expect(r.stderr).toBe(`acp-tui: default harness 'auggie' is not configured; add its entry to ${shortenHome(join(home, "acp-tui", "config.jsonc"), userHome())} (see config.dist.jsonc or acp-tui config --print-default)\n`);
+    const file = shortenHome(join(home, "acp-tui", "config.jsonc"), userHome());
+    expect(r.stderr).toStartWith("acp-tui: no harness is enabled yet, so acp-tui has nothing to start.\n");
+    expect(r.stderr).toContain(`To enable one, uncomment the harness's entry under agent_servers in ${file} (acp-tui config --path prints where the file is); with more than one enabled, set default_agent_server to the one acp-tui starts without a name.\n`);
+    expect(r.stderr).not.toContain("install-cli");
   });
 
   test("Old file naming Claude: default_agent claude with no claude entry fails with the default harness message", async () => {
@@ -189,14 +212,19 @@ describe("Named agents (tui-sessions)", () => {
     expect(r.launch?.problems).toEqual([]);
   });
 
-  test("no default_agent: auggie is the name, and the file has to hold its entry", async () => {
+  test("no default_agent (install-harness-choice D7): the only entry is launched; with several, auggie among them as before, else none, saying which to set", async () => {
+    const one = await run([], configHome(FAKE_CONFIG));
+    expect(one.launch?.agentName).toBe("fake");
     const withAuggie = FAKE_CONFIG.replace('"fake": {', '"auggie": { "command": "fake-auggie", "args": ["--acp"] }, "fake": {');
     const r = await run([], configHome(withAuggie));
     expect(r.launch?.agentName).toBe("auggie");
     expect(launchArgv(r.launch!)).toEqual(["fake-auggie", "--acp"]);
-    const without = await run([], configHome(FAKE_CONFIG));
-    expect(without.code).not.toBe(0);
-    expect(without.started).toBe(false);
+    const home = configHome(FAKE_CONFIG.replace('"fake": {', '"other": { "command": "other" }, "fake": {'));
+    const several = await run([], home);
+    expect(several.code).toBe(1);
+    expect(several.started).toBe(false);
+    expect(several.stderr).toBe(`acp-tui: no default harness is set and 2 harnesses are configured ('other', 'fake'); set default_agent_server in ${shortenHome(join(home, "acp-tui", "config.jsonc"), userHome())} to one of them, or name one: acp-tui other\n`);
+    expect((await run(["fake"], home)).launch?.agentName).toBe("fake");
   });
 
   test("Names a harness that is not known: a default_agent naming no entry is a problem at the value, the name is kept and launching by it fails", async () => {
@@ -226,10 +254,10 @@ describe("Agents are defined only in the user's configuration (tui-sessions)", (
     expect(r.code).not.toBe(0);
     expect(r.started).toBe(false);
     expect(r.stderr).toContain("'evil' is not a known harness");
-    // Nor does the project file choose the default.
+    // Nor does the project file choose the default: with no file of the user's, no harness at all.
     const plain = await run([], home, project);
-    expect(plain.launch?.agentName).toBe("auggie");
-    expect(launchArgv(plain.launch!)).toEqual(["auggie", "--acp"]);
+    expect(plain.started).toBe(false);
+    expect(plain.stderr).toContain("no harness is enabled yet");
   });
 
   test("Invalid entry: a numeric command is reported with the entry's name and the problem; nothing is launched", async () => {
@@ -328,7 +356,7 @@ describe("Start-up timeout setting (harness-feedback tui-config)", () => {
   const timeout = (text: string | null, name: string): number | undefined => buildAgentCatalogue(text, "/c/config.jsonc").agents.get(name)?.startupTimeoutSeconds;
 
   test("no per-harness defaults: 30 for every entry without a value, the file's absent default included", () => {
-    expect(timeout(null, "auggie")).toBe(30);
+    expect(timeout(`{ "agent_servers": { "auggie": { "command": "auggie", "args": ["--acp"], "additional_directory_args": ["--add-workspace", "{dir}"] } } }`, "auggie")).toBe(30);
     expect(timeout(`{ "agent_servers": { "claude": { "command": "x" }, "opencode": { "command": "opencode" } } }`, "claude")).toBe(30);
     expect(timeout(`{ "agent_servers": { "claude": { "command": "x" }, "opencode": { "command": "opencode" } } }`, "opencode")).toBe(30);
     expect(buildAgentCatalogue(null, "/c/config.jsonc").startupTimeoutSetting).toBeNull();
@@ -361,6 +389,6 @@ describe("Start-up timeout setting (harness-feedback tui-config)", () => {
     const text = commentedDefault();
     expect(text).toMatch(/^\s*"agent_startup_timeout_seconds": 30,$/m);
     expect(text).toMatch(/^\s*\/\/ "claude": .*"startup_timeout_seconds": 120 \},$/m);
-    expect(timeout(text, "auggie")).toBe(30);
+    expect(timeout(text.replace('// "auggie": { "command": "auggie", "args": ["--acp"], "additional_directory_args": ["--add-workspace", "{dir}"] },', '"auggie": { "command": "auggie", "args": ["--acp"], "additional_directory_args": ["--add-workspace", "{dir}"] },'), "auggie")).toBe(30);
   });
 });

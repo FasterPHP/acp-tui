@@ -23,11 +23,18 @@ function temp(prefix: string): string {
   return realpathSync(mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix)));
 }
 
-/** A private configuration and state home (empty: no config.jsonc, no index). */
-function xdg(): Record<string, string> {
+/** A private configuration and state home (no index; no config.jsonc unless `config` is given). */
+function xdg(config?: string): Record<string, string> {
   const base = temp("acp-tui-launch-xdg-");
+  if (config !== undefined) {
+    mkdirSync(join(base, "config", "acp-tui"), { recursive: true });
+    writeFileSync(join(base, "config", "acp-tui", "config.jsonc"), config);
+  }
   return { XDG_CONFIG_HOME: join(base, "config"), XDG_STATE_HOME: join(base, "state") };
 }
+
+/** The auggie entry as `install-cli --harness auggie` writes it. */
+const AUGGIE_CONFIG = JSON.stringify({ agent_servers: { auggie: { command: "auggie", args: ["--acp"], additional_directory_args: ["--add-workspace", "{dir}"] } } });
 
 let session: PtySession | null = null;
 afterEach(async () => {
@@ -36,10 +43,22 @@ afterEach(async () => {
 });
 
 describe("Agent launch (tui-agent-session)", () => {
-  test("Auggie by default: no configuration file and no arguments resolve to auggie --acp", async () => {
+  test("No harness by default (install-harness-choice): no configuration file and no arguments exit 1 with the explanation, and nothing is launched", async () => {
     const cwd = temp("acp-tui-launch-");
     const out = join(cwd, "launch.json");
-    session = startPty(["bun", STUB, "--"], { cols: 80, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
+    session = startPty(["bun", STUB, "--"], { cols: 200, rows: 24, cwd, env: { ...xdg(), ACP_TUI_TEST_LAUNCH_OUT: out } });
+    expect(await session.wait(15000)).toBe(1);
+    expect(existsSync(out)).toBe(false);
+    const text = session.screenText().join(" ").replace(/\s+/g, " ");
+    expect(text).toContain("acp-tui: no harness is enabled yet, so acp-tui has nothing to start.");
+    expect(text).toContain("To enable one, run bun run install-cli --harness <name> in the acp-tui checkout");
+    expect(text).toContain("Harnesses with an example entry: auggie, auggie-v2, claude, opencode, codex, pi, agy, qwen, copilot, cursor, goose.");
+  });
+
+  test("One entry and no default_agent_server: no arguments resolve to that entry, auggie --acp", async () => {
+    const cwd = temp("acp-tui-launch-");
+    const out = join(cwd, "launch.json");
+    session = startPty(["bun", STUB, "--"], { cols: 80, rows: 24, cwd, env: { ...xdg(AUGGIE_CONFIG), ACP_TUI_TEST_LAUNCH_OUT: out } });
     expect(await session.wait(15000)).toBe(0);
     expect(existsSync(out)).toBe(true);
     const launch = JSON.parse(readFileSync(out, "utf8")) as LaunchDescription;
@@ -102,7 +121,7 @@ describe("New session in the current directory (tui-agent-session)", () => {
       cols: 100,
       rows: 24,
       cwd: work,
-      env: xdg(),
+      env: xdg(AUGGIE_CONFIG),
     });
     const s = session;
     await s.waitFor(/╭─ Sessions in .*repo-c/, 15000);
@@ -115,7 +134,7 @@ describe("New session in the current directory (tui-agent-session)", () => {
         : [];
     // The list opens with the first frame, before the agent is up (day-two-feedback D2): wait for it.
     await s.waitFor(() => methods().some((e) => e.method === "initialize"), 15000);
-    // An agent without session/list: no list request; the selector's row for the default configuration's auggie only.
+    // An agent without session/list: no list request; the selector's row for the one configured harness, auggie, only.
     expect(methods().map((e) => e.method)).toEqual(["initialize"]);
     expect(s.screenText().some((r) => r.includes("New session with auggie"))).toBe(true);
     s.sendKeys("Esc");

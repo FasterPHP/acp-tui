@@ -15,10 +15,11 @@ const SERVERS = `"agent_servers": { "fake": { "command": "bun", "args": ["x.ts"]
 const parse = (text: string, kind: "user" | "project" = "user") => parseConfigText(text, FILE, { kind, knownAgents: ["auggie", "claude"] });
 
 describe("default_agent_server", () => {
-  test("auggie by default, in the schema and the commented default; the old name is in neither", () => {
-    expect(defaultConfig().default_agent_server).toBe("auggie");
+  test("not set by default (install-harness-choice D7): none in the schema, a commented example line in the commented default; the old name is in neither", () => {
+    expect(defaultConfig().default_agent_server).toBeUndefined();
     const text = commentedDefault();
-    expect(text).toContain(`"default_agent_server": "auggie"`);
+    expect(text).toContain(`// "default_agent_server": "claude",`);
+    expect(JSON.parse(jsonSchemaText(ConfigSchema)).properties.default_agent_server.default).toBeUndefined();
     expect(text).not.toMatch(/"default_agent"\s*:/);
     expect(JSON.parse(jsonSchemaText(ConfigSchema)).properties.default_agent_server).toBeDefined();
     expect(JSON.parse(jsonSchemaText(ConfigSchema)).properties.default_agent).toBeUndefined();

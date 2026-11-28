@@ -39,9 +39,10 @@ describe("harnessChoice", () => {
     expect(() => harnessChoice(["claude"], "codex")).toThrow("--default codex is not among the harnesses given with --harness (claude)");
   });
 
-  test("the shipped choice is auggie alone, the default", () => {
-    expect(shippedChoice()).toEqual({ enabled: ["auggie"], defaultName: "auggie" });
-    expect(isShippedChoice(harnessChoice(["auggie"]))).toBe(true);
+  test("the shipped choice is no harness and no default (install-harness-choice D7)", () => {
+    expect(shippedChoice()).toEqual({ enabled: [], defaultName: null });
+    expect(isShippedChoice({ enabled: [], defaultName: null })).toBe(true);
+    expect(isShippedChoice(harnessChoice(["auggie"]))).toBe(false);
     expect(isShippedChoice(harnessChoice(["auggie", "claude"]))).toBe(false);
   });
 
@@ -52,11 +53,13 @@ describe("harnessChoice", () => {
   });
 });
 
+const flatOf = (text: string): string => text.split("\n").map((l) => l.replace(/^\s*\/\/ ?/, "")).join(" ");
+
 describe("commentedDefault with a harness choice", () => {
   test("no choice, and the shipped choice, give exactly the default file on each platform", () => {
     for (const platform of ["linux", "darwin", "win32"] as const) {
       expect(commentedDefault(platform, shippedChoice())).toBe(commentedDefault(platform));
-      expect(commentedDefault(platform, harnessChoice(["auggie"]))).toBe(commentedDefault(platform));
+      expect(commentedDefault(platform, harnessChoice(["auggie"]))).not.toBe(commentedDefault(platform));
     }
   });
 
@@ -80,11 +83,13 @@ describe("commentedDefault with a harness choice", () => {
     const lines = text.split("\n");
     expect(lines).toContain('  "default_agent_server": "claude",');
     expect(lines).toContain('    "codex": { "command": "codex-acp", "args": [] },');
-    // auggie is commented out and introduced as an example; its workspace alternative goes with it.
+    // auggie is commented out and introduced as an example, and so is its workspace alternative.
     const auggie = lines.findIndex((l) => l.startsWith('    // "auggie": {'));
     expect(auggie).toBeGreaterThan(-1);
     expect(lines.slice(auggie - 20, auggie).join(" ")).toContain(`${EXAMPLE} Auggie, installed with`);
-    expect(text).not.toContain("/path/to/projects");
+    expect(lines[auggie + 1 + lines.slice(auggie + 1).findIndex((l) => l.startsWith('    // "auggie": {'))]).toContain("/path/to/projects");
+    expect(flatOf(text)).toContain("the same with a directory; to use it, remove the // in front of this line rather than the one above.");
+    expect(flatOf(text)).toContain("where the default configuration has none.");
     expect(text).not.toContain("The default harness, Auggie");
     expect(text).toContain("// The default harness, Claude Code through the claude-agent-acp adapter");
     const flat = lines.map((l) => l.replace(/^\s*\/\/ ?/, "")).join(" ");

@@ -31,6 +31,7 @@ import { formatProblemWithSeverity, hasErrors, type ConfigProblem } from "./conf
 import { readConfiguration, type ConfigurationRead } from "./config/read.ts";
 import { type Env, userConfigFile } from "./config/sources.ts";
 import { keyCheckProblems } from "./keys/from-config.ts";
+import { LEGACY_DEFAULT_HARNESS } from "./agent/command.ts";
 import { checkTheme } from "./theme/configured.ts";
 
 export interface ConfigCommandIo {
@@ -82,7 +83,38 @@ export function checkProblems(read: ConfigurationRead): ConfigProblem[] {
       ...(p.suggestion === undefined ? {} : { suggestion: p.suggestion }),
     }),
   );
-  return [...read.problems, ...read.notices, ...checkTheme(config, files), ...keyCheckProblems(config.keys, { user: files.user, project: files.project }), ...glyphs];
+  return [...read.problems, ...read.notices, ...harnessStateProblems(read), ...checkTheme(config, files), ...keyCheckProblems(config.keys, { user: files.user, project: files.project }), ...glyphs];
+}
+
+/**
+ * What `--check` says about the harnesses when `default_agent_server` is not set
+ * (install-harness-choice design D7): a notice when no harness is enabled (no file, or no entry),
+ * since acp-tui then starts only with `--` and a command; a warning when several are and none is
+ * the default (and none is `auggie`, which is still taken then), since acp-tui without a harness
+ * name fails. Nothing when the loader has already reported a problem with `agent_servers` or the
+ * file, which explains the state better.
+ */
+export function harnessStateProblems(read: ConfigurationRead): ConfigProblem[] {
+  const { config, files } = read;
+  if (config.default_agent_server !== undefined) return [];
+  if (read.problems.some((p) => p.file === files.user && (p.path === "" || p.path === "agent_servers" || p.path.startsWith("agent_servers.")))) return [];
+  const names = Object.keys(config.agent_servers);
+  const at = { file: files.user, line: 1, column: 1, path: "agent_servers" } as const;
+  if (names.length === 0) {
+    return [
+      {
+        ...at,
+        severity: "notice",
+        message: read.present.user
+          ? "has no entry, so no harness is enabled and acp-tui starts only with -- and a command: uncomment the entry of the harness you use under agent_servers"
+          : "has no entry, since there is no configuration file, so no harness is enabled and acp-tui starts only with -- and a command: run bun run install-cli --harness <name> in the acp-tui checkout to create one",
+      },
+    ];
+  }
+  if (names.length > 1 && !names.includes(LEGACY_DEFAULT_HARNESS)) {
+    return [{ ...at, severity: "warning", message: `has ${names.length} harnesses and default_agent_server is not set, so acp-tui without a harness name fails: set default_agent_server to one of ${names.join(", ")}` }];
+  }
+  return [];
 }
 
 const count = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" : "s"}`;

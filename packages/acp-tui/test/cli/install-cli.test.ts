@@ -41,6 +41,8 @@ import {
 import { commentedDefault } from "../../src/config/default-file.ts";
 import { harnessChoice } from "../../src/config/harness-choice.ts";
 import { WINDOWS } from "../windows.ts";
+import { withoutHarnessNotice } from "../config/harness-notice.ts";
+import { selectableHarnesses } from "../../src/config/harness-choice.ts";
 import { mergeEnvironment } from "../../src/agent/which.ts";
 
 const ROOT = resolve(import.meta.dir, "../../../..");
@@ -418,8 +420,8 @@ describe("install-cli", () => {
     // The comparison it exists for: a fresh install differs from nothing.
     const diff = await run([join(bin, "acp-tui"), "config", "--diff-default"], { env: { HOME: home } });
     expect(diff.stdout).toBe("config.jsonc is the same as the default.\n");
-    // The dist file is never read: acp-tui checks the configuration clean with it in place.
-    expect((await run([join(bin, "acp-tui"), "config", "--check"], { cwd: home, env: { HOME: home } })).stdout).toBe("no configuration problems\n");
+    // The dist file is never read: acp-tui checks the configuration clean with it in place (but for the notice that no harness is enabled).
+    expect(withoutHarnessNotice((await run([join(bin, "acp-tui"), "config", "--check"], { cwd: home, env: { HOME: home } })).stdout)).toBe("no configuration problems");
   }, 30000);
 
   // Skipped on Windows: it installs or runs the POSIX sh stub, or checks real mode bits; the Windows .cmd stub is tested below with the platform injected.
@@ -718,11 +720,36 @@ describe("install-cli --harness", () => {
     expect(err.join("")).toBe("");
   });
 
-  test("--harness auggie gives exactly the default file", async () => {
+  test("--harness auggie: the auggie entry in effect and the default, its workspace alternative still commented out", async () => {
     const home = scratch();
     const bin = join(home, "bin");
     expect(await installMain(["--dir", bin, "--harness", "auggie"], collect().io, envOf(home, bin))).toBe(0);
-    expect(readFileSync(configFile(home), "utf8")).toBe(commentedDefault());
+    const text = readFileSync(configFile(home), "utf8");
+    expect(text).toBe(commentedDefault(process.platform, harnessChoice(["auggie"])));
+    expect(text).toMatch(/^ {4}"auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\] \},$/m);
+    expect(text).toMatch(/^ {4}\/\/ "auggie": .*"additional_directories": \["\/path\/to\/projects"\] \},$/m);
+    expect(text).toMatch(/^ {2}"default_agent_server": "auggie",$/m);
+    expect(text.replace(/\n\s*\/\/ /g, " ")).toContain("to use it, put // in front of the auggie line above and remove it from this one");
+  });
+
+  test("without --harness: the file enables no harness, and the install says how to enable one (install-harness-choice D7)", async () => {
+    const home = scratch();
+    const bin = join(home, "bin");
+    const { io, out, err } = collect();
+    expect(await installMain(["--dir", bin], io, envOf(home, bin))).toBe(0);
+    const file = configFile(home);
+    expect(readFileSync(file, "utf8")).toBe(commentedDefault());
+    const said = out.join("");
+    expect(said).toContain(`install-cli: created ${file}, with no harness enabled and every setting at its default`);
+    expect(said).toContain(
+      `install-cli: note: no harness is enabled, so a plain \`acp-tui\` has nothing to start yet. To enable one, uncomment its entry under agent_servers in ${file} (with more than one enabled, also set default_agent_server to the one to start by default), or remove that file and run \`bun run install-cli --harness <name>\` again. Harness names: ${selectableHarnesses().join(", ")}\n`,
+    );
+    expect(err.join("")).toBe("");
+    // A second install keeps the file and says nothing more about harnesses: the file is the user's now.
+    const again = collect();
+    expect(await installMain(["--dir", bin], again.io, envOf(home, bin))).toBe(0);
+    expect(again.out.join("")).toContain(`kept the existing configuration ${file}`);
+    expect(again.out.join("")).not.toContain("note:");
   });
 
   test("an unknown name exits 2, lists the names it takes, and writes neither the command nor the configuration", async () => {

@@ -19,6 +19,7 @@ import { defaultConfig, describeOf, moduleFieldList, SECTIONS, valueListOf, valu
 import { CLAUDE_EXAMPLE_COMMAND } from "../../src/agent/command.ts";
 import type { z } from "zod";
 import { MODULE_IDS } from "../../src/layout/modules.ts";
+import { HARNESS_NOTICE, withoutHarnessNotice } from "./harness-notice.ts";
 
 // The glyph checks measure with OpenTUI's width function, which needs @opentui/core evaluated
 // (runConfigCommand loads it; the tests that call readConfiguration directly need it too).
@@ -73,15 +74,20 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     expect(parsed.problems).toEqual([]);
     expect(parsed.rejected).toEqual([]);
     expect(effectiveConfig({ user: nextLastGood({}, parsed), project: {} })).toEqual(noFileConfig(w.configFile));
-    // The harness lines are read from the file or, with no file, from the default's active lines: the same entries and default.
+    // No harness either way (install-harness-choice D7): no entry in effect, no default.
     const absent = parseConfigText(null, w.configFile, { kind: "user", knownAgents: [] });
-    expect(absent.sections.agent_servers).toEqual(parsed.sections.agent_servers);
-    expect(absent.sections.default_agent_server).toEqual(parsed.sections.default_agent_server);
+    expect(absent.sections.agent_servers ?? {}).toEqual(parsed.sections.agent_servers as object);
+    expect(parsed.sections.agent_servers).toEqual({});
+    expect(absent.sections.default_agent_server).toBeUndefined();
+    expect(parsed.sections.default_agent_server).toBeUndefined();
     const { agent_servers: _a, default_agent_server: _d, ...fromFile } = readConfiguration({ env: w.env, sessionDirectory: w.cwd }).config;
     const { agent_servers: _b, default_agent_server: _e, ...fromNoFile } = readConfiguration({ env: world().env, sessionDirectory: w.cwd }).config;
     expect(fromFile).toEqual(fromNoFile);
+    // The one thing --check says: the notice that no harness is enabled.
     const r = await w.run(["--check"]);
-    expect(r).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+    expect(r.code).toBe(0);
+    expect(r.stdout).toMatch(HARNESS_NOTICE);
+    expect(withoutHarnessNotice(r.stdout)).toBe("no configuration problems");
   });
 
   test("every section is set, each preceded by its description from the schema, or by its value list", async () => {
@@ -90,6 +96,8 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     for (const section of Object.keys(SECTIONS) as SectionName[]) {
       // additional_directories is read only from a project file, so this file describes it without setting it.
       if (section === "additional_directories") expect(text).not.toMatch(/^ {2}"additional_directories": /m);
+      // Not set by default (install-harness-choice D7): a commented example line.
+      else if (section === "default_agent_server") expect(text).toMatch(/^ {2}\/\/ "default_agent_server": "claude",$/m);
       else expect(text).toMatch(new RegExp(`^  "${section}": `, "m"));
       const list = valueListOf(SECTIONS[section]);
       if (list) expect(comments).toContain(`${list.heading}:`);
@@ -162,12 +170,12 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     for (const name of ["auggie", "pi", "agy", "deepseek"]) expect(text).toContain(`// "${name}": { "command": `);
     const lines = text.split("\n");
     for (const example of AGENT_EXAMPLES) {
-      // The active auggie entry is not commented out; its comment names the source but is not an "Example, not active".
-      const at = lines.findIndex((l) => l.trim().startsWith(example.active ? `"${example.name}": {` : `// "${example.name}": {`));
+      // No entry is in effect in the default (install-harness-choice D7): each is commented out.
+      const at = lines.findIndex((l) => l.trim().startsWith(`// "${example.name}": {`));
       expect(at).toBeGreaterThan(-1);
-      // The comment above the entry starts with the example marker (the active entry: with a blank line or the brace) and names a source.
+      // The comment above the entry starts with the example marker and names a source.
       let start = at - 1;
-      while (!lines[start]!.includes(EXAMPLE) && !(example.active && lines[start]!.trim() === `"agent_servers": {`)) start--;
+      while (!lines[start]!.includes(EXAMPLE)) start--;
       const about = lines.slice(start, at).join(" ");
       expect(about).toMatch(/Sources?: /);
     }
@@ -179,8 +187,10 @@ describe("Commented default configuration (tasks 9.2 and 12.7)", async () => {
     for (let i = 0; i < lines.length; i++) {
       if (!lines[i]!.includes(EXAMPLE)) continue;
       let j = i + 1;
-      while (lines[j]!.trim().startsWith("// ") && !/^\s*\/\/ "/.test(lines[j]!)) j++;
-      while (j < lines.length && /^\s*\/\/ "/.test(lines[j]!)) {
+      // A commented line of JSONC starts with a key and its colon (prose may start with a quoted argument).
+      const line = /^\s*\/\/ "[^"]+": /;
+      while (lines[j]!.trim().startsWith("// ") && !line.test(lines[j]!)) j++;
+      while (j < lines.length && line.test(lines[j]!)) {
         lines[j] = lines[j]!.replace("// ", "");
         j++;
       }
@@ -262,9 +272,7 @@ describe("config --check (task 9.1)", async () => {
   test("Palette keeps one route: ctrl+p removed from global reports no problem and exits 0, because ? in the prompt context still opens the palette", async () => {
     const w = world({ config: `{ "keys": { "global": { "ctrl+p": null } } }` });
     const r = await w.run(["--check"]);
-    expect(r.stdout).not.toContain("palette");
-    expect(r.stdout).not.toContain("warning");
-    expect(r.stdout).not.toContain("error");
+    expect(withoutHarnessNotice(r.stdout)).toBe("no configuration problems");
     expect(r.code).toBe(0);
   });
 
@@ -461,13 +469,15 @@ describe("Windows: paths, the commented default and the byte order mark (windows
 
   test("File saved with a BOM: config --check reports no problem and the setting applies", async () => {
     const w = world({ config: `\uFEFF{ "mouse": "off" }` });
-    expect(await w.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+    const r = await w.run(["--check"]);
+    expect({ ...r, stdout: withoutHarnessNotice(r.stdout) }).toEqual({ code: 0, stdout: "no configuration problems", stderr: "" });
     expect(readConfiguration({ env: w.env, sessionDirectory: w.cwd }).config.mouse).toBe("off");
   });
 
   test("a project file and a theme file saved with a BOM read as without one; positions are unchanged", async () => {
     const clean = world({ config: `{ "theme": "mine" }`, themes: { mine: `\uFEFF{ "tokens": {} }` }, project: `\uFEFF{ "density": "verbose" }` });
-    expect(await clean.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+    const r = await clean.run(["--check"]);
+    expect({ ...r, stdout: withoutHarnessNotice(r.stdout) }).toEqual({ code: 0, stdout: "no configuration problems", stderr: "" });
     expect(readConfiguration({ env: clean.env, sessionDirectory: clean.cwd }).config.density).toBe("verbose");
     const typo = world({ config: `{ "theme": "mine" }`, themes: { mine: `\uFEFF{\n  "tokens": {\n    "acent": 4\n  }\n}\n` } });
     expect((await typo.run(["--check"])).stdout).toContain(`${typo.themeFile("mine")}:3:5: error: `);
@@ -549,43 +559,70 @@ describe("config --diff-default (interface-feedback 5.3)", () => {
 });
 
 describe("Harnesses come only from agent_servers (configured-harnesses, tui-config)", async () => {
-  test("Default configuration: the printed file holds the active auggie line, the commented alternative with additional_directories /path/to/projects and the commented claude line with 120", () => {
+  test("Default configuration: no harness in effect; the auggie line, its commented alternative with additional_directories /path/to/projects and the claude line with 120 are all commented out (install-harness-choice D7)", () => {
     const text = commentedDefault();
-    expect(text).toMatch(/^ {4}"auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\] \},$/m);
+    expect(text).toMatch(/^ {4}\/\/ "auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\] \},$/m);
     expect(text).toMatch(/^ {4}\/\/ "auggie": \{ "command": "auggie", "args": \["--acp"\], "additional_directory_args": \["--add-workspace", "\{dir\}"\], "additional_directories": \["\/path\/to\/projects"\] \},$/m);
-    // The comments say what the template is for and why --add-workspace in args bypasses acp-tui.
-    expect(text.replace(/\n\s*\/\/ /g, " ")).toContain("additional_directory_args is the template acp-tui");
-    expect(text.replace(/\n\s*\/\/ /g, " ")).toContain("Writing --add-workspace <dir> in args also works, but bypasses acp-tui");
+    // The comments say what the template is for, why --add-workspace in args bypasses acp-tui, and how to use the alternative.
+    const prose = text.replace(/\n\s*\/\/ /g, " ");
+    expect(prose).toContain("additional_directory_args is the template acp-tui");
+    expect(prose).toContain("Writing --add-workspace <dir> in args also works, but bypasses acp-tui");
+    expect(prose).toContain("the same with a directory; to use it, remove the // in front of this line rather than the one above.");
+    expect(prose).toContain("The default configuration has none in effect");
     expect(text).toMatch(/^ {4}\/\/ "claude": \{ "command": "bunx", .*"startup_timeout_seconds": 120 \},$/m);
-    expect(text).toMatch(/^ {2}"default_agent_server": "auggie",$/m);
-    // Every other example is commented out.
+    expect(text).toMatch(/^ {2}\/\/ "default_agent_server": "claude",$/m);
+    expect(text).not.toMatch(/^ {2}"default_agent_server"/m);
+    // Every example is commented out.
     const active = text.split("\n").filter((l) => /^ {4}"[\w-]+": \{ "command"/.test(l));
-    expect(active).toHaveLength(1);
+    expect(active).toHaveLength(0);
   });
 
-  test("Configuration without a file: the printed default and no file give the same harness entries and default", () => {
+  test("Configuration without a file: the printed default and no file give the same harness entries and default: none", () => {
     const printed = parseConfigText(commentedDefault(), "/c.jsonc", { kind: "user", knownAgents: [] });
     const absent = parseConfigText(null, "/c.jsonc", { kind: "user", knownAgents: [] });
     expect(absent.status).toBe("absent");
     expect(absent.problems).toEqual([]);
-    expect(absent.sections.agent_servers).toEqual(printed.sections.agent_servers);
+    expect(absent.sections.agent_servers ?? {}).toEqual(printed.sections.agent_servers as object);
     expect(absent.sections.default_agent_server).toEqual(printed.sections.default_agent_server);
-    expect(Object.keys(absent.sections.agent_servers as object)).toEqual(["auggie"]);
-    expect(absent.sections.default_agent_server).toBe("auggie");
+    expect(Object.keys(printed.sections.agent_servers as object)).toEqual([]);
+    expect(absent.sections.default_agent_server).toBeUndefined();
     // A project file's absence adds no harness.
     expect(parseConfigText(null, "/p/.acp-tui.jsonc", { kind: "project" }).sections).toEqual({});
   });
 
-  test("Check without a file: config --check prints no configuration problems and exits 0", async () => {
+  test("Check without a file: config --check prints only the no-harness notice, naming install-cli --harness, and exits 0", async () => {
     const w = world();
-    expect(await w.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+    const r = await w.run(["--check"]);
+    expect(r).toEqual({
+      code: 0,
+      stdout: `${w.configFile}:1:1: notice: agent_servers has no entry, since there is no configuration file, so no harness is enabled and acp-tui starts only with -- and a command: run bun run install-cli --harness <name> in the acp-tui checkout to create one\n0 errors, 0 warnings\n`,
+      stderr: "",
+    });
   });
 
-  test("Empty file: {} is taken as written, has no harnesses and is not itself a problem", async () => {
+  test("Empty file: {} is taken as written, has no harnesses, and --check gives only the notice to uncomment an entry", async () => {
     const w = world({ config: "{}" });
     const parsed = parseConfigText("{}", w.configFile, { kind: "user", knownAgents: [] });
     expect(parsed.sections).toEqual({});
+    expect(await w.run(["--check"])).toEqual({
+      code: 0,
+      stdout: `${w.configFile}:1:1: notice: agent_servers has no entry, so no harness is enabled and acp-tui starts only with -- and a command: uncomment the entry of the harness you use under agent_servers\n0 errors, 0 warnings\n`,
+      stderr: "",
+    });
+  });
+
+  test("One entry and no default_agent_server: no problem, since that entry is the default", async () => {
+    const w = world({ config: `{ "agent_servers": { "fake": { "command": "fake-agent" } } }` });
     expect(await w.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
+  });
+
+  test("Several entries and no default_agent_server: a warning naming them; with an auggie entry among them, none", async () => {
+    const w = world({ config: `{ "agent_servers": { "fake": { "command": "fake-agent" }, "other": { "command": "other" } } }` });
+    const r = await w.run(["--check"]);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toBe(`${w.configFile}:1:1: warning: agent_servers has 2 harnesses and default_agent_server is not set, so acp-tui without a harness name fails: set default_agent_server to one of fake, other\n0 errors, 1 warning\n`);
+    const old = world({ config: `{ "agent_servers": { "fake": { "command": "fake-agent" }, "auggie": { "command": "auggie", "args": ["--acp"] } } }` });
+    expect(await old.run(["--check"])).toEqual({ code: 0, stdout: "no configuration problems\n", stderr: "" });
   });
 
   test("Names a harness that is not known: an error at the value, and the name is kept", async () => {

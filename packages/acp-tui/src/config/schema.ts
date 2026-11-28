@@ -31,7 +31,7 @@ import { MODULE_IDS, MODULES, type ModuleId } from "../layout/modules.ts";
 import { templateFields } from "../layout/template.ts";
 import { DEFAULT_TITLE_FORMAT, titleFormatIssue, titlePlaceholderList } from "../renderer/title-format.ts";
 import { KEY_ACTIONS, KEY_CONTEXTS, type KeyContext } from "../keys/keymap.ts";
-import { DEFAULT_HARNESS, DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
+import { DEFAULT_STARTUP_TIMEOUT_SECONDS } from "../agent/command.ts";
 import { CLIPBOARD_MODES, EXIT_PRINTS, MOUSE_POLICIES } from "../renderer/options.ts";
 import { TERMINAL_IDS, type TerminalId } from "../renderer/terminal-ids.ts";
 import { suggest } from "./problems.ts";
@@ -380,8 +380,8 @@ export const SECTIONS = {
   agent_servers: z
     .record(z.string(), AgentServer)
     .default({})
-    .describe("Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. A harness works only while it has an entry here; with no configuration file, acp-tui has the default's auggie entry. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file."),
-  default_agent_server: z.string().min(1).default(DEFAULT_HARNESS).describe("The harness launched without a harness name or command: the name of an agent_servers entry. Without an entry of that name, acp-tui without a harness name fails and says so. The older name default_agent is still accepted."),
+    .describe("Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. A harness works only while it has an entry here; the default configuration has none in effect, so a new file or no file enables no harness until you uncomment one. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file."),
+  default_agent_server: z.string().min(1).optional().describe("The harness launched without a harness name or command: the name of an agent_servers entry. Without an entry of that name, acp-tui without a harness name fails and says so. Not set by default: then acp-tui launches the only entry; with several, the auggie entry if there is one (the default of earlier versions), else none until this is set. The older name default_agent is still accepted."),
   agent_startup_timeout_seconds: whole(5, 600).default(DEFAULT_STARTUP_TIMEOUT_SECONDS).describe("Seconds a starting harness may stay silent (a whole number from 5 to 600) before acp-tui stops it and says so. Any message from the harness restarts the wait, and it is paused while a permission or question waits for you. An agent_servers entry's startup_timeout_seconds wins for that harness. Read only from your own file, never from a project file."),
   additional_directories: z
     .array(z.string().min(1))

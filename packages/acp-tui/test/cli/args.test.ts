@@ -281,7 +281,8 @@ describe("cli main() (task 5.1)", () => {
   test("non-TTY stdout refuses to start, on stderr, non-zero exit, agent not launched", async () => {
     const { handle, stderrWrites } = io(false);
     const startApp = mock(async (_options: StartAppOptions) => 0);
-    const code = await main([], handle, startApp, NO_CONFIG);
+    // An ad hoc command: with no configuration no harness is enabled (install-harness-choice).
+    const code = await main(["--", "my-agent"], handle, startApp, NO_CONFIG);
     expect(code).not.toBe(0);
     expect(stderrWrites.join("")).toMatch(/interactive terminal/i);
     expect(startApp).not.toHaveBeenCalled();

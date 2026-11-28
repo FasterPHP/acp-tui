@@ -7,6 +7,8 @@ import { chmodSync, existsSync, mkdirSync, symlinkSync, writeFileSync } from "no
 import { delimiter, join } from "node:path";
 import type { PtySession } from "../pty/harness.ts";
 import { listWorld } from "../session/list-world.ts";
+import { commentedDefault } from "../../src/config/default-file.ts";
+import { harnessChoice } from "../../src/config/harness-choice.ts";
 
 let session: PtySession | null = null;
 afterEach(async () => {
@@ -51,10 +53,11 @@ describe.skipIf(process.platform === "win32")("Programs resolved from the PATH o
     w.env["PATH"] = bin;
   }
 
-  test("Auggie missing: acp-tui exits 1 naming the harness, its command and the install hint, and never enters the alternate screen", async () => {
+  test("Auggie missing: with the file install-cli --harness auggie writes, acp-tui exits 1 naming the harness, its command and the install hint, and never enters the alternate screen", async () => {
     const w = listWorld();
     const repo = w.dir("repo");
     bunOnlyPath(w);
+    writeFileSync(join(w.base, "config", "acp-tui", "config.jsonc"), commentedDefault(process.platform, harnessChoice(["auggie"])));
     const s = (session = w.start([], { cwd: repo, cols: 300, rows: 30 }));
     expect(await s.wait(20000)).toBe(1);
     const text = s.screenText().join("");

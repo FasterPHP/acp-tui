@@ -5,24 +5,24 @@
 // --print-default` with those entries uncommented. Kept apart from install-cli so a later setup
 // command (detection on the PATH, a checklist, `acp-tui setup`) can build the same choice its own
 // way and render it with the same code.
-import { AGENT_EXAMPLES } from "../agent/examples.ts";
-import { DEFAULT_HARNESS } from "../agent/command.ts";
+import { selectableExampleNames } from "../agent/examples.ts";
 
-/** The harnesses in effect, in the order the default file lists them, and the default among them. */
+/** The harnesses in effect, in the order the default file lists them, and the default among them
+ *  (null with none in effect: the shipped choice). */
 export interface HarnessChoice {
   readonly enabled: readonly string[];
-  readonly defaultName: string;
+  readonly defaultName: string | null;
 }
 
 /** The names a choice may hold: every agent example except one whose entry needs editing first. */
 export function selectableHarnesses(): string[] {
-  return AGENT_EXAMPLES.filter((e) => e.selectable !== false).map((e) => e.name);
+  return selectableExampleNames();
 }
 
-/** The choice the default file makes without one: the examples marked active (`auggie`), with
- *  `DEFAULT_HARNESS`. */
+/** The choice the default file makes without one: no harness in effect and no default
+ *  (install-harness-choice design D7, Marcus, 28 November 2026: "no default"). */
 export function shippedChoice(): HarnessChoice {
-  return { enabled: AGENT_EXAMPLES.filter((e) => e.active === true).map((e) => e.name), defaultName: DEFAULT_HARNESS };
+  return { enabled: [], defaultName: null };
 }
 
 /** Whether a choice gives exactly the default file (so it renders byte for byte as `--print-default`). */

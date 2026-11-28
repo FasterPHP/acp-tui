@@ -8,7 +8,7 @@
     },
     "agent_servers": {
       "default": {},
-      "description": "Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. A harness works only while it has an entry here; with no configuration file, acp-tui has the default's auggie entry. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file.",
+      "description": "Harnesses by name (Zed calls them agent servers, hence the key), launched with a harness name or --harness <name>. A harness works only while it has an entry here; the default configuration has none in effect, so a new file or no file enables no harness until you uncomment one. Entries have Zed's shape, so they copy across from Zed's settings. Read only from the user's own file, never from a project file.",
       "type": "object",
       "propertyNames": {
         "type": "string"
@@ -74,8 +74,7 @@
       }
     },
     "default_agent_server": {
-      "default": "auggie",
-      "description": "The harness launched without a harness name or command: the name of an agent_servers entry. Without an entry of that name, acp-tui without a harness name fails and says so. The older name default_agent is still accepted.",
+      "description": "The harness launched without a harness name or command: the name of an agent_servers entry. Without an entry of that name, acp-tui without a harness name fails and says so. Not set by default: then acp-tui launches the only entry; with several, the auggie entry if there is one (the default of earlier versions), else none until this is set. The older name default_agent is still accepted.",
       "type": "string",
       "minLength": 1
     },

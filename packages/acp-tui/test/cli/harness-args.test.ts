@@ -286,11 +286,11 @@ describe("example harnesses are not run as commands (tui-sessions)", () => {
     expect(r.started).toBe(false);
   });
 
-  test("Example with a template: auggie, when its entry is missing, is told to add it and where to find it", async () => {
+  test("Example with a template: auggie, when its entry is missing, is told to uncomment it like any other example", async () => {
     const catalogue = () => buildAgentCatalogue(`{ "mouse": "off" }`, "/cfg/acp-tui/config.jsonc");
     const r = await run(["auggie"], work(), { catalogue });
     expect(r.code).toBe(1);
-    expect(r.stderr).toBe("acp-tui: harness 'auggie' is not configured; add its entry to /cfg/acp-tui/config.jsonc (see config.dist.jsonc or acp-tui config --print-default)\n");
+    expect(r.stderr).toBe("acp-tui: harness 'auggie' is not configured; uncomment its entry in /cfg/acp-tui/config.jsonc\n");
     expect(r.started).toBe(false);
   });
 

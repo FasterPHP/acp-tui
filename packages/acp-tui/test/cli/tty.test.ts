@@ -13,8 +13,9 @@ const CLI_PATH = fileURLToPath(new URL("../../src/cli.ts", import.meta.url));
 describe("acp-tui | cat (task 5.1)", () => {
   test("piped stdout exits non-zero with a clear message, without launching the agent", async () => {
     const proc = Bun.spawn({
-      cmd: ["bun", CLI_PATH, "--"],
-      // Without arguments the default agent is looked up in the configuration: never the user's own.
+      // An ad hoc command, since the empty configuration enables no harness (install-harness-choice);
+      // it is never launched (a direct `bun src/cli.ts` run writes `-- --`). The configuration is still never the user's own.
+      cmd: ["bun", CLI_PATH, "--", "--", "bun", "-e", "1"],
       env: { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "acp-tui-tty-")) },
       stdin: "ignore",
       stdout: "pipe",

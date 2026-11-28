@@ -53,8 +53,8 @@ describe("Named agent in a broken file", () => {
     const r = await run([], home);
     expect(r.code).not.toBe(0);
     expect(r.started).toBe(false);
-    expect(r.stderr).toContain("harness 'auggie' is not configured; add its entry to");
     expect(r.stderr).toContain(`the configuration file has a problem: ${file}:1:`);
+    expect(r.stderr).toContain("no harness is enabled yet");
   });
 });
 

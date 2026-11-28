@@ -80,7 +80,8 @@ export const BUN_INSTALL_HINT = "Bun from bun.sh, which provides bunx";
 /** Seconds a start-up may stay silent unless the entry or `agent_startup_timeout_seconds` says otherwise. */
 export const DEFAULT_STARTUP_TIMEOUT_SECONDS = 30;
 
-/** The name `default_agent_server` takes when the file does not set it, and the one entry the
- *  default configuration has: `auggie` (Marcus, 19 October 2026: the colleagues testing acp-tui use
- *  Auggie). It is only a name: nothing is launched by it unless an entry of that name exists. */
-export const DEFAULT_HARNESS = "auggie";
+/** The name `default_agent_server` took when a file did not set it, before install-harness-choice
+ *  (Marcus, 28 November 2026: no default harness). A file written before then with several entries,
+ *  one of them `auggie`, and no `default_agent_server` still launches `auggie`, so an existing
+ *  configuration is unaffected. Nothing is launched by it unless an entry of that name exists. */
+export const LEGACY_DEFAULT_HARNESS = "auggie";

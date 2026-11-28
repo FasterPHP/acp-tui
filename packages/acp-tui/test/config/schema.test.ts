@@ -42,10 +42,10 @@ describe("defaults (design D2)", () => {
   test("an empty file parses to the defaults, which are design D2's", () => {
     expect(ConfigSchema.safeParse({}).success).toBe(true);
     const config = defaultConfig();
-    expect(Object.keys(config).sort()).toEqual([...SECTION_NAMES].sort());
+    // Every section but default_agent_server, which has no default (install-harness-choice D7).
+    expect(Object.keys(config).sort()).toEqual(SECTION_NAMES.filter((n) => n !== "default_agent_server").sort());
     expect(config).toEqual({
       agent_servers: {},
-      default_agent_server: "auggie",
       agent_startup_timeout_seconds: 30,
       additional_directories: [],
       mouse: "full",
@@ -142,6 +142,6 @@ describe("agents (tui-sessions' meaning)", () => {
 
   test("an entry in Zed's shape: command, args and env, args and env defaulted", () => {
     expect(SECTIONS.agent_servers.parse({ fake: { command: "bun" } })).toEqual({ fake: { command: "bun", args: [], env: {} } });
-    expect(SECTIONS.default_agent_server.parse(undefined)).toBe("auggie");
+    expect(SECTIONS.default_agent_server.parse(undefined)).toBeUndefined();
   });
 });

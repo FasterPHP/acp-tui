@@ -8,6 +8,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildAgentCatalogue } from "../../src/agent/catalogue.ts";
+import { commentedDefault } from "../../src/config/default-file.ts";
 import { resolveDirectories } from "../../src/config/directories.ts";
 import { effectiveConfig } from "../../src/config/effective.ts";
 import { parseConfigText } from "../../src/config/load.ts";
@@ -234,8 +235,8 @@ describe("Harness arguments for additional directories", () => {
     expect(catalogue.invalid.get("x")).toContain("additional_directory_args");
   });
 
-  test("The built-in auggie carries the template; claude and opencode do not", () => {
-    const agents = buildAgentCatalogue(null, FILE).agents;
+  test("The auggie example carries the template; claude and opencode do not", () => {
+    const agents = buildAgentCatalogue(commentedDefault(undefined, { enabled: ["auggie", "claude", "opencode"], defaultName: "auggie" }), FILE).agents;
     expect(agents.get("auggie")?.additionalDirectoryArgs).toEqual(["--add-workspace", "{dir}"]);
     expect(agents.get("claude")?.additionalDirectoryArgs).toBeUndefined();
     expect(agents.get("opencode")?.additionalDirectoryArgs).toBeUndefined();
