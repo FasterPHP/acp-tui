@@ -214,8 +214,9 @@ describe("command palette (task 13.2; mvp-chrome-and-keys tasks 6.1 and 6.2, wit
       /^Cycle the density +v$/,
       /^First item +home g$/,
       /^Open the item's link.* +o$/,
-      /^Copy the selection, or the item under the cursor +ctrl\+c$/,
-      /^Paste from the clipboard +ctrl\+v ctrl\+shift\+v alt\+v$/,
+      /^Copy the selection, or the item under the\b.* +ctrl\+c super\+c$/,
+      // super+v, the last of paste's four keys, is cut at 63 columns.
+      /^Paste from the clipboard +ctrl\+v ctrl\+shift\+v alt\+v (?:super\+v|su…)$/,
     ]) {
       expect(all).toContainEqual(expect.stringMatching(entry));
     }

@@ -126,7 +126,7 @@ describe("items in start order, updated in place (task 7.1)", () => {
     const done = lines.findIndex((l) => /^ {2}← ✓ edit .*#2$/.test(l));
     expect(running).toBeGreaterThan(0);
     expect(done).toBe(running + 1);
-    expect(activityLine(s).trimEnd()).toBe("  Read src/index.ts");
+    expect(activityLine(s).trimEnd()).toMatch(/^ {2}Read src\/index\.ts +\d+s$/);
 
     await s.waitFor(/end turn/, 10000);
     await settle(s);
@@ -193,11 +193,12 @@ describe("items in start order, updated in place (task 7.1)", () => {
       await Bun.sleep(70);
       await s.flush();
       frames.add(s.cell(y, 4)!.getChars());
-      masked.push(JSON.stringify(s.screenText().map((l) => l.replace(spinnerCells, "*"))));
+      // The activity line's run time ticks once a second: masked too.
+      masked.push(JSON.stringify(s.screenText().map((l) => l.replace(spinnerCells, "*").replace(/ \d+s$/, " T"))));
     }
     expect(frames.size).toBeGreaterThan(1);
     for (const frame of frames) expect(DEFAULT_GLYPHS.spinner).toContain(frame);
-    // Nothing else changed: no other cell differs between the eight looks.
+    // Nothing else changed: no other cell differs between the eight looks (the run time aside).
     expect(new Set(masked).size).toBe(1);
   }, 30000);
 

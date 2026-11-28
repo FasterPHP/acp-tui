@@ -53,9 +53,11 @@ async function waitForRepaint(log: string, cause: "settle" | "key", count: numbe
   }
 }
 
-/** The running-tool spinner's frames (src/conversation/glyphs.ts), masked in comparisons. */
+/** The running-tool spinner's frames (src/conversation/glyphs.ts), masked in comparisons, and the
+ *  activity line's run time at a row's end, which ticks once a second while the turn runs. */
 const SPINNER = new RegExp(`[${DEFAULT_GLYPHS.spinner.join("")}]`, "g");
-const masked = (snapshot: ScreenSnapshot): ScreenSnapshot => ({ ...snapshot, lines: snapshot.lines.map((l) => l.replace(SPINNER, "*")) });
+const RUN_TIME = / (?:\d+s|\d+m \d{2}s|\d+h \d{2}m)$/;
+const masked = (snapshot: ScreenSnapshot): ScreenSnapshot => ({ ...snapshot, lines: snapshot.lines.map((l) => l.replace(SPINNER, "*").replace(RUN_TIME, " T")) });
 
 /** Waits until the screen, spinners aside, has been unchanged for `ms`. */
 async function quiet(s: PtySession, ms = 250): Promise<void> {

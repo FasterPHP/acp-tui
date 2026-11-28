@@ -102,7 +102,7 @@ describe("permission card (task 6.5)", () => {
     const top = rowOf(run.s, CARD_HEADER);
     expect(top).toBe(8);
     expect(run.s.screenText()[top - 1]).toBe("");
-    const activity = /^ {2}Edit src\/index\.ts · awaiting permission$/;
+    const activity = /^ {2}Edit src\/index\.ts · awaiting permission +\d+s$/;
     expect(run.s.screenText()[top - 2]).toMatch(activity);
     expect(activityRow(run.s)).toMatch(activity);
     expect(run.s.screenText()[top + 6]).toStartWith("╭");

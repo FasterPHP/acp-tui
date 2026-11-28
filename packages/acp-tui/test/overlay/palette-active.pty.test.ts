@@ -69,7 +69,7 @@ describe("group headings carry the hint (task 13.11)", () => {
       expect(palette).toContain("Selection");
       expect(palette.filter((r) => r.includes(" · "))).toEqual([]);
       expect(palette).toContainEqual(expect.stringMatching(/^Cycle the density +v$/));
-      expect(palette).toContainEqual(expect.stringMatching(/^Cut the selection +ctrl\+x$/));
+      expect(palette).toContainEqual(expect.stringMatching(/^Cut the selection +ctrl\+x super\+x$/));
       run.s.sendKeys("Esc");
       await run.s.waitFor(() => !paletteOpen(run.s), 3000);
 

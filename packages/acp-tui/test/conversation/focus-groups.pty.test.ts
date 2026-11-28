@@ -1,5 +1,5 @@
 // focus-groups (spec tui-conversation "Focus lines", "Spacing of focus lines" and "Turn totals in
-// the turn-end line"; spec tui-layout "Activity line contents") end to end: the real acp-tui under
+// the turn-end line"; spec tui-layout "Activity line run time") end to end: the real acp-tui under
 // the PTY harness against fake-agent's `task-messages`, whose turn 1 has four gaps between plain
 // agent messages and two notes with nothing between, and whose turn 2 can be held on a running call.
 //
@@ -211,16 +211,16 @@ describe("densities (spec Turn totals in the turn-end line: `focus`, `compact` a
   }, 60000);
 });
 
-describe("turn 2 (spec Turn totals: `interrupted`; tui-layout Activity line contents)", () => {
-  /** The activity row: the count at the right of a row above the prompt box. */
-  const activity = (s: PtySession) => rowsOf(s).find((r) => /^ {2}\S.* {2,}\d+ tool calls? \(1 running\) · 1 thought$/.test(r));
+describe("turn 2 (spec Turn totals: `interrupted`; tui-layout Activity line run time)", () => {
+  /** The activity row: the running call's title and the turn's run time at the right. */
+  const activity = (s: PtySession) => rowsOf(s).find((r) => r.startsWith(`  ${TOOLS["tm-8"].title}`) && / {2,}\d+s$/.test(r));
 
-  test("--hold: the count `2 tool calls (1 running) · 1 thought`, then Esc Esc ends it `interrupted · 2 tool calls (1 stopped) · 1 thought`", async () => {
+  test("--hold: the call's title and the run time on the activity row (no count), then Esc Esc ends it `interrupted · 2 tool calls (1 stopped) · 1 thought`", async () => {
     const s = await turn1({ agentArgs: ["--hold"] });
     await sendPrompt(s, "second");
     await s.waitFor((p) => activity(p) !== undefined, 10000);
     expect(activity(s)).toContain(TOOLS["tm-8"].title);
-    expect(activity(s)).toMatch(/ 2 tool calls \(1 running\) · 1 thought$/);
+    expect(activity(s)).not.toMatch(/tool calls?|thoughts?/);
     s.sendKeys("Esc");
     await s.waitFor(INTERRUPT_ARMED, 5000);
     s.sendKeys("Esc");
@@ -228,7 +228,7 @@ describe("turn 2 (spec Turn totals: `interrupted`; tui-layout Activity line cont
     await s.waitFor((p) => rowsOf(p).some((r) => stopped.test(r)), 10000);
     await settle(s);
     expect(rowsOf(s).filter((r) => stopped.test(r))).toHaveLength(1);
-    // The first turn's line is as it was; the running count is gone.
+    // The first turn's line is as it was; the activity row is blank again.
     expect(rowsOf(s).filter((r) => END_LINE.test(r))).toHaveLength(1);
     expect(activity(s)).toBeUndefined();
   }, 60000);

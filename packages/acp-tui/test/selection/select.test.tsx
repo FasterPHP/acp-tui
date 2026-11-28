@@ -256,7 +256,7 @@ describe("selection (phase-1a task 14.2)", () => {
     const find = (id: string) => items.find((i) => i.id === id);
     expect(find("conversation.copyItem")).toMatchObject({ group: "Conversation", title: "Copy the item as plain text", keys: ["y"] });
     expect(find("conversation.copyItemMarkdown")).toMatchObject({ group: "Conversation", keys: ["shift+y"] });
-    expect(find("selection.copy")).toMatchObject({ group: "Selection", title: "Copy the selection, or the item under the cursor", keys: ["ctrl+c"] });
+    expect(find("selection.copy")).toMatchObject({ group: "Selection", title: "Copy the selection, or the item under the cursor", keys: ["ctrl+c", "super+c"] });
     // Rich copy (mvp-conversation task 5.7): copy, copyRich, copyItem and copyItemMarkdown are
     // all palette commands.
     expect(find("selection.copyRich")).toMatchObject({ group: "Selection", keys: ["ctrl+shift+c"] });

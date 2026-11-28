@@ -160,7 +160,9 @@ describe("acp-tui against fake-agent at 80x24 (task 6.2; alternate screen, phase
     // gap with this card); the prompt box rests at one text row and its padding row with the card
     // open, its top border carrying the busy indicator, standing still while the request waits;
     // then the spacer, the status row and the bottom margin.
-    expect(screen.slice(-17)).toEqual([
+    // The activity line ends in the turn's run time, which ticks: matched, then masked.
+    expect(screen.at(-16)).toMatch(/^ {2}Edit src\/index\.ts · awaiting permission +\d+s$/);
+    expect(screen.slice(-17).map((l, i) => (i === 1 ? l.replace(/ +\d+s$/, "") : l))).toEqual([
       "",
       "  Edit src/index.ts · awaiting permission",
       "",

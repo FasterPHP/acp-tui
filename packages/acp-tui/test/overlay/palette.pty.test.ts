@@ -849,7 +849,7 @@ describe("Cut, Undo and Redo as palette entries (day-two-feedback task 12.3)", (
       run.s.sendKeys("Ctrl+P");
       await run.s.waitFor(/Commands \d+/, 3000);
       const all = await allRows(run.s, "Commands");
-      expect(all).toContainEqual(expect.stringMatching(/^Cut the selection +ctrl\+x$/));
+      expect(all).toContainEqual(expect.stringMatching(/^Cut the selection +ctrl\+x super\+x$/));
       expect(all).toContainEqual(expect.stringMatching(/^Undo the last edit +ctrl\+z super\+z$/));
       expect(all).toContainEqual(expect.stringMatching(/^Redo the edit +ctrl\+y ctrl\+shift\+z shift\+super\+z$/));
       run.s.sendKeys("Esc");

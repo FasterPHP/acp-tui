@@ -97,8 +97,9 @@ describe("App in the test renderer", () => {
     expect(rows[2]).toMatch(/^ {2}→ [▖▘▝▗] read {5}Read a\.ts +#1$/);
     expect(rows[2]).toHaveLength(78);
     // The activity bar sits between the conversation and the prompt box while the tool runs.
-    // One gap, so the title stands alone: the count is the gap line's, not repeated here.
-    expect((await app.frame()).at(-8)!.trimEnd()).toBe("  Read a.ts");
+    // The title at the left and the turn's run time at the right (the fixture's turn started at a
+    // made-up time, so only the shape of the run time is checked); no count.
+    expect((await app.frame()).at(-8)!.trimEnd()).toMatch(/^ {2}Read a\.ts +(?:\d+s|\d+m \d{2}s|\d+h \d{2}m)$/);
   });
 
   test("Enter submits the prompt box's text and clears it when accepted", async () => {
