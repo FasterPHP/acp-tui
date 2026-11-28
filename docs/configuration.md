@@ -94,6 +94,7 @@ It has the same format as your file and the same checks, and it overrides yours 
 | --- | --- |
 | `agent_servers`, `default_agent_server`, `agent_startup_timeout_seconds` | Defining or choosing a harness is choosing what runs; a cloned repository must not make acp-tui run an arbitrary program, nor decide how long a harness it did not choose is waited for |
 | `clipboard` | A repository should not decide where copied text goes |
+| `selection.copy_on_release` | A repository should not decide that a drag you meant only to select with writes the clipboard |
 | `terminals` | It could turn OSC 8 links on for a terminal whose behaviour has not been checked |
 | `keys` in the `card` and `elicitation` contexts | It could otherwise bind a common key to `allow always` |
 
@@ -355,7 +356,7 @@ Unset values keep the built-in ones (`config --print-default` lists them as comm
 | --- | --- | --- | --- |
 | `exit.print` | `"summary"`, `"none"`, `"last-answer"`, `"transcript"` | `"summary"` | What is printed below the command line on exit: `"summary"` - the command that resumes the session, when it can be resumed; `"none"` - nothing; `"last-answer"` - that command, then the agent's last answer as plain text; `"transcript"` - that command, then the whole conversation as plain text. |
 | `clipboard` | `"auto"`, `"host"`, `"osc52"`, `"none"` | `"auto"` | Where copied text goes: `"auto"` - the system clipboard, else through the terminal by OSC 52; `"host"` - only the system clipboard (Wayland or X11 on Linux, the pasteboard on macOS, the Windows clipboard); `"osc52"` - only through the terminal by OSC 52, which also works over SSH; `"none"` - nowhere: copying is turned off. |
-| `selection.copy_on_release` | boolean | `true` | Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C. |
+| `selection.copy_on_release` | boolean | `true` | Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C. Read only from your own file, never from a project file. |
 
 The host clipboard is `wl-copy` or `xclip` on Linux (with a display) and `pbcopy` on macOS, each falling back to OpenTUI's own backend; Ctrl+V reads it (through `pbpaste` on macOS) under `auto` and `host` only.
 

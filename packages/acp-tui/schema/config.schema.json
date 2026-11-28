@@ -362,7 +362,7 @@
       "properties": {
         "copy_on_release": {
           "default": true,
-          "description": "Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C.",
+          "description": "Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C. Read only from your own file, never from a project file.",
           "type": "boolean"
         }
       }

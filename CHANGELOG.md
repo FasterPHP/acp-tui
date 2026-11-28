@@ -12,6 +12,10 @@
 
 - `super+c` copies, `super+v` pastes, `super+a` selects all in the prompt box and `super+x` cuts, beside the Ctrl keys, in a terminal that reports Cmd under the kitty keyboard protocol (Ghostty, kitty). PhpStorm and Zed keep Cmd+C, Cmd+V, Cmd+A and Cmd+X for themselves; key help and the guide name the routes there (Ctrl+C or releasing a drag, Alt+V, Ctrl+A, Ctrl+X).
 
+### Other changes
+
+- A project file can no longer set `selection.copy_on_release`, so a cloned repository cannot make a drag write the clipboard.
+
 ## 0.4.0
 
 Kept drafts, a cursor that follows the terminal's colours, and `focus` density with one line per gap of hidden work. Ctrl+D now always leaves (see Breaking changes).

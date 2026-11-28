@@ -127,6 +127,18 @@ describe("project-file classification (design D4)", () => {
     expect(projectRule(["keys", "global", "ctrl+q"])).toBe("allowed");
     expect(projectRule(["layout", "screen"])).toBe("allowed");
   });
+
+  test("Copy on release in a project file (run-time-and-cmd-keys): not allowed, so a cloned repository cannot make a drag write the clipboard", () => {
+    expect(projectRule(["selection", "copy_on_release"])).toEqual({ denied: expect.stringContaining("clipboard") });
+    const user = parseConfigText(`{ "selection": { "copy_on_release": false } }`, "/c.jsonc", { kind: "user" });
+    expect(user.problems).toEqual([]);
+    expect(user.sections.selection).toEqual({ copy_on_release: false });
+    const project = parseConfigText(`{ "selection": { "copy_on_release": true }, "glyphs": "ascii" }`, "/p.jsonc", { kind: "project" });
+    expect(project.problems.map((p) => p.path)).toEqual(["selection.copy_on_release"]);
+    expect(project.problems[0]!.message).toContain("is not allowed in a project file");
+    expect(project.sections.selection ?? {}).toEqual({});
+    expect(project.sections.glyphs).toEqual({ set: "ascii" });
+  });
 });
 
 describe("agents (tui-sessions' meaning)", () => {

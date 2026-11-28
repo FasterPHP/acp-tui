@@ -425,7 +425,7 @@ export const SECTIONS = {
     ],
   }),
   selection: z
-    .object({ copy_on_release: z.boolean().default(true).describe("Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C.") })
+    .object({ copy_on_release: z.boolean().default(true).describe("Releasing a drag copies the selection; with false the selection stays highlighted until it is copied with Ctrl+C. Read only from your own file, never from a project file.") })
     .prefault({})
     .describe("Selection behaviour."),
   prompt: z
@@ -645,7 +645,9 @@ export const PROJECT_FILE_RULES: { readonly [K in SectionName | "$schema"]: Proj
   terminals: { denied: "a project file cannot change what the terminal is trusted to draw (OSC 8 links, strikethrough)" },
   exit: "allowed",
   clipboard: { denied: "a project file cannot decide where copied text goes" },
-  selection: "allowed",
+  // A cloned repository must not make acp-tui write the clipboard on a drag the user meant only to
+  // select with (run-time-and-cmd-keys).
+  selection: { entries: { copy_on_release: { denied: "a project file cannot decide when copied text goes to the clipboard" } }, otherwise: "allowed" },
   prompt: { entries: { keep_drafts: { denied: "a project file cannot turn on keeping what you typed on disk" } }, otherwise: "allowed" },
   density: "allowed",
   interrupt: "allowed",
